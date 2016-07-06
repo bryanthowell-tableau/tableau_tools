@@ -13,7 +13,7 @@ from rest_xml_request import RestXmlRequest
 from published_content import Project, Workbook, Datasource
 
 
-class TableauRestApiServerConnection(TableauBase):
+class TableauRestApiConnection(TableauBase):
     # Defines a class that represents a RESTful connection to Tableau Server. Use full URL (http:// or https://)
     def __init__(self, server, username, password, site_content_url=""):
         super(self.__class__, self).__init__()

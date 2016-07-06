@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from dataextract import *
+from tableausdk import *
+from tableausdk.Extract import *
 from ..tableau_base import *
 
 

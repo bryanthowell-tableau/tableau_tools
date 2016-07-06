@@ -2,7 +2,7 @@ import json
 import urllib
 import xml.etree.ElementTree as ET
 
-from tableau_rest_api.tableau_rest_api_server_connection import *
+from tableau_rest_api.tableau_rest_api_connection import *
 
 
 class Tabcmd:

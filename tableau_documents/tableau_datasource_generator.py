@@ -154,8 +154,8 @@ class TableauDatasourceGenerator(TableauBase):
                     new_table_rel = self.create_table_relation(join_desc[u"db_table_name"],
                                                                join_desc[u"table_alias"])
                 elif join_desc[u"custom_sql"] is not None:
-                    new_table_rel = self.create_custom_sql_relation(join_desc[u'custom_sql',
-                                                                    join_desc[u'table_alias']])
+                    new_table_rel = self.create_custom_sql_relation(join_desc[u'custom_sql'],
+                                                                    join_desc[u'table_alias'])
                 r.append(new_table_rel)
                 prev_relation = r
 
@@ -200,9 +200,11 @@ class TableauDatasourceGenerator(TableauBase):
         internal_calc_name = self.create_random_calculation_name()
         self.add_column_alias(internal_calc_name, calculation_name, dimension_or_measure, discrete_or_continuous,
                               datatype, calculation)
+        # internal_calc_name allows you to create a filter on this
+        return internal_calc_name
 
     @staticmethod
-    def create_dimension_filter(column_name, values, include_or_exclude=u'include'):
+    def create_dimension_filter(column_name, values, include_or_exclude=u'include', custom_value_list=False):
         # Check if column_name is actually the alias of a calc, if so, replace with the random internal calc name
 
         if include_or_exclude.lower() in [u'include', u'exclude']:
@@ -216,16 +218,18 @@ class TableauDatasourceGenerator(TableauBase):
                      u"type": u'categorical',
                      u'column_name': u'[{}]'.format(column_name),
                      u"values": values,
-                     u'ui-enumeration': ui_enumeration
+                     u'ui-enumeration': ui_enumeration,
+                     u'ui-manual-selection': custom_value_list
                     }
         return ds_filter
 
-    def add_dimension_datasource_filter(self, column_name, values, include_or_exclude=u'include'):
-        ds_filter = self.create_dimension_filter(column_name, values, include_or_exclude)
+    def add_dimension_datasource_filter(self, column_name, values, include_or_exclude=u'include',
+                                        custom_value_list=False):
+        ds_filter = self.create_dimension_filter(column_name, values, include_or_exclude, custom_value_list)
         self.datasource_filters.append(ds_filter)
 
-    def add_dimension_extract_filter(self, column_name, values, include_or_exclude=u'include'):
-        ds_filter = self.create_dimension_filter(column_name, values, include_or_exclude)
+    def add_dimension_extract_filter(self, column_name, values, include_or_exclude=u'include', custom_value_list=False):
+        ds_filter = self.create_dimension_filter(column_name, values, include_or_exclude, custom_value_list)
         self.extract_filters.append(ds_filter)
 
     def add_continuous_datasource_filter(self, column_name, min_value=None, max_value=None, date=False):
@@ -342,21 +346,34 @@ class TableauDatasourceGenerator(TableauBase):
 
             elif filter_def[u'type'] == u'categorical':
                 gf = etree.Element(u'groupfilter')
-                gf.set(u'level', filter_def[u'column_name'])
                 # This attribute has a user namespace
                 gf.set(u'{' + u'{}'.format(self.nsmap[u'user']) + u'}ui-domain', u'database')
                 gf.set(u'{' + u'{}'.format(self.nsmap[u'user']) + u'}ui-enumeration', filter_def[u'ui-enumeration'])
                 gf.set(u'{' + u'{}'.format(self.nsmap[u'user']) + u'}ui-marker', u'enumerate')
+                if filter_def[u'ui-manual-selection'] is True:
+                    gf.set(u'{' + u'{}'.format(self.nsmap[u'user']) + u'}ui-manual-selection', u'true')
                 if len(filter_def[u'values']) == 1:
                     if filter_def[u'ui-enumeration'] == u'exclusive':
                         gf.set(u'function', u'except')
+                        gf1 = etree.Element(u'groupfilter')
+                        gf1.set(u'function', u'member')
+                        gf1.set(u'level', filter_def[u'column_name'])
                     else:
-                        gf.set(u'function', u'union')
+                        gf.set(u'function', u'member')
+                        gf.set(u'level', filter_def[u'column_name'])
+                        gf1 = gf
                     # strings need the &quot;, ints do not
                     if isinstance(filter_def[u'values'][0], basestring):
-                        gf.set(u'member', quoteattr(filter_def[u'values'][0]))
+                        gf1.set(u'member', quoteattr(filter_def[u'values'][0]))
                     else:
-                        gf.set(u'member', unicode(filter_def[u'values'][0]))
+                        gf1.set(u'member', unicode(filter_def[u'values'][0]))
+                    if filter_def[u'ui-enumeration'] == u'exclusive':
+                        # Single exclude filters include an extra groupfilter set with level-members function
+                        lm = etree.Element(u'groupfilter')
+                        lm.set(u'function', u'level-members')
+                        lm.set(u'level', filter_def[u'column_name'])
+                        gf.append(lm)
+                        gf.append(gf1)
                     f.append(gf)
                 else:
                     if filter_def[u'ui-enumeration'] == u'exclusive':
@@ -484,13 +501,28 @@ class TableauDatasourceGenerator(TableauBase):
             # Any column in the extract filters needs to exist in the TDE file itself
             if len(self.extract_filters) > 0:
                 for f in self.extract_filters:
+                    # Check to see if column_name is actually an instance
                     field_name = f[u'column_name']
+                    for col_instance in self.column_instances:
+                        if field_name == col_instance[u'name']:
+                            field_name = col_instance[u'column']
                     # Simple heuristic for determining type from the first value in the values array
-                    first_value = f[u'values'][0]
-                    if isinstance(first_value, basestring):
-                        filter_column_tableau_type = 'str'
+                    if f[u'type'] == u'categorical':
+                        first_value = f[u'values'][0]
+                        if isinstance(first_value, basestring):
+                            filter_column_tableau_type = 'str'
+                        else:
+                            filter_column_tableau_type = 'int'
+                    elif f[u'type'] == u'relative-date':
+                        filter_column_tableau_type = 'datetime'
+                    elif f[u'type'] == u'quantitative':
+                        # Time values passed in with strings
+                        if isinstance(f[u'max'], basestring) or isinstance(f[u'min'], basestring):
+                            filter_column_tableau_type = 'datetime'
+                        else:
+                            filter_column_tableau_type = 'int'
                     else:
-                        filter_column_tableau_type = 'int'
+                        raise InvalidOptionException('{} is not a valid type'.format(f[u'type']))
                     tde_columns[field_name[1:-1]] = filter_column_tableau_type
         else:
             tde_columns[u'Generic Field'] = 'str'

@@ -1,18 +1,18 @@
 import psycopg2.extensions
 
-from tableau_rest_api.tableau_rest_api_server_connection import *
+from tableau_rest_api.tableau_rest_api_connection import *
 
 psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
 psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
 
 conn = psycopg2.connect(host='', database='', user='', password='')
-logger = Logger('sabre.log')
+logger = Logger('log.log')
 
 username = ''
 password = ''
 server = 'http://127.0.0.1'
 
-t = TableauRestApiServerConnection(server, username, password, site_content_url='')
+t = TableauRestApiConnection(server, username, password, site_content_url='')
 t.enable_logging(logger)
 t.signin()
 
