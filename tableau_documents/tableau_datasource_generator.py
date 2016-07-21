@@ -1,12 +1,11 @@
 import datetime
 from xml.sax.saxutils import quoteattr
 
-from dataextract import *
-
 from ..tableau_base import *
 from ..tableau_exceptions import *
 from tde_file_generator import TDEFileGenerator
 import zipfile
+import os
 
 
 class TableauDatasourceGenerator(TableauBase):
@@ -319,9 +318,10 @@ class TableauDatasourceGenerator(TableauBase):
         }
         return ds_filter
 
-    def generate_filters(self, filter_array, element_to_append_to):
+    def generate_filters(self, filter_array):
         if len(filter_array) == 0:
             return False
+        filter_array = []
         for filter_def in filter_array:
             f = etree.Element(u'filter')
             f.set(u'class', filter_def[u'type'])
@@ -391,12 +391,15 @@ class TableauDatasourceGenerator(TableauBase):
                             gf1.set(u'member', unicode(val))
                         gf.append(gf1)
                     f.append(gf)
-            element_to_append_to.append(f)
+            filter_array.append(f)
+        return filter_array
 
     def generate_datasource_filters_section(self):
         if len(self.datasource_filters) == 0:
             return False
-        self.generate_filters(self.datasource_filters, self.ds_xml)
+        filters = self.generate_filters(self.datasource_filters)
+        for f in filters:
+            self.ds_xml.append(f)
 
     def generate_cols_map_section(self):
         if len(self.column_mapping) == 0:
@@ -453,8 +456,10 @@ class TableauDatasourceGenerator(TableauBase):
     def generate_extract_section(self):
         # Short circuit if no extract had been set
         if self.tde_filename is None:
+            self.log('No tde_filename, no extract being added')
             return False
 
+        self.log(u'Building the extract Element object')
         e = etree.Element(u'extract')
         e.set(u'count', u'-1')
         e.set(u'enabled', u'true')
@@ -495,9 +500,11 @@ class TableauDatasourceGenerator(TableauBase):
         e.append(c)
 
         tde_columns = {}
-        if len(self.extract_filters) != 0:
-
-            self.generate_filters(self.extract_filters, e)
+        self.log(u'Creating the extract filters')
+        if len(self.extract_filters) > 0:
+            filters = self.generate_filters(self.extract_filters)
+            for f in filters:
+                e.append(f)
             # Any column in the extract filters needs to exist in the TDE file itself
             if len(self.extract_filters) > 0:
                 for f in self.extract_filters:
@@ -525,13 +532,14 @@ class TableauDatasourceGenerator(TableauBase):
                         raise InvalidOptionException('{} is not a valid type'.format(f[u'type']))
                     tde_columns[field_name[1:-1]] = filter_column_tableau_type
         else:
+            self.log(u'Creating TDE with only one field, "Generic Field", of string type')
             tde_columns[u'Generic Field'] = 'str'
 
+        self.log(u'Using the Extract SDK to build an empty extract file with the right definition')
         tde_file_generator = TDEFileGenerator(self.logger)
         tde_file_generator.set_table_definition(tde_columns)
         tde_file_generator.create_tde(self.tde_filename)
-        self.ds_xml.append(e)
-        return True
+        return e
 
     def get_xml_string(self):
         self.generate_relation_section()
@@ -539,7 +547,10 @@ class TableauDatasourceGenerator(TableauBase):
         self.generate_aliases_column_section()
         self.generate_column_instances_section()
         self.generate_datasource_filters_section()
-        self.generate_extract_section()
+        # Create extract section if an extract has been set
+        e = self.generate_extract_section()
+        if e is not False:
+            self.ds_xml.append(e)
 
         xmlstring = etree.tostring(self.ds_xml, pretty_print=True, xml_declaration=True, encoding='utf-8')
         self.log(xmlstring)

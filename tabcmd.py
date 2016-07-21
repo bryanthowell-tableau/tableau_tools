@@ -3,6 +3,8 @@ import urllib
 import xml.etree.ElementTree as ET
 
 from tableau_rest_api.tableau_rest_api_connection import *
+from tableau_tools.tableau_repository import *
+from tableau_tools.tableau_http import *
 
 
 class Tabcmd:
@@ -31,15 +33,15 @@ class Tabcmd:
         self.export_type = None
 
         # Go ahead and prep for any subsequent calls
-        self.create_tabcmd_admin_session()
+        self._create_tabcmd_admin_session()
     #
     # Wrapper commands for Tabcmd command line actions
     #
 
-    def get_directory_cmd(self):
+    def build_directory_cmd(self):
         return 'cd "{}" '.format(self.tabcmd_folder)
 
-    def get_login_cmd(self, pw_filename):
+    def build_login_cmd(self, pw_filename):
 
         pw_file = open(pw_filename, 'w')
         pw_file.write(self.password)
@@ -53,7 +55,7 @@ class Tabcmd:
 
         return cmd
 
-    def get_export_cmd(self, export_type, filename, view_url, view_filter_map=None, refresh=False):
+    def build_export_cmd(self, export_type, filename, view_url, view_filter_map=None, refresh=False):
         # view_filter_map allows for passing URL filters or parameters
         if export_type.lower() not in ['pdf', 'csv', 'png', 'fullpdf']:
             raise Exception(msg='Should be pdf fullpdf csv or png')
@@ -74,15 +76,44 @@ class Tabcmd:
 
         return cmd
 
+    @staticmethod
+    def build_refreshextracts_cmd(project, workbook_or_datasource, content_pretty_name,
+                                incremental=False, workbook_url_name=None):
+        project_cmd = '--project "{}"'.format(project)
+        if project.lower() == u'default':
+            project_cmd = ''
+
+        inc_cmd = ''
+        if incremental is True:
+            inc_cmd = '--incremental'
+
+        if workbook_url_name is not None:
+            content_cmd = '--url {}'.format(workbook_url_name)
+        else:
+            if workbook_or_datasource.lower() == 'workbook':
+                content_cmd = '--workbook "{}"'.format(content_pretty_name)
+            elif workbook_or_datasource.lower() == 'datasource':
+                content_cmd = '--datasource "{}"'.format(content_pretty_name)
+            else:
+                raise InvalidOptionException('workbook_or_datasource must be either workbook or datasource')
+
+        cmd = 'tabcmd refreshextracts {} {} {}'.format(project_cmd, content_cmd, inc_cmd)
+        return cmd
+
+    @staticmethod
+    def build_runschedule_cmd(schedule_name):
+        cmd = 'tabcmd runschedule "{}"'.format(schedule_name)
+        return cmd
+
     #
     # Methods for Creating TabCmd Session for the appropriate user
     #
 
-    def create_tabcmd_admin_session(self):
+    def _create_tabcmd_admin_session(self):
         # Create a password file so the password doesn't run in the logs / command line
         pw_filename = self.tabcmd_folder + 'dorwsasp.txt'
-        login_cmds = self.get_login_cmd(pw_filename)
-        directory_cmd = self.get_directory_cmd()
+        login_cmds = self.build_login_cmd(pw_filename)
+        directory_cmd = self.build_directory_cmd()
         temp_bat = open('login.bat', 'w')
 
         temp_bat.write(directory_cmd + "\n")
@@ -94,8 +125,8 @@ class Tabcmd:
         # Kill the password file as soon as it has run.
         os.remove(pw_filename)
 
-    def set_tabcmd_auth_info_from_repository_for_impersonation(self, username_to_impersonate):
-
+    def _set_tabcmd_auth_info_from_repository_for_impersonation(self, username_to_impersonate):
+        # After you create a session, you must query the repository to retrieve the auth_token from it
         repository = TableauRepository(self.tableau_server_url, self.repository_pw)
         cur = repository.query_sessions(username_to_impersonate)
 
@@ -111,7 +142,10 @@ class Tabcmd:
         else:
             raise NoResultsException('There were no sessions found for the username {}'.format(username_to_impersonate))
 
-    def configure_tabcmd_config_for_user_session(self, user):
+    def _configure_tabcmd_config_for_user_session(self, user):
+        # tabcmd keeps a session history, stored within its XML configuration file.
+        # Rather than logging into tabcmd again, once there is a session history, we simply substitute in the
+        # impersonated user's info directly into the XML.
         xml_tree = ET.parse(self.tabcmd_config_location + self.tabcmd_config_filename)
         root = xml_tree.getroot()
 
@@ -133,12 +167,15 @@ class Tabcmd:
                        xml_declaration=True, default_namespace=None
                        )
 
-    def create_session_and_configure_tabcmd_for_user(self, user, view_location):
-        self.get_trusted_ticket_for_user(user)
-        self.redeem_trusted_ticket(view_location)
-        self.set_tabcmd_auth_info_from_repository_for_impersonation(user)
-        self.configure_tabcmd_config_for_user_session(user)
+    def _create_session_and_configure_tabcmd_for_user(self, user, view_location):
+        tabhttp = TableauHTTP(self.tableau_server_url)
+        tabhttp.create_trusted_ticket_session(view_location, user, site=self.site)
+        self._set_tabcmd_auth_info_from_repository_for_impersonation(user)
+        self._configure_tabcmd_config_for_user_session(user)
 
+    #
+    # Methods to use
+    #
     def create_export(self, export_type, view_location, view_filter_map=None, user_to_impersonate=None,
                       filename='tableau_workbook'):
         if self.export_type is not None:
@@ -147,16 +184,16 @@ class Tabcmd:
             raise Exception(msg='Options are pdf fullpdf csv or png')
         #
         if user_to_impersonate is not None:
-            self.create_session_and_configure_tabcmd_for_user(user_to_impersonate, view_location)
+            self._create_session_and_configure_tabcmd_for_user(user_to_impersonate, view_location)
 
-        directory_cmd = self.get_directory_cmd()
+        directory_cmd = self.build_directory_cmd()
         # fullpdf still ends with pdf
         if export_type.lower() == 'fullpdf':
             saved_filename = '{}.{}'.format(filename, 'pdf')
         else:
             saved_filename = '{}.{}'.format(filename, export_type.lower())
 
-        export_cmds = self.get_export_cmd(export_type, saved_filename, view_location, view_filter_map)
+        export_cmds = self.build_export_cmd(export_type, saved_filename, view_location, view_filter_map)
 
         temp_bat = open('export.bat', 'w')
 
@@ -168,3 +205,24 @@ class Tabcmd:
         os.remove("export.bat")
         full_file_location = self.tabcmd_folder + saved_filename
         return full_file_location
+
+    def trigger_extract_refresh(self, project, workbook_or_datasource, content_pretty_name, incremental=False,
+                                workbook_url_name=None):
+        refresh_cmd = self.build_refreshextracts_cmd(project, workbook_or_datasource, content_pretty_name, incremental,
+                                                     workbook_url_name=workbook_url_name)
+        temp_bat = open('refresh.bat', 'w')
+        temp_bat.write(refresh_cmd + "\n")
+        temp_bat.close()
+
+        os.system("refresh.bat")
+        os.remove("refresh.bat")
+
+    def trigger_schedule_run(self, schedule_name):
+        cmd = self.build_runschedule_cmd(schedule_name)
+
+        temp_bat = open('runschedule.bat', 'w')
+        temp_bat.write(cmd + "\n")
+        temp_bat.close()
+
+        os.system("runschedule.bat")
+        os.remove("runschedule.bat")

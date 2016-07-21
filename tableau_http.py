@@ -20,6 +20,8 @@ class TableauHTTP:
             ticket = trusted_ticket_response.read()
             if ticket == '-1' or not ticket:
                 raise NoResultsException('Ticket generation was not complete.')
+            else:
+                return ticket
         except urllib2.HTTPError as e:
             if e.code >= 500:
                 raise

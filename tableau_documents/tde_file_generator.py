@@ -29,8 +29,8 @@ class TDEFileGenerator(TableauBase):
                                 'date': Type.DATE
                                 }
 
-        self.tde_object = None
         self.table_definition = None
+        self.tde_object = None
 
     @staticmethod
     def set_date(row, col_num, value):

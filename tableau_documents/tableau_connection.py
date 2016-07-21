@@ -72,6 +72,62 @@ class TableauConnection(TableauBase):
         self.xml_obj.attrib["sslmode"] = value
 
 
+# Represents the actual Connection tag of a given datasource
+class TableauConnection2(TableauBase):
+    def __init__(self, connection_xml_obj, logger_obj=None):
+        self.logger = logger_obj
+        # Building from a <connection> tag
+        self.xml_obj = connection_xml_obj
+
+    def set_dbname(self, new_db_name):
+        if self.xml_obj.get("dbname") is not None:
+            self.xml_obj.attrib["dbname"] = new_db_name
+
+    def get_dbname(self):
+        return self.xml_obj.get("dbname")
+
+    def set_server(self, new_server):
+        if self.xml_obj.get("server") is not None:
+            self.xml_obj.attrib["server"] = new_server
+
+    def get_server(self):
+        return self.xml_obj.get("server")
+
+    def set_username(self, new_username):
+        if self.xml_obj.get("username") is not None:
+            self.xml_obj.attrib["username"] = new_username
+
+    def set_port(self, new_port):
+        if self.xml_obj.get("port") is not None:
+            self.xml_obj.attrib["port"] = new_port
+
+    def get_port(self):
+        return self.xml_obj.get("port")
+
+    def get_connection_type(self):
+        return self.xml_obj.get('class')
+
+    def set_connection_type(self, new_type):
+        if self.xml_obj.get("class") is not None:
+            self.xml_obj.attrib["class"] = new_type
+
+    def is_published_datasource(self):
+        if self.xml_obj.get("class") == 'sqlproxy':
+            return True
+        else:
+            return False
+
+    def is_windows_auth(self):
+        if self.xml_obj.get("authentication") is not None:
+            if self.xml_obj.get("authentication") == 'sspi':
+                return True
+            else:
+                return False
+
+    def set_sslmode(self, value='require'):
+        self.xml_obj.attrib["sslmode"] = value
+
+
 # Represents the repository-location tag present in a published datasource in a workbook
 class TableauRepositoryLocation(TableauBase):
     def __init__(self, tag_line, logger_obj=None):

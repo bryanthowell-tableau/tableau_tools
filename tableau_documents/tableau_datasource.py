@@ -1,8 +1,12 @@
 from ..tableau_base import TableauBase
-from tableau_connection import TableauConnection, TableauRepositoryLocation
+from tableau_connection import TableauConnection, TableauConnection2, TableauRepositoryLocation
 from tableau_document import TableauColumns
+from tableau_datasource_generator import TableauDatasourceGenerator
 from StringIO import StringIO
 from lxml import etree
+from ..tableau_exceptions import *
+import zipfile
+import os
 
 
 # Meant to represent a TDS file, does not handle the file opening
@@ -148,3 +152,73 @@ class TableauDatasource(TableauBase):
         self.start_log_block()
         self.repository_location.set_site(new_site_content_url)
         self.end_log_block()
+
+
+class TableauDatasource2(TableauBase):
+    def __init__(self, datasource_string, logger_obj=None):
+        self.logger = logger_obj
+        self.log(u'Itsa me, a TableauDatasource2 object')
+        self.original_xml_string = datasource_string
+        utf8_parser = etree.XMLParser(encoding='utf-8')
+        self.xml = etree.parse(StringIO(datasource_string), parser=utf8_parser)
+        connection_xml_obj = self.xml.getroot().find(u'connection')
+        self.log(u'connection tags found, building a TableauConnection2 object')
+        self.connection = TableauConnection2(connection_xml_obj)
+        self.tde_filename = None
+        self.generated_ds = TableauDatasourceGenerator(self.connection.get_connection_type(),
+                                                       self.xml.getroot().get('formatted-name'),
+                                                       self.connection.get_server(),
+                                                       self.connection.get_dbname(),
+                                                       self.logger,
+                                                       authentication=u'username-password', initial_sql=None)
+
+    def add_extract(self, new_extract_filename):
+        self.log(u'add_extract called, chicking if extract exists already')
+        # Test to see if extract exists already
+        e = self.xml.getroot().find(u'extract')
+        self.log(u'Found the extract portion of the ')
+        if e is not None:
+            self.log("Existing extract found, no need to add")
+            raise AlreadyExistsException("An extract already exists, can't add a new one")
+        else:
+            self.log(u'Extract doesnt exist')
+            # Initial test case -- create a TDG object, then use to build the extract connection
+            self.tde_filename = new_extract_filename
+            self.log(u'Adding extract to the generated data source')
+            self.generated_ds.add_extract(self.tde_filename)
+            self.log(u'Generating the extract and XML object related to it')
+            extract_xml = self.generated_ds.generate_extract_section()
+            self.log(u'Appending the new extract XML to the existing XML')
+            self.xml.getroot().append(extract_xml)
+
+    def get_xml_string(self):
+        xmlstring = etree.tostring(self.xml, pretty_print=True, xml_declaration=True, encoding='utf-8')
+        self.log(xmlstring)
+        return xmlstring
+
+    def save_file(self, filename_no_extension, save_to_directory):
+        self.start_log_block()
+        file_extension = u'.tds'
+        if self.tde_filename is not None:
+            file_extension = u'.tdsx'
+        try:
+            tds_filename = filename_no_extension + u'.tds'
+            lh = open(save_to_directory + tds_filename, 'wb')
+            lh.write(self.get_xml_string())
+            lh.close()
+
+            if file_extension == u'.tdsx':
+                zf = zipfile.ZipFile(save_to_directory + filename_no_extension + u'.tdsx', 'w')
+                zf.write(save_to_directory + tds_filename, u'/{}'.format(tds_filename))
+                # Delete temporary TDS at some point
+                zf.write(self.tde_filename, u'/Data/Datasources/{}'.format(self.tde_filename))
+                zf.close()
+                # Remove the temp tde_file that is created
+                os.remove(self.tde_filename)
+        except IOError:
+            self.log(u"Error: File '{} cannot be opened to write to".format(filename_no_extension + file_extension))
+            self.end_log_block()
+            raise
+
+
+

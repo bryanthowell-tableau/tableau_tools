@@ -96,3 +96,5 @@ JOIN system_users su ON su.name = s.user_name
         else:
             cur = self.query(subscriptions_sql)
         return cur
+
+    # Set extract refresh schedules
