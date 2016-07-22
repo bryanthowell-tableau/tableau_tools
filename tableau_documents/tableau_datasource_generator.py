@@ -319,9 +319,7 @@ class TableauDatasourceGenerator(TableauBase):
         return ds_filter
 
     def generate_filters(self, filter_array):
-        if len(filter_array) == 0:
-            return False
-        filter_array = []
+        return_array = []
         for filter_def in filter_array:
             f = etree.Element(u'filter')
             f.set(u'class', filter_def[u'type'])
@@ -391,15 +389,15 @@ class TableauDatasourceGenerator(TableauBase):
                             gf1.set(u'member', unicode(val))
                         gf.append(gf1)
                     f.append(gf)
-            filter_array.append(f)
-        return filter_array
+            return_array.append(f)
+        return return_array
 
     def generate_datasource_filters_section(self):
-        if len(self.datasource_filters) == 0:
-            return False
         filters = self.generate_filters(self.datasource_filters)
+        filters_array = []
         for f in filters:
-            self.ds_xml.append(f)
+            filters_array.append(f)
+        return filters_array
 
     def generate_cols_map_section(self):
         if len(self.column_mapping) == 0:
@@ -412,13 +410,15 @@ class TableauDatasourceGenerator(TableauBase):
             c.append(m)
         self.ds_xml.append(c)
 
-    def generate_aliases_column_section(self):
-        if len(self.column_aliases) == 0:
-            return False
+    @staticmethod
+    def generate_aliases_tag():
         # For whatever reason, the aliases tag does not contain the columns, but it always precedes it
         a = etree.Element(u"aliases")
         a.set(u"enabled", u"yes")
-        self.ds_xml.append(a)
+        return a
+
+    def generate_aliases_column_section(self):
+        column_aliases_array = []
 
         # Now to put in each column tag
         for column_alias in self.column_aliases:
@@ -439,11 +439,11 @@ class TableauDatasourceGenerator(TableauBase):
                 # quoteattr adds an extra real set of quotes around the string, which needs to be sliced out
                 calc.set(u'formula', quoteattr(self.column_aliases[column_alias][u'calculation'])[1:-1])
                 c.append(calc)
-            self.ds_xml.append(c)
+            column_aliases_array.append(c)
+        return column_aliases_array
 
     def generate_column_instances_section(self):
-        if len(self.column_instances) == 0:
-            return False
+        column_instances_array = []
         for column_instance in self.column_instances:
             ci = etree.Element(u'column-instance')
             ci.set(u'column', column_instance[u'column'])
@@ -451,7 +451,8 @@ class TableauDatasourceGenerator(TableauBase):
             ci.set(u'name', column_instance[u'name'])
             ci.set(u'pivot', u'key')
             ci.set(u'type', column_instance[u'type'])
-            self.ds_xml.append(ci)
+            column_instances_array.append(ci)
+        return column_instances_array
 
     def generate_extract_section(self):
         # Short circuit if no extract had been set
@@ -544,12 +545,29 @@ class TableauDatasourceGenerator(TableauBase):
     def get_xml_string(self):
         self.generate_relation_section()
         self.generate_cols_map_section()
-        self.generate_aliases_column_section()
-        self.generate_column_instances_section()
-        self.generate_datasource_filters_section()
-        # Create extract section if an extract has been set
+
+        # Column Aliases
+        cas = self.generate_aliases_column_section()
+        # Need Aliases tag if there are any column tags
+        if len(cas) > 0:
+            self.ds_xml.append(self.generate_aliases_tag())
+        for c in cas:
+            self.log(u'Appending the column alias XML')
+            self.ds_xml.append(c)
+        # Column Instances
+        cis = self.generate_column_instances_section()
+        for ci in cis:
+            self.log(u'Appending the column-instances XML')
+            self.ds_xml.append(ci)
+        # Data Source Filters
+        dsf = self.generate_datasource_filters_section()
+        for f in dsf:
+            self.log(u'Appending the datasource filters XML')
+            self.ds_xml.append(f)
+        # Extract
         e = self.generate_extract_section()
         if e is not False:
+            self.log(u'Appending the extract XML')
             self.ds_xml.append(e)
 
         xmlstring = etree.tostring(self.ds_xml, pretty_print=True, xml_declaration=True, encoding='utf-8')

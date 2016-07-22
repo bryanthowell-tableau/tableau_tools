@@ -1,5 +1,5 @@
 from ..tableau_base import TableauBase
-from tableau_connection import TableauConnection, TableauConnection2, TableauRepositoryLocation
+from tableau_connection import TableauConnection, TableauRepositoryLocation
 from tableau_document import TableauColumns
 from tableau_datasource_generator import TableauDatasourceGenerator
 from StringIO import StringIO
@@ -11,150 +11,6 @@ import os
 
 # Meant to represent a TDS file, does not handle the file opening
 class TableauDatasource(TableauBase):
-    def __init__(self, datasource_string, logger_obj=None, translation_on=False):
-        self.logger = logger_obj
-        self.log(u'Initializing a TableauDatasource object')
-        self.ds = StringIO(datasource_string)
-        self.start_xml = ""
-        self.end_xml = ""
-        self.middle_xml = ""
-        self.columns_xml = ""
-        self.ds_name = None
-        self.connection = None
-        self.columns_obj = None
-        self.translate_flag = False
-        self.repository_location = None
-
-        # Find connection line and build TableauConnection object
-        start_flag = True
-        columns_flag = False
-        aliases_flag = False
-        for line in self.ds:
-            # Grab the caption if coming from
-            if line.find('<datasource ') != -1:
-                # Complete the tag so XML can be parsed
-                ds_tag = line + '</datasource>'
-                utf8_parser = etree.XMLParser(encoding='utf-8')
-                xml = etree.parse(StringIO(ds_tag), parser=utf8_parser)
-                xml_obj = xml.getroot()
-                if xml_obj.get("caption"):
-                    self.ds_name = xml_obj.attrib["caption"]
-                elif xml_obj.get("name"):
-                    self.ds_name = xml_obj.attrib['name']
-
-                if start_flag is True:
-                    self.start_xml += line
-                elif start_flag is False:
-                    self.end_xml += line
-            elif line.find('<repository-location ') != -1 and start_flag is True:
-                self.log(u'Creating a TableauRepositoryLocation object')
-                self.repository_location = TableauRepositoryLocation(line, self.logger)
-                self.log(u"This is the repository location line:")
-                self.log(line)
-                continue
-
-            elif line.find('<connection ') != -1 and start_flag is True:
-                self.log(u'Creating a TableauConnection object')
-                self.connection = TableauConnection(line)
-                self.log(u"This is the connection line:")
-                self.log(line)
-                start_flag = False
-                continue
-            else:
-                # For columns object creation, the start at the first <column> and end after last </column>
-                if line.find(u"<aliases enabled='yes' />") != -1:
-                    aliases_flag = True
-                    self.middle_xml += line
-                    continue
-                if aliases_flag is True:
-                    if columns_flag is False and line.find('<column') != -1:
-                        columns_flag = True
-                    # columns can have calculation tags inside that defind a calc
-                    if columns_flag is True and line.find('column-instance') != -1:
-                        columns_flag = False
-                    elif columns_flag is True and line.find('group') != -1:
-                        columns_flag = False
-                    elif columns_flag is True and line.find('layout') != -1:
-                        columns_flag = False
-                    if columns_flag is True:
-                        self.columns_xml += line
-                    elif start_flag is False and columns_flag is False:
-                        self.end_xml += line
-                elif start_flag is True:
-                    self.start_xml += line
-                elif start_flag is False and aliases_flag is False:
-                    self.middle_xml += line
-                elif start_flag is False and aliases_flag is True:
-                    self.end_xml += line
-
-        if self.columns_xml != "":
-            self.log(u'Creating a TableauColumns object')
-            self.log(self.columns_xml)
-            self.columns_obj = TableauColumns(self.columns_xml, self.logger)
-
-    def get_datasource_name(self):
-        self.start_log_block()
-        name = self.ds_name
-        self.end_log_block()
-        return name
-
-    def get_datasource_xml(self):
-        self.start_log_block()
-        xml = self.start_xml
-        # Parameters datasource section does not have a connection tag
-        if self.repository_location is not None:
-            xml += self.repository_location.get_xml_string() + "\n"
-        if self.connection is not None:
-            xml += self.connection.get_xml_string()
-        xml += self.middle_xml
-        if self.translate_flag is True:
-            xml += self.columns_obj.get_xml_string()
-        else:
-            xml += self.columns_xml
-        xml += self.end_xml
-        self.end_log_block()
-        return xml
-
-    def save_datasource_xml(self, filename):
-        self.start_log_block()
-        try:
-            lh = open(filename, 'wb')
-            lh.write(self.get_datasource_xml())
-            lh.close()
-            self.end_log_block()
-        except IOError:
-            self.log(u"Error: File '{}' cannot be opened to write to".format(filename))
-            self.end_log_block()
-            raise
-
-    def get_columns_obj(self):
-        self.start_log_block()
-        cols = self.columns_obj
-        self.end_log_block()
-        return cols
-
-    def translate_columns(self, translation_dict):
-        self.start_log_block()
-        self.columns_obj.set_translation_dict(translation_dict)
-        self.columns_obj.translate_captions()
-        self.translate_flag = True
-        xml = self.columns_obj.get_xml_string()
-        self.end_log_block()
-        return xml
-
-    def is_published_ds(self):
-        if self.repository_location is not None:
-            return True
-        else:
-            return False
-
-    def set_published_datasource_site(self, new_site_content_url):
-        self.start_log_block()
-        self.repository_location.set_site(new_site_content_url)
-        self.end_log_block()
-
-
-class TableauDatasource2(TableauBase):
     def __init__(self, datasource_string, logger_obj=None):
         self.logger = logger_obj
         self.log(u'Itsa me, a TableauDatasource2 object')
@@ -162,15 +18,35 @@ class TableauDatasource2(TableauBase):
         utf8_parser = etree.XMLParser(encoding='utf-8')
         self.xml = etree.parse(StringIO(datasource_string), parser=utf8_parser)
         connection_xml_obj = self.xml.getroot().find(u'connection')
-        self.log(u'connection tags found, building a TableauConnection2 object')
-        self.connection = TableauConnection2(connection_xml_obj)
+        self.log(u'connection tags found, building a TableauConnection object')
+        self.connection = TableauConnection(connection_xml_obj)
+        if self.xml.getroot().get("caption"):
+            self.ds_name = self.xml.getroot().attrib["caption"]
+        elif self.xml.getroot().get("name"):
+            self.ds_name = self.xml.getroot().attrib['name']
+        self.repository_location = None
+        if self.xml.getroot().find(u'repository-location'):
+            repository_location_xml = self.xml.getroot().find(u'repository-location')
+            self.repository_location = TableauRepositoryLocation(repository_location_xml, self.logger)
+
+        self.columns = None
+        # Possible, though unlikely, that there would be no columns
+        if self.xml.getroot().find(u'column') is not None:
+            columns_list = self.xml.getroot().findall(u'column')
+            self.columns = TableauColumns(columns_list, self.logger)
         self.tde_filename = None
-        self.generated_ds = TableauDatasourceGenerator(self.connection.get_connection_type(),
+        self.ds_generator = TableauDatasourceGenerator(self.connection.get_connection_type(),
                                                        self.xml.getroot().get('formatted-name'),
                                                        self.connection.get_server(),
                                                        self.connection.get_dbname(),
                                                        self.logger,
                                                        authentication=u'username-password', initial_sql=None)
+
+    def get_datasource_name(self):
+        self.start_log_block()
+        name = self.ds_name
+        self.end_log_block()
+        return name
 
     def add_extract(self, new_extract_filename):
         self.log(u'add_extract called, chicking if extract exists already')
@@ -185,13 +61,38 @@ class TableauDatasource2(TableauBase):
             # Initial test case -- create a TDG object, then use to build the extract connection
             self.tde_filename = new_extract_filename
             self.log(u'Adding extract to the generated data source')
-            self.generated_ds.add_extract(self.tde_filename)
+            self.ds_generator.add_extract(self.tde_filename)
+
+    def get_datasource_xml(self):
+        # Run through and generate any new sections to be added from the datasource_generator
+
+        # Column Mappings
+
+        # Column Aliases
+        cas = self.ds_generator.generate_aliases_column_section()
+        # If there is no existing aliases tag, gotta add one. Unlikely but safety first
+        if len(cas) > 0 and self.xml.getroot().find('aliases') is False:
+            self.xml.append(self.ds_generator.generate_aliases_tag())
+        for c in cas:
+            self.log(u'Appending the column alias XML')
+            self.xml.getroot().append(c)
+        # Column Instances
+        cis = self.ds_generator.generate_column_instances_section()
+        for ci in cis:
+            self.log(u'Appending the column-instances XML')
+            self.xml.append(ci)
+        # Datasource Filters
+        dsf = self.ds_generator.generate_datasource_filters_section()
+        self.log(u'Appending the ds filters to existing XML')
+        for f in dsf:
+            self.xml.getroot().append(f)
+        # Extracts
+        if self.tde_filename is not None:
             self.log(u'Generating the extract and XML object related to it')
-            extract_xml = self.generated_ds.generate_extract_section()
+            extract_xml = self.ds_generator.generate_extract_section()
             self.log(u'Appending the new extract XML to the existing XML')
             self.xml.getroot().append(extract_xml)
 
-    def get_xml_string(self):
         xmlstring = etree.tostring(self.xml, pretty_print=True, xml_declaration=True, encoding='utf-8')
         self.log(xmlstring)
         return xmlstring
@@ -204,7 +105,7 @@ class TableauDatasource2(TableauBase):
         try:
             tds_filename = filename_no_extension + u'.tds'
             lh = open(save_to_directory + tds_filename, 'wb')
-            lh.write(self.get_xml_string())
+            lh.write(self.get_datasource_xml())
             lh.close()
 
             if file_extension == u'.tdsx':
@@ -220,5 +121,25 @@ class TableauDatasource2(TableauBase):
             self.end_log_block()
             raise
 
+    def is_published_ds(self):
+        if self.repository_location is not None:
+            return True
+        else:
+            return False
 
+    def set_published_datasource_site(self, new_site_content_url):
+        self.start_log_block()
+        self.repository_location.set_site(new_site_content_url)
+        self.end_log_block()
 
+    def get_columns_obj(self):
+        self.start_log_block()
+        cols = self.columns
+        self.end_log_block()
+        return cols
+
+    def translate_columns(self, translation_dict):
+        self.start_log_block()
+        self.columns.set_translation_dict(translation_dict)
+        self.columns.translate_captions()
+        self.end_log_block()
