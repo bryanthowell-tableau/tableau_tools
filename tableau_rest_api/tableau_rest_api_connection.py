@@ -875,7 +875,7 @@ class TableauRestApiConnection(TableauBase):
     def query_workbooks_in_project_for_username(self, project_name_or_luid, username):
         self.start_log_block()
         if self.is_luid(project_name_or_luid):
-            project_luid = self.query_project_by_luid(project_name_or_luid)
+            project_luid = project_name_or_luid
         else:
             project_luid = self.query_project_luid_by_name(project_name_or_luid)
         workbooks = self.query_workbooks_by_username(username)
