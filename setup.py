@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='tableau_tools',
-    version='3.0.1',
+    version='3.1.0',
     install_requires=['lxml'],
     packages=['tableau_tools', 'tableau_tools.tableau_rest_api', 'tableau_tools.tableau_documents'],
     url='https://github.com/bryantbhowell/tableau_tools',

@@ -139,10 +139,40 @@ class TableauRestApiConnection(TableauBase):
             new_gcap_obj_list.append(new_gcap_obj)
         return new_gcap_obj_list
 
+    # Turns lxml that is returned when asking for permissions into a bunch of GranteeCapabilities objects
+    def convert_capabilities_xml_into_obj_list(self, lxml_obj, obj_type=None):
+        self.start_log_block()
+        obj_list = []
+
+        xml = lxml_obj.xpath(u'//t:granteeCapabilities', namespaces=self.ns_map)
+        if len(xml) == 0:
+            return []
+        else:
+            for gcaps in xml:
+                for tags in gcaps:
+                    # Namespace fun
+                    if tags.tag == u'{}group'.format(self.ns_prefix):
+                        luid = tags.get('id')
+                        gcap_obj = GranteeCapabilities(u'group', luid, obj_type)
+                        self.log(u'group {}'.format(luid))
+                    elif tags.tag == u'{}user'.format(self.ns_prefix):
+                        luid = tags.get('id')
+                        gcap_obj = GranteeCapabilities(u'user', luid, obj_type)
+                        self.log(u'user {}'.format(luid))
+                    elif tags.tag == u'{}capabilities'.format(self.ns_prefix):
+                        for caps in tags:
+                            self.log(caps.get('name') + ' : ' + caps.get('mode'))
+                            gcap_obj.set_capability(caps.get('name'), caps.get('mode'))
+                obj_list.append(gcap_obj)
+            self.log(u'Gcap object list has {} items'.format(unicode(len(obj_list))))
+            self.end_log_block()
+            return obj_list
+
     #
     # Factory methods for PublishedContent and GranteeCapabilities objects
     #
     def get_project_object_by_luid(self, luid):
+        self.log("Just checking if this is working")
         proj_obj = Project(luid, self, self.version, self.logger)
         return proj_obj
 
@@ -390,7 +420,7 @@ class TableauRestApiConnection(TableauBase):
     def query_datasources_in_project(self, project_name_or_luid):
         self.start_log_block()
         if self.is_luid(project_name_or_luid):
-            project_luid = self.query_project_by_luid(project_name_or_luid)
+            project_luid = project_name_or_luid
         else:
             project_luid = self.query_project_luid_by_name(project_name_or_luid)
         datasources = self.query_datasources()
@@ -398,6 +428,13 @@ class TableauRestApiConnection(TableauBase):
         ds_in_project = datasources.xpath(u'//t:project[@id="{}"]/..'.format(project_luid), namespaces=self.ns_map)
         self.end_log_block()
         return ds_in_project
+
+    def query_extract_datasources(self):
+        self.start_log_block()
+        datasources = self.query_datasources()
+        ds_with_extracts = datasources.xpath(u'//t:datasource[@type="sqlproxy"]', namespaces=self.ns_map)
+        self.end_log_block()
+        return ds_with_extracts
 
     def query_datasource_permissions_by_luid(self, luid):
         self.start_log_block()
@@ -637,7 +674,15 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return perms
 
-
+    def query_schedules(self):
+        self.start_log_block()
+        if self.api_version in [u"2.0", u"2.1"]:
+            raise InvalidOptionException("Query Schedules is only available in API version 2.2+")
+        else:
+            # Schedules are Server level, require the equivalent of a login URL
+            scheds = self.query_resource(u"schedules", login=True)
+            self.end_log_block()
+            return scheds
 
     #
     # End Project Querying Methods
@@ -1065,6 +1110,37 @@ class TableauRestApiConnection(TableauBase):
     #
 
     #
+    # Begin Subscription Querying Methods
+    #
+
+    def query_subscription_by_luid(self, subscription_luid):
+        self.start_log_block()
+        if self.api_version in [u"2.0", u"2.1", u"2.2"]:
+            raise InvalidOptionException(u"query_subscription is only available in Tableau Server 10.0+")
+        subscription = self.query_resource(u"subscriptions/{}".format(subscription_luid))
+        self.end_log_block()
+        return subscription
+
+    def query_subscriptions(self):
+        self.start_log_block()
+        if self.api_version in [u"2.0", u"2.1", u"2.2"]:
+            raise InvalidOptionException(u"query_subscriptions is only available in Tableau Server 10.0+")
+        subscriptions = self.query_resource(u'subscriptions')
+        self.end_log_block()
+        return subscriptions
+
+    # def query_subscriptions_by_subject(self, ):
+
+    # def query_subscriptions_by_user
+
+    # def query_subscriptions_by_schedule
+
+
+    #
+    # End Subscription Querying Methods
+    #
+
+    #
     # Start of download / save methods
     #
 
@@ -1404,6 +1480,17 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return update_response
 
+    def add_datasource_to_user_favorites_by_luid(self, favorite_name, datasource_luid, user_luid):
+        self.start_log_block()
+        if self.api_version not in [u'2.0', u'2.1', u'2.2']:
+            raise InvalidOptionException(u'Must use version 2.3 of API to add datasource to favorites')
+        request = u'<tsRequest><favorite label="{}"><view id="{}" />'.format(favorite_name, datasource_luid)
+        request += u'</favorite></tsRequest>'
+        url = self.build_api_url(u"favorites/{}".format(user_luid))
+        update_response = self.send_update_request(url, request)
+        self.end_log_block()
+        return update_response
+
     # Add dict { capability_name : capability_mode } 'Allow' or 'Deny'
     # Assumes group because you should be doing all your security by groups instead of individuals
     def add_permissions_by_luids(self, obj_type, obj_luid_s, luid_s, permissions_dict, luid_type='group'):
@@ -1456,10 +1543,77 @@ class TableauRestApiConnection(TableauBase):
 
     def add_default_permissions_to_project_by_gcap_obj_list(self, project_luid, obj_type, obj_luid_s, gcap_obj_list):
         if self.api_version == "2.0":
-            raise InvalidOptionException("Add Default Permissions is only available in API version 2.1 and higher")
+            raise InvalidOptionException(u"Add Default Permissions is only available in API version 2.1 and higher")
         if obj_type not in [u"datasource", u"workbook"]:
             raise InvalidOptionException(u'obj_type must be "workbook" or "datasource"')
         self.add_permissions_by_gcap_obj_list(obj_type, obj_luid_s, gcap_obj_list, default_proj_luid=project_luid)
+
+    def create_schedule(self, name, extract_or_subscription, frequency, parallel_or_serial, priority,
+                        start_time, end_time=None, interval_value=None, interval_hours_minutes=None ):
+        self.start_log_block()
+        if self.api_version in [u"2.0", u"2.1", u'2.2']:
+            raise InvalidOptionException(u"create_schedule only available in API version 2.3 and higher")
+        if extract_or_subscription not in [u'Extract', u'Subscription']:
+            raise InvalidOptionException(u"extract_or_subscription can only be 'Extract' or 'Subscription'")
+        if priority < 1 or priority > 100:
+            raise InvalidOptionException(u"priority must be an integer between 1 and 100")
+        if parallel_or_serial not in [u'Parallel', u'Serial']:
+            raise InvalidOptionException(u"parallel_or_serial must be 'Parallel' or 'Serial'")
+        if frequency not in [u'Hourly', u'Daily', u'Weekly', u'Monthly']:
+            raise InvalidOptionException(u"frequency must be 'Hourly', 'Daily', 'Weekly' or 'Monthly'")
+        request = u'<tsRequest>'
+        request += u'<schedule name="{}" '.format(name)
+        request += u'priority="{}" '.format(unicode(priority))
+        request += u'type="{}" '.format(extract_or_subscription)
+        request += u'frequency="{}" '.format(frequency)
+        request += u'executionOrder="{}">'.format(parallel_or_serial)
+        request += u'<frequencyDetails start="{}" '.format(start_time)
+        if end_time is not None:
+            request += u'end="" '.format(end_time)
+        request += u'>'
+        request += u'<intervals>'
+        # Daily does not need an interval value
+        if interval_value is not None:
+            request += u'<interval '
+            if frequency == u'Hourly':
+                if interval_hours_minutes is None:
+                    raise InvalidOptionException(u'Hourly frequency must set interval_hours_minutes to "hours" or "minutes"')
+                request += u'{}="{}" />'.format(interval_hours_minutes, unicode(interval_value))
+            if frequency == u'Weekly':
+                request += u'weekDay="{}" />'.format(unicode(interval_value))
+            if frequency == u'Monthly':
+                request += u'monthDay="{}"'.format(unicode(interval_value))
+        request += u'</intervals></frequencyDetails></schedule></tsRequest>'
+
+        # Schedule requests happen at the server rather than site level, like a login
+        url = self.build_api_url(u"schedules", login=True)
+        new_schedule = self.send_add_request(url, request)
+        new_schedule_luid = new_schedule.xpath(u'//t:schedule', namespaces=self.ns_map)[0].get("id")
+        self.end_log_block()
+        return new_schedule_luid
+
+    def create_subscription(self, subscription_subject, view_or_workbook, content_luid, schedule_luid, user_luid):
+        self.start_log_block()
+        if self.api_version in [u"2.0", u"2.1", u'2.2']:
+            raise InvalidOptionException(u"create_subscription only available in API version 2.3 and higher")
+        if view_or_workbook not in [u'View', u'Workbook']:
+            raise InvalidOptionException(u"view_or_workbook must be 'Workbook' or 'View'")
+        request = u"<tsRequest>"
+        request += u'<subscription subject="{}">'.format(subscription_subject)
+        request += u'<content type="{}" id="{}" />'.format(view_or_workbook, content_luid)
+        request += u'<schedule id="{}" />'.format(schedule_luid)
+        request += u'<user id="{}" />'.format(user_luid)
+        request += u"</subscription>"
+        request += u"</tsRequest>"
+
+        # URL is directly to the site
+        url = self.build_api_url()
+        url = url[:-1]
+        new_subscription = self.send_add_request(url, request)
+        new_subscription_luid = new_subscription.xpath(u'//t:subscription', namespaces=self.ns_map)[0].get("id")
+        self.end_log_block()
+        return new_subscription_luid
+
     #
     # End Add methods
     #
@@ -1735,6 +1889,25 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return response
 
+    def update_subscription_by_luid(self, subscription_luid, subject=None, schedule_luid=None):
+        if self.api_version in [u'2.0', u'2.1', u'2.2']:
+            raise InvalidOptionException(u"update_subscriptions is only available in API version 2.3+")
+        if subject is None and schedule_luid is None:
+            raise InvalidOptionException(u"You must pass one of subject or schedule_luid, or both")
+        request = u'<tsRequest>'
+        request += u'<subscripotion '
+        if subject is not None:
+            request += u'subject="{}" '.format(subject)
+        request += u'>'
+        if schedule_luid is not None:
+            request += u'<schedule id="{}" />'.format(schedule_luid)
+        request += u'</tsRequest>'
+
+        url = self.build_api_url(u"subscriptions/{}".format(subscription_luid))
+        response = self.send_update_request(url, request)
+        self.end_log_block()
+        return response
+
     # Creates a single XML block based on capabilities_dict that is passed in
     # Capabilities dict like { capName : 'Allow', capName : 'Deny'...}
 
@@ -1924,6 +2097,15 @@ class TableauRestApiConnection(TableauBase):
             self.send_delete_request(url)
         self.end_log_block()
 
+    def delete_datasources_from_user_favorites_by_luid(self, ds_luid_s, user_luid):
+        self.start_log_block()
+        ds_luids = self.to_list(ds_luid_s)
+        for ds_luid in ds_luids:
+            # Check if workbook_luid exists
+            url = self.build_api_url(u"favorites/{}/datasources/{}".format(user_luid, ds_luid))
+            self.send_delete_request(url)
+        self.end_log_block()
+
     # Can take collection or string user_luid string
     def remove_users_from_group_by_luid(self, user_luid_s, group_luid):
         """
@@ -2080,6 +2262,16 @@ class TableauRestApiConnection(TableauBase):
             deleted_count += self.send_delete_request(url)
         self.end_log_block()
         return deleted_count
+
+    def delete_subscriptions_by_luid(self, subscription_luid_s):
+        self.start_log_block()
+        subscription_luids = self.to_list(subscription_luid_s)
+        for subscription_luid in subscription_luids:
+            url = self.build_api_url(u"subscriptions/{}".format(subscription_luid))
+            self.send_delete_request(url)
+        self.end_log_block()
+
+
 
     #
     # End Delete Methods

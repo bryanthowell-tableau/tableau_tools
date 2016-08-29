@@ -9,13 +9,13 @@ from StringIO import StringIO
 class TableauBase(object):
     def __init__(self):
         # In reverse order to work down until the acceptable version is found on the server, through login process
-        self.supported_versions = (u"9.3", u"9.2", u"9.1", u"9.0")
+        self.supported_versions = (u"10.0", u"9.3", u"9.2", u"9.1", u"9.0")
         self.logger = None
         self.luid_pattern = r"[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*"
 
         # Defaults, will get updated with each update. Overwritten by set_tableau_server_version
-        self.version = u"9.3"
-        self.api_version = u"2.2"
+        self.version = u"10.0"
+        self.api_version = u"2.3"
         self.tableau_namespace = u'http://tableau.com/api'
         self.ns_map = {'t': 'http://tableau.com/api'}
         self.ns_prefix = '{' + self.ns_map['t'] + '}'
@@ -31,8 +31,7 @@ class TableauBase(object):
             u'ServerAdministrator'
         )
 
-        self.server_content_roles = {
-            u"2.0": {
+        server_content_roles_2_0 = {
                 u"project": (
                     u'Viewer',
                     u'Interactor',
@@ -51,24 +50,9 @@ class TableauBase(object):
                     u'Data Source Connector',
                     u'Data Source Editor'
                 )
-            },
-            u"2.1": {
-                u"project": (
-                    u'Viewer',
-                    u'Publisher',
-                    u'Project Leader'
-                ),
-                u"workbook": (
-                    u'Viewer',
-                    u'Interactor',
-                    u'Editor'
-                ),
-                u"datasource": (
-                    u'Editor',
-                    u'Connector'
-                )
-            },
-            u"2.2": {
+            }
+
+        server_content_roles_2_1 = {
                 u"project": (
                     u'Viewer',
                     u'Publisher',
@@ -84,6 +68,12 @@ class TableauBase(object):
                     u'Connector'
                 )
             }
+
+        self.server_content_roles = {
+            u"2.0": server_content_roles_2_0,
+            u"2.1": server_content_roles_2_1,
+            u"2.2": server_content_roles_2_1,
+            u"2.3": server_content_roles_2_1
         }
 
         self.server_to_rest_capability_map = {
@@ -106,8 +96,7 @@ class TableauBase(object):
             u'all': u'all'  # special command to do everything
         }
 
-        self.available_capabilities = {
-            u"2.0": {
+        capabilities_2_0 = {
                 u"project": (
                     u'AddComment',
                     u'ChangeHierarchy',
@@ -150,61 +139,42 @@ class TableauBase(object):
                     u'Read',
                     u'Write'
                 )
-            },
-            u"2.1": {
-                u"project": (u'ProjectLeader', u"Read", u"Write"),
+            }
+
+        capabilities_2_1 = {
+                u"project": (u"Read", u"Write", u'ProjectLeader'),
                 u"workbook": (
-                    u'AddComment',
-                    u'ChangeHierarchy',
-                    u'ChangePermissions',
-                    u'Delete',
-                    u'ExportData',
-                    u'ExportImage',
-                    u'ExportXml',
-                    u'Filter',
                     u'Read',
-                    u'ShareView',
+                    u'ExportImage',
+                    u'ExportData',
                     u'ViewComments',
+                    u'AddComment',
+                    u'Filter',
                     u'ViewUnderlyingData',
+                    u'ShareView',
                     u'WebAuthoring',
-                    u'Write'
+                    u'Write',
+                    u'ExportXml',
+                    u'ChangeHierarchy',
+                    u'Delete',
+                    u'ChangePermissions',
+
                 ),
                 u"datasource": (
-                    u'ChangePermissions',
+                    u'Read',
                     u'Connect',
-                    u'Delete',
+                    u'Write',
                     u'ExportXml',
-                    u'Read',
-                    u'Write'
-                )
-            },
-            u"2.2": {
-                u"project": (u'ProjectLeader', u"Read", u"Write"),
-                u"workbook": (
-                    u'AddComment',
-                    u'ChangeHierarchy',
-                    u'ChangePermissions',
                     u'Delete',
-                    u'ExportData',
-                    u'ExportImage',
-                    u'ExportXml',
-                    u'Filter',
-                    u'Read',
-                    u'ShareView',
-                    u'ViewComments',
-                    u'ViewUnderlyingData',
-                    u'WebAuthoring',
-                    u'Write'
-                ),
-                u"datasource": (
-                    u'ChangePermissions',
-                    u'Connect',
-                    u'Delete',
-                    u'ExportXml',
-                    u'Read',
-                    u'Write'
+                    u'ChangePermissions'
                 )
             }
+
+        self.available_capabilities = {
+            u"2.0": capabilities_2_0,
+            u"2.1": capabilities_2_1,
+            u"2.2": capabilities_2_1,
+            u'2.3': capabilities_2_1
         }
 
         self.datasource_class_map = {
@@ -260,11 +230,13 @@ class TableauBase(object):
         :type tableau_server_version: unicode
         """
         # API Versioning (starting in 9.2)
-        if unicode(tableau_server_version)in [u"9.2", u"9.3"]:
+        if unicode(tableau_server_version)in [u"9.2", u"9.3", u"10.0"]:
             if unicode(tableau_server_version) == u"9.2":
                 self.api_version = u"2.1"
             elif unicode(tableau_server_version) == u"9.3":
                 self.api_version = u"2.2"
+            elif unicode(tableau_server_version) == u'10.0':
+                self.api_version = u'2.3'
             self.tableau_namespace = u'http://tableau.com/api'
             self.ns_map = {'t': 'http://tableau.com/api'}
             self.version = tableau_server_version
@@ -437,7 +409,7 @@ class TableauBase(object):
 
     @staticmethod
     def are_capabilities_obj_dicts_identical(new_obj_dict, dest_obj_dict):
-        if cmp(new_obj_dict, dest_obj_dict):
+        if cmp(new_obj_dict, dest_obj_dict) == 0:
             return True
         else:
             return False
@@ -470,3 +442,4 @@ class TableauBase(object):
             xml += u'<capability name="{}" mode="{}" />'.format(cap, capabilities_dict[cap])
         xml += u'</capabilities>'
         return xml
+

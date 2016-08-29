@@ -23,34 +23,6 @@ class GranteeCapabilities(TableauBase):
                 if cap != u'all':
                     self.__capabilities[cap] = None
 
-    # Turns lxml that is returned when asking for permissions into a bunch of GranteeCapabilities objects
-    def convert_capabilities_xml_into_obj_list(self, lxml_obj, obj_type=None):
-        self.start_log_block()
-        obj_list = []
-        xml = lxml_obj.xpath(u'//t:granteeCapabilities', namespaces=self.ns_map)
-        if len(xml) == 0:
-            return []
-        else:
-            for gcaps in xml:
-                for tags in gcaps:
-                    # Namespace fun
-                    if tags.tag == u'{}group'.format(self.ns_prefix):
-                        luid = tags.get('id')
-                        gcap_obj = GranteeCapabilities(u'group', luid, obj_type)
-                        self.log(u'group {}'.format(luid))
-                    elif tags.tag == u'{}user'.format(self.ns_prefix):
-                        luid = tags.get('id')
-                        gcap_obj = GranteeCapabilities(u'user', luid, obj_type)
-                        self.log(u'user {}'.format(luid))
-                    elif tags.tag == u'{}capabilities'.format(self.ns_prefix):
-                        for caps in tags:
-                            self.log(caps.get('name') + ' : ' + caps.get('mode'))
-                            gcap_obj.set_capability(caps.get('name'), caps.get('mode'))
-                obj_list.append(gcap_obj)
-            self.log(u'Gcap object list has {} items'.format(unicode(len(obj_list))))
-            self.end_log_block()
-            return obj_list
-
     def set_capability(self, capability_name, mode):
         if capability_name not in self.__server_to_rest_capability_map.values():
             # If it's the Tableau UI naming, translate it over
@@ -99,9 +71,17 @@ class GranteeCapabilities(TableauBase):
             if cap != u'all':
                 self.__capabilities[cap] = u'Allow'
 
+    def set_all_to_unspecified(self):
+        for cap in self.__capabilities:
+            if cap != u'all':
+                self.__capabilities[cap] = None
+
     def set_capabilities_to_match_role(self, role):
         if role not in self.__role_map:
             raise InvalidOptionException(u'{} is not a recognized role'.format(role))
+
+        # Clear any previously set capabilities
+        self.__capabilities = {}
 
         role_set_91_and_earlier_all_types = {
             u'Publisher': {
@@ -155,108 +135,64 @@ class GranteeCapabilities(TableauBase):
             }
         }
 
+        role_set_92 = {
+            u"project": {
+                u"Viewer": {
+                    u'all': None,
+                    u"View": u"Allow"
+                },
+                u"Publisher": {
+                    u'all': None,
+                    u"View": u"Allow",
+                    u"Save": u"Allow"
+                },
+                u"Project Leader": {
+                    u'all': None,
+                    u"Project Leader": u"Allow"
+                }
+            },
+            u"workbook": {
+                u"Viewer": {
+                    u'all': None,
+                    u'View': u'Allow',
+                    u'Export Image': u'Allow',
+                    u'View Summary Data': u'Allow',
+                    u'View Comments': u'Allow',
+                    u'Add Comment': u'Allow'
+                },
+                u"Interactor": {
+                    u'all': True,
+                    u'Download': None,
+                    u'Move': None,
+                    u'Delete': None,
+                    u'Set Permissions': None,
+                    u'Save': None
+                },
+                u"Editor": {
+                    u'all': True
+                }
+            },
+            u"datasource": {
+                u"Connector": {
+                    u'all': None,
+                    u'View': u'Allow',
+                    u'Connect': u'Allow'
+                },
+                u"Editor": {
+                    u'all': True
+                }
+            }
+        }
+
         role_set = {
             u'2.0': {
                 u"project": role_set_91_and_earlier_all_types,
                 u"workbook": role_set_91_and_earlier_all_types,
                 u"datasource": role_set_91_and_earlier_all_types
             },
-            u'2.1': {
-                u"project": {
-                    u"Viewer": {
-                        u'all': None,
-                        u"View": u"Allow"
-                    },
-                    u"Publisher": {
-                        u'all': None,
-                        u"View": u"Allow",
-                        u"Save": u"Allow"
-                    },
-                    u"Project Leader": {
-                        u'all': None,
-                        u"Project Leader": u"Allow"
-                    }
-                },
-                u"workbook": {
-                    u"Viewer": {
-                        u'all': None,
-                        u'View': u'Allow',
-                        u'Export Image': u'Allow',
-                        u'View Summary Data': u'Allow',
-                        u'View Comments': u'Allow',
-                        u'Add Comment': u'Allow'
-                    },
-                    u"Interactor": {
-                        u'all': True,
-                        u'Download': None,
-                        u'Move': None,
-                        u'Delete': None,
-                        u'Set Permissions': None,
-                        u'Save': None
-                    },
-                    u"Editor": {
-                        u'all': True
-                    }
-                },
-                u"datasource": {
-                    u"Connector": {
-                        u'all': None,
-                        u'View': u'Allow',
-                        u'Connect': u'Allow'
-                    },
-                    u"Editor": {
-                        u'all': True
-                    }
-                }
-            },
-            u'2.2': {
-                u"project": {
-                    u"Viewer": {
-                        u'all': None,
-                        u"View": u"Allow"
-                    },
-                    u"Publisher": {
-                        u'all': None,
-                        u"View": u"Allow",
-                        u"Save": u"Allow"
-                    },
-                    u"Project Leader": {
-                        u'all': None,
-                        u"Project Leader": u"Allow"
-                    }
-                },
-                u"workbook": {
-                    u"Viewer": {
-                        u'all': None,
-                        u'View': u'Allow',
-                        u'Export Image': u'Allow',
-                        u'View Summary Data': u'Allow',
-                        u'View Comments': u'Allow',
-                        u'Add Comment': u'Allow'
-                    },
-                    u"Interactor": {
-                        u'all': True,
-                        u'Download': None,
-                        u'Move': None,
-                        u'Delete': None,
-                        u'Set Permissions': None,
-                        u'Save': None
-                    },
-                    u"Editor": {
-                        u'all': True
-                    }
-                },
-                u"datasource": {
-                    u"Connector": {
-                        u'all': None,
-                        u'View': u'Allow',
-                        u'Connect': u'Allow'
-                    },
-                    u"Editor": {
-                        u'all': True
-                    }
-                }
-            }
+            u'2.1': role_set_92,
+            u'2.2': role_set_92,
+            u'2.3': role_set_92
         }
         if role not in role_set[self.api_version][self.content_type]:
             raise InvalidOptionException(u"There is no role in Tableau Server available for {} called {}".format(
@@ -265,10 +201,8 @@ class GranteeCapabilities(TableauBase):
         role_capabilities = role_set[self.api_version][self.content_type][role]
         if u"all" in role_capabilities:
             if role_capabilities[u"all"] is True:
-                print "Setting all capabilities to Allow"
                 self.set_all_to_allow()
             elif role_capabilities[u"all"] is False:
-                print "Setting all capabilities to Deny"
                 self.set_all_to_deny()
         for cap in role_capabilities:
             # Skip the all command, we handled it at the beginning

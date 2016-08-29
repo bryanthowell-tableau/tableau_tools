@@ -6,7 +6,7 @@ psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
 psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
 
 conn = psycopg2.connect(host='', database='', user='', password='')
-logger = Logger('log.log')
+logger = Logger('sabre.log')
 
 username = ''
 password = ''

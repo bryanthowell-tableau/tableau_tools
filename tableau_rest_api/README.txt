@@ -14,12 +14,6 @@ The main class you need to get started is
 
 TableauRestApiConnection(server, username, password, site_content_url="")
 
-Note: If you are using the 2.0 version of the library, you must set the tableau_server_version flag like if your server is on 9.1 or 9.0:
-
-TableauRestApiConnection(server, username, password, site_content_url="", tableau_server_version="9.1")
-
-Version 2.1 and beyond of the library automatically detects the Tableau Server version and this parameter is unnecessary.
-
 You need to intialize at least one object of this class. 
 Ex.:
 t = TableauRestApiConnection(u"http://127.0.0.1", u"admin", u"adminsp@ssw0rd", site_content_url=u"site1")
@@ -60,7 +54,7 @@ for site_content_url in site_content_urls:
 2. Basics and Querying
 
 2.1 LUIDs - Locally Unique IDentifiers
-The Tableau REST API represents each object on the server (project, workbook, user, group, etc.) with a Locally Unique IDentifier (LUID). Every command other than the sign-in to a particular site (which uses the site_content_url) requires a LUID. LUIDs are returned when you create an object on the server, or they can be retrieved by the Query methods and then searched to find the matching LUID. tableau_rest_api has a large set of methods that perform lookup and translation so that you can work with the "pretty" names and let the library find the correct LUIDs for you. 
+The Tableau REST API represents each object on the server (project, workbook, user, group, etc.) with a Locally Unique Identifier (LUID). Every command other than the sign-in to a particular site (which uses the site_content_url) requires a LUID. LUIDs are returned when you create an object on the server, or they can be retrieved by the Query methods and then searched to find the matching LUID. tableau_rest_api has a large set of methods that perform lookup and translation so that you can work with the "pretty" names and let the library find the correct LUIDs for you. 
 
 
 2.2 Plural querying methods

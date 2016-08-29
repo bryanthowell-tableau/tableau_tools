@@ -98,3 +98,114 @@ JOIN system_users su ON su.name = s.user_name
         return cur
 
     # Set extract refresh schedules
+    def query_extract_schedules(self, schedule_name=None):
+        schedules_sql = """
+SELECT *
+FROM _schedules
+WHERE scheduled_action_type = 'Refresh Extracts'
+AND hidden = false
+"""
+        if schedule_name is not None:
+            schedules_sql += 'WHERE name = %s\n'
+            cur = self.query(schedules_sql, [schedule_name, ])
+        else:
+            cur = self.query(schedules_sql)
+        return cur
+
+    def get_extract_schedule_id_by_name(self, schedule_name):
+        cur = self.query_extract_schedules(schedule_name=schedule_name)
+        if cur.rowcount == 0:
+            raise NoMatchFoundException('No schedule found with name "{}"'.format(schedule_name))
+        sched_id = None
+        # Should only be one row
+        for row in cur:
+            sched_id = row[0]
+        return sched_id
+
+    def query_sites(self, site_content_url=None, site_pretty_name=None):
+        if site_content_url is None and site_pretty_name is None:
+            raise InvalidOptionException('Must pass one of either the site_content_url or site_pretty_name')
+
+        sites_sql = """
+SELECT *
+FROM _sites
+"""
+        if site_content_url is not None and site_pretty_name is None:
+            sites_sql += 'WHERE url_namespace = %s\n'
+            cur = self.query(sites_sql, [site_content_url, ])
+        elif site_content_url is None and site_pretty_name is not None:
+            sites_sql += 'WHERE name = %s\n'
+            cur = self.query(sites_sql, [site_pretty_name, ])
+        else:
+            sites_sql += 'WHERE url_namesspace = %s AND name = %s\n'
+            cur = self.query(sites_sql, [site_content_url, site_pretty_name])
+
+        return cur
+
+    def get_site_id_by_site_content_url(self, site_content_url):
+        cur = self.query_sites(site_content_url=site_content_url)
+        if cur.rowcount == 0:
+            raise NoMatchFoundException('No site found with content url "{}"'.format(site_content_url))
+        site_id = None
+        # Should only be one row
+        for row in cur:
+            site_id = row[0]
+        return site_id
+
+    def get_site_id_by_site_pretty_name(self, site_pretty_name):
+        cur = self.query_sites(site_pretty_name=site_pretty_name)
+        if cur.rowcount == 0:
+            raise NoMatchFoundException('No site found with pretty name "{}"'.format(site_pretty_name))
+        site_id = None
+        # Should only be one row
+        for row in cur:
+            site_id = row[0]
+        return site_id
+
+    def query_project_id_on_site_by_name(self, project_name, site_id):
+        project_sql = """
+        SELECT *
+        FROM _projects
+        WHERE project_name = %s
+        AND site_id = %s
+"""
+        cur = self.query(project_sql, [project_name, site_id])
+        if cur.rowcount == 0:
+            raise NoMatchFoundException('No project named {} found on the site'.format(project_name))
+        project_id = None
+        for row in cur:
+            project_id = row[0]
+        return project_id
+
+    def query_datasource_id_on_site_in_project(self, datasource_name, site_id, project_id):
+        datasource_query = """
+        SELECT *
+        FROM _datasources
+        WHERE name = %s
+        AND site_id = %s
+        AND project_id = %s
+"""
+        cur = self.query(datasource_query, [datasource_name, site_id, project_id])
+        if cur.rowcount == 0:
+            raise NoMatchFoundException('No data source found with name "{}"'.format(datasource_name))
+        datasource_id = None
+        for row in cur:
+            datasource_id = row[0]
+        return datasource_id
+
+    def query_workbook_id_on_site_in_project(self, workbook_name, site_id, project_id):
+        workbook_query = """
+        SELECT *
+        FROM _workbooks
+        WHERE name = %s
+        AND site_id = %s
+        AND project_id = %s
+"""
+        cur = self.query(workbook_query, [workbook_name, site_id, project_id])
+        if cur.rowcount == 0:
+            raise NoMatchFoundException('No workbook found with name "{}"'.format(workbook_name))
+        workbook_id = None
+        for row in cur:
+            workbook_id = row[0]
+        return workbook_id
+

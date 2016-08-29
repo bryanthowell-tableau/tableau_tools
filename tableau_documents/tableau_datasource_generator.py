@@ -3,7 +3,7 @@ from xml.sax.saxutils import quoteattr
 
 from ..tableau_base import *
 from ..tableau_exceptions import *
-from tde_file_generator import TDEFileGenerator
+
 import zipfile
 import os
 
@@ -459,8 +459,11 @@ class TableauDatasourceGenerator(TableauBase):
         if self.tde_filename is None:
             self.log('No tde_filename, no extract being added')
             return False
+        self.log(u'Importing the Tableau SDK to build the extract')
 
+        # Import only if necessary
         self.log(u'Building the extract Element object')
+        from tde_file_generator import TDEFileGenerator
         e = etree.Element(u'extract')
         e.set(u'count', u'-1')
         e.set(u'enabled', u'true')

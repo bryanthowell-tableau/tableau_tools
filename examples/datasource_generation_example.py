@@ -51,6 +51,8 @@ ds4.add_extract(u'Datasource.tde')
 ds4.add_dimension_extract_filter(u'region', [u'East', u'West'])
 ds4.add_dimension_extract_filter(u'sub-category', [u'Paper', ], include_or_exclude=u'exclude')
 ds4.add_continuous_extract_filter(u'order_date', u'2013-04-01', u'2014-04-23', date=True)
+ds4.add_column_alias(u'region', u'Regional Descriptor', dimension_or_measure=u'dimension', discrete_or_continuous=u'discrete',
+                     datatype=u'string')
 ds4.save_file(u'extract_datasource', file_dir)
 
 

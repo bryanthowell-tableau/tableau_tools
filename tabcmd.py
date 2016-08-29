@@ -5,11 +5,15 @@ import xml.etree.ElementTree as ET
 from tableau_rest_api.tableau_rest_api_connection import *
 from tableau_tools.tableau_repository import *
 from tableau_tools.tableau_http import *
+from tableau_tools.tableau_base import TableauBase
 
 
-class Tabcmd:
+class Tabcmd(TableauBase):
     def __init__(self, tabcmd_folder, tableau_server_url, username, password, site='default',
                  repository_password=None, tabcmd_config_location=None):
+        super(self.__class__, self).__init__()
+        self.logger = None
+
         self.tabcmd_folder = tabcmd_folder
         self.username = username
         self.password = password
@@ -34,6 +38,7 @@ class Tabcmd:
 
         # Go ahead and prep for any subsequent calls
         self._create_tabcmd_admin_session()
+
     #
     # Wrapper commands for Tabcmd command line actions
     #
@@ -178,6 +183,7 @@ class Tabcmd:
     #
     def create_export(self, export_type, view_location, view_filter_map=None, user_to_impersonate=None,
                       filename='tableau_workbook'):
+        self.start_log_block()
         if self.export_type is not None:
             export_type = self.export_type
         if export_type.lower() not in ['pdf', 'csv', 'png', 'fullpdf']:
@@ -204,25 +210,32 @@ class Tabcmd:
         os.system("export.bat")
         os.remove("export.bat")
         full_file_location = self.tabcmd_folder + saved_filename
+        self.end_log_block()
         return full_file_location
 
     def trigger_extract_refresh(self, project, workbook_or_datasource, content_pretty_name, incremental=False,
                                 workbook_url_name=None):
+        self.start_log_block()
         refresh_cmd = self.build_refreshextracts_cmd(project, workbook_or_datasource, content_pretty_name, incremental,
                                                      workbook_url_name=workbook_url_name)
         temp_bat = open('refresh.bat', 'w')
+        temp_bat.write(self.build_directory_cmd() + "\n")
         temp_bat.write(refresh_cmd + "\n")
         temp_bat.close()
 
         os.system("refresh.bat")
         os.remove("refresh.bat")
+        self.end_log_block()
 
     def trigger_schedule_run(self, schedule_name):
+        self.start_log_block()
         cmd = self.build_runschedule_cmd(schedule_name)
 
         temp_bat = open('runschedule.bat', 'w')
+        temp_bat.write(self.build_directory_cmd() + "\n")
         temp_bat.write(cmd + "\n")
         temp_bat.close()
 
         os.system("runschedule.bat")
         os.remove("runschedule.bat")
+        self.end_log_block()
