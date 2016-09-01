@@ -13,7 +13,7 @@ class TableauDatasourceGenerator(TableauBase):
                  initial_sql=None):
         super(self.__class__, self).__init__()
         self.logger = logger_obj
-        self.log(u'Initializing a TableauDatasource object')
+        self.log(u'Initializing a TableauDatasourceGenerator object')
         self.ds_class = None
         self.ds_name = ds_name
         if ds_type in self.datasource_class_map:
@@ -604,3 +604,123 @@ class TableauDatasourceGenerator(TableauBase):
     def add_extract(self, tde_filename, incremental_refresh_field=None):
         self.tde_filename = tde_filename
         self.incremental_refresh_field = incremental_refresh_field
+
+
+class TableauParametersGenerator(TableauBase):
+    def __init__(self, logger_obj):
+        super(self.__class__, self).__init__()
+        self.logger = logger_obj
+        self.nsmap = {u"user": u'http://www.tableausoftware.com/xml/user'}
+        self.ds_xml = etree.Element(u"datasource")
+        self.ds_xml.set(u'name', u'Parameters')
+        # Initialization of the datasource
+        self.ds_xml.set(u'hasconnection', u'false')
+        self.ds_xml.set(u'inline', u'true')
+        a = etree.Element(u'aliases')
+        a.set(u'enabled', u'yes')
+        self.ds_xml.append(a)
+
+        self.parameters = []
+
+    def add_parameter(self, name, datatype, allowable_values, current_value, values_list=None, range_dict=None):
+        if datatype.lower() not in [u'string', u'integer', u'datetime', u'date', u'real', u'boolean']:
+            raise InvalidOptionException("{} is not a valid datatype".format(datatype))
+        if allowable_values not in [u'all', u'list', u'range']:
+            raise InvalidOptionException("{} is not valid allowable_values option. Only 'all', 'list' or 'range'")
+
+        # range_dict = { min: None, max: None, step_size: None, period_type: None}
+
+        param_dict = {
+                        u'allowable_values': allowable_values,
+                        u'datatype': datatype,
+                        u'current_value': current_value,
+                        u'values_list': values_list,
+                        u'range_dict': range_dict,
+                        u'caption': name
+        }
+        self.parameters.append(param_dict)
+
+    @staticmethod
+    def create_parameter_column(param_number, param_dict):
+        c = etree.Element(u"column")
+        c.set(u'caption', param_dict[u'caption'])
+        c.set(u'name', u'[Parameter {}]'.format(unicode(param_number)))
+        c.set(u'param-domain-type', param_dict[u'allowable_values'])
+        if param_dict[u'datatype'] in [u'integer', u'real']:
+            c.set(u'type', u'quantitative')
+        else:
+            c.set(u'type', u'nominal')
+        c.set(u'role', u'measure')
+        c.set(u'datatype', param_dict[u'datatype'])
+
+        # Range
+        if param_dict[u'allowable_values'] == u'range':
+            r = etree.Element(u'range')
+            if param_dict[u'range_dict'][u'max'] is not None:
+                r.set(u'max', unicode(param_dict[u'range_dict'][u'max']))
+            if param_dict[u'range_dict'][u'min'] is not None:
+                r.set(u'min', unicode(param_dict[u'range_dict'][u'min']))
+            if param_dict[u'range_dict'][u'step_size'] is not None:
+                r.set(u'granularity', unicode(param_dict[u'range_dict'][u'step_size']))
+            if param_dict[u'range_dict'][u'period_type'] is not None:
+                r.set(u'period-type', unicode(param_dict[u'range_dict'][u'period_type']))
+            c.append(r)
+
+        # List
+        aliases = None
+        if param_dict[u'allowable_values'] == u'list':
+            members = etree.Element(u'members')
+
+            for value_pair in param_dict[u'values_list']:
+                for value in value_pair:
+                    member = etree.Element(u'member')
+                    member.set(u'value', unicode(value))
+                    if value_pair[value] is not None:
+                        if aliases is None:
+                            aliases = etree.Element(u'aliases')
+                        alias = etree.Element(u'alias')
+                        alias.set(u'key', unicode(value))
+                        alias.set(u'value', unicode(value_pair[value]))
+                        member.set(u'alias', unicode(value_pair[value]))
+                        aliases.append(alias)
+                    members.append(member)
+                if aliases is not None:
+                    c.append(aliases)
+                c.append(members)
+
+        # If you have aliases, then need to put alias in the alias parameter, and real value in the value parameter
+        if aliases is not None:
+            c.set(u'alias', unicode(param_dict[u'current_value']))
+            # Lookup the actual value of the alias
+            for value_pair in param_dict[u'values_list']:
+                for value in value_pair:
+                    if value_pair[value] == param_dict[u'current_value']:
+                        actual_value = value
+        else:
+            actual_value = param_dict[u'current_value']
+
+        if isinstance(param_dict[u'current_value'], basestring) and param_dict[u'datatype'] not in [u'date', u'datetime']:
+            c.set(u'value', quoteattr(actual_value))
+        else:
+            c.set(u'value', unicode(actual_value))
+
+        calc = etree.Element(u'calculation')
+        calc.set(u'class', u'tableau')
+        if isinstance(param_dict[u'current_value'], basestring) and param_dict[u'datatype'] not in [u'date', u'datetime']:
+            calc.set(u'formula', quoteattr(actual_value))
+        else:
+            calc.set(u'formula', unicode(actual_value))
+        c.append(calc)
+
+        return c
+
+    def get_xml_string(self):
+        i = 1
+        for parameter in self.parameters:
+            c = self.create_parameter_column(i, parameter)
+            self.ds_xml.append(c)
+            i += 1
+
+        xmlstring = etree.tostring(self.ds_xml, pretty_print=True, xml_declaration=False, encoding='utf-8')
+        self.log(xmlstring)
+        return xmlstring

@@ -35,3 +35,16 @@ class TableauColumns(TableauBase):
         d = self.__translation_dict.get(match_str)
         self.end_log_block()
         return d
+
+
+class TableauParameterColumns(TableauBase):
+    def __init__(self, columns_list, logger_obj=None):
+        self.logger = logger_obj
+        self.log(u'Initializing a TableauColumns object')
+        # List of lxml columns objects
+        self.columns_list = columns_list
+
+    #def get_parameter_by_name(self):
+        #for col in self.columns_list:
+           # for col.get()
+

@@ -862,9 +862,9 @@ class TableauRestApiConnection(TableauBase):
                 raise MultipleMatchesFoundException(u'More than one workbook found by name {} without a project specified').format(wb_name)
         else:
             if self.is_luid(p_name_or_luid):
-                wb_in_proj = workbooks.xpath(u'//t:project[@id="{}"]/..'.format(p_name_or_luid), namespaces=self.ns_map)
+                wb_in_proj = workbooks.xpath(u'//t:workbook[@name="{}"]/:project[@id="{}"]/..'.format(p_name_or_luid), namespaces=self.ns_map)
             else:
-                wb_in_proj = workbooks.xpath(u'//t:project[@name="{}"]/..'.format(p_name_or_luid), namespaces=self.ns_map)
+                wb_in_proj = workbooks.xpath(u'//t:workbook[@name="{}"]/t:project[@name="{}"]/..'.format(p_name_or_luid), namespaces=self.ns_map)
             if len(wb_in_proj) == 0:
                 self.end_log_block()
                 raise NoMatchFoundException(u'No workbook found with name {} in project {}').format(wb_name, p_name_or_luid)
@@ -896,9 +896,9 @@ class TableauRestApiConnection(TableauBase):
             return wb
         elif len(workbooks_with_name) > 1 and p_name_or_luid is not False:
             if self.is_luid(p_name_or_luid):
-                wb_in_proj = workbooks.xpath(u'//t:project[@id="{}"]/..'.format(p_name_or_luid), namespaces=self.ns_map)
+                wb_in_proj = workbooks.xpath(u'//t:workbook[@name="{}"]/t:project[@id="{}"]/..'.format(p_name_or_luid), namespaces=self.ns_map)
             else:
-                wb_in_proj = workbooks.xpath(u'//t:project[@name="{}"]/..'.format(p_name_or_luid), namespaces=self.ns_map)
+                wb_in_proj = workbooks.xpath(u'//t:workbook[@name="{}"]/t:project[@name="{}"]/..'.format(p_name_or_luid), namespaces=self.ns_map)
             if len(wb_in_proj) == 0:
                 self.end_log_block()
                 raise NoMatchFoundException(u'No workbook found with name {} in project {}').format(wb_name, p_name_or_luid)
@@ -920,7 +920,7 @@ class TableauRestApiConnection(TableauBase):
     def query_workbooks_in_project_for_username(self, project_name_or_luid, username):
         self.start_log_block()
         if self.is_luid(project_name_or_luid):
-            project_luid = self.query_project_by_luid(project_name_or_luid)
+            project_luid = project_name_or_luid
         else:
             project_luid = self.query_project_luid_by_name(project_name_or_luid)
         workbooks = self.query_workbooks_by_username(username)
@@ -962,9 +962,9 @@ class TableauRestApiConnection(TableauBase):
             return wb_luid
         elif len(workbooks_with_name) > 1 and p_name_or_luid is not False:
             if self.is_luid(p_name_or_luid):
-                wb_in_proj = workbooks.xpath(u'//t:project[@id="{}"]/..'.format(p_name_or_luid), namespaces=self.ns_map)
+                wb_in_proj = workbooks.xpath(u'//t:workbook[@name="{}"]/t:project[@id="{}"]/..'.format(wb_name, p_name_or_luid), namespaces=self.ns_map)
             else:
-                wb_in_proj = workbooks.xpath(u'//t:project[@name="{}"]/..'.format(p_name_or_luid), namespaces=self.ns_map)
+                wb_in_proj = workbooks.xpath(u'//t:workbook[@name="{}"]/t:project[@name="{}"]/..'.format(wb_name, p_name_or_luid), namespaces=self.ns_map)
             if len(wb_in_proj) == 0:
                 self.end_log_block()
                 raise NoMatchFoundException(u'No workbook found with name {} in project {}').format(wb_name, p_name_or_luid)
@@ -1069,7 +1069,7 @@ class TableauRestApiConnection(TableauBase):
     # LUIDs for connections and the datatypes, but no way to distinguish them
     def query_workbook_connections_for_username_by_workbook_name_in_project(self, username, wb_name, p_name_or_luid=False):
         self.start_log_block()
-        wb_luid = self.query_workbook_for_username_by_workbook_name_in_project(username, wb_name, p_name_or_luid)
+        wb_luid = self.query_workbook_luid_for_username_by_workbook_name_in_project(username, wb_name, p_name_or_luid)
         self.end_log_block()
         conns = self.query_workbook_connections_by_luid(wb_luid)
         return conns

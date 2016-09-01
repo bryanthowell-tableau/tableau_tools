@@ -1,7 +1,7 @@
 from ..tableau_base import TableauBase
 from tableau_connection import TableauConnection, TableauRepositoryLocation
 from tableau_document import TableauColumns
-from tableau_datasource_generator import TableauDatasourceGenerator
+from tableau_datasource_generator import TableauDatasourceGenerator, TableauParametersGenerator
 from StringIO import StringIO
 from lxml import etree
 from ..tableau_exceptions import *
@@ -13,34 +13,45 @@ import os
 class TableauDatasource(TableauBase):
     def __init__(self, datasource_string, logger_obj=None):
         self.logger = logger_obj
-        self.log(u'Itsa me, a TableauDatasource2 object')
         self.original_xml_string = datasource_string
-        utf8_parser = etree.XMLParser(encoding='utf-8')
+        utf8_parser = etree.XMLParser(encoding='utf-8', recover=True)
         self.xml = etree.parse(StringIO(datasource_string), parser=utf8_parser)
-        connection_xml_obj = self.xml.getroot().find(u'connection')
-        self.log(u'connection tags found, building a TableauConnection object')
-        self.connection = TableauConnection(connection_xml_obj)
+        self.parameters = False
         if self.xml.getroot().get("caption"):
             self.ds_name = self.xml.getroot().attrib["caption"]
         elif self.xml.getroot().get("name"):
             self.ds_name = self.xml.getroot().attrib['name']
-        self.repository_location = None
-        if self.xml.getroot().find(u'repository-location'):
-            repository_location_xml = self.xml.getroot().find(u'repository-location')
-            self.repository_location = TableauRepositoryLocation(repository_location_xml, self.logger)
 
         self.columns = None
         # Possible, though unlikely, that there would be no columns
         if self.xml.getroot().find(u'column') is not None:
             columns_list = self.xml.getroot().findall(u'column')
             self.columns = TableauColumns(columns_list, self.logger)
-        self.tde_filename = None
-        self.ds_generator = TableauDatasourceGenerator(self.connection.get_connection_type(),
-                                                       self.xml.getroot().get('formatted-name'),
-                                                       self.connection.get_server(),
-                                                       self.connection.get_dbname(),
-                                                       self.logger,
-                                                       authentication=u'username-password', initial_sql=None)
+
+        # Internal "Parameters" datasource of a TWB acts differently
+        if self.ds_name == u'Parameters':
+            self.parameters = True
+            self.ds_generator = TableauParametersGenerator()
+        else:
+            connection_xml_obj = self.xml.getroot().find(u'connection')
+            self.log(u'connection tags found, building a TableauConnection object')
+            self.connection = TableauConnection(connection_xml_obj)
+
+            self.repository_location = None
+            if len(self.xml.getroot().find(u'repository-location')) == 0:
+                repository_location_xml = self.xml.getroot().find(u'repository-location')
+                self.repository_location = TableauRepositoryLocation(repository_location_xml, self.logger)
+
+            self.tde_filename = None
+            if self.connection.get_connection_type() == u'sqlproxy':
+                self.ds_generator = None
+            else:
+                self.ds_generator = TableauDatasourceGenerator(self.connection.get_connection_type(),
+                                                               self.xml.getroot().get('formatted-name'),
+                                                               self.connection.get_server(),
+                                                               self.connection.get_dbname(),
+                                                               self.logger,
+                                                               authentication=u'username-password', initial_sql=None)
 
     def get_datasource_name(self):
         self.start_log_block()
@@ -143,3 +154,8 @@ class TableauDatasource(TableauBase):
         self.columns.set_translation_dict(translation_dict)
         self.columns.translate_captions()
         self.end_log_block()
+
+    # Parameters manipulation methods
+    def get_parameter_by_name(self, parameter_name):
+        param_column = self.xml.xpath(u'//t:column[@alias="{}"]'.format(parameter_name), namespaces=self.ns_map)
+        return param_column
