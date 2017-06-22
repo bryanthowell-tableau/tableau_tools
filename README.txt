@@ -13,11 +13,16 @@ Examples and explanations are at https://www.tableauandbehold.com
 2.0.0+: works with 9.2 (and previous versions as well). Python 2.7 compatible
 2.1.0+: works with 9.3 (previous versions as well). Python 2.7 compatible
 3.0.0: tableau_rest_api library refactored and added to new tableau_tools package
+4.0.0: tableau_tools massively refactored and simplified. 
+    - Switched from lxml to cElementTree for ease of install. All XML now written directly as ElementTree objects. 
+    - Updated with all methods through 10.3.
+    - grantee_capabilities renamed to permissions
+    
 
 --- Usage Guide ---
 
 1. Getting Started
-All strings passed into tableau_tools should be Unicode. The library is completely Unicode throughout and passing text in this way ensures no issues with encoding. tableau_tools uses LXML library for all its XML parsing and generation. Some of the methods return LXML objects which can be manipulated via standard LXML methods. 
+All strings passed into tableau_tools should be Unicode. The library is completely Unicode throughout and passing text in this way ensures no issues with encoding. tableau_tools uses ElementTree (cElementTree more precisely) library for all its XML parsing and generation. Some of the methods return Element objects which can be manipulated via standard ElementTree methods. 
 
 tableau_tools was programmed using PyCharm and works very well in that IDE. It is highly recommended if you are going to code with tableau_tools.
 
@@ -29,7 +34,7 @@ tableau_tools
     tableau_rest_api
         tableau_rest_api_server_connection
         published_content (Project, Workbook, Datasource)
-        grantee_capabilities
+        permissions
         rest_xml_request
     tableau_documents
         tableau_columns
@@ -110,6 +115,7 @@ fh = open(wb_filename, 'rb')
 wb = TableauWorkbook(fh.read(), logger)
 dses = wb.get_datasources()
 for ds in dses.values():
+    conn = ds.get_connection()
     if ds.connection.get_dbname() == 'demo':
         ds.connection.set_dbname('demo2')
         ds.connection.set_server('192.0.0.1')

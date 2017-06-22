@@ -20,7 +20,7 @@ class TableauBase(object):
         self.tableau_namespace = u'http://tableau.com/api'
         self.ns_map = {'t': 'http://tableau.com/api'}
         self.ns_prefix = '{' + self.ns_map['t'] + '}'
-        etree.register_namespace(u't', self.ns_map[u't'])
+        etree.register_namespace(u't', self.ns_map['t'])
 
         self.site_roles = (
             u'Interactor',
@@ -88,14 +88,18 @@ class TableauBase(object):
             u'Connect': u'Connect',
             u'Delete': u'Delete',
             u'View Summary Data': u'ExportData',
+            u'Download Summary Data': u'ExportData',
             u'Export Image': u'ExportImage',
+            u'Download Image/PDF': u'ExportImage',
             u'Download': u'ExportXml',
+            u'Download Workbook/Save As': u'ExportXml',
             u'Filter': u'Filter',
             u'Project Leader': u'ProjectLeader',
             u'View': u'Read',
             u'Share Customized': u'ShareView',
             u'View Comments': u'ViewComments',
             u'View Underlying Data': u'ViewUnderlyingData',
+            u'Download Full Data' : u'ViewUnderlyingData',
             u'Web Edit': u'WebAuthoring',
             u'Save': u'Write',
             u'all': u'all'  # special command to do everything
@@ -238,7 +242,7 @@ class TableauBase(object):
         :type tableau_server_version: unicode
         """
         # API Versioning (starting in 9.2)
-        if unicode(tableau_server_version)in [u"9.2", u"9.3", u"10.0", u"10.1", u"10.2"]:
+        if unicode(tableau_server_version)in [u"9.2", u"9.3", u"10.0", u"10.1", u"10.2", u"10.3"]:
             if unicode(tableau_server_version) == u"9.2":
                 self.api_version = u"2.1"
             elif unicode(tableau_server_version) == u"9.3":
@@ -268,6 +272,10 @@ class TableauBase(object):
 
     # Logging Methods
     def enable_logging(self, logger_obj):
+        """
+        :type logger_obj: Logger
+        :return:
+        """
         if isinstance(logger_obj, Logger):
             self.logger = logger_obj
 
