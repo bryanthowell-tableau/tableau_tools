@@ -2,21 +2,20 @@ import random
 from tableau_exceptions import *
 from logger import Logger
 import re
-
+from lxml import etree
 from StringIO import StringIO
-import xml.etree.ElementTree as etree
 
 
 class TableauBase(object):
     def __init__(self):
         # In reverse order to work down until the acceptable version is found on the server, through login process
-        self.supported_versions = (u"10.3", u"10.2", u"10.1", u"10.0", u"9.3", u"9.2", u"9.1", u"9.0")
+        self.supported_versions = (u"10.0", u"9.3", u"9.2", u"9.1", u"9.0")
         self.logger = None
         self.luid_pattern = r"[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*"
 
         # Defaults, will get updated with each update. Overwritten by set_tableau_server_version
-        self.version = u"10.2"
-        self.api_version = u"2.5"
+        self.version = u"10.0"
+        self.api_version = u"2.3"
         self.tableau_namespace = u'http://tableau.com/api'
         self.ns_map = {'t': 'http://tableau.com/api'}
         self.ns_prefix = '{' + self.ns_map['t'] + '}'
@@ -74,10 +73,7 @@ class TableauBase(object):
             u"2.0": server_content_roles_2_0,
             u"2.1": server_content_roles_2_1,
             u"2.2": server_content_roles_2_1,
-            u"2.3": server_content_roles_2_1,
-            u"2.4": server_content_roles_2_1,
-            u"2.5": server_content_roles_2_1,
-            u"2.6": server_content_roles_2_1
+            u"2.3": server_content_roles_2_1
         }
 
         self.server_to_rest_capability_map = {
@@ -178,10 +174,7 @@ class TableauBase(object):
             u"2.0": capabilities_2_0,
             u"2.1": capabilities_2_1,
             u"2.2": capabilities_2_1,
-            u'2.3': capabilities_2_1,
-            u'2.4': capabilities_2_1,
-            u'2.5': capabilities_2_1,
-            u'2.6': capabilities_2_1
+            u'2.3': capabilities_2_1
         }
 
         self.datasource_class_map = {
@@ -237,31 +230,23 @@ class TableauBase(object):
         :type tableau_server_version: unicode
         """
         # API Versioning (starting in 9.2)
-        if unicode(tableau_server_version)in [u"9.2", u"9.3", u"10.0", u"10.1", u"10.2"]:
+        if unicode(tableau_server_version)in [u"9.2", u"9.3", u"10.0"]:
             if unicode(tableau_server_version) == u"9.2":
                 self.api_version = u"2.1"
             elif unicode(tableau_server_version) == u"9.3":
                 self.api_version = u"2.2"
             elif unicode(tableau_server_version) == u'10.0':
                 self.api_version = u'2.3'
-            elif unicode(tableau_server_version) == u'10.1':
-                self.api_version = u'2.4'
-            elif unicode(tableau_server_version) == u'10.2':
-                self.api_version = u'2.5'
-            elif unicode(tableau_server_version) == u'10.3':
-                self.api_version = u'2.6'
             self.tableau_namespace = u'http://tableau.com/api'
             self.ns_map = {'t': 'http://tableau.com/api'}
             self.version = tableau_server_version
             self.ns_prefix = '{' + self.ns_map['t'] + '}'
-            return self.api_version
         elif unicode(tableau_server_version) in [u"9.0", u"9.1"]:
             self.api_version = u"2.0"
             self.tableau_namespace = u'http://tableausoftware.com/api'
             self.ns_map = {'t': 'http://tableausoftware.com/api'}
             self.version = tableau_server_version
             self.ns_prefix = '{' + self.ns_map['t'] + '}'
-            return self.api_version
         else:
             raise InvalidOptionException(u"Please specify tableau_server_version as a string. '9.0' or '9.2' etc...")
 
@@ -356,5 +341,105 @@ class TableauBase(object):
         else:
             return False
 
+    # Looks at LUIDs in new_obj_list, if they exist in the dest_obj, compares their gcap objects, if match returns True
+    def are_capabilities_objs_identical_for_matching_luids(self, new_obj_list, dest_obj_list):
+        self.start_log_block()
+        # Create a dict with the LUID as the keys for sorting and comparison
+        new_obj_dict = {}
+        for obj in new_obj_list:
+            new_obj_dict[obj.get_luid()] = obj
 
+        dest_obj_dict = {}
+        for obj in dest_obj_list:
+            dest_obj_dict[obj.get_luid()] = obj
+
+        new_obj_luids = new_obj_dict.keys()
+        dest_obj_luids = dest_obj_dict.keys()
+
+        if set(dest_obj_luids).issuperset(new_obj_luids):
+            # At this point, we know the new_objs do exist on the current obj, so let's see if they are identical
+            for luid in new_obj_luids:
+                new_obj = new_obj_dict.get(luid)
+                dest_obj = dest_obj_dict.get(luid)
+
+                self.log(u"Capabilities to be set:")
+                new_obj_cap_dict = new_obj.get_capabilities_dict()
+                self.log(unicode(new_obj_cap_dict))
+                self.log(u"Capabilities that were originally set:")
+                dest_obj_cap_dict = dest_obj.get_capabilities_dict()
+                self.log(unicode(dest_obj_cap_dict))
+                if new_obj_cap_dict == dest_obj_cap_dict:
+                    self.end_log_block()
+                    return True
+                else:
+                    self.end_log_block()
+                    return False
+        else:
+            self.end_log_block()
+            return False
+
+    # Determine if capabilities are already set identically (or identically enough) to skip
+    def are_capabilities_obj_lists_identical(self, new_obj_list, dest_obj_list):
+        # Grab the LUIDs of each, determine if they match in the first place
+
+        # Create a dict with the LUID as the keys for sorting and comparison
+        new_obj_dict = {}
+        for obj in new_obj_list:
+            new_obj_dict[obj.get_luid()] = obj
+
+        dest_obj_dict = {}
+        for obj in dest_obj_list:
+            dest_obj_dict[obj.get_luid()] = obj
+            # If lengths don't match, they must differ
+            if len(new_obj_dict) != len(dest_obj_dict):
+                return False
+            else:
+                # If LUIDs don't match, they must differ
+                new_obj_luids = new_obj_dict.keys()
+                dest_obj_luids = dest_obj_dict.keys()
+                new_obj_luids.sort()
+                dest_obj_luids.sort()
+                if cmp(new_obj_luids, dest_obj_luids) != 0:
+                    return False
+                for luid in new_obj_luids:
+                    new_obj = new_obj_dict.get(luid)
+                    dest_obj = dest_obj_dict.get(luid)
+                    return self.are_capabilities_obj_dicts_identical(new_obj.get_capabilities_dict(),
+                                                                     dest_obj.get_capabilities_dict())
+
+    @staticmethod
+    def are_capabilities_obj_dicts_identical(new_obj_dict, dest_obj_dict):
+        if cmp(new_obj_dict, dest_obj_dict) == 0:
+            return True
+        else:
+            return False
+
+    # Dict { capability_name : mode } into XML with checks for validity. Set type to 'workbook' or 'datasource'
+    def build_capabilities_xml_from_dict(self, capabilities_dict, obj_type):
+        if obj_type not in self.permissionable_objects:
+            error_text = u'objtype can only be "project", "workbook" or "datasource", was given {}'
+            raise InvalidOptionException(error_text.format(u'obj_type'))
+        xml = u'<capabilities>\n'
+        for cap in capabilities_dict:
+            # Skip if the capability is set to None
+            if capabilities_dict[cap] is None:
+                continue
+            if capabilities_dict[cap] not in [u'Allow', u'Deny']:
+                raise InvalidOptionException(u'Capability mode can only be "Allow",  "Deny" (case-sensitive)')
+            if obj_type == u'project':
+                if cap not in self.available_capabilities[self.api_version][u"project"]:
+                    raise InvalidOptionException(u'{} is not a valid capability for a project'.format(cap))
+            if obj_type == u'datasource':
+                # Ignore if not available for datasource
+                if cap not in self.available_capabilities[self.api_version][u"datasource"]:
+                    self.log(u'{} is not a valid capability for a datasource'.format(cap))
+                    continue
+            if obj_type == u'workbook':
+                # Ignore if not available for workbook
+                if cap not in self.available_capabilities[self.api_version][u"workbook"]:
+                    self.log(u'{} is not a valid capability for a workbook'.format(cap))
+                    continue
+            xml += u'<capability name="{}" mode="{}" />'.format(cap, capabilities_dict[cap])
+        xml += u'</capabilities>'
+        return xml
 

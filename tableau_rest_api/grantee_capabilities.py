@@ -2,15 +2,15 @@ from ..tableau_base import TableauBase
 from ..tableau_exceptions import *
 
 
-# Represents the Permissions from any given user or group. Equivalent to GranteeCapabilities in the API
-class Permissions(TableauBase):
-    def __init__(self, group_or_user, luid, content_type=None, tableau_server_version=u"9.2"):
+# Represents the GranteeCapabilities from any given.
+class GranteeCapabilities(TableauBase):
+    def __init__(self, obj_type, luid, content_type=None, tableau_server_version=u"9.2"):
         super(self.__class__, self).__init__()
         self.set_tableau_server_version(tableau_server_version)
-        if group_or_user not in [u'group', u'user']:
-            raise InvalidOptionException(u'group_or_user must be "group" or "user"')
+        if obj_type not in [u'group', u'user']:
+            raise InvalidOptionException(u'GranteeCapabilites type must be "group" or "user"')
         self.content_type = content_type
-        self.obj_type = group_or_user
+        self.obj_type = obj_type
         self.luid = luid
         # Get total set of capabilities, set to None by default
         self.__capabilities = {}
@@ -46,20 +46,17 @@ class Permissions(TableauBase):
     def get_capabilities_dict(self):
         return self.__capabilities
 
-    def get_group_or_user(self):
+    def get_obj_type(self):
         return self.obj_type
-
-    def set_group_or_user(self, group_or_user):
-        if group_or_user.lower() in [u'group', u'user']:
-            self.obj_type = group_or_user.lower()
-        else:
-            raise InvalidOptionException(u'group_or_user can only be "group" or "user"')
-
-    def get_content_type(self):
-        return self.content_type
 
     def get_luid(self):
         return self.luid
+
+    def set_obj_type(self, obj_type):
+        if obj_type.lower() in [u'group', u'user']:
+            self.obj_type = obj_type.lower()
+        else:
+            raise InvalidOptionException(u'obj_type can only be "group" or "user"')
 
     def set_luid(self, new_luid):
         self.luid = new_luid
@@ -195,10 +192,7 @@ class Permissions(TableauBase):
             },
             u'2.1': role_set_92,
             u'2.2': role_set_92,
-            u'2.3': role_set_92,
-            u"2.4": role_set_92,
-            u"2.5": role_set_92,
-            u"2.6": role_set_92
+            u'2.3': role_set_92
         }
         if role not in role_set[self.api_version][self.content_type]:
             raise InvalidOptionException(u"There is no role in Tableau Server available for {} called {}".format(

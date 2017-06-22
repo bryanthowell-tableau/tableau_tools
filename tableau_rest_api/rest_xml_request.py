@@ -1,24 +1,16 @@
 from ..tableau_base import *
 from ..tableau_exceptions import *
 import urllib2
-import xml.etree.ElementTree as etree
+from lxml import etree
 from HTMLParser import HTMLParser
 from StringIO import StringIO
 import re
 import math
-import copy
-# import requests
 
 
 # Handles all of the actual HTTP calling
 class RestXmlRequest(TableauBase):
     def __init__(self, url, token=None, logger=None, ns_map_url='http://tableau.com/api'):
-        """
-        :param url:
-        :param token:
-        :param logger:
-        :param ns_map_url:
-        """
         super(self.__class__, self).__init__()
         self.__defined_response_types = (u'xml', u'png', u'binary')
         self.__defined_http_verbs = (u'post', u'get', u'put', u'delete')
@@ -31,7 +23,6 @@ class RestXmlRequest(TableauBase):
         self.__last_response_headers = None
         self.__xml_object = None
         self.ns_map = {'t': ns_map_url}
-        etree.register_namespace('t', ns_map_url)
         self.logger = logger
         self.__publish = None
         self.__boundary_string = None
@@ -48,10 +39,6 @@ class RestXmlRequest(TableauBase):
             raise
 
     def set_xml_request(self, xml_request):
-        """
-        :type xml_request: Element
-        :return: boolean
-        """
         self.__xml_request = xml_request
         return True
 
@@ -89,7 +76,7 @@ class RestXmlRequest(TableauBase):
 
     def get_response(self):
         if self.__response_type == 'xml' and self.__xml_object is not None:
-            self.log(u"XML Object Response:\n {}".format(etree.tostring(self.__xml_object, encoding='utf8').decode('utf8')))
+            self.log(u"XML Object Response:\n {}".format(etree.tostring(self.__xml_object, pretty_print=True, encoding='UTF-8').decode('utf8')))
             return self.__xml_object
         else:
             return self.__raw_response
@@ -120,11 +107,7 @@ class RestXmlRequest(TableauBase):
             if self.__publish_content is not None:
                 request.add_data(self.__publish_content)
             elif self.__xml_request is not None:
-                self.log(unicode((type(self.__xml_request))))
-                if isinstance(self.__xml_request, str):
-                    encoded_request = self.__xml_request.encode('utf8')
-                else:
-                    encoded_request = etree.tostring(self.__xml_request, encoding='utf8')
+                encoded_request = self.__xml_request.encode('utf8')
                 request.add_data(encoded_request)
             else:
                 request.add_data("")
@@ -178,16 +161,16 @@ class RestXmlRequest(TableauBase):
             utf8_parser = etree.XMLParser(encoding='utf-8')
             xml = etree.parse(StringIO(raw_error_response), parser=utf8_parser)
             try:
-                tableau_error = xml.findall(u'.//t:error', namespaces=self.ns_map)
+                tableau_error = xml.xpath(u'//t:error', namespaces=self.ns_map)
                 error_code = tableau_error[0].get('code')
-                tableau_detail = xml.findall(u'.//t:detail', namespaces=self.ns_map)
+                tableau_detail = xml.xpath(u'//t:detail', namespaces=self.ns_map)
                 detail_text = tableau_detail[0].text
             # This is to capture an error from the old API version when doing tests
             except IndexError:
                 old_ns_map = {'t': 'http://tableausoftware.com/api'}
-                tableau_error = xml.findall(u'.//t:error', namespaces=old_ns_map)
+                tableau_error = xml.xpath(u'//t:error', namespaces=old_ns_map)
                 error_code = tableau_error[0].get('code')
-                tableau_detail = xml.findall(u'.//t:detail', namespaces=old_ns_map)
+                tableau_detail = xml.xpath(u'//t:detail', namespaces=old_ns_map)
                 detail_text = tableau_detail[0].text
             detail_luid_match_obj = re.search(self.__luid_pattern, detail_text)
             if detail_luid_match_obj:
@@ -215,13 +198,13 @@ class RestXmlRequest(TableauBase):
         if self.__response_type == 'xml':
             if self.__raw_response == '':
                 return True
-            utf8_parser = etree.XMLParser(encoding='utf-8')
+            utf8_parser = etree.XMLParser(encoding='utf-8', recover=True)
             xml = etree.parse(StringIO(self.__raw_response), parser=utf8_parser)
             # Set the XML object to the first returned. Will be replaced if there is pagination
-            self.__xml_object = xml.getroot()
-            combined_xml_obj = None
-
-            for pagination in xml.findall(u'.//t:pagination', namespaces=self.ns_map):
+            self.__xml_object = xml
+            combined_xml_string = u'<tsResponse xmlns="{}" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="{} {}/ts-api-2.0.xsd">'.format(
+                    self.ns_map['t'], self.ns_map['t'], self.ns_map['t'])
+            for pagination in xml.xpath(u'//t:pagination', namespaces=self.ns_map):
 
                 # page_number = int(pagination.get('pageNumber'))
                 page_size = int(pagination.get('pageSize'))
@@ -232,26 +215,38 @@ class RestXmlRequest(TableauBase):
                 for obj in xml.getroot():
                     if obj.tag != 'pagination':
                         full_xml_obj = obj
-                self.log("Full obj without paginatioin")
-                self.log(etree.tostring(full_xml_obj))
-                combined_xml_obj = copy.deepcopy(full_xml_obj)
+
+                # Convert the internal part of the XML response that is not Pagination back into xml text
+                # Then convert innermost part into a new XML object
+                # This only works in the pre-9.1, non-UTF8 encoded output that includes line breaks
+                new_xml_text_lines = etree.tostring(full_xml_obj, encoding='utf8').decode('utf8').split("\n")
+                # New style output is not split into multiple lines, add them back in then split
+                if len(new_xml_text_lines) == 1:
+                    new_xml_text_lines = new_xml_text_lines[0].replace('>', '>\n').split("\n")
+                # First and last tags should be removed (spit back with namespace tags that are included via start text
+                a = new_xml_text_lines[1:]
+                xml_text_lines = a[:-2]
 
                 if total_pages > 1:
                     for i in xrange(2, total_pages + 1):
 
                         self.__make_request(i)  # Get next page
-                        utf8_parser2 = etree.XMLParser(encoding='utf-8')
-                        xml = etree.parse(StringIO(self.__raw_response), parser=utf8_parser2)
+                        xml = etree.parse(StringIO(self.__raw_response), parser=utf8_parser)
                         for obj in xml.getroot():
                             if obj.tag != 'pagination':
                                 full_xml_obj = obj
-                        # This is the actual element, now need to append a copy to the big one
-                        for e in full_xml_obj:
-                            combined_xml_obj.append(e)
+                        new_xml_text_lines = etree.tostring(full_xml_obj, encoding='utf8').decode('utf8').split("\n")
+                        # New style output is not split into multiple lines, add them back in then split
+                        if len(new_xml_text_lines) == 1:
+                            new_xml_text_lines = new_xml_text_lines[0].replace('>', '>\n').split("\n")
+                        a = new_xml_text_lines[1:]  # Chop first tag
+                        xml_text_lines.extend(a[:-2])  # Add the newly brought in lines to the overall text lines
 
-                self.__xml_object = combined_xml_obj
-                self.log(u"Logging the combined xml object")
-                self.log(etree.tostring(self.__xml_object))
+                for line in xml_text_lines:
+                    combined_xml_string = combined_xml_string + line
+                combined_xml_string += u"</tsResponse>"
+
+                self.__xml_object = etree.parse(StringIO(combined_xml_string.encode('utf8')), parser=utf8_parser)
                 return True
         elif self.__response_type in ['binary', 'png']:
             self.log(u'Binary response (binary or png) rather than XML')
