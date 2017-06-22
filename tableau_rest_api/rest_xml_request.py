@@ -221,7 +221,6 @@ class RestXmlRequest(TableauBase):
             xml = etree.parse(sio, parser=utf8_parser)
             # Set the XML object to the first returned. Will be replaced if there is pagination
             self.__xml_object = xml.getroot()
-            combined_xml_obj = None
 
             for pagination in xml.findall(u'.//t:pagination', namespaces=self.ns_map):
 
@@ -234,8 +233,6 @@ class RestXmlRequest(TableauBase):
                 for obj in xml.getroot():
                     if obj.tag != 'pagination':
                         full_xml_obj = obj
-                self.log("Full obj without paginatioin")
-                self.log(etree.tostring(full_xml_obj))
                 combined_xml_obj = copy.deepcopy(full_xml_obj)
 
                 if total_pages > 1:
