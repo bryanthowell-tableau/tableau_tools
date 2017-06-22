@@ -7,8 +7,9 @@ from ..tableau_documents.tableau_packaged_file import TableauPackagedFile
 from ..tableau_documents.tableau_workbook import TableauWorkbook
 from ..tableau_documents.tableau_datasource import TableauDatasource
 from ..tableau_exceptions import *
+from grantee_capabilities import Permissions
 from rest_xml_request import RestXmlRequest
-from published_content import Project20, Project21, Workbook, Datasource
+from published_content import Project, Project21, Workbook, Datasource
 
 
 class TableauRestApiConnection(TableauBase):
@@ -140,7 +141,7 @@ class TableauRestApiConnection(TableauBase):
             luid = project_name_or_luid
         else:
             luid = self.query_project_luid(project_name_or_luid)
-        proj_obj = Project20(luid, self, self.version, self.logger, project_xml_obj)
+        proj_obj = Project(luid, self, self.version, self.logger, project_xml_obj)
         return proj_obj
 
     def get_published_workbook_object(self, workbook_name_or_luid, project_name_or_luid):
@@ -170,6 +171,9 @@ class TableauRestApiConnection(TableauBase):
         ds_obj = Datasource(luid, self, self.version, self.logger)
         return ds_obj
 
+    def get_permissions_object(self, group_or_user, luid, content_type=None):
+        gcap_obj = Permissions(group_or_user, luid, content_type, self.version)
+        return gcap_obj
 
     #
     # Sign-in and Sign-out
@@ -233,14 +237,14 @@ class TableauRestApiConnection(TableauBase):
     #
 
     # baseline method for any get request. appends to base url
-    def query_resource(self, url_ending, server_level=False):
+    def query_resource(self, url_ending, login=False):
         """
         :type url_ending: unicode
-        :type server_level: bool
+        :type login: bool
         :rtype: etree.Element
         """
         self.start_log_block()
-        api_call = self.build_api_url(url_ending, server_level)
+        api_call = self.build_api_url(url_ending, login)
         api = RestXmlRequest(api_call, self.token, self.logger, ns_map_url=self.ns_map['t'])
         self.log_uri(u'get', api_call)
         api.request_from_api()
@@ -248,9 +252,9 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return xml
 
-    def query_single_element_from_endpoint(self, element_name, name_or_luid, server_level=False):
+    def query_single_element_from_endpoint(self, element_name, name_or_luid):
         self.start_log_block()
-        elements = self.query_resource("{}s".format(element_name), server_level=server_level)
+        elements = self.query_resource("{}s".format(element_name))
         if self.is_luid(name_or_luid):
             luid = name_or_luid
         else:
@@ -263,12 +267,9 @@ class TableauRestApiConnection(TableauBase):
             self.end_log_block()
             raise NoMatchFoundException(u"No {} found with name or luid {}".format(element_name, name_or_luid))
 
-    def query_single_element_luid_by_name_from_endpoint(self, element_name, name, server_level=False):
+    def query_single_element_luid_by_name_from_endpoint(self, element_name, name):
         self.start_log_block()
-        elements = self.query_resource("{}s".format(element_name), server_level=server_level)
-        if element_name == u'group':
-            for e in elements:
-                self.group_name_luid_cache[e.get(u'name')] = e.get(u'id')
+        elements = self.query_resource("{}s".format(element_name))
         element = elements.findall(u'.//t:{}[@name="{}"]'.format(element_name, name), self.ns_map)
         if len(element) == 1:
             self.end_log_block()
@@ -484,7 +485,7 @@ class TableauRestApiConnection(TableauBase):
     def query_group_luid(self, group_name):
         """
         :type group_name: unicode
-        :rtype: unicode
+        :rtype: etree.Element
         """
         self.start_log_block()
         if group_name in self.group_name_luid_cache:
@@ -495,27 +496,6 @@ class TableauRestApiConnection(TableauBase):
             self.group_name_luid_cache[group_name] = group_luid
         self.end_log_block()
         return group_luid
-
-    def query_group_name(self, group_luid):
-        """
-        :type group_luid: unicode
-        :rtype: unicode
-        """
-        self.start_log_block()
-        for name, luid in self.group_name_luid_cache.items():
-            if luid == group_luid:
-                group_name = name
-                self.log(u'Found group name {} in cache with luid {}'.format(group_name, group_luid))
-                return group_name
-        # If match is found
-        group = self.query_single_element_from_endpoint(u'group', group_luid)
-        group_luid = group.get(u"id")
-        group_name = group.get(u'name')
-        self.log(u'Loading the Group: LUID cache')
-        self.group_name_luid_cache[group_name] = group_luid
-        self.end_log_block()
-        return group_name
-
 
     #
     # End Group Querying methods
@@ -535,10 +515,9 @@ class TableauRestApiConnection(TableauBase):
         return projects
 
     def query_project(self, project_name_or_luid):
-        # type: (object) -> object
         """
         :type project_name_or_luid: unicode
-        :rtype: Project20
+        :rtype: Project
         """
         self.start_log_block()
         if self.is_luid(project_name_or_luid):
@@ -574,7 +553,7 @@ class TableauRestApiConnection(TableauBase):
         :rtype: etree.Element
         """
         self.start_log_block()
-        sites = self.query_resource(u"sites/", server_level=True)
+        sites = self.query_resource(u"sites/", login=True)
         self.end_log_block()
         return sites
 
@@ -599,7 +578,7 @@ class TableauRestApiConnection(TableauBase):
         :rtype: etree.Element
         """
         self.start_log_block()
-        site = self.query_resource(u"sites/{}".format(self.site_luid), server_level=True)
+        site = self.query_resource(u"sites/{}" .format(self.site_luid), login=True)
         self.end_log_block()
         return site
 
@@ -939,7 +918,6 @@ class TableauRestApiConnection(TableauBase):
     def save_workbook_preview_image(self, wb_name_or_luid, filename_no_extension, proj_name_or_luid=None):
         """
         :type wb_name_or_luid: unicode
-        :param filename_no_extension: Correct extension will be added automatically
         :type filename_no_extension: unicode
         :type proj_name_or_luid: unicode
         :rtype:
@@ -950,9 +928,7 @@ class TableauRestApiConnection(TableauBase):
         else:
             wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
         try:
-            if filename_no_extension.find('.png') != -1:
-                filename_no_extension += '.png'
-            save_file = open(filename_no_extension, 'wb')
+            save_file = open(filename_no_extension + '.png', 'wb')
             url = self.build_api_url(u"workbooks/{}/previewImage".format(wb_luid))
             image = self.send_binary_get_request(url)
             save_file.write(image)
@@ -1224,12 +1200,11 @@ class TableauRestApiConnection(TableauBase):
             group = response.findall(u'.//t:group', self.ns_map)
             return group[0].get('id')
 
-    def create_project(self, project_name, project_desc=None, no_return=False):
+    def create_project(self, project_name, project_desc=None):
         """
         :type project_name: unicode
         :type project_desc: unicode
-        :type no_return: bool
-        :rtype: Project20
+        :rtype: Project
         """
         self.start_log_block()
 
@@ -1247,14 +1222,12 @@ class TableauRestApiConnection(TableauBase):
 
             self.end_log_block()
             project_luid = new_project.findall(u'.//t:project', self.ns_map)[0].get("id")
-            if no_return is False:
-                return self.get_published_project_object(project_luid)
+            return self.get_published_project_object(project_luid)
         except RecoverableHTTPException as e:
             if e.http_code == 409:
                 self.log(u'Project named {} already exists, finding and returning Published Project Object'.format(project_name))
                 self.end_log_block()
-                if no_return is False:
-                    return self.get_published_project_object(project_name)
+                return self.get_published_project_object(project_name)
 
     # Both SiteName and ContentUrl must be unique to add a site
     def create_site(self, new_site_name, new_content_url, admin_mode=None, user_quota=None, storage_quota=None,
@@ -1279,18 +1252,13 @@ class TableauRestApiConnection(TableauBase):
         return new_site.findall(u'.//t:site', self.ns_map)[0].get("id")
 
     # Take a single user_luid string or a collection of luid_strings
-    def add_users_to_group(self, username_or_luid_s, group_name_or_luid):
+    def add_users_to_group(self, username_or_luid_s, group_luid):
         """
         :type username_or_luid_s: list[unicode] or unicode
-        :type group_name_or_luid: unicode
+        :type group_luid: unicode
         :rtype: unicode
         """
         self.start_log_block()
-        if self.is_luid(group_name_or_luid):
-            group_luid = group_name_or_luid
-        else:
-            group_luid = self.query_group_luid(group_name_or_luid)
-
         users = self.to_list(username_or_luid_s)
         for user in users:
             if self.is_luid(user):
@@ -1572,7 +1540,7 @@ class TableauRestApiConnection(TableauBase):
         :type name_or_luid: unicode
         :type new_project_name: unicode
         :type new_project_description: unicode
-        :rtype: Project20
+        :rtype: Project
         """
         self.start_log_block()
         if self.is_luid(name_or_luid):
@@ -1842,40 +1810,47 @@ class TableauRestApiConnection(TableauBase):
         (1) Initiate File Upload (2) Append to File Upload (3) Publish workbook to commit (over 64 MB)
     '''
 
-    def publish_workbook(self, workbook_filename, workbook_name, project_obj, overwrite=False, connection_username=None,
-                         connection_password=None, save_credentials=True, show_tabs=True):
+    def publish_workbook(self, workbook_filename, workbook_name, project_name_or_luid, overwrite=False,
+                         connection_username=None, connection_password=None, save_credentials=True, show_tabs=True,
+                         check_published_ds=False):
         """
         :type workbook_filename: unicode
         :type workbook_name: unicode
-        :type project_obj: Project20 or Project21
+        :type project_name_or_luid: unicode
         :type overwrite: bool
         :type connection_username: unicode
         :type connection_password: unicode
         :type save_credentials: bool
         :type show_tabs: bool
+        :type check_published_ds: bool
         :rtype: unicode
         """
-
-        project_luid = project_obj.luid
+        if self.is_luid(project_name_or_luid):
+            project_luid = project_name_or_luid
+        else:
+            project_luid = self.query_project_luid(project_name_or_luid)
         xml = self.publish_content(u'workbook', workbook_filename, workbook_name, project_luid, overwrite,
                                    connection_username, connection_password, save_credentials, show_tabs=show_tabs,
-                                   check_published_ds=False)
+                                   check_published_ds=check_published_ds)
         workbook = xml.findall(u'.//t:workbook', self.ns_map)
         return workbook[0].get('id')
 
-    def publish_datasource(self, ds_filename, ds_name, project_obj, overwrite=False, connection_username=None,
+    def publish_datasource(self, ds_filename, ds_name, project_name_or_luid, overwrite=False, connection_username=None,
                            connection_password=None, save_credentials=True):
         """
         :type ds_filename: unicode
         :type ds_name: unicode
-        :type project_obj: Project20 or Project21
+        :type project_name_or_luid: unicode
         :type overwrite: bool
         :type connection_username: unicode
         :type connection_password: unicode
         :type save_credentials: bool
         :rtype: unicode
         """
-        project_luid = project_obj.luid
+        if self.is_luid(project_name_or_luid):
+            project_luid = project_name_or_luid
+        else:
+            project_luid = self.query_project_luid(project_name_or_luid)
         xml = self.publish_content(u'datasource', ds_filename, ds_name, project_luid, overwrite, connection_username,
                                    connection_password, save_credentials)
         datasource = xml.findall(u'.//t:datasource', self.ns_map)
@@ -2062,28 +2037,12 @@ class TableauRestApiConnection21(TableauRestApiConnection):
         proj_obj = Project21(luid, self, self.version, self.logger, content_xml_obj=project_xml_obj)
         return proj_obj
 
-    def query_project(self, project_name_or_luid):
-        """
-        :type project_name_or_luid: unicode
-        :rtype: Project21
-        """
-        self.start_log_block()
-        if self.is_luid(project_name_or_luid):
-            luid = project_name_or_luid
-        else:
-            luid = self.query_project_luid(project_name_or_luid)
-        proj = self.get_published_project_object(luid, self.query_single_element_from_endpoint(u'project', project_name_or_luid))
-
-        self.end_log_block()
-        return proj
-
-    def create_project(self, project_name, project_desc=None, locked_permissions=True, no_return=False):
+    def create_project(self, project_name, project_desc=None, locked_permissions=True):
         """
         :type project_name: unicode
         :type project_desc: unicode
         :type locked_permissions: bool
-        :type no_return: bool
-        :rtype: Project21
+        :rtype: Project
         """
         self.start_log_block()
 
@@ -2102,14 +2061,12 @@ class TableauRestApiConnection21(TableauRestApiConnection):
             new_project = self.send_add_request(url, tsr)
             self.end_log_block()
             project_luid = new_project.findall(u'.//t:project', self.ns_map)[0].get("id")
-            if no_return is False:
-                return self.get_published_project_object(project_luid, new_project)
+            return self.get_published_project_object(project_luid, new_project)
         except RecoverableHTTPException as e:
             if e.http_code == 409:
                 self.log(u'Project named {} already exists, finding and returning the Published Project Object'.format(project_name))
                 self.end_log_block()
-                if no_return is False:
-                    return self.query_project(project_name)
+                return self.query_project(project_name)
 
     def update_project(self, name_or_luid, new_project_name=None, new_project_description=None,
                        locked_permissions=True):
@@ -2118,7 +2075,7 @@ class TableauRestApiConnection21(TableauRestApiConnection):
         :type new_project_name: unicode
         :type new_project_description: unicode
         :type locked_permissions: bool
-        :rtype: Project21
+        :rtype: unicode
         """
         self.start_log_block()
         if self.is_luid(name_or_luid):
@@ -2160,27 +2117,6 @@ class TableauRestApiConnection21(TableauRestApiConnection):
             self.send_delete_request(url)
         self.end_log_block()
 
-    def publish_workbook(self, workbook_filename, workbook_name, project_obj, overwrite=False, connection_username=None,
-                         connection_password=None, save_credentials=True, show_tabs=True):
-        """
-        :type workbook_filename: unicode
-        :type workbook_name: unicode
-        :type project_obj: Project20 or Project21
-        :type overwrite: bool
-        :type connection_username: unicode
-        :type connection_password: unicode
-        :type save_credentials: bool
-        :type show_tabs: bool
-        :rtype: unicode
-        """
-
-        project_luid = project_obj.luid
-        xml = self.publish_content(u'workbook', workbook_filename, workbook_name, project_luid, overwrite,
-                                   connection_username, connection_password, save_credentials, show_tabs=show_tabs,
-                                   check_published_ds=True)
-        workbook = xml.findall(u'.//t:workbook', self.ns_map)
-        return workbook[0].get('id')
-
 
 class TableauRestApiConnection22(TableauRestApiConnection21):
     def __init__(self, server, username, password, site_content_url=u""):
@@ -2201,29 +2137,9 @@ class TableauRestApiConnection22(TableauRestApiConnection21):
         :rtype: etree.Element
         """
         self.start_log_block()
-        schedules = self.query_resource(u"schedules", server_level=True)
+        schedules = self.query_resource(u"schedules", login=True)
         self.end_log_block()
         return schedules
-
-    def query_extract_schedules(self):
-        """
-        :rtype: etree.Element
-        """
-        self.start_log_block()
-        schedules = self.query_schedules()
-        extract_schedules = schedules.findall(u'.//t:schedule[@type="Extract"]', self.ns_map)
-        self.end_log_block()
-        return extract_schedules
-
-    def query_subscription_schedules(self):
-        """
-        :rtype: etree.Element
-        """
-        self.start_log_block()
-        schedules = self.query_schedules()
-        subscription_schedules = schedules.findall(u'.//t:schedule[@type="Subscription"]', self.ns_map)
-        self.end_log_block()
-        return subscription_schedules
 
     def query_schedule_luid(self, schedule_name):
         """
@@ -2231,7 +2147,7 @@ class TableauRestApiConnection22(TableauRestApiConnection21):
         :rtype: unicode
         """
         self.start_log_block()
-        luid = self.query_single_element_luid_by_name_from_endpoint(u'schedule', schedule_name, server_level=True)
+        luid = self.query_single_element_luid_by_name_from_endpoint(u'schedule', schedule_name)
         self.end_log_block()
         return luid
 
@@ -2248,8 +2164,6 @@ class TableauRestApiConnection22(TableauRestApiConnection21):
         tasks = self.query_resource(u"schedules/{}/extracts".format(luid))
         self.end_log_block()
         return tasks
-
-
 
     #
     # End Scheduler Querying Methods
@@ -2932,27 +2846,6 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
     # End Revision Methods
     #
 
-    def publish_workbook(self, workbook_filename, workbook_name, project_obj, overwrite=False, connection_username=None,
-                         connection_password=None, save_credentials=True, show_tabs=True):
-        """
-        :type workbook_filename: unicode
-        :type workbook_name: unicode
-        :type project_obj: Project20 or Project21
-        :type overwrite: bool
-        :type connection_username: unicode
-        :type connection_password: unicode
-        :type save_credentials: bool
-        :type show_tabs: bool
-        :rtype: unicode
-        """
-
-        project_luid = project_obj.luid
-        xml = self.publish_content(u'workbook', workbook_filename, workbook_name, project_luid, overwrite,
-                                   connection_username, connection_password, save_credentials, show_tabs=show_tabs,
-                                   check_published_ds=False)
-        workbook = xml.findall(u'.//t:workbook', self.ns_map)
-        return workbook[0].get('id')
-
 
 class TableauRestApiConnection24(TableauRestApiConnection23):
     def __init__(self, server, username, password, site_content_url=u""):
@@ -2970,7 +2863,7 @@ class TableauRestApiConnection24(TableauRestApiConnection23):
         :rtype: etree.Element
         """
         self.start_log_block()
-        server_info = self.query_resource(u"serverinfo", server_level=True)
+        server_info = self.query_resource(u"serverinfo", login=True)
         self.end_log_block()
         return server_info
 
@@ -3020,15 +2913,13 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         self.end_log_block()
         return favorites
 
-    def create_project(self, project_name, project_desc=None, locked_permissions=True, publish_samples=False,
-                       no_return=False):
+    def create_project(self, project_name, project_desc=None, locked_permissions=True, publish_samples=False):
         """
         :type project_name: unicode
         :type project_desc: unicode
         :type locked_permissions: bool
         :type publish_samples: bool
-        :type no_return: bool
-        :rtype: Project21
+        :rtype: proj_obj:Project
         """
         self.start_log_block()
 
@@ -3049,14 +2940,12 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
             new_project = self.send_add_request(url, tsr)
             self.end_log_block()
             project_luid = new_project.findall(u'.//t:project', self.ns_map)[0].get("id")
-            if no_return is False:
-                return self.get_published_project_object(project_luid, new_project)
+            return self.get_published_project_object(project_luid, new_project)
         except RecoverableHTTPException as e:
             if e.http_code == 409:
                 self.log(u'Project named {} already exists, finding and returning the Published Project Object'.format(project_name))
                 self.end_log_block()
-                if no_return is False:
-                    return self.query_project(project_name)
+                return self.query_project(project_name)
 
     def update_project(self, name_or_luid, new_project_name=None, new_project_description=None,
                        locked_permissions=True, publish_samples=False):
@@ -3066,7 +2955,7 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         :type new_project_description: unicode
         :type locked_permissions: bool
         :type publish_samples: bool
-        :rtype: Project21
+        :rtype: unicode
         """
         self.start_log_block()
         if self.is_luid(name_or_luid):
@@ -3173,38 +3062,7 @@ class TableauRestApiConnection26(TableauRestApiConnection25):
         url = self.build_api_url(u'tasks/extractRefreshes/{}/runNow'.format(task_luid))
         response = self.send_add_request(url, tsr)
         self.end_log_block()
-        return response.findall(u'.//t:job', self.ns_map)[0].get(u"id")
-
-    def run_all_extract_refreshes_for_schedule(self, schedule_name_or_luid):
-        """
-        :type schedule_name_or_luid: unicode
-        :return:
-        """
-        self.start_log_block()
-        extracts = self.query_extract_refresh_tasks_by_schedule(schedule_name_or_luid)
-        for extract in extracts:
-            self.run_extract_refresh_task(extract.get(u'id'))
-        self.end_log_block()
-
-    def run_extract_refresh_for_workbook(self, wb_name_or_luid, proj_name_or_luid=None, username_or_luid=None):
-        """
-        :type wb_name_or_luid: unicode
-        :type proj_name_or_luid: unicode
-        :type username_or_luid: unicode
-        :return:
-        """
-        self.start_log_block()
-        if self.is_luid(wb_name_or_luid):
-            wb_luid = wb_name_or_luid
-        else:
-            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
-        tasks = self.get_extract_refresh_tasks()
-        print tasks
-        extracts_for_wb = tasks.findall(u'.//t:extract/workbook[@id="{}"]..'.format(wb_luid), self.ns_map)
-        # print extracts_for_wb
-        for extract in extracts_for_wb:
-            self.run_extract_refresh_task(extract.get(u'id'))
-        self.end_log_block()
+        return response.findall(u'.//t:job', self.ns_map)[0].get("id")
 
     # Tags can be scalar string or list
     def add_tags_to_datasource(self, ds_name_or_luid, tag_s, proj_name_or_luid=None):
@@ -3303,3 +3161,4 @@ class TableauRestApiConnection26(TableauRestApiConnection25):
             deleted_count += self.send_delete_request(url)
         self.end_log_block()
         return deleted_count
+

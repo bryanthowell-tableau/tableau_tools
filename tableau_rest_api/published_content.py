@@ -1,6 +1,6 @@
 from ..tableau_base import *
 from ..tableau_exceptions import *
-from permissions import *
+from grantee_capabilities import Permissions
 import copy
 
 
@@ -21,7 +21,7 @@ class PublishedContent(TableauBase):
 
         self.logger = logger_obj
         self.log(u"Setting Server Version ID to {}".format(tableau_server_version))
-        self._luid = luid
+        self.luid = luid
         self.t_rest_api = tableau_rest_api_obj
         self.obj_type = obj_type
         self.default = default
@@ -33,17 +33,8 @@ class PublishedContent(TableauBase):
 
         # If you want to know the name that matches to the group or user, need these
         # But no need to request every single time
-        # self.groups_dict_cache = None
+        self.groups_dict_cache = None
         # self.users_dict_cache = None
-
-    @property
-    def luid(self):
-        return self._luid
-
-    # Implement in each type for the right lookup
-    @luid.setter
-    def luid(self, name_or_luid):
-        self._luid = name_or_luid
 
     def get_object_type(self):
         return self.obj_type
@@ -61,55 +52,88 @@ class PublishedContent(TableauBase):
    #     users_dict = self.t_rest_api.convert_xml_list_to_name_id_dict(users)
    #     return users_dict
 
+    def convert_capabilities_xml_into_obj_list(self, xml_obj, group_or_user=None):
+        """
+        :type xml_obj: etree.Element
+        :type group_or_user: unicode
+        :return: obj_list: list[Permissions]
+        """
+        self.start_log_block()
+        obj_list = []
+
+        xml = xml_obj.findall(u'.//t:GranteeCapabilities', namespaces=self.ns_map)
+        if len(xml) == 0:
+            return []
+        else:
+            for gcaps in xml:
+                for tags in gcaps:
+                    # Namespace fun
+                    if tags.tag == u'{}group'.format(self.ns_prefix):
+                        luid = tags.get(u'id')
+                        perms_obj = Permissions(u'group', luid, group_or_user)
+                        self.log(u'group {}'.format(luid))
+                    elif tags.tag == u'{}user'.format(self.ns_prefix):
+                        luid = tags.get(u'id')
+                        perms_obj = Permissions(u'user', luid, group_or_user)
+                        self.log(u'user {}'.format(luid))
+                    elif tags.tag == u'{}capabilities'.format(self.ns_prefix):
+                        for caps in tags:
+                            self.log(caps.get(u'name') + ' : ' + caps.get(u'mode'))
+                            perms_obj.set_capability(caps.get(u'name'), caps.get(u'mode'))
+                obj_list.append(perms_obj)
+            self.log(u'Permissions object list has {} items'.format(unicode(len(obj_list))))
+            self.end_log_block()
+            return obj_list
+
     # Runs through the gcap object list, and tries to do a conversion all principals to matching LUIDs on current site
     # Use case is replicating settings from one site to another
     # Orig_site must be TableauRestApiConnection
     # Not Finished
     def convert_permissions_obj_list_from_orig_site_to_current_site(self, permissions_obj_list, orig_site):
         """
-        :type permissions_obj_list: list[Permissions]
-        :type orig_site: TableauRestApiConnection
-        :rtype: list[Permissions]
+        :param permissions_obj_list: list[Permissions]
+        :param orig_site: TableauRestApiConnection
+        :return: list[Permissions]
         """
-        new_perms_obj_list = copy.deepcopy(permissions_obj_list)
-        final_perms_obj_list = []
+        new_perms_obj_list = []
         # Make this more efficient -- should only look up those users it needs to. Question on algorithm for speed
+        # If
+        orig_site_groups = orig_site.query_groups()
+        orig_site_users = orig_site.query_users()
+        orig_site_groups_dict = self.convert_xml_list_to_name_id_dict(orig_site_groups)
+        orig_site_users_dict = self.convert_xml_list_to_name_id_dict(orig_site_users)
 
-        for perms_obj in new_perms_obj_list:
-            orig_luid = perms_obj.luid
-            if perms_obj.group_or_user == u'group':
+        new_site_groups = self.t_rest_api.query_groups()
+        new_site_users = self.t_rest_api.query_users()
+        new_site_groups_dict = self.convert_xml_list_to_name_id_dict(new_site_groups)
+        new_site_users_dict = self.convert_xml_list_to_name_id_dict(new_site_users)
+        for perms_obj in permissions_obj_list:
+            orig_luid = perms_obj.get_luid()
+            if perms_obj.get_group_or_user() == u'group':
                 # Find the name that matches the LUID
                 try:
-                    orig_name = orig_site.query_group_name(orig_luid)
-                    self.log(u'Found orig luid {} for name {}'.format(orig_luid, orig_name ))
-                    n_luid = self.t_rest_api.query_group_luid(orig_name)
-                    self.log(u'Found new luid {} for name {}'.format(n_luid, orig_name ))
+                    orig_name = (key for key, value in orig_site_groups_dict.items() if value == orig_luid).next()
                 except StopIteration:
-                    self.log(u"No matching name for luid {} found on the original site, dropping from list".format(
+                    raise NoMatchFoundException(u"No matching name for luid {} found on the original site".format(
                         orig_luid))
+                new_luid = new_site_groups_dict.get(orig_name)
 
-            elif perms_obj.group_or_user == u'user':
+            elif perms_obj.get_group_or_user() == u'user':
                 # Find the name that matches the LUID
                 try:
-                    # Individual searches here. Efficient in versions with lookup
-                    orig_user = orig_site.query_user(orig_luid)
-                    orig_username = orig_user.get(u'name')
-                    n_luid = self.t_rest_api.query_user_luid(orig_username)
-                except NoMatchFoundException:
-                    self.log(u"No matching name for luid {} found on the original site, dropping from list".format(
+                    orig_name = (key for key, value in orig_site_users_dict.items() if value == orig_luid).next()
+                except StopIteration:
+                    raise NoMatchFoundException(u"No matching name for luid {} found on the original site".format(
                         orig_luid))
-            perms_obj.luid = n_luid
-            final_perms_obj_list.append(copy.deepcopy(perms_obj))
-        return final_perms_obj_list
+                new_luid = new_site_users_dict.get(orig_name)
 
-    def replicate_permissions(self, orig_content):
-        self.clear_all_permissions()
-
-        # Self Permissions
-        o_perms_obj_list = orig_content.current_perms_obj_list
-        n_perms_obj_list = self.convert_permissions_obj_list_from_orig_site_to_current_site(o_perms_obj_list,
-                                                                                            orig_content.t_rest_api)
-        self.set_permissions_by_permissions_obj_list(n_perms_obj_list)
+            new_perms_obj = copy.copy(perms_obj)
+            if new_luid is None:
+                raise NoMatchFoundException(u"No matching {} named {} found on the new site".format(
+                    perms_obj.get_obj_type(), orig_name))
+            new_perms_obj.set_luid(new_luid)
+            new_perms_obj_list.append(new_perms_obj)
+        return new_perms_obj_list
 
     # Determine if capabilities are already set identically (or identically enough) to skip
     def are_capabilities_obj_lists_identical(self, new_obj_list, dest_obj_list):
@@ -123,11 +147,11 @@ class PublishedContent(TableauBase):
         # Create a dict with the LUID as the keys for sorting and comparison
         new_obj_dict = {}
         for obj in new_obj_list:
-            new_obj_dict[obj.luid] = obj
+            new_obj_dict[obj.get_luid()] = obj
 
         dest_obj_dict = {}
         for obj in dest_obj_list:
-            dest_obj_dict[obj.luid] = obj
+            dest_obj_dict[obj.get_luid()] = obj
             # If lengths don't match, they must differ
             if len(new_obj_dict) != len(dest_obj_dict):
                 return False
@@ -152,11 +176,8 @@ class PublishedContent(TableauBase):
         :type dest_obj_dict: dict
         :return: bool
         """
-        if new_obj_dict.viewkeys() == dest_obj_dict.viewkeys():
-            for k in new_obj_dict:
-                if new_obj_dict[k] != dest_obj_dict[k]:
-                    return True
-            return False
+        if cmp(new_obj_dict, dest_obj_dict) == 0:
+            return True
         else:
             return False
 
@@ -208,18 +229,14 @@ class PublishedContent(TableauBase):
         capabilities_dict = permissions_obj.get_capabilities_dict()
         c = self.build_capabilities_xml_from_dict(capabilities_dict, self.obj_type)
         gcap = etree.Element(u'granteeCapabilities')
-        t = etree.Element(permissions_obj.group_or_user)
-        t.set(u'id', permissions_obj.luid)
+        t = etree.Element(permissions_obj.get_group_or_user())
+        t.set(u'id', permissions_obj.get_luid())
         gcap.append(t)
         gcap.append(c)
         p.append(gcap)
         tsr.append(p)
 
         return tsr
-
-    # Template stub
-    def convert_capabilities_xml_into_obj_list(self, xml_obj):
-        x = xml_obj
 
     def get_permissions_from_server(self, obj_perms_xml=None):
         """
@@ -231,13 +248,11 @@ class PublishedContent(TableauBase):
             self.obj_perms_xml = obj_perms_xml
         else:
             if self.default is False:
-                self.obj_perms_xml = self.t_rest_api.query_resource(
-                    u"{}s/{}/permissions".format(self.obj_type, self.luid))
+                self.obj_perms_xml = self.t_rest_api.query_resource(u"{}s/{}/permissions".format(self.obj_type, self.luid))
             elif self.default is True:
-                self.obj_perms_xml = self.t_rest_api.query_resource(
-                    u"projects/{}/default-permissions/{}s".format(self.luid, self.obj_type))
+                self.obj_perms_xml = self.t_rest_api.query_resource(u"projects/{}/default-permissions/{}s".format(self.luid, self.obj_type))
         self.log(u'Converting XML into Permissions Objects for object type: {}'.format(self.obj_type))
-        self.current_perms_obj_list = self.convert_capabilities_xml_into_obj_list(self.obj_perms_xml)
+        self.current_perms_obj_list = self.convert_capabilities_xml_into_obj_list(self.obj_perms_xml, self.obj_type)
         self.end_log_block()
 
     def get_permissions_xml(self):
@@ -251,32 +266,28 @@ class PublishedContent(TableauBase):
         :type new_permissions_obj_list: list[Permissions]
         """
         self.start_log_block()
-
-        self.log(u"Permissions object list has {} items:".format(len(new_permissions_obj_list)))
         for new_permissions_obj in new_permissions_obj_list:
             for cur_obj in self.current_perms_obj_list:
                 # Check if there are any existing capabilities on the object
-                if cur_obj.luid == new_permissions_obj.luid:
+                if cur_obj.get_luid() == new_permissions_obj.get_luid():
                     # Find if anything is set already, add to deletion queue
                     need_to_change = self.are_capabilities_obj_dicts_identical(
                         cur_obj.get_capabilities_dict(), new_permissions_obj.get_capabilities_dict()
                     )
-                    self.log(u"Existing permissions found for luid {}. Are there differences? {}".format(cur_obj.luid,
+                    self.log(u"Existing permissions found for luid {}. Are there differences? {}".format(cur_obj.get_luid(),
                                                                                                          str(need_to_change)))
                     # Delete all existing permissions
                     if need_to_change is True:
-                        self.log(u"Removing exisiting permissions for luid {}".format(cur_obj.luid))
-                        self.delete_permissions_by_permissions_obj_list([cur_obj, ])
-
+                        self.log(u"Removing exisiting permissions for luid {}".format(cur_obj.get_luid()))
+                        self.t_rest_api.delete_permissions_by_luids(self.obj_type, self.luid, cur_obj.get_luid(),
+                                                                    cur_obj.get_capabilities_dict(),
+                                                                    cur_obj.get_obj_type())
                     if need_to_change is False:
-                        self.log(u'No changes necessary, skipping update for quicker performance')
                         self.end_log_block()
                         return True
             # Check if all capabilities are set to Unspecified, and ignore
             specified_cap_count = 0
             caps = new_permissions_obj.get_capabilities_dict()
-            self.log(u"New permissions to be set:")
-            self.log(str(caps))
             for cap in caps:
                 if caps[cap] is not None:
                     specified_cap_count += 1
@@ -303,11 +314,10 @@ class PublishedContent(TableauBase):
         :return:
         """
         self.start_log_block()
-        self.log(u'Permissions from object list:')
-        self.log(str(permissions_obj_list))
+
         for permissions_obj in permissions_obj_list:
-            obj_luid = permissions_obj.luid
-            group_or_user = permissions_obj.group_or_user
+            obj_luid = permissions_obj.get_luid()
+            group_or_user = permissions_obj.get_group_or_user()
             # Only work if permissions object matches the ContentType
             if permissions_obj.get_content_type() != self.obj_type:
                 raise InvalidOptionException(u"Trying to set permission for a {} using a {} Permissions object".format(
@@ -317,20 +327,20 @@ class PublishedContent(TableauBase):
             permissions_dict = permissions_obj.get_capabilities_dict()
             for cap in permissions_dict:
                 if self.default is True:
-                    api_url_start = u"projects/{}/default-permissions/{}s/{}s/{}/{}/".format(self.luid, self.obj_type,
-                                                                                             group_or_user,
-                                                                                             obj_luid, cap)
+                    api_url_start = u"projects/{}/default-permissions/{}s/permissions/{}s/{}/{}/".format(self.luid, self.obj_type,
+                                                                                                         group_or_user,
+                                                                                                         obj_luid, cap)
                 else:
                     api_url_start = u"{}s/{}/permissions/{}s/{}/{}/".format(self.obj_type, self.luid, group_or_user,
                                                                             obj_luid, cap)
 
                 if permissions_dict.get(cap) == u'Allow':
                     # Delete Allow
-                    url = self.t_rest_api.build_api_url(api_url_start + u'Allow')
+                    url = api_url_start + u'Allow'
                     self.t_rest_api.send_delete_request(url)
                 elif permissions_dict.get(cap) == u'Deny':
                     # Delete Deny
-                    url = self.t_rest_api.build_api_url(api_url_start + u'Deny')
+                    url = api_url_start + u'Deny'
                     self.t_rest_api.send_delete_request(url)
                 else:
                     self.log(u'{} set to none, no action'.format(cap))
@@ -339,316 +349,83 @@ class PublishedContent(TableauBase):
     def clear_all_permissions(self):
         self.start_log_block()
         self.get_permissions_from_server()
-        self.log(u'Current permissions object list')
-        self.log(str(self.current_perms_obj_list))
         self.delete_permissions_by_permissions_obj_list(self.current_perms_obj_list)
         self.end_log_block()
 
+    def replicate_content_permissions(self, destination_object, destination_site=None):
+        """
+        :type destination_object: PublishedContent
+        :return:
+        """
+        self.start_log_block()
+        if self.obj_type != destination_object.get_object_type():
+            raise InvalidOptionException(u"Trying to replicate permissions from a {} to a {}".format(self.obj_type, destination_object.get_object_type()))
 
-class Project20(PublishedContent):
+        capabilities_list = self.convert_capabilities_xml_into_obj_list(self.obj_perms_xml)
+        dest_capabilities_list = self.convert_capabilities_xml_into_obj_list(destination_object.get_permissions_xml())
+        if self.are_capabilities_obj_lists_identical(capabilities_list, dest_capabilities_list) is False:
+            # Delete all first clears the object to have them added
+            destination_object.clear_all_permissions()
+            # Add each set of capabilities to the cleared object
+            self.set_permissions_by_permissions_obj_list(self.convert_capabilities_xml_into_obj_list(self.get_permissions_xml()))
+        else:
+            self.log(u"Permissions matched, no need to update. Moving to next")
+        self.end_log_block()
+
+
+class Project(PublishedContent):
     def __init__(self, luid, tableau_rest_api_obj, tableau_server_version, logger_obj=None,
                  content_xml_obj=None):
         PublishedContent.__init__(self, luid, u"project", tableau_rest_api_obj, tableau_server_version,
                                   logger_obj=logger_obj, content_xml_obj=content_xml_obj)
-        self.log(u"Passing tableau_server_version {}".format(tableau_server_version))
+        self.log("Passing tableau_server_version {}".format(tableau_server_version))
         self.__available_capabilities = self.available_capabilities[self.api_version][u"project"]
 
-    @property
-    def luid(self):
-        return self._luid
 
-    @luid.setter
-    def luid(self, name_or_luid):
-        if self.is_luid(name_or_luid):
-            luid = name_or_luid
-        else:
-            luid = self.t_rest_api.query_project_luid(name_or_luid)
-        self._luid = luid
-
-    def _get_permissions_object(self, group_or_user, name_or_luid, obj_type, role=None):
-
-        if self.is_luid(name_or_luid):
-            luid = name_or_luid
-        else:
-            if group_or_user == u'group':
-                luid = self.t_rest_api.query_group_luid(name_or_luid)
-            elif group_or_user == u'user':
-                luid = self.t_rest_api.query_user_luid(name_or_luid)
-            else:
-                raise InvalidOptionException(u'group_or_user must be group or user')
-
-        if obj_type == u'project':
-            perms_obj = ProjectPermissions20(group_or_user, luid)
-        elif obj_type == u'workbook':
-            perms_obj = WorkbookPermissions20(group_or_user, luid)
-        elif obj_type == u'datasource':
-            perms_obj = DatasourcePermissions20(group_or_user, luid)
-        else:
-            raise InvalidOptionException(u'obj_type must be project, workbook or datasource')
-        if role is not None:
-            perms_obj.set_capabilities_to_match_role(role)
-        return perms_obj
-
-    def convert_capabilities_xml_into_obj_list(self, xml_obj):
-        """
-        :type xml_obj: etree.Element
-        :rtype: list[ProjectPermissions20]
-        """
-        self.start_log_block()
-        obj_list = []
-        xml = xml_obj.findall(u'.//t:granteeCapabilities', self.ns_map)
-        if len(xml) == 0:
-            return []
-        else:
-            for gcaps in xml:
-                for tags in gcaps:
-                    # Namespace fun
-                    if tags.tag == u'{}group'.format(self.ns_prefix):
-                        luid = tags.get(u'id')
-                        perms_obj = ProjectPermissions20(u'group', luid)
-                        self.log(u'group {}'.format(luid))
-                    elif tags.tag == u'{}user'.format(self.ns_prefix):
-                        luid = tags.get(u'id')
-                        perms_obj = ProjectPermissions20(u'user', luid)
-                        self.log(u'user {}'.format(luid))
-                    elif tags.tag == u'{}capabilities'.format(self.ns_prefix):
-                        for caps in tags:
-                            self.log(caps.get(u'name') + ' : ' + caps.get(u'mode'))
-                            perms_obj.set_capability(caps.get(u'name'), caps.get(u'mode'))
-                obj_list.append(perms_obj)
-            self.log(u'Permissions object list has {} items'.format(unicode(len(obj_list))))
-            self.end_log_block()
-            return obj_list
-
-    def create_project_permissions_object_for_group(self, group_name_or_luid, role=None):
-        """
-        :type group_name_or_luid: unicode
-        :type role: unicode
-        :param role: Optional role from Tableau Server. Shortcut to set_capabilities_to_match_role
-        :return: ProjectPermissions20
-        """
-        return self._get_permissions_object(u'group', group_name_or_luid, u'project', role)
-
-    def create_project_permissions_object_for_user(self, username_or_luid, role=None):
-        """
-        :type username_or_luid: unicode
-        :type role: unicode
-        :param role: Optional role from Tableau Server. Shortcut to set_capabilities_to_match_role
-        :return: ProjectPermissions20
-        """
-        return self._get_permissions_object(u'user', username_or_luid, u'project', role)
-
-    def create_workbook_permissions_object_for_group(self, group_name_or_luid, role=None):
-        """
-        :type group_name_or_luid: unicode
-        :type role: unicode
-        :param role: Optional role from Tableau Server. Shortcut to set_capabilities_to_match_role
-        :return: WorkbookPermissions20
-        """
-        return self._get_permissions_object(u'group', group_name_or_luid, u'workbook', role)
-
-    def create_workbook_permissions_object_for_user(self, username_or_luid, role=None):
-        """
-        :type username_or_luid: unicode
-        :type role: unicode
-        :param role: Optional role from Tableau Server. Shortcut to set_capabilities_to_match_role
-        :return: WorkbookPermissions20
-        """
-        return self._get_permissions_object(u'user', username_or_luid, u'workbook', role)
-
-    def create_datasource_permissions_object_for_group(self, group_name_or_luid, role=None):
-        """
-        :type group_name_or_luid: unicode
-        :type role: unicode
-        :param role: Optional role from Tableau Server. Shortcut to set_capabilities_to_match_role
-        :return: DatasourcePermissions20
-        """
-        return self._get_permissions_object(u'group', group_name_or_luid, u'datasource', role)
-
-    def create_datasource_permissions_object_for_user(self, username_or_luid, role=None):
-        """
-        :type username_or_luid: unicode
-        :type role: unicode
-        :param role: Optional role from Tableau Server. Shortcut to set_capabilities_to_match_role
-        :return: DatasourcePermissions20
-        """
-        return self._get_permissions_object(u'user', username_or_luid, u'datasource', role)
-
-
-class Project21(Project20):
+class Project21(Project):
     def __init__(self, luid, tableau_rest_api_obj, tableau_server_version, logger_obj=None,
-                 content_xml_obj=None):
-        Project20.__init__(self, luid, tableau_rest_api_obj, tableau_server_version, logger_obj=logger_obj,
-                           content_xml_obj=content_xml_obj)
+                         content_xml_obj=None):
+        Project.__init__(self, luid, tableau_rest_api_obj, tableau_server_version, logger_obj=logger_obj,
+                         content_xml_obj=content_xml_obj)
         # projects in 9.2 have child workbook and datasource permissions
-        self._workbook_defaults = Workbook(self.luid, self.t_rest_api,
-                                           tableau_server_version=tableau_server_version,
-                                           default=True, logger_obj=logger_obj)
-        self._datasource_defaults = Datasource(self.luid, self.t_rest_api,
-                                               tableau_server_version=tableau_server_version,
-                                               default=True, logger_obj=logger_obj)
-
+        self.workbook_default = Workbook(self.luid, self.t_rest_api,
+                                         tableau_server_version=tableau_server_version,
+                                         default=True, logger_obj=logger_obj)
+        self.datasource_default = Datasource(self.luid, self.t_rest_api,
+                                             tableau_server_version=tableau_server_version,
+                                             default=True, logger_obj=logger_obj)
         self.__available_capabilities = self.available_capabilities[self.api_version][u"project"]
         self.permissions_locked = None
         self.permissions_locked = self.are_permissions_locked()
 
-    def convert_capabilities_xml_into_obj_list(self, xml_obj):
-        """
-        :type xml_obj: etree.Element
-        :rtype: list[ProjectPermissions21]
-        """
+    def clear_all_permissions(self):
         self.start_log_block()
-        obj_list = []
-        xml = xml_obj.findall(u'.//t:granteeCapabilities', self.ns_map)
-        if len(xml) == 0:
-            return []
-        else:
-            for gcaps in xml:
-                for tags in gcaps:
-                    # Namespace fun
-                    if tags.tag == u'{}group'.format(self.ns_prefix):
-                        luid = tags.get(u'id')
-                        perms_obj = ProjectPermissions21(u'group', luid)
-                        self.log(u'group {}'.format(luid))
-                    elif tags.tag == u'{}user'.format(self.ns_prefix):
-                        luid = tags.get(u'id')
-                        perms_obj = ProjectPermissions21(u'user', luid)
-                        self.log(u'user {}'.format(luid))
-                    elif tags.tag == u'{}capabilities'.format(self.ns_prefix):
-                        for caps in tags:
-                            self.log(caps.get(u'name') + ' : ' + caps.get(u'mode'))
-                            perms_obj.set_capability(caps.get(u'name'), caps.get(u'mode'))
-                obj_list.append(perms_obj)
-            self.log(u'Permissions object list has {} items'.format(unicode(len(obj_list))))
-            self.end_log_block()
-            return obj_list
-
-    def replicate_permissions(self, orig_content):
         self.clear_all_permissions()
+        self.workbook_default.clear_all_permissions()
+        self.datasource_default.clear_all_permissions()
+        self.end_log_block()
 
-        # Self Permissions
-        o_perms_obj_list = orig_content.current_perms_obj_list
-        n_perms_obj_list = self.convert_permissions_obj_list_from_orig_site_to_current_site(o_perms_obj_list,
-                                                                                            orig_content.t_rest_api)
-        self.set_permissions_by_permissions_obj_list(n_perms_obj_list)
-
-        # Workbook Defaults
-        o_perms_obj_list = orig_content.workbook_defaults.current_perms_obj_list
-        n_perms_obj_list = self.workbook_defaults.convert_permissions_obj_list_from_orig_site_to_current_site(
-            o_perms_obj_list, orig_content.t_rest_api)
-        self.workbook_defaults.set_permissions_by_permissions_obj_list(n_perms_obj_list)
-
-        # Datasource Defaults
-        o_perms_obj_list = orig_content.datasource_defaults.current_perms_obj_list
-        n_perms_obj_list = self.datasource_defaults.convert_permissions_obj_list_from_orig_site_to_current_site(
-            o_perms_obj_list, orig_content.t_rest_api)
-        self.datasource_defaults.set_permissions_by_permissions_obj_list(n_perms_obj_list)
-
-    def _get_permissions_object(self, group_or_user, name_or_luid, obj_type, role=None):
-
-        if self.is_luid(name_or_luid):
-            luid = name_or_luid
-        else:
-            if group_or_user == u'group':
-                luid = self.t_rest_api.query_group_luid(name_or_luid)
-            elif group_or_user == u'user':
-                luid = self.t_rest_api.query_user_luid(name_or_luid)
-            else:
-                raise InvalidOptionException(u'group_or_user must be group or user')
-
-        if obj_type == u'project':
-            perms_obj = ProjectPermissions21(group_or_user, luid)
-        elif obj_type == u'workbook':
-            perms_obj = WorkbookPermissions21(group_or_user, luid)
-        elif obj_type == u'datasource':
-            perms_obj = DatasourcePermissions21(group_or_user, luid)
-        else:
-            raise InvalidOptionException(u'obj_type must be project, workbook or datasource')
-        if role is not None:
-            self.log(str(perms_obj.capabilities))
-            perms_obj.set_capabilities_to_match_role(role)
-        return perms_obj
-
-    def create_project_permissions_object_for_group(self, group_name_or_luid, role=None):
+    def replicate_content_permissions(self, destination_object, destination_site=None):
         """
-        :type group_name_or_luid: unicode
-        :type role: unicode
-        :param role: Optional role from Tableau Server. Shortcut to set_capabilities_to_match_role
-        :return: ProjectPermissions21
-        """
-        return self._get_permissions_object(u'group', group_name_or_luid, u'project', role)
-
-    def create_project_permissions_object_for_user(self, username_or_luid, role=None):
-        """
-        :type username_or_luid: unicode
-        :type role: unicode
-        :param role: Optional role from Tableau Server. Shortcut to set_capabilities_to_match_role
-        :return: ProjectPermissions21
-        """
-        return self._get_permissions_object(u'user', username_or_luid, u'project', role)
-
-    def create_workbook_permissions_object_for_group(self, group_name_or_luid, role=None):
-        """
-        :type group_name_or_luid: unicode
-        :type role: unicode
-        :param role: Optional role from Tableau Server. Shortcut to set_capabilities_to_match_role
-        :return: WorkbookPermissions21
-        """
-        return self._get_permissions_object(u'group', group_name_or_luid, u'workbook', role)
-
-    def create_workbook_permissions_object_for_user(self, username_or_luid, role=None):
-        """
-        :type username_or_luid: unicode
-        :type role: unicode
-        :param role: Optional role from Tableau Server. Shortcut to set_capabilities_to_match_role
-        :return: WorkbookPermissions21
-        """
-        return self._get_permissions_object(u'user', username_or_luid, u'workbook', role)
-
-    def create_datasource_permissions_object_for_group(self, group_name_or_luid, role=None):
-        """
-        :type group_name_or_luid: unicode
-        :type role: unicode
-        :param role: Optional role from Tableau Server. Shortcut to set_capabilities_to_match_role
-        :return: DatasourcePermissions21
-        """
-        return self._get_permissions_object(u'group', group_name_or_luid, u'datasource', role)
-
-    def create_datasource_permissions_object_for_user(self, username_or_luid, role=None):
-        """
-        :type username_or_luid: unicode
-        :type role: unicode
-        :param role: Optional role from Tableau Server. Shortcut to set_capabilities_to_match_role
-        :return: DatasourcePermissions21
-        """
-        return self._get_permissions_object(u'user', username_or_luid, u'datasource', role)
-
-    @property
-    def workbook_defaults(self):
-        """
-        :rtype: Workbook
-        """
-        return self._workbook_defaults
-
-    @property
-    def datasource_defaults(self):
-        """
-        :rtype: Datasource
-        """
-        return self._datasource_defaults
-
-    def clear_all_permissions(self, clear_defaults=True):
-        """
-        :param clear_defaults: If set to False, the Default Permssiosn will not be cleared
-        :type clear_defaults:
+        :type destination_object: Project21
         :return:
         """
         self.start_log_block()
-        self.get_permissions_from_server()
-        self.delete_permissions_by_permissions_obj_list(self.current_perms_obj_list)
-        if clear_defaults is True:
-            self.workbook_defaults.clear_all_permissions()
-            self.datasource_defaults.clear_all_permissions()
+        if self.obj_type != destination_object.get_object_type():
+            raise InvalidOptionException(u"Trying to replicate permissions from a {} to a {}".format(self.obj_type, destination_object.get_object_type()))
+
+        capabilities_list = self.convert_capabilities_xml_into_obj_list(self.obj_perms_xml)
+        dest_capabilities_list = self.convert_capabilities_xml_into_obj_list(destination_object.get_permissions_xml())
+        if self.are_capabilities_obj_lists_identical(capabilities_list, dest_capabilities_list) is False:
+            # Delete all first clears the object to have them added
+            destination_object.clear_all_permissions()
+            # Add each set of capabilities to the cleared object
+            self.set_permissions_by_permissions_obj_list(self.convert_capabilities_xml_into_obj_list(self.get_permissions_xml()))
+        else:
+            self.log(u"Permissions matched, no need to update.")
+        self.workbook_default.replicate_content_permissions(destination_object.workbook_default)
+        self.datasource_default.replicate_content_permissions(destination_object.datasource_default)
+
         self.end_log_block()
 
     def are_permissions_locked(self):
@@ -670,7 +447,7 @@ class Project21(Project20):
         """
         self.start_log_block()
         if self.permissions_locked is False:
-            self.t_rest_api.update_project(self.luid, locked_permissions=True)
+            self.t_rest_api.update_project_by_luid(self.luid, locked_permissions=True)
         self.end_log_block()
 
     def unlock_permissions(self):
@@ -679,7 +456,7 @@ class Project21(Project20):
         """
         self.start_log_block()
         if self.permissions_locked is True:
-            self.t_rest_api.update_project(self.luid, locked_permissions=False)
+            self.t_rest_api.update_project_by_luid(self.luid, locked_permissions=False)
 
         self.end_log_block()
 
@@ -691,49 +468,6 @@ class Workbook(PublishedContent):
                                   default=default, logger_obj=logger_obj, content_xml_obj=content_xml_obj)
         self.__available_capabilities = self.available_capabilities[self.api_version][u"workbook"]
 
-    @property
-    def luid(self):
-        return self._luid
-
-    @luid.setter
-    def luid(self, name_or_luid):
-        if self.is_luid(name_or_luid):
-            luid = name_or_luid
-        else:
-            luid = self.t_rest_api.query_workbook_luid(name_or_luid)
-        self._luid = luid
-
-    def convert_capabilities_xml_into_obj_list(self, xml_obj):
-        """
-        :type xml_obj: etree.Element
-        :rtype: list[WorkbookPermissions21]
-        """
-        self.start_log_block()
-        obj_list = []
-        xml = xml_obj.findall(u'.//t:granteeCapabilities', self.ns_map)
-        if len(xml) == 0:
-            return []
-        else:
-            for gcaps in xml:
-                for tags in gcaps:
-                    # Namespace fun
-                    if tags.tag == u'{}group'.format(self.ns_prefix):
-                        luid = tags.get(u'id')
-                        perms_obj = WorkbookPermissions21(u'group', luid)
-                        self.log(u'group {}'.format(luid))
-                    elif tags.tag == u'{}user'.format(self.ns_prefix):
-                        luid = tags.get(u'id')
-                        perms_obj = WorkbookPermissions21(u'user', luid)
-                        self.log(u'user {}'.format(luid))
-                    elif tags.tag == u'{}capabilities'.format(self.ns_prefix):
-                        for caps in tags:
-                            self.log(caps.get(u'name') + ' : ' + caps.get(u'mode'))
-                            perms_obj.set_capability(caps.get(u'name'), caps.get(u'mode'))
-                obj_list.append(perms_obj)
-            self.log(u'Permissions object list has {} items'.format(unicode(len(obj_list))))
-            self.end_log_block()
-            return obj_list
-
 
 class Datasource(PublishedContent):
     def __init__(self, luid, tableau_rest_api_obj, tableau_server_version, default=False, logger_obj=None,
@@ -741,46 +475,3 @@ class Datasource(PublishedContent):
         PublishedContent.__init__(self, luid, u"datasource", tableau_rest_api_obj, tableau_server_version,
                                   default=default, logger_obj=logger_obj, content_xml_obj=content_xml_obj)
         self.__available_capabilities = self.available_capabilities[self.api_version][u"datasource"]
-
-    @property
-    def luid(self):
-        return self._luid
-
-    @luid.setter
-    def luid(self, name_or_luid):
-        if self.is_luid(name_or_luid):
-            luid = name_or_luid
-        else:
-            luid = self.t_rest_api.query_datasource_luid(name_or_luid)
-        self._luid = luid
-
-    def convert_capabilities_xml_into_obj_list(self, xml_obj):
-        """
-        :type xml_obj: etree.Element
-        :rtype: list[DatasourcePermissions21]
-        """
-        self.start_log_block()
-        obj_list = []
-        xml = xml_obj.findall(u'.//t:granteeCapabilities', self.ns_map)
-        if len(xml) == 0:
-            return []
-        else:
-            for gcaps in xml:
-                for tags in gcaps:
-                    # Namespace fun
-                    if tags.tag == u'{}group'.format(self.ns_prefix):
-                        luid = tags.get(u'id')
-                        perms_obj = DatasourcePermissions21(u'group', luid)
-                        self.log(u'group {}'.format(luid))
-                    elif tags.tag == u'{}user'.format(self.ns_prefix):
-                        luid = tags.get(u'id')
-                        perms_obj = DatasourcePermissions21(u'user', luid)
-                        self.log(u'user {}'.format(luid))
-                    elif tags.tag == u'{}capabilities'.format(self.ns_prefix):
-                        for caps in tags:
-                            self.log(caps.get(u'name') + ' : ' + caps.get(u'mode'))
-                            perms_obj.set_capability(caps.get(u'name'), caps.get(u'mode'))
-                obj_list.append(perms_obj)
-            self.log(u'Permissions object list has {} items'.format(unicode(len(obj_list))))
-            self.end_log_block()
-            return obj_list
