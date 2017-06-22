@@ -721,6 +721,6 @@ class TableauParametersGenerator(TableauBase):
             self.ds_xml.append(c)
             i += 1
 
-        xmlstring = etree.tostring(self.ds_xml, encoding='utf-8')
+        xmlstring = etree.tostring(self.ds_xml, pretty_print=True, xml_declaration=False, encoding='utf-8')
         self.log(xmlstring)
         return xmlstring

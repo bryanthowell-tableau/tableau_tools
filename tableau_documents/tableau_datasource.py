@@ -2,7 +2,8 @@ from ..tableau_base import TableauBase
 from tableau_connection import TableauConnection, TableauRepositoryLocation
 from tableau_document import TableauColumns
 from tableau_datasource_generator import TableauDatasourceGenerator, TableauParametersGenerator
-import xml.etree.cElementTree as etree
+from StringIO import StringIO
+from lxml import etree
 from ..tableau_exceptions import *
 import zipfile
 import os
@@ -10,24 +11,21 @@ import os
 
 # Meant to represent a TDS file, does not handle the file opening
 class TableauDatasource(TableauBase):
-    def __init__(self, datasource_xml, logger_obj=None):
-        """
-        :type datasource_xml: etree.Element
-        :type logger_obj: Logger
-        """
+    def __init__(self, datasource_string, logger_obj=None):
         self.logger = logger_obj
-        self.xml = datasource_xml
+        self.original_xml_string = datasource_string
+        utf8_parser = etree.XMLParser(encoding='utf-8', recover=True)
+        self.xml = etree.parse(StringIO(datasource_string), parser=utf8_parser)
         self.parameters = False
-        self.ds_name = None
-        if self.xml.get("caption"):
-            self.ds_name = self.xml.attrib["caption"]
-        elif self.xml.get("name"):
-            self.ds_name = self.xml.attrib['name']
+        if self.xml.getroot().get("caption"):
+            self.ds_name = self.xml.getroot().attrib["caption"]
+        elif self.xml.getroot().get("name"):
+            self.ds_name = self.xml.getroot().attrib['name']
 
         self.columns = None
         # Possible, though unlikely, that there would be no columns
-        if self.xml.find(u'column') is not None:
-            columns_list = self.xml.findall(u'column')
+        if self.xml.getroot().find(u'column') is not None:
+            columns_list = self.xml.getroot().findall(u'column')
             self.columns = TableauColumns(columns_list, self.logger)
 
         # Internal "Parameters" datasource of a TWB acts differently
@@ -35,13 +33,13 @@ class TableauDatasource(TableauBase):
             self.parameters = True
             self.ds_generator = TableauParametersGenerator()
         else:
-            connection_xml_obj = self.xml.find(u'connection')
+            connection_xml_obj = self.xml.getroot().find(u'connection')
             self.log(u'connection tags found, building a TableauConnection object')
             self.connection = TableauConnection(connection_xml_obj)
 
             self.repository_location = None
-            if len(self.xml.find(u'repository-location')) == 0:
-                repository_location_xml = self.xml.find(u'repository-location')
+            if len(self.xml.getroot().find(u'repository-location')) == 0:
+                repository_location_xml = self.xml.getroot().find(u'repository-location')
                 self.repository_location = TableauRepositoryLocation(repository_location_xml, self.logger)
 
             self.tde_filename = None
@@ -49,17 +47,11 @@ class TableauDatasource(TableauBase):
                 self.ds_generator = None
             else:
                 self.ds_generator = TableauDatasourceGenerator(self.connection.get_connection_type(),
-                                                               self.xml.get('formatted-name'),
+                                                               self.xml.getroot().get('formatted-name'),
                                                                self.connection.get_server(),
                                                                self.connection.get_dbname(),
                                                                self.logger,
                                                                authentication=u'username-password', initial_sql=None)
-
-    def get_connection(self):
-        """
-        :rtype: TableauConnection
-        """
-        return self.connection
 
     def get_datasource_name(self):
         self.start_log_block()
@@ -70,7 +62,7 @@ class TableauDatasource(TableauBase):
     def add_extract(self, new_extract_filename):
         self.log(u'add_extract called, chicking if extract exists already')
         # Test to see if extract exists already
-        e = self.xml.find(u'extract')
+        e = self.xml.getroot().find(u'extract')
         self.log(u'Found the extract portion of the ')
         if e is not None:
             self.log("Existing extract found, no need to add")
@@ -88,32 +80,31 @@ class TableauDatasource(TableauBase):
         # Column Mappings
 
         # Column Aliases
-        if self.ds_generator is not None:
-            cas = self.ds_generator.generate_aliases_column_section()
-            # If there is no existing aliases tag, gotta add one. Unlikely but safety first
-            if len(cas) > 0 and self.xml.find('aliases') is False:
-                self.xml.append(self.ds_generator.generate_aliases_tag())
-            for c in cas:
-                self.log(u'Appending the column alias XML')
-                self.xml.append(c)
-            # Column Instances
-            cis = self.ds_generator.generate_column_instances_section()
-            for ci in cis:
-                self.log(u'Appending the column-instances XML')
-                self.xml.append(ci)
-            # Datasource Filters
-            dsf = self.ds_generator.generate_datasource_filters_section()
-            self.log(u'Appending the ds filters to existing XML')
-            for f in dsf:
-                self.xml.append(f)
-            # Extracts
-            if self.tde_filename is not None:
-                self.log(u'Generating the extract and XML object related to it')
-                extract_xml = self.ds_generator.generate_extract_section()
-                self.log(u'Appending the new extract XML to the existing XML')
-                self.xml.append(extract_xml)
+        cas = self.ds_generator.generate_aliases_column_section()
+        # If there is no existing aliases tag, gotta add one. Unlikely but safety first
+        if len(cas) > 0 and self.xml.getroot().find('aliases') is False:
+            self.xml.append(self.ds_generator.generate_aliases_tag())
+        for c in cas:
+            self.log(u'Appending the column alias XML')
+            self.xml.getroot().append(c)
+        # Column Instances
+        cis = self.ds_generator.generate_column_instances_section()
+        for ci in cis:
+            self.log(u'Appending the column-instances XML')
+            self.xml.append(ci)
+        # Datasource Filters
+        dsf = self.ds_generator.generate_datasource_filters_section()
+        self.log(u'Appending the ds filters to existing XML')
+        for f in dsf:
+            self.xml.getroot().append(f)
+        # Extracts
+        if self.tde_filename is not None:
+            self.log(u'Generating the extract and XML object related to it')
+            extract_xml = self.ds_generator.generate_extract_section()
+            self.log(u'Appending the new extract XML to the existing XML')
+            self.xml.getroot().append(extract_xml)
 
-        xmlstring = etree.tostring(self.xml, encoding='utf-8')
+        xmlstring = etree.tostring(self.xml, pretty_print=True, xml_declaration=True, encoding='utf-8')
         self.log(xmlstring)
         return xmlstring
 

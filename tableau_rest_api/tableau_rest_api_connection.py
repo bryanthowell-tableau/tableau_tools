@@ -22,10 +22,9 @@ class TableauRestApiConnection(TableauBase):
         :type site_content_url: unicode
         """
         TableauBase.__init__(self)
-        if server.find(u'http') == -1:
-            raise InvalidOptionException(u'Server URL must include http:// or https://')
+        if server.find('http') == -1:
+            raise InvalidOptionException('Server URL must include http:// or https://')
 
-        etree.register_namespace(u't', self.ns_map[u't'])
         self.__server = server
         self._site_content_url = site_content_url
         self.__username = username
@@ -43,9 +42,6 @@ class TableauRestApiConnection(TableauBase):
         self.__permissionable_objects = self.permissionable_objects
         self.__server_to_rest_capability_map = self.server_to_rest_capability_map
 
-        # Lookup caches to minimize calls
-        self.username_luid_cache = {}
-        self.group_name_luid_cache = {}
     #
     # Object helpers and setter/getters
     #
@@ -63,9 +59,9 @@ class TableauRestApiConnection(TableauBase):
 
     def build_api_url(self, call, server_level=False):
         if server_level is True:
-            return u"{}/api/{}/{}".format(self.__server, self.api_version, call)
+            return self.__server + u"/api/" + self.api_version + u"/" + call
         else:
-            return u"{}/api/{}/sites/{}/{}".format(self.__server, self.api_version, self.site_luid, call)
+            return self.__server + u"/api/" + self.api_version + u"/sites/" + self.site_luid + u"/" + call
 
     #
     # Internal REST API Helpers (mostly XML definitions that are reused between methods)
@@ -81,7 +77,7 @@ class TableauRestApiConnection(TableauBase):
         :type storage_quota: unicode
         :type disable_subscriptions: bool
         :type state: unicode
-        :rtype: unicode
+        :return: unicode
         """
         tsr = etree.Element(u"tsRequest")
         s = etree.Element(u'site')
@@ -112,7 +108,7 @@ class TableauRestApiConnection(TableauBase):
         :type new_server_port: unicode
         :type new_connection_username: unicode
         :type new_connection_password: unicode
-        :rtype:
+        :return:
         """
 
         tsr = etree.Element(u'tsRequest')
@@ -135,7 +131,7 @@ class TableauRestApiConnection(TableauBase):
         """
         :type project_name_or_luid: unicode
         :type project_xml_obj: etree.Element
-        :rtype: proj_obj:Project
+        :return: proj_obj:Project
         """
         if self.is_luid(project_name_or_luid):
             luid = project_name_or_luid
@@ -148,7 +144,7 @@ class TableauRestApiConnection(TableauBase):
         """
         :type project_name_or_luid: unicode
         :type workbook_name_or_luid: unicode
-        :rtype: wb_obj:Workbook
+        :return: wb_obj:Workbook
         """
         if self.is_luid(workbook_name_or_luid):
             luid = workbook_name_or_luid
@@ -162,7 +158,7 @@ class TableauRestApiConnection(TableauBase):
         :param project_name_or_luid:
         :param datasource_name_or_luid:
         :type datasource_name_or_luid: unicode
-        :rtype: ds_obj:Datasource
+        :return: ds_obj:Datasource
         """
         if self.is_luid(datasource_name_or_luid):
             luid = datasource_name_or_luid
@@ -181,7 +177,7 @@ class TableauRestApiConnection(TableauBase):
 
     def signin(self):
         """
-        :rtype:
+        :return:
         """
         self.start_log_block()
         tsr = etree.Element(u"tsRequest")
@@ -218,7 +214,7 @@ class TableauRestApiConnection(TableauBase):
     def signout(self, session_token=None):
         """
         :type session_token: unicode
-        :rtype:
+        :return:
         """
         self.start_log_block()
         url = self.build_api_url(u"auth/signout", server_level=True)
@@ -241,7 +237,7 @@ class TableauRestApiConnection(TableauBase):
         """
         :type url_ending: unicode
         :type login: bool
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         api_call = self.build_api_url(url_ending, login)
@@ -258,7 +254,7 @@ class TableauRestApiConnection(TableauBase):
         if self.is_luid(name_or_luid):
             luid = name_or_luid
         else:
-            luid = self.query_single_element_luid_by_name_from_endpoint(element_name, name_or_luid)
+            luid = self.query_single_element_luid_by_name_from_endpoint(name_or_luid)
         element = elements.findall(u'.//t:{}[@id="{}"]'.format(element_name, luid), self.ns_map)
         if len(element) == 1:
             self.end_log_block()
@@ -291,7 +287,7 @@ class TableauRestApiConnection(TableauBase):
         """
         :type url: unicode
         :type request: etree.Element
-        :rtype:
+        :return:
         """
         self.start_log_block()
         self.log_uri(u'add', url)
@@ -372,13 +368,14 @@ class TableauRestApiConnection(TableauBase):
     # Basic Querying / Get Methods
     #
 
+
     #
     # Begin Datasource Querying Methods
     #
 
     def query_datasources(self, project_name_or_luid=None):
         """
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         datasources = self.query_resource(u"datasources")
@@ -398,7 +395,7 @@ class TableauRestApiConnection(TableauBase):
         """
         :type ds_name_or_luid: unicode
         :type proj_name_or_luid: unicode
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         # LUID
@@ -416,7 +413,7 @@ class TableauRestApiConnection(TableauBase):
         """
         :type datasource_name: unicode
         :type project_name_or_luid: unicode
-        :rtype: unicode
+        :return: unicode
         """
         self.start_log_block()
         datasources = self.query_datasources()
@@ -452,15 +449,10 @@ class TableauRestApiConnection(TableauBase):
 
     def query_groups(self):
         """
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         groups = self.query_resource(u"groups")
-        for group in groups:
-            # Add to group-name : luid cache
-            group_luid = group.get(u"id")
-            group_name = group.get(u'name')
-            self.group_name_luid_cache[group_name] = group_luid
         self.end_log_block()
         return groups
 
@@ -469,15 +461,10 @@ class TableauRestApiConnection(TableauBase):
     def query_group(self, group_name_or_luid):
         """
         :type group_name_or_luid: unicode
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         group = self.query_single_element_from_endpoint(u'group', group_name_or_luid)
-        # Add to group_name : luid cache
-        group_luid = group.get(u"id")
-        group_name = group.get(u'name')
-        self.group_name_luid_cache[group_name] = group_luid
-
         self.end_log_block()
         return group
 
@@ -485,15 +472,10 @@ class TableauRestApiConnection(TableauBase):
     def query_group_luid(self, group_name):
         """
         :type group_name: unicode
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
-        if group_name in self.group_name_luid_cache:
-            group_luid = self.group_name_luid_cache[group_name]
-            self.log(u'Found group name {} in cache with luid {}'.format(group_name, group_luid))
-        else:
-            group_luid = self.query_single_element_luid_by_name_from_endpoint(u'group', group_name)
-            self.group_name_luid_cache[group_name] = group_luid
+        group_luid = self.query_single_element_luid_by_name_from_endpoint(u'group', group_name)
         self.end_log_block()
         return group_luid
 
@@ -507,7 +489,7 @@ class TableauRestApiConnection(TableauBase):
 
     def query_projects(self):
         """
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         projects = self.query_resource(u"projects")
@@ -517,7 +499,7 @@ class TableauRestApiConnection(TableauBase):
     def query_project(self, project_name_or_luid):
         """
         :type project_name_or_luid: unicode
-        :rtype: Project
+        :return: Project
         """
         self.start_log_block()
         if self.is_luid(project_name_or_luid):
@@ -532,7 +514,7 @@ class TableauRestApiConnection(TableauBase):
     def query_project_luid(self, project_name):
         """
         :type project_name: unicode
-        :rtype: unicode
+        :return: unicode
         """
         self.start_log_block()
         project_luid = self.query_single_element_luid_by_name_from_endpoint(u'project', project_name)
@@ -550,7 +532,7 @@ class TableauRestApiConnection(TableauBase):
     # Site queries don't have the site portion of the URL, so login option gets correct format
     def query_sites(self):
         """
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         sites = self.query_resource(u"sites/", login=True)
@@ -562,7 +544,7 @@ class TableauRestApiConnection(TableauBase):
     # Return list of all site contentUrls
     def query_all_site_content_urls(self):
         """
-        :rtype: list[unicode]
+        :return: list[unicode]
         """
         self.start_log_block()
         sites = self.query_sites()
@@ -575,7 +557,7 @@ class TableauRestApiConnection(TableauBase):
     # You can only query a site you have logged into this way. Better to use methods that run through query_sites
     def query_current_site(self):
         """
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         site = self.query_resource(u"sites/{}" .format(self.site_luid), login=True)
@@ -591,7 +573,7 @@ class TableauRestApiConnection(TableauBase):
     #
     def query_users(self):
         """
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         users = self.query_resource(u"users")
@@ -602,38 +584,27 @@ class TableauRestApiConnection(TableauBase):
     def query_user(self, username_or_luid):
         """
         :type username_or_luid: unicode
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         user = self.query_single_element_from_endpoint(u"user", username_or_luid)
-
-        # Add to username : luid cache
-        user_luid = user.get(u"id")
-        username = user.get(u'name')
-        self.username_luid_cache[username] = user_luid
-
         self.end_log_block()
         return user
 
     def query_user_luid(self, username):
         """
         :type username: unicode
-        :rtype: unicode
+        :return: unicode
         """
         self.start_log_block()
-        if username in self.username_luid_cache:
-            user_luid = self.username_luid_cache[username]
-            self.log(u'Found username {} in cache with luid {}'.format(username, user_luid))
-        else:
-            user_luid = self.query_single_element_luid_by_name_from_endpoint(u"user", username)
-            self.username_luid_cache[username] = user_luid
+        user_luid = self.query_single_element_luid_by_name_from_endpoint(u"user", username)
         self.end_log_block()
         return user_luid
 
     def query_users_in_group(self, group_name_or_luid):
         """
         :type group_name_or_luid: unicode
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         if self.is_luid(group_name_or_luid):
@@ -656,7 +627,7 @@ class TableauRestApiConnection(TableauBase):
     def query_workbooks(self, username_or_luid=None):
         """
         :type username_or_luid: unicode
-        :rtype:
+        :return:
         """
         self.start_log_block()
         if username_or_luid is None:
@@ -708,7 +679,7 @@ class TableauRestApiConnection(TableauBase):
         :type username_or_luid: unicode
         :type wb_name: unicode
         :type p_name_or_luid: unicode
-        :rtype:
+        :return:
         """
         self.start_log_block()
         if username_or_luid is None:
@@ -761,7 +732,7 @@ class TableauRestApiConnection(TableauBase):
         :type p_name_or_luid: unicode
         :type username_or_luid: unicode
         :type usage: bool
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         if usage not in [True, False]:
@@ -783,7 +754,7 @@ class TableauRestApiConnection(TableauBase):
         :type view_name_or_luid: unicode
         :type view_content_url: unicode
         :type usage: bool
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         if usage not in [True, False]:
@@ -818,7 +789,7 @@ class TableauRestApiConnection(TableauBase):
         :type view_name: unicode
         :type view_content_url: unicode
         :type usage: bool
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         if usage not in [True, False]:
@@ -858,7 +829,7 @@ class TableauRestApiConnection(TableauBase):
     def query_job(self, job_luid):
         """
         :type job_luid: unicode
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         job = self.query_resource(u"jobs/{}".format(job_luid))
@@ -883,7 +854,7 @@ class TableauRestApiConnection(TableauBase):
         :type view_name_or_luid: unicode
         :type proj_name_or_luid: unicode
         :type filename_no_extension: unicode
-        :rtype:
+        :return:
         """
         self.start_log_block()
         if self.is_luid(wb_name_or_luid):
@@ -920,7 +891,7 @@ class TableauRestApiConnection(TableauBase):
         :type wb_name_or_luid: unicode
         :type filename_no_extension: unicode
         :type proj_name_or_luid: unicode
-        :rtype:
+        :return:
         """
         self.start_log_block()
         if self.is_luid(wb_name_or_luid):
@@ -951,7 +922,7 @@ class TableauRestApiConnection(TableauBase):
         :type ds_name_or_luid: unicode
         :type filename_no_extension: unicode
         :type proj_name_or_luid: unicode
-        :rtype: TableauDatasource
+        :return: TableauDatasource
         """
         self.start_log_block()
         if self.is_luid(ds_name_or_luid):
@@ -1008,7 +979,7 @@ class TableauRestApiConnection(TableauBase):
         :type filename_no_extension: unicode
         :type proj_name_or_luid: unicode
         :type no_obj_return: bool
-        :rtype: TableauWorkbook
+        :return: TableauWorkbook
         """
         self.start_log_block()
         if self.is_luid(wb_name_or_luid):
@@ -1074,7 +1045,7 @@ class TableauRestApiConnection(TableauBase):
         :type username: unicode
         :type site_role: unicode
         :type update_if_exists: bool
-        :rtype: unicode
+        :return: unicode
         """
         self.start_log_block()
         # Check to make sure role that is passed is a valid role in the API
@@ -1122,7 +1093,7 @@ class TableauRestApiConnection(TableauBase):
         :type password: unicode
         :type email: unicode
         :type update_if_exists: bool
-        :rtype: unicode
+        :return: unicode
         """
         self.start_log_block()
         try:
@@ -1140,7 +1111,7 @@ class TableauRestApiConnection(TableauBase):
     def create_group(self, group_name):
         """
         :type group_name: unicode
-        :rtype: unicode
+        :return: unicode
         """
         self.start_log_block()
 
@@ -1171,7 +1142,7 @@ class TableauRestApiConnection(TableauBase):
         :type ad_domain_name: unicode
         :type default_site_role: bool
         :type sync_as_background:
-        :rtype: unicode
+        :return: unicode
         """
         self.start_log_block()
         if default_site_role not in self.__site_roles:
@@ -1204,7 +1175,7 @@ class TableauRestApiConnection(TableauBase):
         """
         :type project_name: unicode
         :type project_desc: unicode
-        :rtype: Project
+        :return: Project
         """
         self.start_log_block()
 
@@ -1239,7 +1210,7 @@ class TableauRestApiConnection(TableauBase):
         :type user_quota: unicode
         :type storage_quota: unicode
         :type disable_subscriptions: bool
-        :rtype: unicode
+        :return: unicode
         """
 
         add_request = self.build_site_request_xml(new_site_name, new_content_url, admin_mode, user_quota,
@@ -1256,7 +1227,7 @@ class TableauRestApiConnection(TableauBase):
         """
         :type username_or_luid_s: list[unicode] or unicode
         :type group_luid: unicode
-        :rtype: unicode
+        :return: unicode
         """
         self.start_log_block()
         users = self.to_list(username_or_luid_s)
@@ -1286,7 +1257,7 @@ class TableauRestApiConnection(TableauBase):
         :type wb_name_or_luid: unicode
         :type tag_s: list[unicode]
         :type proj_name_or_luid: unicode
-        :rtype: unicode
+        :return: unicode
         """
         self.start_log_block()
         if self.is_luid(wb_name_or_luid):
@@ -1314,7 +1285,7 @@ class TableauRestApiConnection(TableauBase):
         :type wb_name_or_luid: unicode
         :type username_or_luid: unicode
         :type p_name_or_luid: unicode
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         if self.is_luid(wb_name_or_luid):
@@ -1344,7 +1315,7 @@ class TableauRestApiConnection(TableauBase):
         :type view_content_url: unicode
         :type wb_name_or_luid: unicode
         :type p_name_or_luid: unicode
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         if self.is_luid(view_name_or_luid):
@@ -1386,7 +1357,7 @@ class TableauRestApiConnection(TableauBase):
         :type site_role: unicode
         :type password: unicode
         :type email: unicode
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         if self.is_luid(username_or_luid):
@@ -1419,7 +1390,7 @@ class TableauRestApiConnection(TableauBase):
         :type new_datasource_name: unicode
         :type new_project_luid: unicode
         :type new_owner_luid: unicode
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         if self.is_luid(datasource_name_or_luid):
@@ -1454,7 +1425,7 @@ class TableauRestApiConnection(TableauBase):
         :type new_server_port: unicode
         :type new_connection_username: unicode
         :type new_connection_password: unicode
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         tsr = self.__build_connection_update_xml(new_server_address, new_server_port,
@@ -1470,7 +1441,7 @@ class TableauRestApiConnection(TableauBase):
         """
         :type name_or_luid: unicode
         :type new_group_name: unicode
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         if self.is_luid(name_or_luid):
@@ -1496,7 +1467,7 @@ class TableauRestApiConnection(TableauBase):
         :type ad_domain: unicode
         :type default_site_role: unicode
         :type sync_as_background: unicode
-        :rtype: unicode
+        :return: unicode
         """
         self.start_log_block()
         if sync_as_background not in [True, False]:
@@ -1540,7 +1511,7 @@ class TableauRestApiConnection(TableauBase):
         :type name_or_luid: unicode
         :type new_project_name: unicode
         :type new_project_description: unicode
-        :rtype: Project
+        :return: Project
         """
         self.start_log_block()
         if self.is_luid(name_or_luid):
@@ -1572,7 +1543,7 @@ class TableauRestApiConnection(TableauBase):
         :type storage_quota: unicode
         :type disable_subscriptions: bool
         :type state: unicode
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         tsr = self.build_site_request_xml(site_name, content_url, admin_mode, user_quota, storage_quota,
@@ -1590,7 +1561,7 @@ class TableauRestApiConnection(TableauBase):
         :type new_project_luid: unicode
         :type new_owner_luid: unicode
         :type show_tabs: bool
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         if self.is_luid(workbook_name_or_luid):
@@ -1629,7 +1600,7 @@ class TableauRestApiConnection(TableauBase):
         :type new_server_port: unicode
         :type new_connection_username: unicode
         :type new_connection_password: unicode
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         tsr = self.__build_connection_update_xml(new_server_address, new_server_port, new_connection_username,
@@ -1647,7 +1618,7 @@ class TableauRestApiConnection(TableauBase):
     def delete_datasources(self, datasource_name_or_luid_s):
         """
         :type datasource_name_or_luid_s: list[unicode] or unicode
-        :rtype:
+        :return:
         """
         self.start_log_block()
         datasources = self.to_list(datasource_name_or_luid_s)
@@ -1664,7 +1635,7 @@ class TableauRestApiConnection(TableauBase):
     def delete_projects(self, project_name_or_luid_s):
         """
         :type project_name_or_luid_s: list[unicode] or unicode
-        :rtype:
+        :return:
         """
         self.start_log_block()
         projects = self.to_list(project_name_or_luid_s)
@@ -1680,7 +1651,7 @@ class TableauRestApiConnection(TableauBase):
     # Can only delete a site that you have signed into
     def delete_current_site(self):
         """
-        :rtype:
+        :return:
         """
         self.start_log_block()
         url = self.build_api_url(u"sites/{}".format(self.site_luid), server_level=True)
@@ -1691,7 +1662,7 @@ class TableauRestApiConnection(TableauBase):
     def delete_workbooks(self, wb_name_or_luid_s):
         """
         :type wb_name_or_luid_s: list[unicode] or unicode
-        :rtype:
+        :return:
         """
         self.start_log_block()
         wbs = self.to_list(wb_name_or_luid_s)
@@ -1710,7 +1681,7 @@ class TableauRestApiConnection(TableauBase):
         """
         :type wb_name_or_luid_s: list[unicode] or unicode
         :type username_or_luid: unicode
-        :rtype:
+        :return:
         """
         self.start_log_block()
         wbs = self.to_list(wb_name_or_luid_s)
@@ -1732,7 +1703,7 @@ class TableauRestApiConnection(TableauBase):
         :type view_name_or_luid_s: list[unicode] or unicode
         :type username_or_luid: unicode
         :type wb_name_or_luid: unicode
-        :rtype:
+        :return:
         """
         self.start_log_block()
         views = self.to_list(view_name_or_luid_s)
@@ -1756,7 +1727,7 @@ class TableauRestApiConnection(TableauBase):
         :param group_luid:
         :type user_luid_s: list[unicode] or unicode
         :type group_luid: unicode
-        :rtype:
+        :return:
         """
         self.start_log_block()
         user_luids = self.to_list(user_luid_s)
@@ -1768,8 +1739,9 @@ class TableauRestApiConnection(TableauBase):
     # Can take collection or single user_luid string
     def remove_users_from_site(self, user_luid_s):
         """
+        :param user_luid_s:
         :type user_luid_s: list[unicode] or unicode
-        :rtype:
+        :return:
         """
         self.start_log_block()
         user_luids = self.to_list(user_luid_s)
@@ -1780,9 +1752,9 @@ class TableauRestApiConnection(TableauBase):
 
     def delete_tags_from_workbook(self, wb_name_or_luid, tag_s):
         """
-        :type wb_name_or_luid: unicode
-        :type tag_s: list[unicode] or unicode
-        :rtype: int
+        :param wb_name_or_luid: unicode
+        :param tag_s: list[unicode] or unicode
+        :return: int
         """
         self.start_log_block()
         tags = self.to_list(tag_s)
@@ -1823,7 +1795,7 @@ class TableauRestApiConnection(TableauBase):
         :type save_credentials: bool
         :type show_tabs: bool
         :type check_published_ds: bool
-        :rtype: unicode
+        :return: unicode
         """
         if self.is_luid(project_name_or_luid):
             project_luid = project_name_or_luid
@@ -1845,7 +1817,7 @@ class TableauRestApiConnection(TableauBase):
         :type connection_username: unicode
         :type connection_password: unicode
         :type save_credentials: bool
-        :rtype: unicode
+        :return: unicode
         """
         if self.is_luid(project_name_or_luid):
             project_luid = project_name_or_luid
@@ -2028,7 +2000,7 @@ class TableauRestApiConnection21(TableauRestApiConnection):
         """
         :type project_name_or_luid: unicode
         :type project_xml_obj: project_xml_obj
-        :rtype: Project21
+        :return: proj_obj:Project21
         """
         if self.is_luid(project_name_or_luid):
             luid = project_name_or_luid
@@ -2042,7 +2014,7 @@ class TableauRestApiConnection21(TableauRestApiConnection):
         :type project_name: unicode
         :type project_desc: unicode
         :type locked_permissions: bool
-        :rtype: Project
+        :return: proj_obj:Project
         """
         self.start_log_block()
 
@@ -2075,7 +2047,7 @@ class TableauRestApiConnection21(TableauRestApiConnection):
         :type new_project_name: unicode
         :type new_project_description: unicode
         :type locked_permissions: bool
-        :rtype: unicode
+        :return: unicode
         """
         self.start_log_block()
         if self.is_luid(name_or_luid):
@@ -2104,7 +2076,7 @@ class TableauRestApiConnection21(TableauRestApiConnection):
     def delete_groups(self, group_name_or_luid_s):
         """
         :type group_name_or_luid_s: list[unicode] or unicode
-        :rtype:
+        :return:
         """
         self.start_log_block()
         groups = self.to_list(group_name_or_luid_s)
@@ -2134,7 +2106,7 @@ class TableauRestApiConnection22(TableauRestApiConnection21):
 
     def query_schedules(self):
         """
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         schedules = self.query_resource(u"schedules", login=True)
@@ -2144,7 +2116,7 @@ class TableauRestApiConnection22(TableauRestApiConnection21):
     def query_schedule_luid(self, schedule_name):
         """
         :type schedule_name: unicode
-        :rtype: unicode
+        :return: unicode
         """
         self.start_log_block()
         luid = self.query_single_element_luid_by_name_from_endpoint(u'schedule', schedule_name)
@@ -2154,7 +2126,7 @@ class TableauRestApiConnection22(TableauRestApiConnection21):
     def query_extract_refresh_tasks_by_schedule(self, schedule_name_or_luid):
         """
         :type schedule_name_or_luid: unicode
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         if self.is_luid(schedule_name_or_luid):
@@ -2170,10 +2142,6 @@ class TableauRestApiConnection22(TableauRestApiConnection21):
     #
 
     def query_views(self, usage=False):
-        """
-        :type usage: bool
-        :rtype: etree.Element
-        """
         self.start_log_block()
         if usage not in [True, False]:
             raise InvalidOptionException(u'Usage can only be set to True or False')
@@ -2181,8 +2149,11 @@ class TableauRestApiConnection22(TableauRestApiConnection21):
         self.end_log_block()
         return vws
 
-    # Did not implement any variations of query_workbook_views as it's still necessary to know the workbook to narrow
-    # down to that particular view
+    def query_view(self, vw_name_or_luid):
+        self.start_log_block()
+
+    def query_view_luid(self, vw_name):
+        self.start_log_block()
 
 
 class TableauRestApiConnection23(TableauRestApiConnection22):
@@ -2210,7 +2181,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         :type state: unicode
         :type revision_history_enabled: bool
         :type revision_limit: unicode
-        :rtype: unicode
+        :return: unicode
         """
         tsr = etree.Element(u"tsRequest")
         s = etree.Element(u'site')
@@ -2242,7 +2213,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         """
         :type element_name: unicode
         :type name_or_luid: unicode
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         if self.is_luid(name_or_luid):
@@ -2263,7 +2234,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         """
         :type element_name: unicode
         :type name: unicode
-        :rtype: unicode
+        :return: unicode
         """
         self.start_log_block()
         elements = self.query_resource(u"{}s?filter=name:eq:{}".format(element_name, name))
@@ -2279,7 +2250,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
     def query_users(self, sort_alphabetical=False, site_role_filter=None,
                     last_login_filter_date=None, last_login_filter_type=None):
         """
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         if last_login_filter_type is not None:
@@ -2310,27 +2281,20 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
     def query_user(self, username_or_luid):
         """
         :type username_or_luid: unicode
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         user = self.query_single_element_from_endpoint_with_filter(u"user", username_or_luid)
-        user_luid = user.get(u"id")
-        username = user.get(u'name')
-        self.username_luid_cache[username] = user_luid
         self.end_log_block()
         return user
 
     def query_user_luid(self, username):
         """
         :type username: unicode
-        :rtype: unicode
+        :return: unicode
         """
         self.start_log_block()
-        if username in self.username_luid_cache:
-            user_luid = self.username_luid_cache[username]
-        else:
-            user_luid = self.query_single_element_luid_by_name_from_endpoint_with_filter(u"user", username)
-            self.username_luid_cache[username] = user_luid
+        user_luid = self.query_single_element_luid_by_name_from_endpoint_with_filter(u"user", username)
         self.end_log_block()
         return user_luid
 
@@ -2345,34 +2309,28 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         return vws
 
     def query_view(self, vw_name_or_luid):
-        """
-        :type vw_name_or_luid:
-        :rtype: etree.Element
-        """
         self.start_log_block()
         vw = self.query_single_element_from_endpoint_with_filter(u'view', vw_name_or_luid)
         self.end_log_block()
         return vw
 
+    def query_view_for_site(self, vw_name_or_luid):
+        self.start_log_block()
+        vw = self.query_single_element_from_endpoint_with_filter(u'view', vw_name_or_luid)
+        self.end_log_block()
+        return vw
 
     #
     # Begin Subscription Methods
     #
 
     def query_subscription_by_luid(self, subscription_luid):
-        """
-        :type subscription_luid: unicode
-        :rtype: etree.Element
-        """
         self.start_log_block()
         subscription = self.query_resource(u"subscriptions/{}".format(subscription_luid))
         self.end_log_block()
         return subscription
 
     def query_subscriptions(self):
-        """
-        :rtype: etree.Element
-        """
         self.start_log_block()
         subscriptions = self.query_resource(u'subscriptions')
         self.end_log_block()
@@ -2385,7 +2343,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         :type content_luid: unicode
         :type schedule_luid: unicode
         :type user_luid: unicode
-        :rtype: unicode
+        :return: unicode
         """
         self.start_log_block()
         if view_or_workbook not in [u'View', u'Workbook']:
@@ -2432,10 +2390,6 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         return response
 
     def delete_subscriptions_by_luid(self, subscription_luid_s):
-        """
-        :param subscription_luid_s:
-        :rtype:
-        """
         self.start_log_block()
         subscription_luids = self.to_list(subscription_luid_s)
         for subscription_luid in subscription_luids:
@@ -2463,7 +2417,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         :type end_time: unicode
         :type interval_value: int
         :type interval_hours_minutes: unicode
-        :rtype:
+        :return:
         """
         self.start_log_block()
         if extract_or_subscription not in [u'Extract', u'Subscription']:
@@ -2492,7 +2446,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
             interval = etree.Element(u'interval')
             if frequency == u'Hourly':
                 if interval_hours_minutes is None:
-                    raise InvalidOptionException(u'Hourly must set interval_hours_minutes to "hours" or "minutes"')
+                    raise InvalidOptionException(u'Hourly frequency must set interval_hours_minutes to "hours" or "minutes"')
                 interval.set(interval_hours_minutes, unicode(interval_value))
             if frequency == u'Weekly':
                 interval.set(u'weekDay', unicode(interval_value))
@@ -2514,7 +2468,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
     def delete_schedule(self, schedule_name_or_luid):
         """
         :type schedule_name_or_luid: unicode
-        :rtype:
+        :return:
         """
         self.start_log_block()
         if self.is_luid(schedule_name_or_luid):
@@ -2535,7 +2489,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         :type favorite_name: unicode
         :type ds_name_or_luid_s: unicode
         :type username_or_luid: unicode
-        :rtype:
+        :return:
         """
         self.start_log_block()
         dses = self.to_list(ds_name_or_luid_s)
@@ -2568,7 +2522,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         :type ds_name_or_luid_s: list[unicode] or unicode
         :type username_or_luid: unicode
         :type p_name_or_luid: unicode
-        :rtype:
+        :return:
         """
         self.start_log_block()
         dses = self.to_list(ds_name_or_luid_s)
@@ -2599,7 +2553,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         :type state: unicode
         :type revision_history_enabled: bool
         :type revision_limit: unicode
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         tsr = self.build_site_request_xml(site_name, content_url, admin_mode, user_quota, storage_quota,
@@ -2616,7 +2570,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
     def update_online_site_logo(self, image_filename):
         """
         :type image_filename: unicode
-        :rtype:
+        :return:
         """
         # Request type is mixed and require a boundary
         boundary_string = self.generate_boundary_string()
@@ -2655,7 +2609,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
 
     def restore_online_site_logo(self):
         """
-        :rtype:
+        :return:
         """
         # Request type is mixed and require a boundary
         boundary_string = self.generate_boundary_string()
@@ -2679,7 +2633,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         :type workbook_name_or_luid: unicode
         :type username_or_luid: unicode
         :type project_name_or_luid: unicode
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         if self.is_luid(workbook_name_or_luid):
@@ -2694,7 +2648,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         """
         :type datasource_name_or_luid: unicode
         :type project_name_or_luid: unicode
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         if self.is_luid(datasource_name_or_luid):
@@ -2710,7 +2664,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         :type datasource_name_or_luid: unicode
         :type revision_number: unicode
         :type project_name_or_luid: unicode
-        :rtype:
+        :return:
         """
         self.start_log_block()
         if self.is_luid(datasource_name_or_luid):
@@ -2728,7 +2682,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         :type revision_number: unicode
         :type project_name_or_luid: unicode
         :type username_or_luid: unicode
-        :rtype:
+        :return:
         """
         self.start_log_block()
         if self.is_luid(wb_name_or_luid):
@@ -2745,7 +2699,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         :param ds_luid:
         :param revision_number:
         :param filename_no_extension:
-        :rtype:
+        :return:
         """
         self.start_log_block()
         try:
@@ -2860,7 +2814,7 @@ class TableauRestApiConnection24(TableauRestApiConnection23):
 
     def query_server_info(self):
         """
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         server_info = self.query_resource(u"serverinfo", login=True)
@@ -2869,7 +2823,7 @@ class TableauRestApiConnection24(TableauRestApiConnection23):
 
     def query_server_version(self):
         """
-        :rtype:
+        :return:
         """
         self.start_log_block()
         server_info = self.query_server_info()
@@ -2901,7 +2855,7 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
     def query_user_favorites(self, username_or_luid):
         """
         :type username_or_luid: unicode
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         if self.is_luid(username_or_luid):
@@ -2919,7 +2873,7 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         :type project_desc: unicode
         :type locked_permissions: bool
         :type publish_samples: bool
-        :rtype: proj_obj:Project
+        :return: proj_obj:Project
         """
         self.start_log_block()
 
@@ -2954,8 +2908,7 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         :type new_project_name: unicode
         :type new_project_description: unicode
         :type locked_permissions: bool
-        :type publish_samples: bool
-        :rtype: unicode
+        :return: unicode
         """
         self.start_log_block()
         if self.is_luid(name_or_luid):
@@ -2984,22 +2937,16 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         self.end_log_block()
         return self.get_published_project_object(project_luid, response)
 
-    def query_view_image(self, view_name_or_luid, save_filename_no_extension, high_resolution=False,
-                         wb_name_or_luid=None, proj_name_or_luid=None):
+    def query_view_image(self, view_name_or_luid, high_resolution=False):
         """
-        :type view_name_or_luid: unicode
-        :type save_filename_no_extension: unicode
-        :type high_resolution: bool
-        :type wb_name_or_luid: unicode
-        :type proj_name_or_luid
-        :rtype:
+        : view_name_or_luid: unicode
+        :return:
         """
         self.start_log_block()
         if self.is_luid(view_name_or_luid):
             view_luid = view_name_or_luid
         else:
-            view_luid = self.query_workbook_view_luid(wb_name_or_luid, view_name=view_name_or_luid,
-                                                      p_name_or_luid=proj_name_or_luid)
+            view_luid = self.query_view_luid(view_name_or_luid)
         self.end_log_block()
 
 
@@ -3016,7 +2963,7 @@ class TableauRestApiConnection26(TableauRestApiConnection25):
 
     def get_extract_refresh_tasks(self):
         """
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         extract_tasks = self.query_resource(u'tasks/extractRefreshes')
@@ -3026,7 +2973,7 @@ class TableauRestApiConnection26(TableauRestApiConnection25):
     def get_extract_refresh_task(self, task_luid):
         """
         :type task_luid: unicode
-        :rtype: etree.Element
+        :return: etree.Element
         """
         self.start_log_block()
         extract_task = self.query_resource(u'tasks/extractRefreshes/{}'.format(task_luid))
@@ -3035,8 +2982,8 @@ class TableauRestApiConnection26(TableauRestApiConnection25):
 
     def get_extract_refresh_tasks_on_schedule(self, schedule_name_or_luid):
         """
-        :param schedule_name_or_luid: unicode
-        :rtype: etree.Element
+        :param schedule_name_or_luid:
+        :return:
         """
         self.start_log_block()
         if self.is_luid(schedule_name_or_luid):
@@ -3054,7 +3001,7 @@ class TableauRestApiConnection26(TableauRestApiConnection25):
     def run_extract_refresh_task(self, task_luid):
         """
         :task task_luid: unicode
-        :rtype: unicode
+        :return: unicode
         """
         self.start_log_block()
         tsr = etree.Element(u'tsRequest')
@@ -3064,101 +3011,14 @@ class TableauRestApiConnection26(TableauRestApiConnection25):
         self.end_log_block()
         return response.findall(u'.//t:job', self.ns_map)[0].get("id")
 
-    # Tags can be scalar string or list
-    def add_tags_to_datasource(self, ds_name_or_luid, tag_s, proj_name_or_luid=None):
-        """
-        :type ds_name_or_luid: unicode
-        :type tag_s: list[unicode]
-        :type proj_name_or_luid: unicode
-        :rtype: unicode
-        """
-        self.start_log_block()
-        if self.is_luid(ds_name_or_luid):
-            ds_luid = ds_name_or_luid
-        else:
-            ds_luid = self.query_workbook_luid(ds_name_or_luid, proj_name_or_luid)
-        url = self.build_api_url(u"datasources/{}/tags".format(ds_luid))
-
-        tsr = etree.Element(u"tsRequest")
-        ts = etree.Element(u"tags")
-        tags = self.to_list(tag_s)
-        for tag in tags:
-            t = etree.Element(u"tag")
-            t.set(u"label", tag)
-            ts.append(t)
-        tsr.append(ts)
-
-        tag_response = self.send_update_request(url, tsr)
-        self.end_log_block()
-        return tag_response
-
-    def delete_tags_from_datasource(self, ds_name_or_luid, tag_s, proj_name_or_luid=None):
-        """
-        :type ds_name_or_luid: unicode
-        :type tag_s: list[unicode] or unicode
-        :rtype: int
-        """
-        self.start_log_block()
-        tags = self.to_list(tag_s)
-        if self.is_luid(ds_name_or_luid):
-            ds_luid = ds_name_or_luid
-        else:
-            ds_luid = self.query_datasource_luid(ds_name_or_luid, proj_name_or_luid)
-        deleted_count = 0
-        for tag in tags:
-            url = self.build_api_url(u"views/{}/tags/{}".format(ds_luid, tag))
-            deleted_count += self.send_delete_request(url)
-        self.end_log_block()
-        return deleted_count
-
-    # Tags can be scalar string or list
-    def add_tags_to_view(self, view_name_or_luid, workbook_name_or_luid, tag_s, proj_name_or_luid=None):
-        """
-        :type view_name_or_luid: unicode
-        :type workbook_name_or_luid: unicode
-        :type tag_s: list[unicode]
-        :type proj_name_or_luid: unicode
-        :rtype: unicode
-        """
+    def add_tags_to_datasource(self):
         self.start_log_block()
 
-        if self.is_luid(view_name_or_luid):
-            vw_luid = view_name_or_luid
-        else:
-            vw_luid = self.query_workbook_view_luid(workbook_name_or_luid, view_name_or_luid, proj_name_or_luid)
-        url = self.build_api_url(u"views/{}/tags".format(vw_luid))
-
-        tsr = etree.Element(u"tsRequest")
-        ts = etree.Element(u"tags")
-        tags = self.to_list(tag_s)
-        for tag in tags:
-            t = etree.Element(u"tag")
-            t.set(u"label", tag)
-            ts.append(t)
-        tsr.append(ts)
-
-        tag_response = self.send_update_request(url, tsr)
-        self.end_log_block()
-        return tag_response
-
-    def delete_tags_from_view(self, view_name_or_luid, workbook_name_or_luid, tag_s, proj_name_or_luid=None):
-        """
-        :type view_name_or_luid: unicode
-        :type workbook_name_or_luid: unicode
-        :type tag_s: list[unicode] or unicode
-        :type proj_name_or_luid: unicode
-        :rtype: int
-        """
+    def delete_tags_from_daasource(self):
         self.start_log_block()
-        tags = self.to_list(tag_s)
-        if self.is_luid(view_name_or_luid):
-            vw_luid = view_name_or_luid
-        else:
-            vw_luid = self.query_workbook_view_luid(view_name_or_luid, workbook_name_or_luid, proj_name_or_luid)
-        deleted_count = 0
-        for tag in tags:
-            url = self.build_api_url(u"views/{}/tags/{}".format(vw_luid, tag))
-            deleted_count += self.send_delete_request(url)
-        self.end_log_block()
-        return deleted_count
 
+    def add_tags_to_view(self):
+        self.start_log_block()
+
+    def delete_tags_from_view(self):
+        self.start_log_block()

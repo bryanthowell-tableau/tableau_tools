@@ -1,6 +1,7 @@
 from ..tableau_base import TableauBase
 from ..tableau_exceptions import *
-import xml.etree.cElementTree as etree
+from lxml import etree
+from StringIO import StringIO
 
 
 # Represents the actual Connection tag of a given datasource

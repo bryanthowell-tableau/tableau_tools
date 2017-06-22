@@ -1,8 +1,8 @@
 from ..tableau_base import *
 from ..tableau_exceptions import *
 import urllib2
-import xml.etree.cElementTree as etree
-# from HTMLParser import HTMLParser
+import xml.etree.ElementTree as etree
+from HTMLParser import HTMLParser
 from StringIO import StringIO
 import re
 import math
@@ -153,9 +153,8 @@ class RestXmlRequest(TableauBase):
                 return initial_response
 
             # Use HTMLParser to get rid of the escaped unicode sequences, then encode the thing as utf-8
-            #parser = HTMLParser()
-            #unicode_raw_response = parser.unescape(initial_response)
-            unicode_raw_response = initial_response
+            parser = HTMLParser()
+            unicode_raw_response = parser.unescape(initial_response)
 
             try:
                 self.__raw_response = unicode_raw_response.encode('utf-8')
@@ -216,9 +215,8 @@ class RestXmlRequest(TableauBase):
         if self.__response_type == 'xml':
             if self.__raw_response == '':
                 return True
-            utf8_parser = etree.XMLParser(encoding='UTF-8')
-            sio = StringIO(self.__raw_response)
-            xml = etree.parse(sio, parser=utf8_parser)
+            utf8_parser = etree.XMLParser(encoding='utf-8')
+            xml = etree.parse(StringIO(self.__raw_response), parser=utf8_parser)
             # Set the XML object to the first returned. Will be replaced if there is pagination
             self.__xml_object = xml.getroot()
             combined_xml_obj = None

@@ -4,7 +4,7 @@ from logger import Logger
 import re
 
 from StringIO import StringIO
-import xml.etree.cElementTree as etree
+import xml.etree.ElementTree as etree
 
 
 class TableauBase(object):
@@ -20,7 +20,6 @@ class TableauBase(object):
         self.tableau_namespace = u'http://tableau.com/api'
         self.ns_map = {'t': 'http://tableau.com/api'}
         self.ns_prefix = '{' + self.ns_map['t'] + '}'
-        etree.register_namespace(u't', self.ns_map[u't'])
 
         self.site_roles = (
             u'Interactor',
@@ -313,22 +312,15 @@ class TableauBase(object):
     # This builds a simple 30 hex digit string
     @staticmethod
     def generate_boundary_string():
-        """
-        :return: unicode
-        """
         random_digits = [random.SystemRandom().choice('0123456789abcdef') for n in xrange(30)]
-        s = u"".join(random_digits)
+        s = "".join(random_digits)
         return s
 
     # URI is different form actual URL you need to load a particular view in iframe
     @staticmethod
     def convert_view_content_url_to_embed_url(content_url):
-        """
-        :type content_url: unicode
-        :return: unicode
-        """
         split_url = content_url.split('/')
-        return u'views/{}/{}'.format(split_url[0], split_url[2])
+        return 'views/' + split_url[0] + "/" + split_url[2]
 
     # Generic method for XML lists for the "query" actions to name -> id dict
     @staticmethod
@@ -356,10 +348,6 @@ class TableauBase(object):
 
     # 32 hex characters with 4 dashes
     def is_luid(self, val):
-        """
-        :type val: unicode
-        :return: bool
-        """
         if len(val) == 36:
             if re.match(self.luid_pattern, val) is not None:
                 return True
