@@ -71,6 +71,11 @@ class PublishedContent(TableauBase):
         :type orig_site: TableauRestApiConnection
         :rtype: list[Permissions]
         """
+        # If the site is the same, skip the whole thing and just return the original
+        if self.t_rest_api.site_content_url == orig_site.site_content_url \
+                and self.t_rest_api.server == orig_site.server:
+            return permissions_obj_list
+
         new_perms_obj_list = copy.deepcopy(permissions_obj_list)
         final_perms_obj_list = []
         # Make this more efficient -- should only look up those users it needs to. Question on algorithm for speed

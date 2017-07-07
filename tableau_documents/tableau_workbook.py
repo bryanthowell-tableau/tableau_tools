@@ -2,15 +2,16 @@
 
 from ..tableau_base import *
 from tableau_datasource import TableauDatasource
+from tableau_document import TableauDocument
 
 
-class TableauWorkbook(TableauBase):
+class TableauWorkbook(TableauDocument):
     def __init__(self, twb_filename, logger_obj=None):
-        TableauBase.__init__(self)
+        TableauDocument.__init__(self)
+        self._document_type = u'workbook'
         self.logger = logger_obj
         self.log(u'Initializing a TableauWorkbook object')
         self.twb_filename = twb_filename
-        self.datasources = []
         # Check the filename
         if self.twb_filename.find('.twb') == -1:
             raise InvalidOptionException(u'Must input a .twb filename that exists')
@@ -53,20 +54,10 @@ class TableauWorkbook(TableauBase):
         if datasource_elements is None:
             raise InvalidOptionException(u'Error with the datasources from the workbook')
         for datasource in datasource_elements:
-            print datasource
-            ds = TableauDatasource(datasource)
-            self.datasources.append(ds)
+            ds = TableauDatasource(datasource, self.logger)
+            self._datasources.append(ds)
 
-    def get_datasources(self):
-        """
-        :rtype: list[TableauDatasource]
-        """
-        self.start_log_block()
-        ds = self.datasources
-        self.end_log_block()
-        return ds
-
-    def save_workbook_xml(self, filename):
+    def save_file(self, filename):
         """
         :param filename: Filename to save the XML to. Will append .twb if not found
         :type filename: unicode

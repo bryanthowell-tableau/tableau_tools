@@ -3,12 +3,13 @@
 import os
 
 from ..tableau_base import *
-from ..tableau_documents.tableau_packaged_file import TableauPackagedFile
+from ..tableau_documents.tableau_file import TableauFile
 from ..tableau_documents.tableau_workbook import TableauWorkbook
 from ..tableau_documents.tableau_datasource import TableauDatasource
 from ..tableau_exceptions import *
 from rest_xml_request import RestXmlRequest
 from published_content import Project20, Project21, Workbook, Datasource
+import urllib
 
 
 class TableauRestApiConnection(TableauBase):
@@ -25,8 +26,8 @@ class TableauRestApiConnection(TableauBase):
             raise InvalidOptionException(u'Server URL must include http:// or https://')
 
         etree.register_namespace(u't', self.ns_map[u't'])
-        self.__server = server
-        self._site_content_url = site_content_url
+        self.server = server
+        self.site_content_url = site_content_url
         self.__username = username
         self.__password = password
         self.token = None  # Holds the login token from the Sign In call
@@ -62,9 +63,9 @@ class TableauRestApiConnection(TableauBase):
 
     def build_api_url(self, call, server_level=False):
         if server_level is True:
-            return u"{}/api/{}/{}".format(self.__server, self.api_version, call)
+            return u"{}/api/{}/{}".format(self.server, self.api_version, call)
         else:
-            return u"{}/api/{}/sites/{}/{}".format(self.__server, self.api_version, self.site_luid, call)
+            return u"{}/api/{}/sites/{}/{}".format(self.server, self.api_version, self.site_luid, call)
 
     #
     # Internal REST API Helpers (mostly XML definitions that are reused between methods)
@@ -185,8 +186,8 @@ class TableauRestApiConnection(TableauBase):
         c.set(u"name", self.__username)
         c.set(u"password", self.__password)
         s = etree.Element(u"site")
-        if self._site_content_url.lower() not in ['default', '']:
-            s.set(u"contentUrl", self._site_content_url)
+        if self.site_content_url.lower() not in ['default', '']:
+            s.set(u"contentUrl", self.site_content_url)
 
         c.append(s)
         tsr.append(c)
@@ -249,13 +250,26 @@ class TableauRestApiConnection(TableauBase):
         return xml
 
     def query_single_element_from_endpoint(self, element_name, name_or_luid, server_level=False):
+        """
+        :type element_name: unicode
+        :type name_or_luid: unicode
+        :type server_level: bool
+        :rtype: etree.Element
+        """
         self.start_log_block()
-        elements = self.query_resource("{}s".format(element_name), server_level=server_level)
-        if self.is_luid(name_or_luid):
-            luid = name_or_luid
+        # A few elements have singular endpoints
+        singular_endpoints = [u'workbook', u'user', u'datasource', u'site']
+        if element_name in singular_endpoints and self.is_luid(name_or_luid):
+            element = self.query_resource(u"{}s/{}".format(element_name, name_or_luid))
+            self.end_log_block()
+            return element
         else:
-            luid = self.query_single_element_luid_by_name_from_endpoint(element_name, name_or_luid)
-        element = elements.findall(u'.//t:{}[@id="{}"]'.format(element_name, luid), self.ns_map)
+            elements = self.query_resource(u"{}s".format(element_name), server_level=server_level)
+            if self.is_luid(name_or_luid):
+                luid = name_or_luid
+            else:
+                luid = self.query_single_element_luid_by_name_from_endpoint(element_name, name_or_luid)
+            element = elements.findall(u'.//t:{}[@id="{}"]'.format(element_name, luid), self.ns_map)
         if len(element) == 1:
             self.end_log_block()
             return element[0]
@@ -677,7 +691,7 @@ class TableauRestApiConnection(TableauBase):
     def query_workbooks(self, username_or_luid=None):
         """
         :type username_or_luid: unicode
-        :rtype:
+        :rtype: etree.Element
         """
         self.start_log_block()
         if username_or_luid is None:
@@ -693,6 +707,12 @@ class TableauRestApiConnection(TableauBase):
     # Because a workbook can have the same pretty name in two projects, requires more logic
     # Maybe reduce down the xpath here into simpler ElementTree iteration, to remove lxml???
     def query_workbook(self, wb_name_or_luid, p_name_or_luid=None, username_or_luid=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type p_name_or_luid: unicode
+        :type username_or_luid: unicode
+        :rtype: etree.Element
+        """
         self.start_log_block()
         workbooks = self.query_workbooks(username_or_luid)
         if self.is_luid(wb_name_or_luid):
@@ -1008,10 +1028,8 @@ class TableauRestApiConnection(TableauBase):
             save_file.write(ds)
             save_file.close()
             if extension == u'.tdsx':
-                self.log(u'Detected TDSX, creating TableauPackagedFile object')
-                saved_file = open(save_filename, 'rb')
-                return_obj = TableauPackagedFile(saved_file, self.logger)
-                saved_file.close()
+                self.log(u'Detected TDSX, creating TableauFile object')
+                return_obj = TableauFile(save_filename, self.logger)
                 if filename_no_extension is None:
                     os.remove(save_filename)
         except IOError:
@@ -1068,9 +1086,8 @@ class TableauRestApiConnection(TableauBase):
             if no_obj_return is True:
                 return
             if extension == u'.twbx':
-                self.log(u'Detected TWBX, creating TableauPackagedFile object')
-                saved_file = open(save_filename, 'rb')
-                return_obj = TableauPackagedFile(saved_file, self.logger)
+                self.log(u'Detected TWBX, creating TableauFile object')
+                return_obj = TableauFile(save_filename, self.logger)
                 if filename_no_extension is None:
                     os.remove(save_filename)
 
@@ -1897,7 +1914,7 @@ class TableauRestApiConnection(TableauBase):
         final_filename = None
         cleanup_temp_file = False
         # If a packaged file object, save the file locally as a temp for upload, then treated as regular file
-        if isinstance(content_filename, TableauPackagedFile):
+        if isinstance(content_filename, TableauFile):
             self.log(u"Is a TableauPackedFile object, opening up")
             content_filename = content_filename.save_new_packaged_file(u'temp_packaged_file')
             cleanup_temp_file = True
@@ -1971,7 +1988,7 @@ class TableauRestApiConnection(TableauBase):
             content = content_file.read()
 
             # If twb, create a TableauWorkbook object and check for any published data sources
-            if file_extension == 'twb' and check_published_ds is True and self._site_content_url != 'default':
+            if file_extension == 'twb' and check_published_ds is True and self.site_content_url != 'default':
                 self.log("Making sure published datasource is in the right place")
                 if isinstance(content_filename, TableauWorkbook):
                     wb_obj = content_filename
@@ -1981,8 +1998,8 @@ class TableauRestApiConnection(TableauBase):
                     # Set to the correct site
                     if ds.is_published_ds():
                         self.log("Published datasource found")
-                        self.log("Setting datasource to {}".format(self._site_content_url))
-                        ds.set_published_datasource_site(self._site_content_url)
+                        self.log("Setting datasource to {}".format(self.site_content_url))
+                        ds.set_published_datasource_site(self.site_content_url)
                 content = StringIO(wb_obj.get_workbook_xml()).read()
 
             # Add to string as regular binary, no encoding
@@ -2324,28 +2341,88 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         return tsr
 
     # These are the new basic methods that use the Filter functionality introduced
-    def query_single_element_from_endpoint_with_filter(self, element_name, name_or_luid):
+    def query_resource(self, url_ending, server_level=False, filters=None, sorts=None, additional_url_ending=None):
+        """
+        :type url_ending: unicode
+        :type server_level: bool
+        :type filters: list[UrlFilter]
+        :type sorts: list[Sort]
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if filters is not None:
+            if len(filters) > 0:
+                filters_url = u"filter="
+                for f in filters:
+                    filters_url += f.get_filter_string() + u","
+                filters_url = filters_url[:-1]
+
+        if sorts is not None:
+            if len(sorts) > 0:
+                sorts_url = u"sort="
+                for sort in sorts:
+                    sorts_url += sort.get_sort_string() + u","
+                sorts_url = sorts_url[:-1]
+
+        if sorts is not None and filters is not None:
+            url_ending += u"?{}&{}".format(sorts_url, filters_url)
+        elif sorts is not None:
+            url_ending += u"?{}".format(sorts_url)
+        elif filters is not None:
+            url_ending += u"?{}".format(filters_url)
+        elif additional_url_ending is not None:
+            url_ending += u"?"
+        if additional_url_ending is not None:
+            url_ending += additional_url_ending
+
+        api_call = self.build_api_url(url_ending, server_level)
+        api = RestXmlRequest(api_call, self.token, self.logger, ns_map_url=self.ns_map['t'])
+        self.log_uri(u'get', api_call)
+        api.request_from_api()
+        xml = api.get_response()  # return Element rather than ElementTree
+        self.end_log_block()
+        return xml
+
+    def query_elements_from_endpoint_with_filter(self, element_name, name_or_luid=None):
         """
         :type element_name: unicode
         :type name_or_luid: unicode
         :rtype: etree.Element
         """
         self.start_log_block()
-        if self.is_luid(name_or_luid):
-            elements = self.query_resource(u"{}s".format(element_name))
-            luid = name_or_luid
-            element = elements.findall(u'.//t:{}[@id="{}"]'.format(element_name, luid), self.ns_map)
-        else:
-            element = self.query_resource(u"{}s?filter=name:eq:{}".format(element_name, name_or_luid))
-
-        if len(element) == 1:
+        # A few elements have singular endpoints
+        singular_endpoints = [u'workbook', u'user', u'datasource', u'site']
+        if element_name in singular_endpoints and self.is_luid(name_or_luid):
+            element = self.query_resource(u"{}s/{}".format(element_name, name_or_luid))
             self.end_log_block()
-            return element[0]
+            return element
+        else:
+            if self.is_luid(name_or_luid):
+                elements = self.query_resource(u"{}s".format(element_name))
+                luid = name_or_luid
+                elements = elements.findall(u'.//t:{}[@id="{}"]'.format(element_name, luid), self.ns_map)
+            else:
+                elements = self.query_resource(u"{}s?filter=name:eq:{}".format(element_name, name_or_luid))
+        self.end_log_block()
+        return elements
+
+    def query_single_element_from_endpoint_with_filter(self, element_name, name_or_luid=None):
+        """
+        :type element_name: unicode
+        :type name_or_luid: unicode
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        elements = self.query_elements_from_endpoint_with_filter(element_name, name_or_luid)
+
+        if len(elements) == 1:
+            self.end_log_block()
+            return elements[0]
         else:
             self.end_log_block()
             raise NoMatchFoundException(u"No {} found with name or luid {}".format(element_name, name_or_luid))
 
-    def query_single_element_luid_by_name_from_endpoint_with_filter(self, element_name, name):
+    def query_single_element_luid_from_endpoint_with_filter(self, element_name, name):
         """
         :type element_name: unicode
         :type name: unicode
@@ -2353,42 +2430,36 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         """
         self.start_log_block()
         elements = self.query_resource(u"{}s?filter=name:eq:{}".format(element_name, name))
-        element = elements.findall(u'.//t:{}[@name="{}"]'.format(element_name, name), self.ns_map)
-        if len(element) == 1:
+        if len(elements) == 1:
             self.end_log_block()
-            return element[0].get("id")
+            return elements[0].get("id")
         else:
             self.end_log_block()
             raise NoMatchFoundException(u"No {} found with name {}".format(element_name, name))
 
     # New methods with Filtering
-    def query_users(self, sort_alphabetical=False, site_role_filter=None,
-                    last_login_filter_date=None, last_login_filter_type=None):
+    def query_users(self, last_login_filter=None, site_role_filter=None, sorts=None):
         """
+        :type last_login_filter: UrlFilter
+        :type site_role_filter: UrlFilter
+        :type sorts: list[Sort]
         :rtype: etree.Element
         """
         self.start_log_block()
-        if last_login_filter_type is not None:
-            if last_login_filter_type not in [u'eq', u'gt', u'gte', u'lt', u'lte']:
-                raise InvalidOptionException(u'Filter type must be one of: eq, gt, gte, lt, lte')
-        base_url = u"users"
-        if sort_alphabetical is True or site_role_filter is True or last_login_filter_date is True:
-            base_url += u"?"
-            if sort_alphabetical is True:
-                base_url += u"sort:name:asc&"
+        filters = []
+        if last_login_filter is not None:
+            if last_login_filter.field != u'lastLogin':
+                raise InvalidOptionException(u'last_login_filter must be a UrlFilter object set to last_login field')
+            else:
+                filters.append(last_login_filter)
 
-            if site_role_filter is not None and last_login_filter_date is None:
-                role_filter_string = u"siteRole:eq:{}".format(site_role_filter)
-                base_url += u"filter={}&".format(role_filter_string)
-            if site_role_filter is not None and last_login_filter_date is not None:
-                role_filter_string = u"siteRole:eq:{}".format(site_role_filter)
-                last_login_filter_string = u'lastLogin:{}:{}'.format(last_login_filter_type, last_login_filter_date)
-                base_url += u"filter={},{}&".format(role_filter_string, last_login_filter_string)
-            if site_role_filter is None and last_login_filter_date is not None:
-                last_login_filter_string = u'lastLogin:{}:{}'.format(last_login_filter_type, last_login_filter_date)
-                base_url += u"filter={}&".format(last_login_filter_string)
-            base_url = base_url[:-1]
-        users = self.query_resource(base_url)
+        if site_role_filter is not None:
+            if site_role_filter.field != u'siteRole':
+                raise InvalidOptionException(u'site_role_filter must be a UrlFilter object set to site_role field')
+            else:
+                filters.append(site_role_filter)
+
+        users = self.query_resource(u"users", filters=filters, sorts=sorts)
         self.log(u'Found {} users'.format(unicode(len(users))))
         self.end_log_block()
         return users
@@ -2415,31 +2486,138 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         if username in self.username_luid_cache:
             user_luid = self.username_luid_cache[username]
         else:
-            user_luid = self.query_single_element_luid_by_name_from_endpoint_with_filter(u"user", username)
+            user_luid = self.query_single_element_luid_from_endpoint_with_filter(u"user", username)
             self.username_luid_cache[username] = user_luid
         self.end_log_block()
         return user_luid
 
-    def query_views(self, usage=False, sort_alphabetical=False, created_at_filter_date=None,
-                    created_at_filter_type=None, updated_at_filter_date=None,
-                    updated_at_filter_type=None, tags_filter_list=None):
-        self.start_log_block()
-        if usage not in [True, False]:
-            raise InvalidOptionException(u'Usage can only be set to True or False')
-        vws = self.query_resource(u"views?includeUsageStatistics={}".format(str(usage).lower()))
-        self.end_log_block()
-        return vws
 
-    def query_view(self, vw_name_or_luid):
+
+    # Filtering implemented for workbooks in 2.2
+    # This uses the logged in username for convenience by default
+    def query_workbooks(self, username_or_luid=None, created_at_filter=None, updated_at_filter=None,
+                        owner_name_filter=None, tags_filter=None, sorts=None):
         """
-        :type vw_name_or_luid:
+        :type username_or_luid: unicode
+        :type created_at_filter: UrlFilter
+        :type updated_at_filter: UrlFilter
+        :type owner_name_filter: UrlFilter
+        :type tags_filter: UrlFilter
+        :type sorts: list[Sort]
         :rtype: etree.Element
         """
         self.start_log_block()
-        vw = self.query_single_element_from_endpoint_with_filter(u'view', vw_name_or_luid)
-        self.end_log_block()
-        return vw
+        if username_or_luid is None:
+            user_luid = self.user_luid
+        elif self.is_luid(username_or_luid):
+            user_luid = username_or_luid
+        else:
+            user_luid = self.query_user_luid(username_or_luid)
+        filters = []
+        if updated_at_filter is not None:
+            if updated_at_filter.field != u'updatedAt':
+                raise InvalidOptionException(u'updated_at_filter must be a UrlFilter object set to updated_at field')
+            else:
+                filters.append(updated_at_filter)
+        if created_at_filter is not None:
+            if created_at_filter.field != u'createdAt':
+                raise InvalidOptionException(u'created_at_filter must be a UrlFilter object set to created_at field')
+            else:
+                filters.append(created_at_filter)
+        if owner_name_filter is not None:
+            if owner_name_filter.field != u'ownerName':
+                raise InvalidOptionException(u'owner_name_filter must be a UrlFilter object set to owner_name field')
+            else:
+                filters.append(owner_name_filter)
+        if tags_filter is not None:
+            if tags_filter.field != u'tags':
+                raise InvalidOptionException(u'tags_filter must be a UrlFilter object set to tags field')
+            else:
+                filters.append(tags_filter)
 
+        if username_or_luid is not None:
+            wbs = self.query_resource(u"users/{}/workbooks".format(user_luid))
+        else:
+            wbs = self.query_resource(u"workbooks".format(user_luid), sorts=sorts, filters=filters)
+        self.end_log_block()
+        return wbs
+
+    def query_workbooks_for_user(self, username_or_luid):
+        """
+        :type username_or_luid: unicode
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        wbs = self.query_workbooks(username_or_luid)
+        self.end_log_block()
+        return wbs
+
+    def query_workbook(self, wb_name_or_luid, p_name_or_luid=None, username_or_luid=None):
+        self.start_log_block()
+        workbooks = self.query_workbooks(username_or_luid)
+        if self.is_luid(wb_name_or_luid):
+            workbooks_with_name = self.query_resource(u"workbooks/{}".format(wb_name_or_luid))
+        else:
+            workbooks_with_name = workbooks.findall(u'.//t:workbook[@name="{}"]'.format(wb_name_or_luid), self.ns_map)
+        if len(workbooks_with_name) == 0:
+            self.end_log_block()
+            raise NoMatchFoundException(u"No workbook found for username '{}' named {}".format(username_or_luid, wb_name_or_luid))
+        elif p_name_or_luid is None:
+            if len(workbooks_with_name) == 1:
+                wb_luid = workbooks_with_name[0].get("id")
+                wb = self.query_resource(u"workbooks/{}".format(wb_luid))
+                self.end_log_block()
+                return wb
+            else:
+                self.end_log_block()
+                raise MultipleMatchesFoundException(u'More than one workbook found by name {} without a project specified').format(wb_name_or_luid)
+        else:
+            if self.is_luid(p_name_or_luid):
+                wb_in_proj = workbooks.findall(u'.//t:workbook[@name="{}"]/:project[@id="{}"]/..'.format(p_name_or_luid), self.ns_map)
+            else:
+                wb_in_proj = workbooks.findall(u'.//t:workbook[@name="{}"]/t:project[@name="{}"]/..'.format(p_name_or_luid), self.ns_map)
+            if len(wb_in_proj) == 0:
+                self.end_log_block()
+                raise NoMatchFoundException(u'No workbook found with name {} in project {}').format(wb_name_or_luid, p_name_or_luid)
+            wb_luid = wb_in_proj[0].get("id")
+            wb = self.query_resource(u"workbooks/{}".format(wb_luid))
+            self.end_log_block()
+            return wb
+
+    # Filtering implemented in 2.2
+    def query_workbook_luid(self, wb_name, p_name_or_luid=None, username_or_luid=None):
+        """
+        :type username_or_luid: unicode
+        :type wb_name: unicode
+        :type p_name_or_luid: unicode
+        :rtype:
+        """
+        self.start_log_block()
+        if username_or_luid is None:
+            username_or_luid = self.user_luid
+        workbooks = self.query_workbooks(username_or_luid)
+        workbooks_with_name = workbooks.findall(u'.//t:workbook[@name="{}"]'.format(wb_name), self.ns_map)
+        if len(workbooks_with_name) == 0:
+            self.end_log_block()
+            raise NoMatchFoundException(u"No workbook found for username '{}' named {}".format(username_or_luid, wb_name))
+        elif len(workbooks_with_name) == 1:
+            wb_luid = workbooks_with_name[0].get("id")
+            self.end_log_block()
+            return wb_luid
+        elif len(workbooks_with_name) > 1 and p_name_or_luid is not False:
+            if self.is_luid(p_name_or_luid):
+                wb_in_proj = workbooks.findall(u'.//t:workbook[@name="{}"]/t:project[@id="{}"]/..'.format(wb_name, p_name_or_luid), self.ns_map)
+            else:
+                wb_in_proj = workbooks.findall(u'.//t:workbook[@name="{}"]/t:project[@name="{}"]/..'.format(wb_name, p_name_or_luid), self.ns_map)
+            if len(wb_in_proj) == 0:
+                self.end_log_block()
+                raise NoMatchFoundException(u'No workbook found with name {} in project {}').format(wb_name, p_name_or_luid)
+            wb_luid = wb_in_proj[0].get("id")
+            self.end_log_block()
+            return wb_luid
+        else:
+            self.end_log_block()
+            raise MultipleMatchesFoundException(u'More than one workbook found by name {} without a project specified').format(wb_name)
 
     #
     # Begin Subscription Methods
@@ -2861,9 +3039,9 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
             save_file.write(ds)
             save_file.close()
             if extension == u'.tdsx':
-                self.log(u'Detected TDSX, creating TableauPackagedFile object')
+                self.log(u'Detected TDSX, creating TableauFile object')
                 saved_file = open(save_filename, 'rb')
-                return_obj = TableauPackagedFile(saved_file, self.logger)
+                return_obj = TableauFile(saved_file, self.logger)
                 saved_file.close()
                 if filename_no_extension is None:
                     os.remove(save_filename)
@@ -2911,9 +3089,9 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
             if no_obj_return is True:
                 return
             if extension == u'.twbx':
-                self.log(u'Detected TWBX, creating TableauPackagedFile object')
+                self.log(u'Detected TWBX, creating TableauFile object')
                 saved_file = open(save_filename, 'rb')
-                return_obj = TableauPackagedFile(saved_file, self.logger)
+                return_obj = TableauFile(saved_file, self.logger)
                 if filename_no_extension is None:
                     os.remove(save_filename)
 
@@ -2987,8 +3165,103 @@ class TableauRestApiConnection24(TableauRestApiConnection23):
         server_info = self.query_server_info()
         # grab api version number
 
+    def query_views(self, usage=False, created_at_filter=None, updated_at_filter=None, tags_filter=None, sorts=None):
+        self.start_log_block()
+        if usage not in [True, False]:
+            raise InvalidOptionException(u'Usage can only be set to True or False')
+        filters = []
+        if updated_at_filter is not None:
+            if updated_at_filter.field != u'updatedAt':
+                raise InvalidOptionException(u'updated_at_filter must be a UrlFilter object set to updated_at field')
+            else:
+                filters.append(updated_at_filter)
+        if created_at_filter is not None:
+            if created_at_filter.field != u'createdAt':
+                raise InvalidOptionException(u'created_at_filter must be a UrlFilter object set to created_at field')
+            else:
+                filters.append(created_at_filter)
+        if tags_filter is not None:
+            if tags_filter.field != u'tags':
+                raise InvalidOptionException(u'tags_filter must be a UrlFilter object set to tags field')
+            else:
+                filters.append(tags_filter)
+        vws = self.query_resource(u"views", filters=filters, sorts=sorts,
+                                  additional_url_ending=u"includeUsageStatistics={}".format(str(usage).lower()))
+        self.end_log_block()
+        return vws
+
+    def query_view(self, vw_name_or_luid):
+        """
+        :type vw_name_or_luid:
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        vw = self.query_single_element_from_endpoint_with_filter(u'view', vw_name_or_luid)
+        self.end_log_block()
+        return vw
+
+    def query_datasources(self, project_name_or_luid=None, updated_at_filter=None, created_at_filter=None,
+                          tags_filter=None, datasource_type_filter=None, sorts=None):
+        """
+        :type project_name_or_luid: unicode
+        :type updated_at_filter: UrlFilter
+        :type created_at_filter: UrlFilter
+        :type tags_filter: UrlFilter
+        :type datasource_type_filter: UrlFilter
+        :type sorts: list[Sort]
+        :rtype: etree.Element
+        """
+
+        filters = []
+        if updated_at_filter is not None:
+            if updated_at_filter.field != u'updatedAt':
+                raise InvalidOptionException(u'updated_at_filter must be a UrlFilter object set to updated_at field')
+            else:
+                filters.append(updated_at_filter)
+        if created_at_filter is not None:
+            if created_at_filter.field != u'createdAt':
+                raise InvalidOptionException(u'created_at_filter must be a UrlFilter object set to created_at field')
+            else:
+                filters.append(created_at_filter)
+        if datasource_type_filter is not None:
+            if datasource_type_filter.field != u'type':
+                raise InvalidOptionException(u'datasource_type_filter must be a UrlFilter object set to type field')
+            else:
+                filters.append(datasource_type_filter)
+        if tags_filter is not None:
+            if tags_filter.field != u'tags':
+                raise InvalidOptionException(u'tags_filter must be a UrlFilter object set to tags field')
+            else:
+                filters.append(tags_filter)
+
+        ds = self.query_resource(u'datasources', filters=filters, sorts=sorts)
+        self.end_log_block()
+        return ds
+
     def query_datasource_luid(self, datasource_name, project_name_or_luid=None):
-        filter = "filter here"
+        self.start_log_block()
+        datasources = self.query_datasources()
+        datasources_with_name = datasources.findall(u'.//t:datasource[@name="{}"]'.format(datasource_name), self.ns_map)
+        if len(datasources_with_name) == 0:
+            self.end_log_block()
+            raise NoMatchFoundException(u"No datasource found with name {} in any project".format(datasource_name))
+        elif project_name_or_luid is None:
+            if len(datasources_with_name) == 1:
+                self.end_log_block()
+                return datasources_with_name[0].get("id")
+            # If no project is declared, and
+            else:
+                raise MultipleMatchesFoundException(u'More than one datasource found by name {} without a project specified'.format(datasource_name))
+
+        else:
+            if self.is_luid(project_name_or_luid):
+                ds_in_proj = datasources.findall(u'.//t:project[@id="{}"]/..'.format(project_name_or_luid), self.ns_map)
+            else:
+                ds_in_proj = datasources.findall(u'.//t:project[@name="{}"]/..'.format(project_name_or_luid), self.ns_map)
+            if len(ds_in_proj) == 0:
+                self.end_log_block()
+                raise NoMatchFoundException(u"No datasource found with name {} in project {}".format(datasource_name, project_name_or_luid))
+            return ds_in_proj[0].get("id")
 
     def query_datasource(self, ds_name_or_luid, proj_name_or_luid=None):
         filter = "filter here"
@@ -3303,3 +3576,141 @@ class TableauRestApiConnection26(TableauRestApiConnection25):
             deleted_count += self.send_delete_request(url)
         self.end_log_block()
         return deleted_count
+
+
+class UrlFilter:
+    def __init__(self, field, operator, values):
+        self.field = field
+        self.operator = operator
+        self.values = values
+
+    def get_filter_string(self):
+        """
+        :rtype: unicode
+        """
+        if len(self.values) == 0:
+            raise InvalidOptionException(u'Must pass in at least one value for the filter')
+        elif len(self.values) == 1:
+            value_string = self.values[0]
+        else:
+            value_string = u",".join(self.values)
+            value_string = u"[{}]".format(value_string)
+        url = u"{}:{}:{}".format(self.field, self.operator, value_string)
+        return url
+
+    @staticmethod
+    def create_name_filter(name):
+        """
+        :type name: unicode
+        :rtype: UrlFilter
+        """
+        return UrlFilter(u'name', u'eq', [name, ])
+
+    @staticmethod
+    def create_owner_name_filter(owner_name):
+        """
+        :type owner_name: unicode
+        :rtype: UrlFilter
+        """
+        return UrlFilter(u'ownerName', u'eq', [owner_name, ])
+
+    @staticmethod
+    def create_site_role_filter(site_role):
+        """
+        :type site_role: unicode
+        :rtype: UrlFilter
+        """
+        return UrlFilter(u'siteRole', u'eq', [site_role, ])
+
+    @staticmethod
+    def create_datasource_type_filter(ds_type):
+        """
+        :type ds_type: unicode
+        :rtype: UrlFilter
+        """
+        return UrlFilter(u'type', u'eq', [ds_type, ])
+
+    @staticmethod
+    def create_last_login_filter(operator, last_login_time):
+        """
+        :param operator: Should be one of 'eq', 'gt', 'gte', 'lt', 'lte'
+        :type operator: unicode
+        :param last_login_time: ISO 8601 representation of time like 2016-01-01T00:00:00:00Z
+        :type last_login_time: unicode
+        :rtype: UrlFilter
+        """
+        comparison_operators = [u'eq', u'gt', u'gte', u'lt', u'lte']
+        if operator not in comparison_operators:
+            raise InvalidOptionException(u"operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
+        # Convert to the correct time format
+
+        return UrlFilter(u'lastLogin', operator, [last_login_time, ])
+
+    @staticmethod
+    def create_created_at_filter(operator, created_at_time):
+        """
+        :param operator: Should be one of 'eq', 'gt', 'gte', 'lt', 'lte'
+        :type operator: unicode
+        :param created_at_time: ISO 8601 representation of time like 2016-01-01T00:00:00:00Z
+        :type created_at_time: unicode
+        :rtype: UrlFilter
+        """
+        comparison_operators = [u'eq', u'gt', u'gte', u'lt', u'lte']
+        if operator not in comparison_operators:
+            raise InvalidOptionException(u"operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
+        # Convert to the correct time format
+
+        return UrlFilter(u'lastLogin', operator, [created_at_time, ])
+
+    @staticmethod
+    def create_updated_at_filter(operator, updated_at_time):
+        """
+        :param operator: Should be one of 'eq', 'gt', 'gte', 'lt', 'lte'
+        :type operator: unicode
+        :param updated_at_time: ISO 8601 representation of time like 2016-01-01T00:00:00:00Z
+        :type updated_at_time: unicode
+        :rtype: UrlFilter
+        """
+        comparison_operators = [u'eq', u'gt', u'gte', u'lt', u'lte']
+        if operator not in comparison_operators:
+            raise InvalidOptionException(u"operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
+        # Convert to the correct time format
+
+        return UrlFilter(u'lastLogin', operator, [updated_at_time, ])
+
+    @staticmethod
+    def create_tags_filter(operator, tags):
+        """
+        :param operator: Should be 'eq' for single tag match, 'in' for multiple tag match
+        :type operator: unicode
+        :type tags: list[unicode]
+        :rtype: UrlFilter
+        """
+        comparison_operators = [u'eq', u'in']
+        if operator not in comparison_operators:
+            raise InvalidOptionException(u"operator must be one of 'eq', 'in' ")
+        if operator == u'eq' and len(tags) > 1:
+            raise InvalidOptionException(u'Use "in" operator for multiple tag search')
+        return UrlFilter(u'tags', operator, tags)
+
+
+
+class Sort:
+    def __init__(self, field, direction):
+        """
+        :type field: unicode
+        :param direction: must be asc or desc
+        :type direction: uniode
+        """
+        self.field = field
+        if direction not in [u'asc', u'desc']:
+            raise InvalidOptionException(u'Sort direction must be asc or desc')
+        self.direction = direction
+
+    def get_sort_string(self):
+        """
+        :rtype: unicode
+        """
+        sort_string = u'{}:{}'.format(self.field, self.direction)
+        return sort_string
+

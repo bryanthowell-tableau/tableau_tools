@@ -210,7 +210,7 @@ class TableauBase(object):
             u"MarkLogic": u"marklogic",
             u"Microsoft Access": u"msaccess",
             u"Microsoft Analysis Services": u"msolap",
-            u"Microsoft Excel": u"",
+            u"Microsoft Excel": u"excel-direct",
             u"Microsoft PowerPivot": u"powerpivot",
             u"Microsoft SQL Server": u"sqlserver",
             u"MySQL": u"mysql",
@@ -232,7 +232,7 @@ class TableauBase(object):
             u"Statistical File": u"",
             u"Tableau Data Extract": u"dataengine",
             u"Teradata": u"teradata",
-            u"Text file": u"csv"
+            u"Text file": u"textscan"
         }
 
         self.permissionable_objects = (u'datasource', u'project', u'workbook')
@@ -341,6 +341,10 @@ class TableauBase(object):
     # Generic method for XML lists for the "query" actions to name -> id dict
     @staticmethod
     def convert_xml_list_to_name_id_dict(lxml_obj):
+        """
+        :type lxml_obj: etree.Element
+        :return: dict
+        """
         d = {}
         for element in lxml_obj:
             e_id = element.get("id")
