@@ -990,12 +990,13 @@ class TableauRestApiConnection(TableauBase):
             raise
 
     # Do not include file extension. Without filename, only returns the response
-    def download_datasource(self, ds_name_or_luid, filename_no_extension=None, proj_name_or_luid=None):
+    def download_datasource(self, ds_name_or_luid, filename_no_extension, proj_name_or_luid=None):
         """"
         :type ds_name_or_luid: unicode
         :type filename_no_extension: unicode
         :type proj_name_or_luid: unicode
-        :rtype: TableauDatasource
+        :return Filename of the saved file
+        :rtype: unicode
         """
         self.start_log_block()
         if self.is_luid(ds_name_or_luid):
@@ -1020,37 +1021,28 @@ class TableauRestApiConnection(TableauBase):
             self.end_log_block()
             raise
         try:
-            if filename_no_extension is None:
-                save_filename = 'temp_ds' + extension
-            else:
-                save_filename = filename_no_extension + extension
+
+            save_filename = filename_no_extension + extension
             save_file = open(save_filename, 'wb')
             save_file.write(ds)
             save_file.close()
-            if extension == u'.tdsx':
-                self.log(u'Detected TDSX, creating TableauFile object')
-                return_obj = TableauFile(save_filename, self.logger)
-                if filename_no_extension is None:
-                    os.remove(save_filename)
+
         except IOError:
             self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
             raise
-        if extension == '.tds':
-            self.log(u'Detected TDS, creating TableauDatasource object')
-            return_obj = TableauDatasource(ds, self.logger)
 
         self.end_log_block()
-        return return_obj
+        return save_filename
 
     # Do not include file extension, added automatically. Without filename, only returns the response
     # Use no_obj_return for save without opening and processing
-    def download_workbook(self, wb_name_or_luid, filename_no_extension=None, proj_name_or_luid=None, no_obj_return=False):
+    def download_workbook(self, wb_name_or_luid, filename_no_extension, proj_name_or_luid=None):
         """
         :type wb_name_or_luid: unicode
         :type filename_no_extension: unicode
         :type proj_name_or_luid: unicode
-        :type no_obj_return: bool
-        :rtype: TableauWorkbook
+        :return Filename of the save workbook
+        :rtype: unicode
         """
         self.start_log_block()
         if self.is_luid(wb_name_or_luid):
@@ -1075,32 +1067,19 @@ class TableauRestApiConnection(TableauBase):
             self.end_log_block()
             raise
         try:
-            if filename_no_extension is None:
-                save_filename = 'temp_wb' + extension
-            else:
-                save_filename = filename_no_extension + extension
+
+            save_filename = filename_no_extension + extension
 
             save_file = open(save_filename, 'wb')
             save_file.write(wb)
             save_file.close()
-            if no_obj_return is True:
-                return
-            if extension == u'.twbx':
-                self.log(u'Detected TWBX, creating TableauFile object')
-                return_obj = TableauFile(save_filename, self.logger)
-                if filename_no_extension is None:
-                    os.remove(save_filename)
 
         except IOError:
             self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
             raise
-        if no_obj_return is True:
-            return
-        if extension == u'.twb':
-            self.log(u'Detected TWB, creating TableauWorkbook object')
-            return_obj = TableauWorkbook(wb, self.logger)
+
         self.end_log_block()
-        return return_obj
+        return save_filename
 
     #
     # End download / save methods
@@ -3215,12 +3194,12 @@ class TableauRestApiConnection24(TableauRestApiConnection23):
         filters = []
         if updated_at_filter is not None:
             if updated_at_filter.field != u'updatedAt':
-                raise InvalidOptionException(u'updated_at_filter must be a UrlFilter object set to updated_at field')
+                raise InvalidOptionException(u'updated_at_filter must be a UrlFilter object set to updatedAt field')
             else:
                 filters.append(updated_at_filter)
         if created_at_filter is not None:
             if created_at_filter.field != u'createdAt':
-                raise InvalidOptionException(u'created_at_filter must be a UrlFilter object set to created_at field')
+                raise InvalidOptionException(u'created_at_filter must be a UrlFilter object set to createdAt field')
             else:
                 filters.append(created_at_filter)
         if datasource_type_filter is not None:
@@ -3660,7 +3639,7 @@ class UrlFilter:
             raise InvalidOptionException(u"operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
         # Convert to the correct time format
 
-        return UrlFilter(u'lastLogin', operator, [created_at_time, ])
+        return UrlFilter(u'createdAt', operator, [created_at_time, ])
 
     @staticmethod
     def create_updated_at_filter(operator, updated_at_time):
@@ -3676,7 +3655,7 @@ class UrlFilter:
             raise InvalidOptionException(u"operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
         # Convert to the correct time format
 
-        return UrlFilter(u'lastLogin', operator, [updated_at_time, ])
+        return UrlFilter(u'updatedAt', operator, [updated_at_time, ])
 
     @staticmethod
     def create_tags_filter(operator, tags):
@@ -3692,7 +3671,6 @@ class UrlFilter:
         if operator == u'eq' and len(tags) > 1:
             raise InvalidOptionException(u'Use "in" operator for multiple tag search')
         return UrlFilter(u'tags', operator, tags)
-
 
 
 class Sort:

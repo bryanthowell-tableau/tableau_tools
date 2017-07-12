@@ -85,7 +85,29 @@ groups_dict = default.convert_xml_list_to_name_id_dict(groups)
 for group_name in groups_dict:
     print "Group name {} is LUID {}".format(group_name, groups_dict[group_name])
 
+2.2.1 Filtering and Sorting (Tableau Server 9.3+):
+TableauRestApiConnection22 implements filtering and sorting for the methods where it is allowed. Singular lookup methods are programmed to take advantage of this automatically for improved perofrmance, but the plural querying methods can use the filters to bring back specific sets.
 
+http://onlinehelp.tableau.com/current/api/rest_api/en-us/help.htm#REST/rest_api_concepts_filtering_and_sorting.htm%3FTocPath%3DConcepts%7C_____7
+
+Filters can be passed via a UrlFilter class object. The UrlFilter class implements static factory methods to generate objects with the correct settings for each type of filter you might want to pass. 
+
+UrlFilter.create_name_filter(name):
+UrlFilter.create_owner_name_filter(owner_name)
+UrlFilter.create_site_role_filter(site_role)
+UrlFilter.create_last_login_filter(operator, last_login_time)
+UrlFilter.create_created_at_filter(operator, created_at_time)
+UrlFilter.create_updated_at_filter(operator, updated_at_time)
+UrlFilter.create_tags_filter(operator, tags)
+
+Ex. 
+owner_name_filter = UrlFilter.create_owner_name_filter(u'Bryant')
+
+
+There is also a Sort object, which can just be initialized with the right parameters
+Sort(
+
+    
 2.3 LUID Lookup Methods
 There are numerous methods for finding an LUID based on the name of a piece of content. An example would be:
 
@@ -184,9 +206,8 @@ TableauRestApiConnection.remove_users_from_group_by_luid(user_luid_s, group_luid
 
 Methods that start with "delete_" truly delete the content 
 
-
-TableauRestApiConnection.delete_workbooks_by_luid(wb_luid_s)
-TableauRestApiConnection.delete_projects_by_luid(project_luid_s)
+TableauRestApiConnection.delete_workbooks(wb_name_or_luid_s)
+TableauRestApiConnection.delete_projects(project_name_or_luid_s)
 etc.
 
 3.7 Deleting a site
@@ -397,13 +418,12 @@ The Tableau REST API can publish both data sources and workbooks, either as TWB 
 If a workbook references a published data source, that data source must be published first. Additionally, unlike Tableau Desktop, the REST API will not find linked files and upload them. A workbook with a "live connection" to an Excel file, for example, must be saved as a TWBX rather than a TWB for an upload to work correctly. The error messages if you do not follow this order are not very clear. 
 
 5.1 Publishing a Workbook or Datasource
-The publish methods were orginally designed to upload directly from disk, and if you specify a text string for the filename argument, tableau_rest_api will attempt to open those files and then upload them. 
+The publish methods must upload directly from disk. If you are manipulating a workbook or datasource using the TableauFile / TableauDocument classes, please save the file prior to publishing. Also note that you specify a Project object rather than the LUID.
 
 TableauRestApiConnection.publish_workbook(workbook_filename, workbook_name, project_obj, overwrite=False, connection_username=None, connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=False)
 
 TableauRestApiConnection.publish_datasource(ds_filename, ds_name, project_obj, overwrite=False, connection_username=None, connection_password=None, save_credentials=True)
 
-You can also pass in a TableauWorkbook object into publish_workbook, or a TableauDatasource object into publish_datasource. Information about these class types is further in this document. Simply put, they allow you to make certain changes to the workbook or datasource XML programmatically in-memory, without having to write to disk each time.
 
 6. Refreshing Extracts (Tableau 10.3+)
 The TableauRestApiConnection26 class, representing the API for Tableau 10.3, includes methods for triggering extract refreshes via the REST API.
@@ -435,59 +455,141 @@ for sched in sched_dict:
     t.run_all_extract_refreshes_for_schedule(sched_dict[sched])  # This passes the LUID
     # t.run_all_extract_refreshes_for_schedule(sched_dict) # You can pass the name also, it just causes extra lookups
 
-7. Advanced Features for Publishing from Templates
-tableau_rest_api implements some features that go beyond the Tableau REST API, but are extremely useful when dealing with a large number of workbooks or datasources, particularly for tenented Sites. These methods actually allow unsupported changes to the Tableau workbook or datasource XML. If something breaks with them, blame the author of the library and not Tableau Support, who won't help you with them.
+7. Modifying Tableau Documents (for Template Publishing)
+tableau_rest_api implements some features that go beyond the Tableau REST API, but are extremely useful when dealing with a large number of workbooks or datasources, particularly for multi-tenented Sites. These methods actually allow unsupported changes to the Tableau workbook or datasource XML. If something breaks with them, blame the author of the library and not Tableau Support, who won't help you with them.
 
-6.1 TableauWorkbook, TableauDatasource and TableauConnection classes
-The TableauWorkbook and TableauDatasource classes are representations of the TWB and TDS XML files, and contain other sub-objects which allow them to change the XML of TWB or TDS to do things like changing the database name that a workbook is pointing to. 
+6.1 Document classes
+The tableau_document library is a hierarchical set of classes which model Tableau's files and the data structures within them. The model looks slightly different whether a workbook or a datasource, because workbooks can embed multiple datasources:
 
-TableauWorkbook.get_datasources()
+Datasource:
 
-returns a list of TableauDatasource objects.
+TableauFile
+    TableauDatasource (TableauDocument)
+        [TableauConnection]
+        TableauColumns
+    
+Workbook:
 
-TableauDatasource.get_datasource_name()
+TableauFile
+    TableauWorkbook (TableauDocument)
+        [TableauDatasource]
+            [TableauConnection]
+            TableauColumns
+    
 
-Each TableauDatasource contains a TableauConnection object, which is automatically created and parses the XML. You can make changes to the TableauConnection object using the properties:
+6.1 TableauFile class
+The TableauFile class represents an actual existing Tableau file on the local storage (.tds, .tdsx, .twb, .twbx). It is initialized with:
 
-TableauConnection.dbname(new_db_name)
-TableauConnection.dbname()
-TableauConnection.server(new_server)
-TableauConnection.server()
-TableauConnection.port(new_port)
-TableauConnection.port()
-TableauConnection.connection_type()
-TableauConnection.connection_type(new_connection_type)
-TableauConnection.set_sslmode(new_ssl_mode)
+TableauFile(filename, logger_obj=None)
 
-'dbname' is the logical partition name -- this could be a "schema" on Oracle or a "database" on MS SQL Server or PostgreSQL. It is typically the only one that needs to be set.
+TableauFile determines what type of file has been opened, and if it is a packaged workbook or datasource, it extracts the embedded TWB or TDS file temporarily to disk so that it can be accessed as a file. All of this is done to disk so that everything is not loaded and kept in memory.      
 
-Ex.
-wb_filename = 'Viz.twb'
-fh = open(wb_filename, 'rb')
-wb = TableauWorkbook(fh.read(), logger)
-dses = wb.get_datasources()
-for ds in dses.values():
-    if ds.connection.dbname == 'demo':
-        ds.connection.dbname('demo2')
-        ds.connection.server('192.0.0.1')
-        ds.connection.username(username)
-        ds.connection.set_sslmode('require')
-iv.publish_workbook(tc_wb, u'Magically Changed Viz', project_luid, overwrite=True, connection_username=username, connection_password=password)
-fh.close()
+TableauFile.file_type property  returns one of [u'twb', u'twbx, u'tds', u'tdsx'], which allows you to determine a particular set of actions to take depending on the file type. 
+
+TableauFile.tableau_document property retrieves the TableauDocument object within. This will actually be either a TableauWorkbook or TableauDatasource object, which is why the file_type is useful. 
+
+6.2 TableauDocument
+The TableauDocument class helps map the differences between TableauWorkbook and TableauDatasource. It only implements two properrites:
+
+TableauDocument.document_type  : return either [u'datasource', u'workbook'] . More generic than TableauFile.file_type
+TableauDocument.datasources : returns an array of TableauDatasource objects. 
+For a TableauDatasource, TableauDocuemnt.datasources will only have a single datasource, itself, in datasources[0]. TableauWorkbooks might have more than one. This property thus allows you to do modifications on both individual datasources and those embedded within workbooks without worrying about whether the document is a workbook or a datasource.
+
+TableauDocument also implements a save_file method:
+
+TableauDocument.save_file(filename_no_extension, save_to_directory=None)
+
+which does the correct action based on whether it is a TableauDatasource or a TableauWorkbook (implemented separately for each)
+
+6.3 TableauWorkbook class
+At this point in time, the TableauWorkbook class is really just a container for TableauDatasources, which it creates automatically when initialized. Because workbook files can get very very large, the initializer algorithm only reads through the datasources, which are at the beginning of the document, and then leaves the rest of the file on disk.
+
+TableauWorkbook.save_file(filename_no_extension, save_to_directory=None)
+
+is used to save a TWB file. It also uses the algorithm from the initializer method to read the existing TWB file from disk, line by line. It skips the original datasource section and instead writes in the new datasource XML from the array of TableauDatasource objects. The benefit of this is that the majority of the workbook is untouched, and larger documents do not cause high memory usage.
+
+At the current time, this means that you cannot modify any of the other functionality that is specified in the workbook itself. Additional methods could be implemented in the future based on a similar algorithm (picking out specific subsections and representing them in memory as ElementTree objects, then inserting back into place later). 
+
+6.4 TableauDatasource class
+The TableauDatasource class is represents the XML contained within a TDS (or an embedded datasource within a workbook). 
+
+Tableau Datasources changed considerably from the 9 series to the 10 series; Tableau 10 introduced the concept of Cross-Database JOIN, known internally as Federated Connections. So a datasource in 10.0+ can have multiple connections. tableau_tools handles determinig the all of this automatically, unless you are creating a TableauDatasource object from scratch (more on this later), in whcih case you need to specify which type of datasource you want. 
 
 
-6.2 TableauPackagedFile for TWBX and TDSX
-The TableauPackagedFile class actually can read a TWBX or TDSX file, extract out the TWB or TDS and then creates a child object of the TableauWorkbook or TableauDatasource class.
+If you are opening a TDS file, you should use TableauFile to open it, where the TableauDatasource object will be available via TableauFile.tableau_document. You really only need to create TableauDatasource object yourself when creating one from scratch, in which case you initialize it like:
 
-TableauPackagedFile(zip_file_obj, logger_obj=None)
+TableauDatasource(datasource_xml=None, logger_obj=None, ds_version=None)
 
-You can get the type and then the object, and that lets you manipulate the underlying TableauWorkbook or TableauDatasource as you would if it was not part of the packged file. You can even save your changes to a new TWBX or TDSX file (the file extension will be automatically determined).
+ex. 
 
-TableauPackagedFile.get_type()
-TableauPackagedFile.get_tableau_object()
-TableauPackagedFile.save_new_packaged_file(new_filename_no_extension)
+logger = Logger('ds_log.txt')
+new_ds = TableauDatasource(ds_version=u'10', logger_obj=logger)
 
-6.3 Translating Columns
+ds_version takes either u'9' or u'10, because it is more on basic structure and the individual point numbers don't matter.
+
+6.5 TableauConnection
+In a u'9' version TableauDatasource, there is only connections[0] because there was only one connection. A u'10' version can have any number of federated connections in this array. If you are creating connections from scratch, I highly recommend doing single connections. There hasn't been any work to make sure federated connections work correctly with modifications.
+
+The TableauConnection class represents the connection to the datasource, whether it is a database, a text file. It should be created automatically for you through the TableauDatasource object. 
+
+You can access and set all of the relevant properties for a connection, using the following properties
+
+TableauConnection.server
+TableauConnection.dbname
+TableauConnection.schema  # equivalent to dbname. Actual XML does vary -- Oracle has schema attribute while others have dbname. Either method will do the right thing
+TableauConnection.port
+TableauConnection.connection_type
+TableauConnection.sslmode
+TableauConnection.authentication
+
+When you set using these properties, the connection XML will be changed when the save method is called on the TableauDatasource object.
+
+ex.
+ex.
+twb = TableauFile(u'My TWB.twb')
+dses = twb.tableau_document.datasources
+for ds in dses:
+    if ds.published is not True:  # See next section on why you should check for published datasources
+        for conn in ds.connections:
+            if conn.dbname == u'test_db':
+                conn.dbname = u'production_db'
+                conn.port = u'5128'
+
+                
+twb.save_new_file(u'Modified Workbook')
+
+
+6.6 Published Datasources in a workbook
+Datasources in a workbook come in two types: Embedded and Published. An embedded datasource looks just like a standard TDS file, except that there can be multiple in a workbook. Published Datasources have an additional tag called <repository-location> which tells the information about the Site and the published Datasource name
+
+To see if a datasource is published, use the property
+TableauDatasource.published : returns True or False
+
+If published is True, you can get or set the Site of the published DS. This was necessary in Tableau 9.2 and 9.3 to publish to different sites, and it still might be best practice, so that there is no information about other sites passed in (see notes). TableauRestApiConnection.publish_workbook and .publish_datasource both do this check and modification for you automatically so that the site is always correct.
+
+ex.
+twb = TableauFile(u'My TWB.twb')
+dses = twb.tableau_document.datasources
+for ds in dses:
+    if ds.published is True:
+        print ds.published_ds_site
+        # Change the ds_site
+        ds.published_ds_site = u'new_site'  # Remember to use content_url rather than the pretty site name
+
+        
+        
+***NOTE: From this point on, things become increasingly experimental and less supported. However, I can assure you that many Tableau customers do these very things, and we are constantly working to improve the functionality for making datasources dynamically.
+        
+6.7 Modifying Table JOIN Structure in a Connection
+
+
+6.8 Creating a TableauDatasource from Scratch
+
+6.9. Adding an Extract to an Existing TableauDatasource
+
+6.10
+
+6.8 Translating Columns
 TableauDatasource.translate_columns(key_value_dict) will do a find/replace on the caption attribute of the column tags in the XML.
 
 When you save the datasource (or workbook), the changed captions will be written into the new XML.

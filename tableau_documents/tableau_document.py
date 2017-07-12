@@ -25,6 +25,14 @@ class TableauDocument(TableauBase):
         """
         return self._document_type
 
+    def save_file(self, filename_no_extension, save_to_directory=None):
+        """
+        :type filename_no_extension: unicode
+        :type save_to_directory: unicode
+        :rtype: bool
+        """
+        return True
+
 
 class TableauColumns(TableauBase):
     def __init__(self, columns_list, logger_obj=None):

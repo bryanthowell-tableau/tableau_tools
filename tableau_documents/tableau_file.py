@@ -6,9 +6,11 @@ import shutil
 from ..tableau_base import *
 from tableau_datasource import TableauDatasource
 from tableau_workbook import TableauWorkbook
+from tableau_document import TableauDocument
 
 
 class TableauFile(TableauBase):
+
     def __init__(self, filename, logger_obj=None):
         """
         :type filename: unicode
@@ -22,6 +24,7 @@ class TableauFile(TableauBase):
         self._tableau_document = None
         self._file_type = None
         self.other_files = []
+        self.temp_filename = None
         if filename.lower().find(u'.tdsx') != -1:
             self._file_type = u'tdsx'
             self.packaged_file = True
@@ -49,10 +52,10 @@ class TableauFile(TableauBase):
                 if name.find('/') == -1:
                     if name.endswith('.tds'):
                         self.log(u'Detected a TDS file in archive, saving temporary file')
-                        self.packaged_filename = self.zf.extract(name)
+                        self.packaged_filename = os.path.basename(self.zf.extract(name))
                     elif name.endswith('.twb'):
                         self.log(u'Detected a TWB file in archive, saving temporary file')
-                        self.packaged_filename = self.zf.extract(name)
+                        self.packaged_filename = os.path.basename(self.zf.extract(name))
                 else:
                     self.other_files.append(name)
 
@@ -61,11 +64,35 @@ class TableauFile(TableauBase):
         elif self.file_type == u'twb':
             self._tableau_document = TableauWorkbook(filename, self.logger)
         elif self.file_type == u'tds':
+            # Here we throw out metadata-records even when opening a workbook from disk, because they take up space
+            # And are recreate automatically. Very similar to what we do in initialization of TableauWorkbook
+            o_ds_fh = open(filename, 'rb')
+            ds_fh = open(u'temp_file.txt', 'wb')
+            self.temp_filename = u'temp_file.txt'
+            metadata_flag = None
+            for line in o_ds_fh:
+                # Grab the datasources
+
+                if line.find(u"<metadata-records") != -1 and metadata_flag is None:
+                    metadata_flag = True
+                if metadata_flag is not True:
+                    ds_fh.write(line)
+                if line.find(u"</metadata-records") != -1 and metadata_flag is True:
+                    metadata_flag = False
+            o_ds_fh.close()
+
+            ds_fh.close()
             utf8_parser = etree.XMLParser(encoding='utf-8')
-            ds_xml = etree.parse(filename, parser=utf8_parser)
+
+            ds_xml = etree.parse(u'temp_file.txt', parser=utf8_parser)
+
             self._tableau_document = TableauDatasource(ds_xml.getroot(), self.logger)
         self.xml_name = None
         file_obj.close()
+
+    def __del__(self):
+        if self.temp_filename is not None:
+            os.remove(self.temp_filename)
 
     @property
     def file_type(self):
@@ -73,30 +100,30 @@ class TableauFile(TableauBase):
 
     @property
     def tableau_document(self):
+        """
+        :rtype: TableauDocument
+        """
         return self._tableau_document
 
     # Appropriate extension added if needed
     def save_new_file(self, new_filename_no_extension):
+        """
+        :type new_filename_no_extension: unicode
+        :rtype: bool
+        """
         self.start_log_block()
-        new_filename = new_filename_no_extension.split('.')  # simple algorithm to kill extension
+        new_filename = new_filename_no_extension.split('.')[0]  # simple algorithm to kill extension
 
         if self.file_type in [u'twbx', u'tdsx']:
             save_filename = u"{}.{}".format(new_filename, self.file_type)
             new_zf = zipfile.ZipFile(save_filename, 'w')
-            self.log(u'Creating temporary XML file {}'.format(self.xml_name))
             # Save the object down
-            if self.file_type == 'twbx':
-                self.log(u'Creating temporary XML file {}'.format(self.xml_name))
-                self.tableau_document.save_file(self.xml_name)
-                new_zf.write(self.xml_name)
-                os.remove(self.xml_name)
-            elif self.file_type == 'tdsx':
-                new_zf = zipfile.ZipFile(save_filename, 'w')
-                self.log(u'Creating temporary XML file {}'.format(self.xml_name))
-                self.tableau_document.save_file(self.xml_name)
-                new_zf.write(self.xml_name)
-                os.remove(self.xml_name)
-                self.log(u'Removed file {}'.format(save_filename))
+            if self.file_type in [u'twbx', u'tdsx']:
+                self.log(u'Creating temporary XML file {}'.format(self.packaged_filename))
+                self.tableau_document.save_file(self.packaged_filename)
+                new_zf.write(self.packaged_filename)
+                os.remove(self.packaged_filename)
+                self.log(u'Removed file {}'.format(self.packaged_filename))
 
             temp_directories_to_remove = {}
             for filename in self.other_files:
@@ -113,5 +140,7 @@ class TableauFile(TableauBase):
                 shutil.rmtree(directory)
             new_zf.close()
             self.zf.close()
+            return True
         else:
-            self.tableau_document.save_file(self.xml_name)
+            self.tableau_document.save_file(u"{}.{}".format(new_filename_no_extension, self.file_type))
+            return True
