@@ -6,11 +6,11 @@ psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
 psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
 
 conn = psycopg2.connect(host='', database='', user='', password='')
-logger = Logger('sabre.log')
+logger = Logger('')
 
-username = ''
-password = ''
-server = 'http://127.0.0.1'
+username = u''
+password = u''
+server = u'http://'
 
 t = TableauRestApiConnection(server, username, password, site_content_url='')
 t.enable_logging(logger)
@@ -59,7 +59,7 @@ print users_dict
 for user in users_dict:
     proj_luid = t.create_project(u"My Saved Reports - {}".format(user))
     user_luid = users_dict[user]
-    gcap_obj = GranteeCapabilities(u'user', user_luid)
+    gcap_obj = Permissions(u'user', user_luid)
     gcap_obj.set_capabilities_to_match_role(u'Editor')
     gcap_obj.set_capability_to_unspecified(u'Delete')
     gcap_obj.set_capability_to_unspecified(u'Move')
@@ -94,7 +94,7 @@ for row in cur:
 for group_luid in groups_and_users:
     if group_luid == groups_dict[u'All Users']:
         continue
-    users_in_group_on_server = t.query_users_in_group_by_luid(group_luid)
+    users_in_group_on_server = t.query_users_in_group(group_luid)
     users_in_group_on_server_dict = t.convert_xml_list_to_name_id_dict(users_in_group_on_server)
     # values() are the LUIDs in these dicts
     for user_luid in users_in_group_on_server_dict.values():

@@ -1,2 +1,1 @@
 tableau_tools
-lxml>=3.4.2
