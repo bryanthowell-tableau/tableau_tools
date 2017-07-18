@@ -108,6 +108,7 @@ class PublishedContent(TableauBase):
         return final_perms_obj_list
 
     def replicate_permissions(self, orig_content):
+        self.start_log_block()
         self.clear_all_permissions()
 
         # Self Permissions
@@ -115,6 +116,7 @@ class PublishedContent(TableauBase):
         n_perms_obj_list = self.convert_permissions_obj_list_from_orig_site_to_current_site(o_perms_obj_list,
                                                                                             orig_content.t_rest_api)
         self.set_permissions_by_permissions_obj_list(n_perms_obj_list)
+        self.end_log_block()
 
     # Determine if capabilities are already set identically (or identically enough) to skip
     def are_capabilities_obj_lists_identical(self, new_obj_list, dest_obj_list):
@@ -308,8 +310,6 @@ class PublishedContent(TableauBase):
         :return:
         """
         self.start_log_block()
-        self.log(u'Permissions from object list:')
-        self.log(str(permissions_obj_list))
         for permissions_obj in permissions_obj_list:
             obj_luid = permissions_obj.luid
             group_or_user = permissions_obj.group_or_user
@@ -514,14 +514,14 @@ class Project21(Project20):
                     if tags.tag == u'{}group'.format(self.ns_prefix):
                         luid = tags.get(u'id')
                         perms_obj = ProjectPermissions21(u'group', luid)
-                        self.log(u'group {}'.format(luid))
+                        self.log_debug(u'group {}'.format(luid))
                     elif tags.tag == u'{}user'.format(self.ns_prefix):
                         luid = tags.get(u'id')
                         perms_obj = ProjectPermissions21(u'user', luid)
-                        self.log(u'user {}'.format(luid))
+                        self.log_debug(u'user {}'.format(luid))
                     elif tags.tag == u'{}capabilities'.format(self.ns_prefix):
                         for caps in tags:
-                            self.log(caps.get(u'name') + ' : ' + caps.get(u'mode'))
+                            self.log_debug(caps.get(u'name') + ' : ' + caps.get(u'mode'))
                             perms_obj.set_capability(caps.get(u'name'), caps.get(u'mode'))
                 obj_list.append(perms_obj)
             self.log(u'Permissions object list has {} items'.format(unicode(len(obj_list))))
@@ -529,6 +529,8 @@ class Project21(Project20):
             return obj_list
 
     def replicate_permissions(self, orig_content):
+        self.start_log_block()
+
         self.clear_all_permissions()
 
         # Self Permissions
@@ -548,6 +550,8 @@ class Project21(Project20):
         n_perms_obj_list = self.datasource_defaults.convert_permissions_obj_list_from_orig_site_to_current_site(
             o_perms_obj_list, orig_content.t_rest_api)
         self.datasource_defaults.set_permissions_by_permissions_obj_list(n_perms_obj_list)
+
+        self.end_log_block()
 
     def _get_permissions_object(self, group_or_user, name_or_luid, obj_type, role=None):
 
@@ -569,8 +573,8 @@ class Project21(Project20):
             perms_obj = DatasourcePermissions21(group_or_user, luid)
         else:
             raise InvalidOptionException(u'obj_type must be project, workbook or datasource')
+        perms_obj.enable_logging(self.logger)
         if role is not None:
-            self.log(str(perms_obj.capabilities))
             perms_obj.set_capabilities_to_match_role(role)
         return perms_obj
 
@@ -660,14 +664,12 @@ class Project21(Project20):
         """
         :return: bool
         """
-        self.start_log_block()
         proj = self.xml_obj
         locked_permissions = proj.get(u'contentPermissions')
         if locked_permissions == u'ManagedByOwner':
             return False
         if locked_permissions == u'LockedToProject':
             return True
-        self.end_log_block()
 
     def lock_permissions(self):
         """
@@ -717,6 +719,7 @@ class Workbook(PublishedContent):
         obj_list = []
         xml = xml_obj.findall(u'.//t:granteeCapabilities', self.ns_map)
         if len(xml) == 0:
+            self.end_log_block()
             return []
         else:
             for gcaps in xml:
@@ -725,14 +728,14 @@ class Workbook(PublishedContent):
                     if tags.tag == u'{}group'.format(self.ns_prefix):
                         luid = tags.get(u'id')
                         perms_obj = WorkbookPermissions21(u'group', luid)
-                        self.log(u'group {}'.format(luid))
+                        self.log_debug(u'group {}'.format(luid))
                     elif tags.tag == u'{}user'.format(self.ns_prefix):
                         luid = tags.get(u'id')
                         perms_obj = WorkbookPermissions21(u'user', luid)
-                        self.log(u'user {}'.format(luid))
+                        self.log_debug(u'user {}'.format(luid))
                     elif tags.tag == u'{}capabilities'.format(self.ns_prefix):
                         for caps in tags:
-                            self.log(caps.get(u'name') + ' : ' + caps.get(u'mode'))
+                            self.log_debug(caps.get(u'name') + ' : ' + caps.get(u'mode'))
                             perms_obj.set_capability(caps.get(u'name'), caps.get(u'mode'))
                 obj_list.append(perms_obj)
             self.log(u'Permissions object list has {} items'.format(unicode(len(obj_list))))
@@ -768,6 +771,7 @@ class Datasource(PublishedContent):
         obj_list = []
         xml = xml_obj.findall(u'.//t:granteeCapabilities', self.ns_map)
         if len(xml) == 0:
+            self.end_log_block()
             return []
         else:
             for gcaps in xml:
@@ -776,14 +780,14 @@ class Datasource(PublishedContent):
                     if tags.tag == u'{}group'.format(self.ns_prefix):
                         luid = tags.get(u'id')
                         perms_obj = DatasourcePermissions21(u'group', luid)
-                        self.log(u'group {}'.format(luid))
+                        self.log_debug(u'group {}'.format(luid))
                     elif tags.tag == u'{}user'.format(self.ns_prefix):
                         luid = tags.get(u'id')
                         perms_obj = DatasourcePermissions21(u'user', luid)
-                        self.log(u'user {}'.format(luid))
+                        self.log_debug(u'user {}'.format(luid))
                     elif tags.tag == u'{}capabilities'.format(self.ns_prefix):
                         for caps in tags:
-                            self.log(caps.get(u'name') + ' : ' + caps.get(u'mode'))
+                            self.log_debug(caps.get(u'name') + ' : ' + caps.get(u'mode'))
                             perms_obj.set_capability(caps.get(u'name'), caps.get(u'mode'))
                 obj_list.append(perms_obj)
             self.log(u'Permissions object list has {} items'.format(unicode(len(obj_list))))

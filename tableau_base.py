@@ -283,6 +283,10 @@ class TableauBase(object):
         if self.logger is not None:
             self.logger.log(l)
 
+    def log_debug(self, l):
+        if self.logger is not None:
+            self.logger.log_debug(l)
+
     def start_log_block(self):
         if self.logger is not None:
             self.logger.start_log_block()

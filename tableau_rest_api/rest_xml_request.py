@@ -89,7 +89,7 @@ class RestXmlRequest(TableauBase):
 
     def get_response(self):
         if self.__response_type == 'xml' and self.__xml_object is not None:
-            self.log(u"XML Object Response:\n {}".format(etree.tostring(self.__xml_object, encoding='utf8').decode('utf8')))
+            self.log_debug(u"XML Object Response: {}".format(etree.tostring(self.__xml_object, encoding='utf8').decode('utf8')))
             return self.__xml_object
         else:
             return self.__raw_response
@@ -99,7 +99,6 @@ class RestXmlRequest(TableauBase):
     # depending on preference. Must be able to do the verbs listed in self.defined_http_verbs
     # Larger requests require pagination (starting at 1), thus page_number argument can be called.
     def __make_request(self, page_number=1):
-        self.log(u"HTTP verb is {}".format(self.__http_verb))
         url = self.__base_url.encode('utf8')
         if page_number > 0:
             param_separator = '?'
@@ -120,7 +119,6 @@ class RestXmlRequest(TableauBase):
             if self.__publish_content is not None:
                 request.add_data(self.__publish_content)
             elif self.__xml_request is not None:
-                self.log(unicode((type(self.__xml_request))))
                 if isinstance(self.__xml_request, str):
                     encoded_request = self.__xml_request.encode('utf8')
                 else:
@@ -137,16 +135,15 @@ class RestXmlRequest(TableauBase):
 
         # Need to handle binary return for image somehow
         try:
-            self.log(u"Making REST request to Tableau Server using {}".format(self.__http_verb))
-            self.log(u"Request URI: {}".format(url))
+            self.log(u"Request {}  {}".format(self.__http_verb.upper(), url))
             if self.__xml_request is not None:
-                self.log(u"Request XML:\n{}".format(self.__xml_request))
+                self.log(u"Request XML: {}".format(etree.tostring(self.__xml_request, encoding='utf8').decode('utf8')))
             response = opener.open(request)
 
             # Tableau 9.0 doesn't return real UTF-8 but escapes all unicode characters using numeric character encoding
             initial_response = response.read()  # Leave the UTF8 decoding to lxml
             self.__last_response_content_type = response.info().getheader('Content-Type')
-            self.log(u"Content type from headers: {}".format(self.__last_response_content_type))
+            self.log_debug(u"Content type from headers: {}".format(self.__last_response_content_type))
             # Don't botherw with any extra work if the response is expected to be binary
             if self.__response_type == u'binary':
                 self.__raw_response = initial_response
@@ -165,7 +162,7 @@ class RestXmlRequest(TableauBase):
                 unicode_raw_response = unicode_raw_response.decode('utf-8')
 
             if self.__response_type == 'xml':
-                self.log(u"Raw Response:\n{}".format(unicode_raw_response))
+                self.log_debug(u"Raw Response: {}".format(unicode_raw_response))
             return True
         except urllib2.HTTPError as e:
             # No recoverying from a 500
@@ -249,8 +246,9 @@ class RestXmlRequest(TableauBase):
                             combined_xml_obj.append(e)
 
                 self.__xml_object = combined_xml_obj
-                self.log(u"Logging the combined xml object")
-                self.log(etree.tostring(self.__xml_object))
+                self.log_debug(u"Logging the combined xml object")
+                self.log_debug(etree.tostring(self.__xml_object))
+                self.log(u"Request succeeded")
                 return True
         elif self.__response_type in ['binary', 'png']:
             self.log(u'Binary response (binary or png) rather than XML')

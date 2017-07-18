@@ -243,7 +243,6 @@ class TableauRestApiConnection(TableauBase):
         self.start_log_block()
         api_call = self.build_api_url(url_ending, server_level)
         api = RestXmlRequest(api_call, self.token, self.logger, ns_map_url=self.ns_map['t'])
-        self.log_uri(u'get', api_call)
         api.request_from_api()
         xml = api.get_response()  # return Element rather than ElementTree
         self.end_log_block()
@@ -307,10 +306,9 @@ class TableauRestApiConnection(TableauBase):
         :rtype:
         """
         self.start_log_block()
-        self.log_uri(u'add', url)
+
         api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
         api.set_xml_request(request)
-        self.log_xml_request(u'add', request)
         api.set_http_verb('post')
         api.request_from_api(0)  # Zero disables paging, for all non queries
         xml = api.get_response()  # return Element rather than ElementTree
@@ -319,11 +317,10 @@ class TableauRestApiConnection(TableauBase):
 
     def send_update_request(self, url, request):
         self.start_log_block()
-        self.log_uri(u'update', url)
+
         api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
         api.set_xml_request(request)
         api.set_http_verb(u'put')
-        self.log_xml_request(u'update', request)
         api.request_from_api(0)  # Zero disables paging, for all non queries
         self.end_log_block()
         return api.get_response()
@@ -332,7 +329,7 @@ class TableauRestApiConnection(TableauBase):
         self.start_log_block()
         api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
         api.set_http_verb(u'delete')
-        self.log_uri(u'delete', url)
+
         try:
             api.request_from_api(0)  # Zero disables paging, for all non queries
             self.end_log_block()
@@ -348,7 +345,7 @@ class TableauRestApiConnection(TableauBase):
 
     def send_publish_request(self, url, request, boundary_string):
         self.start_log_block()
-        self.log_uri(u'publish', url)
+
         api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
         api.set_publish_content(request, boundary_string)
         api.set_http_verb(u'post')
@@ -359,7 +356,7 @@ class TableauRestApiConnection(TableauBase):
 
     def send_append_request(self, url, request, boundary_string):
         self.start_log_block()
-        self.log_uri(u'append', url)
+
         api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
         api.set_publish_content(request, boundary_string)
         api.set_http_verb(u'put')
@@ -372,7 +369,7 @@ class TableauRestApiConnection(TableauBase):
     def send_binary_get_request(self, url):
         self.start_log_block()
         api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
-        self.log_uri(u'binary get', url)
+
         api.set_http_verb(u'get')
         api.set_response_type(u'binary')
         api.request_from_api(0)
@@ -549,7 +546,6 @@ class TableauRestApiConnection(TableauBase):
         return projects
 
     def query_project(self, project_name_or_luid):
-        # type: (object) -> object
         """
         :type project_name_or_luid: unicode
         :rtype: Project20
@@ -938,6 +934,8 @@ class TableauRestApiConnection(TableauBase):
             view_luid = self.query_workbook_view_luid(wb_name_or_luid, view_name=view_name_or_luid,
                                                       p_name_or_luid=proj_name_or_luid)
         try:
+            if filename_no_extension.find('.png') == -1:
+                filename_no_extension += '.png'
             save_file = open(filename_no_extension + ".png", 'wb')
             url = self.build_api_url(u"workbooks/{}/views/{}/previewImage".format(wb_luid, view_luid))
             image = self.send_binary_get_request(url)
@@ -970,7 +968,7 @@ class TableauRestApiConnection(TableauBase):
         else:
             wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
         try:
-            if filename_no_extension.find('.png') != -1:
+            if filename_no_extension.find('.png') == -1:
                 filename_no_extension += '.png'
             save_file = open(filename_no_extension, 'wb')
             url = self.build_api_url(u"workbooks/{}/previewImage".format(wb_luid))
@@ -1170,7 +1168,6 @@ class TableauRestApiConnection(TableauBase):
         tsr.append(g)
 
         url = self.build_api_url(u"groups")
-        self.log(u'Sending create group request via {}'.format(url))
         try:
             new_group = self.send_add_request(url, tsr)
             self.end_log_block()
@@ -1269,8 +1266,6 @@ class TableauRestApiConnection(TableauBase):
                                                   storage_quota, disable_subscriptions)
         url = self.build_api_url(u"sites/",
                                  server_level=True)  # Site actions drop back out of the site ID hierarchy like login
-        self.log(u'Creating a site using the following XML: {}'.format(add_request))
-        self.log(u'Sending create request via: {}'.format(url))
         new_site = self.send_add_request(url, add_request)
         return new_site.findall(u'.//t:site', self.ns_map)[0].get("id")
 
@@ -1282,16 +1277,20 @@ class TableauRestApiConnection(TableauBase):
         :rtype: unicode
         """
         self.start_log_block()
+        group_name = u""
         if self.is_luid(group_name_or_luid):
             group_luid = group_name_or_luid
         else:
+            group_name = group_name_or_luid
             group_luid = self.query_group_luid(group_name_or_luid)
 
         users = self.to_list(username_or_luid_s)
         for user in users:
+            username = u""
             if self.is_luid(user):
                 user_luid = user
             else:
+                username = user
                 user_luid = self.query_user_luid(user)
 
             tsr = etree.Element(u"tsRequest")
@@ -1300,13 +1299,12 @@ class TableauRestApiConnection(TableauBase):
             tsr.append(u)
 
             url = self.build_api_url(u"groups/{}/users/".format(group_luid))
-            self.log(u'Sending add request via: {}'.format(url))
             try:
+                self.log(u"Adding username {}, ID {} to group {}, ID {}".format(username, user_luid, group_name, group_luid))
                 self.send_add_request(url, tsr)
-                self.end_log_block()
             except RecoverableHTTPException as e:
                 self.log(u"Recoverable HTTP exception {} with Tableau Error Code {}, skipping".format(str(e.http_code), e.tableau_error_code))
-                self.end_log_block()
+        self.end_log_block()
 
     # Tags can be scalar string or list
     def add_tags_to_workbook(self, wb_name_or_luid, tag_s, proj_name_or_luid=None):
@@ -2148,6 +2146,9 @@ class TableauRestApiConnection21(TableauRestApiConnection):
         self.start_log_block()
         groups = self.to_list(group_name_or_luid_s)
         for group_name_or_luid in groups:
+            if group_name_or_luid == u'All Users':
+                self.log(u'Cannot delete All Users group, skipping')
+                continue
             if self.is_luid(group_name_or_luid):
                 group_luid = group_name_or_luid
             else:
@@ -2347,7 +2348,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
             url_ending += u"?{}&{}".format(sorts_url, filters_url)
         elif sorts is not None:
             url_ending += u"?{}".format(sorts_url)
-        elif filters is not None:
+        elif filters is not None and len(filters) > 0:
             url_ending += u"?{}".format(filters_url)
         elif additional_url_ending is not None:
             url_ending += u"?"
@@ -2356,7 +2357,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
 
         api_call = self.build_api_url(url_ending, server_level)
         api = RestXmlRequest(api_call, self.token, self.logger, ns_map_url=self.ns_map['t'])
-        self.log_uri(u'get', api_call)
+
         api.request_from_api()
         xml = api.get_response()  # return Element rather than ElementTree
         self.end_log_block()
