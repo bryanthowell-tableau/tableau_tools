@@ -295,7 +295,11 @@ def user_tests(t_site, names):
     # Add first three users to second gruop
 
     t_site.log(u"Adding users to group {}".format(group_names[1]))
-    t_site.add_users_to_group([new_user_luids[0], new_user_luids[1], new_user_luids[3]], groups_dict[group_names[1]])
+    t_site.add_users_to_group([new_user_luids[0], new_user_luids[1], new_user_luids[3]], group_names[1])
+
+    # Remove sixth user from first gruop
+    t_site.log(u'Removing user {} from group {}'.format(new_user_luids[5], group_names[0]))
+    t_site.remove_users_from_group(new_user_luids[5], groups_dict[group_names[0]])
 
     t_site.log(u'Unlicensing the second user')
     t_site.update_user(new_user_luids[1], site_role=u'Unlicensed')
@@ -352,31 +356,31 @@ def workbooks_test(t_site, twbx_filename, twbx_content_name):
     wb_views_dict = t_site.convert_xml_list_to_name_id_dict(wb_views)
 
     t_site.log(unicode(wb_views_dict))
-#
-#    for wb_view in wb_views_dict:
-#        t_site.log(u"Adding {} to favorites for me".format(wb_view)
-#        t_site.add_view_to_user_favorites('Fav: {}'.format(wb_view), wb_views_dict.get(wb_view), t_site.query_user_luid_by_username(username))
-#
-#    for wb_view in wb_views_dict:
-#        t_site.log(u"Deleting {} to favorites for me".format(wb_view)
-#        t_site.delete_views_from_user_favorites(wb_views_dict_site.get(wb_view), t_site.query_user_luid_by_username(username))
-#
-#    # Saving view as file
-#    for wb_view in wb_views_dict:
-#        t_site.log(u"Saving a png for {}".format(wb_view)
-#        t_site.save_workbook_view_preview_image(wb_luid, wb_views_dict.get(wb_view), '{}_preview'.format(wb_view))
-#
-#    t_site.log(u'Adding tags to workbook')
-#    t_site.add_tags_to_workbook(wb_luid, ['workbooks', 'flights', 'cool'])
-#
-#    t_site.log(u'Deleting a tag from workbook')
-#    t_site.delete_tags_from_workbook(wb_luid, 'flights')
-#
-#    t_site.log(u"Add workbook to favorites for me")
-#    t_site.add_workbook_to_user_favorites('My favorite workbook', wb_luid, t_site.query_user_luid_by_username(username))
-#
-#    t_site.log(u"Deleting workbook from favorites for me")
-#    t_site.delete_workbooks_from_user_favorites(wb_luid, t_site.query_user_luid_by_username(username))
+
+    for wb_view in wb_views_dict:
+        t_site.log(u"Adding {} to favorites for me".format(wb_view))
+        t_site.add_view_to_user_favorites(u'Fav - {}'.format(wb_view), t_site.username, wb_view, wb_name_or_luid=new_wb_luid)
+
+    for wb_view in wb_views_dict:
+        t_site.log(u"Deleting {} from favorites for me".format(wb_view))
+        t_site.delete_views_from_user_favorites(wb_views_dict.get(wb_view), t_site.username, new_wb_luid)
+
+    t_site.log(u'Adding tags to workbook')
+    t_site.add_tags_to_workbook(new_wb_luid, [u'workbooks', u'flights', u'cool', u'晚飯'])
+
+    t_site.log(u'Deleting a tag from workbook')
+    t_site.delete_tags_from_workbook(new_wb_luid, u'flights')
+
+    t_site.log(u"Add workbook to favorites for me")
+    t_site.add_workbook_to_user_favorites(u'My favorite workbook', new_wb_luid, t_site.username)
+
+    t_site.log(u"Deleting workbook from favorites for me")
+    t_site.delete_workbooks_from_user_favorites(new_wb_luid, t_site.username)
+
+    #    # Saving view as file
+    #    for wb_view in wb_views_dict:
+    #        t_site.log(u"Saving a png for {}".format(wb_view)
+    #        t_site.save_workbook_view_preview_image(wb_luid, wb_views_dict.get(wb_view), '{}_preview'.format(wb_view))
 
     print u'Finished Workbook tests'
 
@@ -414,12 +418,6 @@ def publishing_datasources_test(t, proj_name, tde_filename, tde_content_name, td
     # test_site.publish_datasource('TDSX to Publish.tdsx', 'TDSX Publish Test', project_luid)
 
     return new_ds_luid
-
-
-def datasource_tests(t, ds_luid):
-    print "Moving datasource to production"
-    # t.update_datasource_by_luid(ds_luid, 'Flites Datums', production_luid)
-
 
 for server in servers:
     print u"Logging in to {}".format(servers[server][u'server'])

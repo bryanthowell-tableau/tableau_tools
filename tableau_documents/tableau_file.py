@@ -126,14 +126,29 @@ class TableauFile(TableauBase):
                 self.log(u'Removed file {}'.format(self.packaged_filename))
 
             temp_directories_to_remove = {}
+
+            # Determine if any new extracts have been created. Skip existing TDEs if there are new ones to pick up
+            is_new_tde = False
+            for ds in self.tableau_document.datasources:
+                if ds.tde_filename is not None:
+                    is_new_tde = True
+                    break
+
             for filename in self.other_files:
                 self.log(u'Extracting file {} temporarily'.format(filename))
-                self.zf.extract(filename)
-                new_zf.write(filename)
-                os.remove(filename)
-                self.log(u'Removed file {}'.format(filename))
-                lowest_level = filename.split('/')
-                temp_directories_to_remove[lowest_level[0]] = True
+
+                if filename.find(u'.tde') != -1 and is_new_tde is True:
+                    for ds in self.tableau_document.datasources:
+                        new_zf.write(ds.tde_filename)
+                        os.remove(ds.tde_filename)
+                        self.log(u'Removed file {}'.format(filename))
+                else:
+                    self.zf.extract(filename)
+                    new_zf.write(filename)
+                    os.remove(filename)
+                    self.log(u'Removed file {}'.format(filename))
+                    lowest_level = filename.split('/')
+                    temp_directories_to_remove[lowest_level[0]] = True
 
             # Cleanup all the temporary directories
             for directory in temp_directories_to_remove:

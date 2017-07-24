@@ -457,7 +457,7 @@ class TableauDatasourceGenerator(TableauBase):
     def generate_extract_section(self):
         # Short circuit if no extract had been set
         if self.tde_filename is None:
-            self.log('No tde_filename, no extract being added')
+            self.log(u'No tde_filename, no extract being added')
             return False
         self.log(u'Importing the Tableau SDK to build the extract')
 

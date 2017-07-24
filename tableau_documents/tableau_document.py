@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from ..tableau_base import *
+from ..tableau_base import TableauBase
 
 
 # This class is just a shell so that TableauWorkbook and TableauDatasource can look the same from TableauFile

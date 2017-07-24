@@ -60,7 +60,7 @@ class TDEFileGenerator(TableauBase):
     def create_tde(self, tde_filename, append=False):
         try:
             # Using "with" handles closing the TDE correctly
-            with Extract(tde_filename) as extract:
+            with Extract("\\Data\\Datasources\\{}".format(tde_filename)) as extract:
                 self.tde_object = None
                 row_count = 0
                 # Create the Extract object (or set it for updating) if there are actually results

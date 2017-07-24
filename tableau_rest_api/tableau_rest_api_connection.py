@@ -28,7 +28,7 @@ class TableauRestApiConnection(TableauBase):
         etree.register_namespace(u't', self.ns_map[u't'])
         self.server = server
         self.site_content_url = site_content_url
-        self.__username = username
+        self.username = username
         self.__password = password
         self.token = None  # Holds the login token from the Sign In call
         self.site_luid = ""
@@ -183,7 +183,7 @@ class TableauRestApiConnection(TableauBase):
         self.start_log_block()
         tsr = etree.Element(u"tsRequest")
         c = etree.Element(u"credentials")
-        c.set(u"name", self.__username)
+        c.set(u"name", self.username)
         c.set(u"password", self.__password)
         s = etree.Element(u"site")
         if self.site_content_url.lower() not in ['default', '']:
@@ -855,7 +855,7 @@ class TableauRestApiConnection(TableauBase):
         :type view_name: unicode
         :type view_content_url: unicode
         :type usage: bool
-        :rtype: etree.Element
+        :rtype: unicode
         """
         self.start_log_block()
         if usage not in [True, False]:
@@ -876,10 +876,11 @@ class TableauRestApiConnection(TableauBase):
             self.end_log_block()
             raise MultipleMatchesFoundException(
                 u'More than one view found by name {} in workbook {}. Use view_content_url parameter').format(view_name, view_content_url, wb_name_or_luid)
+        view_luid = views_with_name[0].get(u'id')
         self.end_log_block()
-        return views_with_name
+        return view_luid
 
-    # This should be the key to updating the connections in a workbook. Seems to return
+        # This should be the key to updating the connections in a workbook. Seems to return
     # LUIDs for connections and the datatypes, but no way to distinguish them
     def query_workbook_connections(self, wb_name_or_luid, p_name_or_luid=None, username_or_luid=None):
         self.start_log_block()
@@ -1348,6 +1349,11 @@ class TableauRestApiConnection(TableauBase):
         else:
             wb_luid = self.query_workbook_luid(wb_name_or_luid, p_name_or_luid, username_or_luid)
 
+        if self.is_luid(username_or_luid):
+            user_luid = username_or_luid
+        else:
+            user_luid = self.query_user_luid(username_or_luid)
+
         tsr = etree.Element(u'tsRequest')
         f = etree.Element(u'favorite')
         f.set(u'label', favorite_name)
@@ -1356,7 +1362,7 @@ class TableauRestApiConnection(TableauBase):
         f.append(w)
         tsr.append(f)
 
-        url = self.build_api_url(u"favorites/{}".format(username_or_luid))
+        url = self.build_api_url(u"favorites/{}".format(user_luid))
         update_response = self.send_update_request(url, tsr)
         self.end_log_block()
         return update_response
@@ -1376,8 +1382,11 @@ class TableauRestApiConnection(TableauBase):
         if self.is_luid(view_name_or_luid):
             view_luid = view_name_or_luid
         else:
+            if wb_name_or_luid is None:
+                raise InvalidOptionException(u'When passing a View Name instead of LUID, must also specify workbook name or luid')
             view_luid = self.query_workbook_view_luid(wb_name_or_luid, view_name_or_luid, view_content_url,
                                                       p_name_or_luid, username_or_luid)
+            self.log(u'View luid found {}'.format(view_luid))
 
         if self.is_luid(username_or_luid):
             user_luid = username_or_luid
@@ -1623,7 +1632,7 @@ class TableauRestApiConnection(TableauBase):
             workbook_luid = workbook_name_or_luid
         else:
             workbook_luid = self.query_workbook_luid(workbook_name_or_luid, workbook_project_name_or_luid,
-                                                     self.__username)
+                                                     self.username)
         tsr = etree.Element(u"tsRequest")
         w = etree.Element(u"workbook")
         w.set(u'showTabs', unicode(show_tabs).lower())
@@ -1776,31 +1785,49 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
 
     # Can take collection or string user_luid string
-    def remove_users_from_group(self, user_luid_s, group_luid):
+    def remove_users_from_group(self, username_or_luid_s, group_name_or_luid):
         """
-        :param user_luid_s:
-        :param group_luid:
-        :type user_luid_s: list[unicode] or unicode
-        :type group_luid: unicode
+        :type username_or_luid_s: list[unicode] or unicode
+        :type group_name_or_luid: unicode
         :rtype:
         """
         self.start_log_block()
-        user_luids = self.to_list(user_luid_s)
-        for user_luid in user_luids:
+        group_name = u""
+        if self.is_luid(group_name_or_luid):
+            group_luid = group_name_or_luid
+        else:
+            group_name = group_name_or_luid
+            group_luid = self.query_group_name(group_name_or_luid)
+        users = self.to_list(username_or_luid_s)
+        for user in users:
+            username = u""
+            if self.is_luid(user):
+                user_luid = user
+            else:
+                username = user
+                user_luid = self.query_user_luid(user)
             url = self.build_api_url(u"groups/{}/users/{}".format(group_luid, user_luid))
+            self.log(u'Removing user {}, id {} from group {}, id {}'.format(username, user_luid, group_name, group_luid))
             self.send_delete_request(url)
         self.end_log_block()
 
     # Can take collection or single user_luid string
-    def remove_users_from_site(self, user_luid_s):
+    def remove_users_from_site(self, username_or_luid_s):
         """
-        :type user_luid_s: list[unicode] or unicode
+        :type username_or_luid_s: list[unicode] or unicode
         :rtype:
         """
         self.start_log_block()
-        user_luids = self.to_list(user_luid_s)
-        for user_luid in user_luids:
+        users = self.to_list(username_or_luid_s)
+        for user in users:
+            username = u""
+            if self.is_luid(user):
+                user_luid = user
+            else:
+                username = user
+                user_luid = self.query_user_luid(user)
             url = self.build_api_url(u"users/{}".format(user_luid))
+            self.log(u'Removing user {}, id {} from site'.format(username, user_luid))
             self.send_delete_request(url)
         self.end_log_block()
 
@@ -3692,4 +3719,43 @@ class Sort:
         """
         sort_string = u'{}:{}'.format(self.field, self.direction)
         return sort_string
+
+
+class ContentDeployer:
+    def __init__(self):
+        self._current_site_index = 0
+        self.sites = []
+
+    def __iter__(self):
+        """
+        :rtype: TableauRestApiConnection
+        """
+        return self.sites[self._current_site_index]
+
+    def add_site(self, t_rest_api_connection):
+        """
+        :type t_rest_api_connection: TableauRestApiConnection
+        """
+        self.sites.append(t_rest_api_connection)
+
+    @property
+    def current_site(self):
+        """
+        :rtype: TableauRestApiConnection
+        """
+        return self.sites[self._current_site_index]
+
+    @current_site.setter
+    def current_site(self, site_content_url):
+        i = 0
+        for site in self.sites:
+            if site.site_content_url == site_content_url:
+                self._current_site_index = i
+            i += 1
+
+    def next(self):
+        if self._current_site_index < len(self.sites):
+            self._current_site_index += 1
+        else:
+            raise StopIteration()
 

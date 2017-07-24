@@ -8,6 +8,7 @@ from ..tableau_exceptions import *
 import zipfile
 import os
 from xml.sax.saxutils import quoteattr
+import datetime
 
 
 # Meant to represent a TDS file, does not handle the file opening
@@ -28,7 +29,7 @@ class TableauDatasource(TableauDocument):
         self.relation_xml_obj = None
 
         # All used for creating from scratch
-        self.tde_filename = None
+        self._tde_filename = None
         self.incremental_refresh_field = None
         self.join_relations = []
         self.column_mapping = {}
@@ -101,8 +102,19 @@ class TableauDatasource(TableauDocument):
             columns_list = self.xml.findall(u'column')
             self._columns = TableauColumns(columns_list, self.logger)
 
-        self.tde_filename = None
+        self._tde_filename = None
         self.ds_generator = None
+
+    @property
+    def tde_filename(self):
+        """
+        :rtype: unicode
+        """
+        return self._tde_filename
+
+    @tde_filename.setter
+    def tde_filename(self, tde_filename):
+        self._tde_filename = tde_filename
 
     @property
     def connections(self):
@@ -223,9 +235,9 @@ class TableauDatasource(TableauDocument):
             for f in dsf:
                 self.xml.append(f)
             # Extracts
-            if self.tde_filename is not None:
+            if self._tde_filename is not None:
                 self.log(u'Generating the extract and XML object related to it')
-                extract_xml = self.ds_generator.generate_extract_section()
+                extract_xml = self.generate_extract_section()
                 self.log(u'Appending the new extract XML to the existing XML')
                 self.xml.append(extract_xml)
 
@@ -262,10 +274,10 @@ class TableauDatasource(TableauDocument):
                 else:
                     zf.write(tds_filename, u'/{}'.format(tds_filename))
                 # Delete temporary TDS at some point
-                zf.write(self.tde_filename, u'/Data/Datasources/{}'.format(self.tde_filename))
+                zf.write(self._tde_filename, u'/Data/Datasources/{}'.format(self._tde_filename))
                 zf.close()
                 # Remove the temp tde_file that is created
-                os.remove(self.tde_filename)
+                os.remove(self._tde_filename)
                 return True
         except IOError:
             self.log(u"Error: File '{} cannot be opened to write to".format(filename_no_extension + file_extension))
@@ -282,13 +294,6 @@ class TableauDatasource(TableauDocument):
     # Serious work needed!!!
     #
     def add_extract(self, new_extract_filename):
-
-        self.ds_generator = TableauDatasourceGenerator(self.connection_type,
-                                                       self.xml_obj.get('formatted-name'),
-                                                       self.server,
-                                                       self.dbname,
-                                                       self.logger,
-                                                       authentication=u'username-password', initial_sql=None)
         self.log(u'add_extract called, checking if extract exists already')
         # Test to see if extract exists already
         e = self.xml.find(u'extract')
@@ -299,9 +304,104 @@ class TableauDatasource(TableauDocument):
         else:
             self.log(u'Extract doesnt exist')
             # Initial test case -- create a TDG object, then use to build the extract connection
-            self.tde_filename = new_extract_filename
+            self._tde_filename = new_extract_filename
             self.log(u'Adding extract to the generated data source')
-            self.ds_generator.add_extract(self.tde_filename)
+            self._tde_filename = new_extract_filename
+
+    def generate_extract_section(self):
+        # Short circuit if no extract had been set
+        if self._tde_filename is None:
+            self.log(u'No tde_filename, no extract being added')
+            return False
+        self.log(u'Importing the Tableau SDK to build the extract')
+
+        # Import only if necessary
+        self.log(u'Building the extract Element object')
+        try:
+            from tde_file_generator import TDEFileGenerator
+        except Exception as ex:
+            print u"Must install the Tableau Extract SDK to add extracts"
+            raise
+        e = etree.Element(u'extract')
+        e.set(u'count', u'-1')
+        e.set(u'enabled', u'true')
+        e.set(u'units', u'records')
+
+        c = etree.Element(u'connection')
+        c.set(u'class', u'dataengine')
+        c.set(u'dbname', u'Data/Datasources/{}'.format(self._tde_filename))
+        c.set(u'schema', u'Extract')
+        c.set(u'tablename', u'Extract')
+        right_now = datetime.datetime.now()
+        pretty_date = right_now.strftime("%m/%d/%Y %H:%M:%S %p")
+        c.set(u'update-time', pretty_date)
+
+        r = etree.Element(u'relation')
+        r.set(u"name", u"Extract")
+        r.set(u"table", u"[Extract].[Extract]")
+        r.set(u"type", u"table")
+        c.append(r)
+
+        calcs = etree.Element(u"calculations")
+        calc = etree.Element(u"calculation")
+        calc.set(u"column", u"[Number of Records]")
+        calc.set(u"formula", u"1")
+        calcs.append(calc)
+        c.append(calcs)
+
+        ref = etree.Element(u'refresh')
+        if self.incremental_refresh_field is not None:
+            ref.set(u"increment-key", self.incremental_refresh_field)
+            ref.set(u"incremental-updates", u'true')
+        elif self.incremental_refresh_field is None:
+            ref.set(u"increment-key", u"")
+            ref.set(u"incremental-updates", u'false')
+
+        c.append(ref)
+
+        e.append(c)
+
+        tde_columns = {}
+        self.log(u'Creating the extract filters')
+        if len(self.extract_filters) > 0:
+            filters = self.generate_filters(self.extract_filters)
+            for f in filters:
+                e.append(f)
+            # Any column in the extract filters needs to exist in the TDE file itself
+            if len(self.extract_filters) > 0:
+                for f in self.extract_filters:
+                    # Check to see if column_name is actually an instance
+                    field_name = f[u'column_name']
+                    for col_instance in self.column_instances:
+                        if field_name == col_instance[u'name']:
+                            field_name = col_instance[u'column']
+                    # Simple heuristic for determining type from the first value in the values array
+                    if f[u'type'] == u'categorical':
+                        first_value = f[u'values'][0]
+                        if isinstance(first_value, basestring):
+                            filter_column_tableau_type = 'str'
+                        else:
+                            filter_column_tableau_type = 'int'
+                    elif f[u'type'] == u'relative-date':
+                        filter_column_tableau_type = 'datetime'
+                    elif f[u'type'] == u'quantitative':
+                        # Time values passed in with strings
+                        if isinstance(f[u'max'], basestring) or isinstance(f[u'min'], basestring):
+                            filter_column_tableau_type = 'datetime'
+                        else:
+                            filter_column_tableau_type = 'int'
+                    else:
+                        raise InvalidOptionException('{} is not a valid type'.format(f[u'type']))
+                    tde_columns[field_name[1:-1]] = filter_column_tableau_type
+        else:
+            self.log(u'Creating TDE with only one field, "Generic Field", of string type')
+            tde_columns[u'Generic Field'] = 'str'
+
+        self.log(u'Using the Extract SDK to build an empty extract file with the right definition')
+        tde_file_generator = TDEFileGenerator(self.logger)
+        tde_file_generator.set_table_definition(tde_columns)
+        tde_file_generator.create_tde(self._tde_filename)
+        return e
 
     #
     # Reading existing table relations
