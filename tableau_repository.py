@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from tableau_exceptions import *
+from tableau_base import TableauBase
 import psycopg2
 import psycopg2.extensions
 psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
@@ -106,7 +107,7 @@ WHERE scheduled_action_type = 'Refresh Extracts'
 AND hidden = false
 """
         if schedule_name is not None:
-            schedules_sql += 'WHERE name = %s\n'
+            schedules_sql += 'AND name = %s\n'
             cur = self.query(schedules_sql, [schedule_name, ])
         else:
             cur = self.query(schedules_sql)
@@ -179,7 +180,7 @@ FROM _sites
 
     def query_datasource_id_on_site_in_project(self, datasource_name, site_id, project_id):
         datasource_query = """
-        SELECT *
+        SELECT id
         FROM _datasources
         WHERE name = %s
         AND site_id = %s
@@ -195,7 +196,7 @@ FROM _sites
 
     def query_workbook_id_on_site_in_project(self, workbook_name, site_id, project_id):
         workbook_query = """
-        SELECT *
+        SELECT id
         FROM _workbooks
         WHERE name = %s
         AND site_id = %s
@@ -209,3 +210,108 @@ FROM _sites
             workbook_id = row[0]
         return workbook_id
 
+    def query_workbook_id_from_luid(self, workbook_luid):
+        workbook_query = """
+        SELECT id
+        FROM workbooks
+        WHERE luid = %s
+"""
+        cur = self.query(workbook_query, [workbook_luid, ])
+        if cur.rowcount == 0:
+            raise NoMatchFoundException('No workbook found with luid "{}"'.format(workbook_luid))
+        workbook_id = None
+        for row in cur:
+            workbook_id = row[0]
+        return workbook_id
+
+    def query_site_id_from_workbook_luid(self, workbook_luid):
+        workbook_query = """
+            SELECT site_id
+            FROM workbooks
+            WHERE luid = %s
+    """
+        cur = self.query(workbook_query, [workbook_luid, ])
+        if cur.rowcount == 0:
+            raise NoMatchFoundException('No workbook found with luid "{}"'.format(workbook_luid))
+        workbook_id = None
+        for row in cur:
+            workbook_id = row[0]
+        return workbook_id
+
+    def query_datasource_id_from_luid(self, datasource_luid):
+        datasource_query = """
+        SELECT id
+        FROM datasources
+        WHERE luid = %s
+"""
+        cur = self.query(datasource_query, [datasource_luid, ])
+        if cur.rowcount == 0:
+            raise NoMatchFoundException('No data source found with luid "{}"'.format(datasource_luid))
+        datasource_id = None
+        for row in cur:
+            datasource_id = row[0]
+        return datasource_id
+
+    def query_site_id_from_datasource_luid(self, datasource_luid):
+        datasource_query = """
+        SELECT site_id
+        FROM datasources
+        WHERE luid = %s
+"""
+        cur = self.query(datasource_query, [datasource_luid, ])
+        if cur.rowcount == 0:
+            raise NoMatchFoundException('No data source found with luid "{}"'.format(datasource_luid))
+        datasource_id = None
+        for row in cur:
+            datasource_id = row[0]
+        return datasource_id
+
+    def set_workbook_on_schedule(self, workbook_luid, schedule_name):
+        if TableauBase.is_luid(workbook_luid) is False:
+            raise InvalidOptionException(u'Workbook luid must be a luid. You passed in {}'.format(workbook_luid))
+        wb_id = self.query_workbook_id_from_luid(workbook_luid)
+        site_id = self.query_site_id_from_workbook_luid(workbook_luid)
+        schedule_id = self.get_extract_schedule_id_by_name(schedule_name)
+
+        insert_query = """
+        INSERT INTO tasks
+        VALUES(
+            DEFAULT -- id will auto-increment if you pass DEFAULT
+            , %s --schedule_id from _schedules
+            , 'RefreshExtractTask' -- or 'IncrementExtractTask' for incremental
+            ,1 --priority, can be lower if you want. Workbooks seem to default to 50
+            ,%s --obj_id from _datasources or _workbooks
+            ,NOW() --created_at
+            ,NOW() --created_at
+            ,%s --site_id
+            ,'Workbook'  -- 'Datasource' or 'Workbook'
+            ,NULL --luid will autogenerate correctly when NULL, based on trigger function
+            , 0 -- this starts as 0
+        )    
+"""
+        self.query(insert_query, [schedule_id, wb_id, site_id])
+
+    def set_datasource_on_schedule(self, datsource_luid, schedule_name):
+        if TableauBase.is_luid(datsource_luid) is False:
+            raise InvalidOptionException(u'Workbook luid must be a luid. You passed in {}'.format(datsource_luid))
+        ds_id = self.query_datasource_id_from_luid(datsource_luid)
+        site_id = self.query_site_id_from_datasource_luid(datsource_luid)
+        schedule_id = self.get_extract_schedule_id_by_name(schedule_name)
+
+        insert_query = """
+        INSERT INTO tasks
+        VALUES(
+            DEFAULT -- id will auto-increment if you pass DEFAULT
+            , %s --schedule_id from _schedules
+            , 'RefreshExtractTask' -- or 'IncrementExtractTask' for incremental
+            ,1 --priority, can be lower if you want. Workbooks seem to default to 50
+            ,%s --obj_id from _datasources or _workbooks
+            ,NOW() --created_at
+            ,NOW() --created_at
+            ,%s --site_id
+            ,'Datasource'  -- 'Datasource' or 'Workbook'
+            ,NULL --luid will autogenerate correctly when NULL, based on trigger function
+            , 0 -- this starts as 0
+        )    
+"""
+        self.query(insert_query, [schedule_id, ds_id, site_id])

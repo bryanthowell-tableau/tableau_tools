@@ -452,6 +452,19 @@ class TableauRestApiConnection(TableauBase):
                 raise NoMatchFoundException(u"No datasource found with name {} in project {}".format(datasource_name, project_name_or_luid))
             return ds_in_proj[0].get("id")
 
+    def query_datasource_content_url(self, datasource_name_or_luid, project_name_or_luid=None):
+        """
+        :type datasource_name_or_luid: unicode
+        :type project_name_or_luid: unicode
+        :rtype: unicode
+        """
+        self.start_log_block()
+        ds = self.query_datasource(datasource_name_or_luid, project_name_or_luid)
+        content_url = ds.get(u'contentUrl')
+        self.end_log_block()
+        return content_url
+
+
     #
     # End Datasource Query Methods
     #
@@ -1864,7 +1877,7 @@ class TableauRestApiConnection(TableauBase):
     '''
 
     def publish_workbook(self, workbook_filename, workbook_name, project_obj, overwrite=False, connection_username=None,
-                         connection_password=None, save_credentials=True, show_tabs=True):
+                         connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=True):
         """
         :type workbook_filename: unicode
         :type workbook_name: unicode
@@ -1874,13 +1887,15 @@ class TableauRestApiConnection(TableauBase):
         :type connection_password: unicode
         :type save_credentials: bool
         :type show_tabs: bool
+        :param check_published_ds: Set to False to improve publish speed if you KNOW there are no published data sources
+        :type check_published_ds: bool
         :rtype: unicode
         """
 
         project_luid = project_obj.luid
         xml = self.publish_content(u'workbook', workbook_filename, workbook_name, project_luid, overwrite,
                                    connection_username, connection_password, save_credentials, show_tabs=show_tabs,
-                                   check_published_ds=False)
+                                   check_published_ds=check_published_ds)
         workbook = xml.findall(u'.//t:workbook', self.ns_map)
         return workbook[0].get('id')
 
@@ -1906,9 +1921,12 @@ class TableauRestApiConnection(TableauBase):
     # If a TableauDatasource or TableauWorkbook is passed, will upload from its content
     def publish_content(self, content_type, content_filename, content_name, project_luid, overwrite=False,
                         connection_username=None, connection_password=None, save_credentials=True, show_tabs=False,
-                        check_published_ds=False):
+                        check_published_ds=True):
         # Single upload limit in MB
         single_upload_limit = 20
+
+        # If you need a temporary copy when fixing the published datasources
+        temp_wb_filename = None
 
         # Must be 'workbook' or 'datasource'
         if content_type not in [u'workbook', u'datasource']:
@@ -1917,122 +1935,107 @@ class TableauRestApiConnection(TableauBase):
         file_extension = None
         final_filename = None
         cleanup_temp_file = False
-        # If a packaged file object, save the file locally as a temp for upload, then treated as regular file
-        if isinstance(content_filename, TableauFile):
-            self.log(u"Is a TableauPackedFile object, opening up")
-            content_filename = content_filename.save_new_packaged_file(u'temp_packaged_file')
-            cleanup_temp_file = True
 
-        # If dealing with either of the objects that represent Tableau content
-        if isinstance(content_filename, TableauDatasource):
-            self.log(u"Is a TableauDatasource object, opening up")
-            file_extension = u'tds'
-            # Set file size low so it uses single upload instead of chunked
-            file_size_mb = 1
-            content_file = StringIO(content_filename.get_datasource_xml())
-            final_filename = content_name.replace(" ", "") + "." + file_extension
-        elif isinstance(content_filename, TableauWorkbook):
-            self.log(u"Is a TableauWorkbook object, opening up")
-            file_extension = u'twb'
-            # Set file size low so it uses single upload instead of chunked
-            file_size_mb = 1
-            content_file = StringIO(content_filename.get_workbook_xml())
-            final_filename = content_name.replace(" ", "") + "." + file_extension
+        for ending in [u'.twb', u'.twbx', u'.tde', u'.tdsx', u'.tds']:
+            if content_filename.endswith(ending):
+                file_extension = ending[1:]
 
-        # When uploading directly from disk
-        else:
-            for ending in [u'.twb', u'.twbx', u'.tde', u'.tdsx', u'.tds']:
-                if content_filename.endswith(ending):
-                    file_extension = ending[1:]
+                # If twb or twbx, open up and check for any published data sources
+                if file_extension.lower() in [u'twb', u'twbx'] and check_published_ds is True:
+                    self.log(u"Adjusting any published datasources")
+                    t_file = TableauFile(content_filename, self.logger)
+                    dses = t_file.tableau_document.datasources
+                    for ds in dses:
+                        # Set to the correct site
+                        if ds.published is True:
+                            self.log(u"Published datasource found")
+                            self.log(u"Setting publish datasource repository to {}".format(self.site_content_url))
+                            ds.published_ds_site = self.site_content_url
 
+                    temp_wb_filename = t_file.save_new_file(u'temp_wb')
+                    content_filename = temp_wb_filename
                     # Open the file to be uploaded
-                    try:
-                        content_file = open(content_filename, 'rb')
-                        file_size = os.path.getsize(content_filename)
-                        file_size_mb = float(file_size) / float(1000000)
-                        self.log(u"File {} is size {} MBs".format(content_filename, file_size_mb))
-                        final_filename = content_filename
-                    except IOError:
-                        print u"Error: File '{}' cannot be opened to upload".format(content_filename)
-                        raise
+                try:
+                    content_file = open(content_filename, 'rb')
+                    file_size = os.path.getsize(content_filename)
+                    file_size_mb = float(file_size) / float(1000000)
+                    self.log(u"File {} is size {} MBs".format(content_filename, file_size_mb))
+                    final_filename = content_filename
 
-            if file_extension is None:
-                raise InvalidOptionException(
-                    u"File {} does not have an acceptable extension. Should be .twb,.twbx,.tde,.tdsx,.tds".format(
-                        content_filename))
+                    # Request type is mixed and require a boundary
+                    boundary_string = self.generate_boundary_string()
 
-        # Request type is mixed and require a boundary
-        boundary_string = self.generate_boundary_string()
+                    # Create the initial XML portion of the request
+                    publish_request = "--{}\r\n".format(boundary_string)
+                    publish_request += 'Content-Disposition: name="request_payload"\r\n'
+                    publish_request += 'Content-Type: text/xml\r\n\r\n'
+                    publish_request += '<tsRequest>\n<{} name="{}" '.format(content_type, content_name)
+                    if show_tabs is not False:
+                        publish_request += 'showTabs="{}"'.format(str(show_tabs).lower())
+                    publish_request += '>\r\n'
+                    if connection_username is not None and connection_password is not None:
+                        publish_request += '<connectionCredentials name="{}" password="{}" embed="{}" />\r\n'.format(
+                            connection_username, connection_password, str(save_credentials).lower())
+                    publish_request += '<project id="{}" />\r\n'.format(project_luid)
+                    publish_request += "</{}></tsRequest>\r\n".format(content_type)
+                    publish_request += "--{}".format(boundary_string)
 
-        # Create the initial XML portion of the request
-        publish_request = "--{}\r\n".format(boundary_string)
-        publish_request += 'Content-Disposition: name="request_payload"\r\n'
-        publish_request += 'Content-Type: text/xml\r\n\r\n'
-        publish_request += '<tsRequest>\n<{} name="{}" '.format(content_type, content_name)
-        if show_tabs is not False:
-            publish_request += 'showTabs="{}"'.format(str(show_tabs).lower())
-        publish_request += '>\r\n'
-        if connection_username is not None and connection_password is not None:
-            publish_request += '<connectionCredentials name="{}" password="{}" embed="{}" />\r\n'.format(
-                connection_username, connection_password, str(save_credentials).lower())
-        publish_request += '<project id="{}" />\r\n'.format(project_luid)
-        publish_request += "</{}></tsRequest>\r\n".format(content_type)
-        publish_request += "--{}".format(boundary_string)
+                    # Upload as single if less than file_size_limit MB
+                    if file_size_mb <= single_upload_limit:
+                        # If part of a single upload, this if the next portion
+                        self.log(u"Less than {} MB, uploading as a single call".format(str(single_upload_limit)))
+                        publish_request += '\r\n'
+                        publish_request += 'Content-Disposition: name="tableau_{}"; filename="{}"\r\n'.format(
+                            content_type, final_filename)
+                        publish_request += 'Content-Type: application/octet-stream\r\n\r\n'
 
-        # Upload as single if less than file_size_limit MB
-        if file_size_mb <= single_upload_limit:
-            # If part of a single upload, this if the next portion
-            self.log(u"Less than {} MB, uploading as a single call".format(str(single_upload_limit)))
-            publish_request += '\r\n'
-            publish_request += 'Content-Disposition: name="tableau_{}"; filename="{}"\r\n'.format(
-                content_type, final_filename)
-            publish_request += 'Content-Type: application/octet-stream\r\n\r\n'
+                        # Content needs to be read unencoded from the file
+                        content = content_file.read()
 
-            # Content needs to be read unencoded from the file
-            content = content_file.read()
+                        # Add to string as regular binary, no encoding
+                        publish_request += content
 
-            # If twb, create a TableauWorkbook object and check for any published data sources
-            if file_extension == 'twb' and check_published_ds is True and self.site_content_url != 'default':
-                self.log("Making sure published datasource is in the right place")
-                if isinstance(content_filename, TableauWorkbook):
-                    wb_obj = content_filename
-                else:
-                    wb_obj = TableauWorkbook(content)
-                for ds in wb_obj.get_datasources().values():
-                    # Set to the correct site
-                    if ds.is_published_ds():
-                        self.log("Published datasource found")
-                        self.log("Setting datasource to {}".format(self.site_content_url))
-                        ds.set_published_datasource_site(self.site_content_url)
-                content = StringIO(wb_obj.get_workbook_xml()).read()
+                        publish_request += "\r\n--{}--".format(boundary_string)
+                        url = self.build_api_url(u"{}s").format(content_type) + "?overwrite={}".format(
+                            str(overwrite).lower())
+                        content_file.close()
+                        if temp_wb_filename is not None:
+                            os.remove(temp_wb_filename)
+                        if cleanup_temp_file is True:
+                            os.remove(final_filename)
+                        return self.send_publish_request(url, publish_request, boundary_string)
+                    # Break up into chunks for upload
+                    else:
+                        self.log(u"Greater than 10 MB, uploading in chunks")
+                        upload_session_id = self.initiate_file_upload()
 
-            # Add to string as regular binary, no encoding
-            publish_request += content
+                        for piece in self.read_file_in_chunks(content_file):
+                            self.log(u"Appending chunk to upload session {}".format(upload_session_id))
+                            self.append_to_file_upload(upload_session_id, piece, final_filename)
 
-            publish_request += "\r\n--{}--".format(boundary_string)
-            url = self.build_api_url(u"{}s").format(content_type) + "?overwrite={}".format(str(overwrite).lower())
-            content_file.close()
-            if cleanup_temp_file is True:
-                os.remove(final_filename)
-            return self.send_publish_request(url, publish_request, boundary_string)
-        # Break up into chunks for upload
-        else:
-            self.log(u"Greater than 10 MB, uploading in chunks")
-            upload_session_id = self.initiate_file_upload()
+                        url = self.build_api_url(u"{}s").format(content_type) + "?uploadSessionId={}".format(
+                            upload_session_id) + "&{}Type={}".format(content_type,
+                                                                     file_extension) + "&overwrite={}".format(
+                            str(overwrite).lower())
+                        publish_request += "--"  # Need to finish off the last boundary
+                        self.log(u"Finishing the upload with a publish request")
+                        content_file.close()
+                        if temp_wb_filename is not None:
+                            os.remove(temp_wb_filename)
+                        if cleanup_temp_file is True:
+                            os.remove(final_filename)
+                        return self.send_publish_request(url, publish_request, boundary_string)
 
-            for piece in self.read_file_in_chunks(content_file):
-                self.log(u"Appending chunk to upload session {}".format(upload_session_id))
-                self.append_to_file_upload(upload_session_id, piece, final_filename)
+                except IOError:
+                    print u"Error: File '{}' cannot be opened to upload".format(content_filename)
+                    raise
 
-            url = self.build_api_url(u"{}s").format(content_type) + "?uploadSessionId={}".format(
-                upload_session_id) + "&{}Type={}".format(content_type, file_extension) + "&overwrite={}".format(
-                str(overwrite).lower())
-            publish_request += "--"  # Need to finish off the last boundary
-            self.log(u"Finishing the upload with a publish request")
-            content_file.close()
-            if cleanup_temp_file is True:
-                os.remove(final_filename)
-            return self.send_publish_request(url, publish_request, boundary_string)
+        if file_extension is None:
+            raise InvalidOptionException(
+                u"File {} does not have an acceptable extension. Should be .twb,.twbx,.tde,.tdsx,.tds".format(
+                    content_filename))
+
+
 
     def initiate_file_upload(self):
         url = self.build_api_url(u"fileUploads")
@@ -2183,28 +2186,6 @@ class TableauRestApiConnection21(TableauRestApiConnection):
             url = self.build_api_url(u"groups/{}".format(group_luid))
             self.send_delete_request(url)
         self.end_log_block()
-
-    def publish_workbook(self, workbook_filename, workbook_name, project_obj, overwrite=False, connection_username=None,
-                         connection_password=None, save_credentials=True, show_tabs=True):
-        """
-        :type workbook_filename: unicode
-        :type workbook_name: unicode
-        :type project_obj: Project20 or Project21
-        :type overwrite: bool
-        :type connection_username: unicode
-        :type connection_password: unicode
-        :type save_credentials: bool
-        :type show_tabs: bool
-        :rtype: unicode
-        """
-
-        project_luid = project_obj.luid
-        xml = self.publish_content(u'workbook', workbook_filename, workbook_name, project_luid, overwrite,
-                                   connection_username, connection_password, save_credentials, show_tabs=show_tabs,
-                                   check_published_ds=True)
-        workbook = xml.findall(u'.//t:workbook', self.ns_map)
-        return workbook[0].get('id')
-
 
 class TableauRestApiConnection22(TableauRestApiConnection21):
     def __init__(self, server, username, password, site_content_url=u""):
@@ -3117,28 +3098,6 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
     # End Revision Methods
     #
 
-    def publish_workbook(self, workbook_filename, workbook_name, project_obj, overwrite=False, connection_username=None,
-                         connection_password=None, save_credentials=True, show_tabs=True):
-        """
-        :type workbook_filename: unicode
-        :type workbook_name: unicode
-        :type project_obj: Project20 or Project21
-        :type overwrite: bool
-        :type connection_username: unicode
-        :type connection_password: unicode
-        :type save_credentials: bool
-        :type show_tabs: bool
-        :rtype: unicode
-        """
-
-        project_luid = project_obj.luid
-        xml = self.publish_content(u'workbook', workbook_filename, workbook_name, project_luid, overwrite,
-                                   connection_username, connection_password, save_credentials, show_tabs=show_tabs,
-                                   check_published_ds=False)
-        workbook = xml.findall(u'.//t:workbook', self.ns_map)
-        return workbook[0].get('id')
-
-
 class TableauRestApiConnection24(TableauRestApiConnection23):
     def __init__(self, server, username, password, site_content_url=u""):
         """
@@ -3479,10 +3438,31 @@ class TableauRestApiConnection26(TableauRestApiConnection25):
         else:
             wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
         tasks = self.get_extract_refresh_tasks()
-        print tasks
+
         extracts_for_wb = tasks.findall(u'.//t:extract/workbook[@id="{}"]..'.format(wb_luid), self.ns_map)
-        # print extracts_for_wb
+
         for extract in extracts_for_wb:
+            self.run_extract_refresh_task(extract.get(u'id'))
+        self.end_log_block()
+
+    # Check if this actually works
+    def run_extract_refresh_for_datasource(self, ds_name_or_luid, proj_name_or_luid=None, username_or_luid=None):
+        """
+        :type ds_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type username_or_luid: unicode
+        :return:
+        """
+        self.start_log_block()
+        if self.is_luid(ds_name_or_luid):
+            ds_luid = ds_name_or_luid
+        else:
+            ds_luid = self.query_workbook_luid(ds_name_or_luid, proj_name_or_luid, username_or_luid)
+        tasks = self.get_extract_refresh_tasks()
+        print tasks
+        extracts_for_ds = tasks.findall(u'.//t:extract/datasource[@id="{}"]..'.format(ds_luid), self.ns_map)
+        # print extracts_for_wb
+        for extract in extracts_for_ds:
             self.run_extract_refresh_task(extract.get(u'id'))
         self.end_log_block()
 

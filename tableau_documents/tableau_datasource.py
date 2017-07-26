@@ -7,6 +7,7 @@ import xml.etree.cElementTree as etree
 from ..tableau_exceptions import *
 import zipfile
 import os
+import copy
 from xml.sax.saxutils import quoteattr
 import datetime
 
@@ -27,6 +28,8 @@ class TableauDatasource(TableauDocument):
         self.ds_version = None
         self._published = False
         self.relation_xml_obj = None
+        self.existing_tde_filename = None
+        self.nsmap = {u"user": u'http://www.tableausoftware.com/xml/user'}
 
         # All used for creating from scratch
         self._tde_filename = None
@@ -92,6 +95,12 @@ class TableauDatasource(TableauDocument):
                 self._published = True
                 repository_location_xml = self.xml.find(u'repository-location')
                 self.repository_location = repository_location_xml
+
+        # Grab the extract filename if there is an extract section
+        if self.xml.find(u'extract') is not None:
+            e = self.xml.find(u'extract')
+            c = e.find(u'connection')
+            self.existing_tde_filename = c.get(u'dbname')
 
         # To make work as tableau_document from TableauFile
         self._datasources.append(self)
@@ -163,6 +172,28 @@ class TableauDatasource(TableauDocument):
         self.repository_location.attrib[u'site'] = new_site_content_url
         self.end_log_block()
 
+    @property
+    def published_ds_content_url(self):
+        """
+        :rtype: unicode
+        """
+        if self.repository_location.get(u"id"):
+            return self.repository_location.get(u"id")
+        else:
+            return None
+
+    @published_ds_content_url.setter
+    def published_ds_content_url(self, new_content_url):
+        """
+        :type new_content_url: unicode
+        :return:
+        """
+        if self.published is False:
+            return
+        else:
+            self.repository_location.attrib[u'id'] = new_content_url
+            self.connections[0].dbname = new_content_url
+
     @staticmethod
     def create_new_datasource_xml():
         # nsmap = {u"user": u'http://www.tableausoftware.com/xml/user'}
@@ -211,6 +242,9 @@ class TableauDatasource(TableauDocument):
         self.end_log_block()
 
     def get_datasource_xml(self):
+        self.start_log_block()
+        self.log(u'Generating datasource xml')
+
         # Run through and generate any new sections to be added from the datasource_generator
 
         # Column Mappings
@@ -234,15 +268,29 @@ class TableauDatasource(TableauDocument):
             self.log(u'Appending the ds filters to existing XML')
             for f in dsf:
                 self.xml.append(f)
-            # Extracts
-            if self._tde_filename is not None:
-                self.log(u'Generating the extract and XML object related to it')
-                extract_xml = self.generate_extract_section()
-                self.log(u'Appending the new extract XML to the existing XML')
-                self.xml.append(extract_xml)
+        # Extracts
+        if self.tde_filename is not None:
+            # Extract has to be in a sort of order it appears, before the layout and semantic-values nodes
+            # Try and remove them if possible
+            l = self.xml.find(u"layout")
+            new_l = copy.deepcopy(l)
+            self.xml.remove(l)
+
+            sv = self.xml.find(u'semantic-values')
+            new_sv = copy.deepcopy(sv)
+            self.xml.remove(sv)
+            # chop, then readd
+
+            self.log(u'Generating the extract and XML object related to it')
+            extract_xml = self.generate_extract_section()
+            self.log(u'Appending the new extract XML to the existing XML')
+            self.xml.append(extract_xml)
+
+            self.xml.append(new_l)
+            self.xml.append(new_sv)
 
         xmlstring = etree.tostring(self.xml, encoding='utf-8')
-        self.log(xmlstring)
+        self.end_log_block()
         return xmlstring
 
     def save_file(self, filename_no_extension, save_to_directory=None):
@@ -254,8 +302,8 @@ class TableauDatasource(TableauDocument):
         """
         self.start_log_block()
         file_extension = u'.tds'
-        if self.tde_filename is not None:
-            file_extension = u'.tdsx'
+        #if self.tde_filename is not None:
+        #    file_extension = u'.tdsx'
         try:
             # In case the .tds gets passed in from earlier
             filename_no_extension = filename_no_extension.split(u'.tds')[0]
@@ -267,18 +315,20 @@ class TableauDatasource(TableauDocument):
             lh.write(self.get_datasource_xml())
             lh.close()
 
-            if file_extension == u'.tdsx':
-                zf = zipfile.ZipFile(save_to_directory + filename_no_extension + u'.tdsx', 'w')
-                if save_to_directory is not None:
-                    zf.write(save_to_directory + tds_filename, u'/{}'.format(tds_filename))
-                else:
-                    zf.write(tds_filename, u'/{}'.format(tds_filename))
-                # Delete temporary TDS at some point
-                zf.write(self._tde_filename, u'/Data/Datasources/{}'.format(self._tde_filename))
-                zf.close()
-                # Remove the temp tde_file that is created
-                os.remove(self._tde_filename)
-                return True
+            # Handle all of this in the TableauFile object now
+
+            #if file_extension == u'.tdsx':
+            #    zf = zipfile.ZipFile(save_to_directory + filename_no_extension + u'.tdsx', 'w')
+            #    if save_to_directory is not None:
+            #        zf.write(save_to_directory + tds_filename, u'/{}'.format(tds_filename))
+            #    else:
+            #        zf.write(tds_filename, u'/{}'.format(tds_filename))
+            #    # Delete temporary TDS at some point
+            #    zf.write(self.tde_filename, u'/Data/Datasources/{}'.format(self.tde_filename))
+            #    zf.close()
+            #    # Remove the temp tde_file that is created
+            #    os.remove(self.tde_filename)
+            #    return True
         except IOError:
             self.log(u"Error: File '{} cannot be opened to write to".format(filename_no_extension + file_extension))
             self.end_log_block()
@@ -290,23 +340,24 @@ class TableauDatasource(TableauDocument):
         self.columns.translate_captions()
         self.end_log_block()
 
-    #
-    # Serious work needed!!!
-    #
     def add_extract(self, new_extract_filename):
+        """
+        :param new_extract_filename: Name of the new stub TDE file to be created. .tde will be added if not specified
+        :type new_extract_filename: unicode
+        :return:
+        """
         self.log(u'add_extract called, checking if extract exists already')
         # Test to see if extract exists already
         e = self.xml.find(u'extract')
-        self.log(u'Found the extract portion of the ')
         if e is not None:
             self.log(u"Existing extract found, no need to add")
-            raise AlreadyExistsException(u"An extract already exists, can't add a new one")
+            raise AlreadyExistsException(u"An extract already exists, can't add a new one", u"")
         else:
             self.log(u'Extract doesnt exist')
-            # Initial test case -- create a TDG object, then use to build the extract connection
+            if new_extract_filename.find(u'.tde') == -1:
+                new_extract_filename += u'.tde'
             self._tde_filename = new_extract_filename
-            self.log(u'Adding extract to the generated data source')
-            self._tde_filename = new_extract_filename
+            self.log(u'Adding extract to the  data source')
 
     def generate_extract_section(self):
         # Short circuit if no extract had been set
@@ -400,7 +451,7 @@ class TableauDatasource(TableauDocument):
         self.log(u'Using the Extract SDK to build an empty extract file with the right definition')
         tde_file_generator = TDEFileGenerator(self.logger)
         tde_file_generator.set_table_definition(tde_columns)
-        tde_file_generator.create_tde(self._tde_filename)
+        tde_file_generator.create_tde(self.tde_filename)
         return e
 
     #
@@ -589,6 +640,8 @@ class TableauDatasource(TableauDocument):
                 ui_enumeration = u'inclusive'
             elif include_or_exclude.lower() == u'exclude':
                 ui_enumeration = u'exclusive'
+            else:
+                ui_enumeration = u'inclusive'
         else:
             raise InvalidOptionException('{} is not valid, must be include or exclude'.format(include_or_exclude))
         ds_filter = {

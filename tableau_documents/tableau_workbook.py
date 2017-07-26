@@ -13,18 +13,13 @@ class TableauWorkbook(TableauDocument):
         self.logger = logger_obj
         self.log(u'Initializing a TableauWorkbook object')
         self.twb_filename = twb_filename
-        self.temp_filename = None
         # Check the filename
         if self.twb_filename.find('.twb') == -1:
             raise InvalidOptionException(u'Must input a .twb filename that exists')
         self.build_document_objects(self.twb_filename)
 
-        if self.logger is not None:
-            self.enable_logging(self.logger)
-
-    def __del__(self):
-        if self.temp_filename is not None:
-            os.remove(self.temp_filename)
+#        if self.logger is not None:
+#            self.enable_logging(self.logger)
 
     def build_document_objects(self, filename):
         wb_fh = open(filename, 'rb')
@@ -54,7 +49,7 @@ class TableauWorkbook(TableauDocument):
 
         utf8_parser = etree.XMLParser(encoding='utf-8')
         ds_xml = etree.parse(u'temp_ds.txt', parser=utf8_parser)
-        self.temp_filename = u'temp_ds.txt'
+        os.remove(u'temp_ds.txt')
 
         self.log(u"Building TableauDatasource objects")
         datasource_elements = ds_xml.getroot().findall(u'datasource')
@@ -76,6 +71,7 @@ class TableauWorkbook(TableauDocument):
             orig_wb = open(self.twb_filename, 'rb')
             if filename_no_extension.find('.twb') == -1:
                 filename_no_extension += '.twb'
+            self.log(u'Saving to {}'.format(filename_no_extension))
             lh = open(filename_no_extension, 'wb')
             # Stream through the file, only pulling the datasources section
             ds_flag = None
@@ -83,6 +79,7 @@ class TableauWorkbook(TableauDocument):
             for line in orig_wb:
                 # Skip the lines of the original datasource and sub in the new one
                 if line.find("<datasources") != -1 and ds_flag is None:
+                    self.log(u'Found the first of the datasources section')
                     ds_flag = True
 
                 if ds_flag is not True:
@@ -90,9 +87,11 @@ class TableauWorkbook(TableauDocument):
 
                 # Add in the modified datasources
                 if line.find("</datasources>") != -1 and ds_flag is True:
+                    self.log(u'Adding in the newly modified datasources')
                     ds_flag = False
                     lh.write('<datasources>\n')
                     for ds in self.datasources:
+                        self.log(u'Writing datasource XML into the workbook')
                         lh.write(ds.get_datasource_xml())
                     lh.write('</datasources>\n')
             lh.close()

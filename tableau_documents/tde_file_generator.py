@@ -60,12 +60,13 @@ class TDEFileGenerator(TableauBase):
     def create_tde(self, tde_filename, append=False):
         try:
             # Using "with" handles closing the TDE correctly
-            with Extract("\\Data\\Datasources\\{}".format(tde_filename)) as extract:
+            with Extract("{}".format(tde_filename)) as extract:
                 self.tde_object = None
                 row_count = 0
                 # Create the Extract object (or set it for updating) if there are actually results
                 if not extract.hasTable('Extract'):
                     # Table does not exist; create it
+                    self.log(u'Creating Extract with table definition')
                     self.tde_object = extract.addTable('Extract', self.table_definition)
                 else:
                     # Open an existing table to add more rows
@@ -99,3 +100,4 @@ class TDEFileGenerator(TableauBase):
 
         except TableauException, e:
             self.log('Tableau TDE creation error:{}'.format(e))
+            raise
