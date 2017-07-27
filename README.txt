@@ -302,6 +302,58 @@ t = TableauRestApiConnection(server, username, password, site_content_url=new_si
 t.enable_logging(logger)
 t.signin()
 
+3.8 Schedules (Extract and Subscriptions)
+Starting with TableauRestApiConnection23 , you can add or delete schedules for extracts and subscriptions. While there is a generic TableauRestApiConnection23.create_schedule() method , the unique aspects of each type schedule make it better to use the helper methods that specifically create the type of schedule you want:
+
+TableauRestApiConnection23.create_daily_extract_schedule(name, start_time, priority=1, parallel_or_serial=u'Parallel')
+TableauRestApiConnection23.create_daily_subscription_schedule(name, start_time, priority=1, parallel_or_serial=u'Parallel')
+TableauRestApiConnection23.create_weekly_extract_schedule(name, weekday_s, start_time, priority=1, parallel_or_serial=u'Parallel')
+TableauRestApiConnection23.create_weekly_subscription_schedule(name, weekday_s, start_time, priority=1, parallel_or_serial=u'Parallel')
+TableauRestApiConnection23.create_monthly_extract_schedule(name, day_of_month, start_time, priority=1, parallel_or_serial=u'Parallel')
+TableauRestApiConnection23.create_monthly_subscription_schedule(name, day_of_month, start_time, priority=1, parallel_or_serial=u'Parallel')
+TableauRestApiConnection23.create_hourly_extract_schedule(name, interval_hours_or_minutes, interval, start_time, end_time, priority=1, parallel_or_serial=u'Parallel')
+TableauRestApiConnection23.create_hourly_subscription_schedule(name, interval_hours_or_minutes, interval, start_time, end_time, priority=1, parallel_or_serial=u'Parallel')
+
+The format for start_time and end_time is 'HH:MM:SS' like '13:15:30'. Interval can actually take a list, because Weekly schedules can run on multiple days. Priority is an integer between 1 and 100
+
+You can delete an existing schedule with
+
+TableauRestApiConnection23.delete_schedule(schedule_name_or_luid)
+
+You can update an existing schedule with
+
+TableauRestApiConnection23.update_schedule(schedule_name_or_luid, new_name=None, frequency=None, parallel_or_serial=None, priority=None, start_time=None, end_time=None, interval_value_s=None, interval_hours_minutes=None)
+
+Ex. 
+
+    try:
+        t_site.log(u'Creating a daily extract schedule')
+        t_site.create_daily_extract_schedule(u'Afternoon Delight', start_time=u'13:00:00')
+
+        t_site.log(u'Creating a monthly subscription schedule')
+        new_monthly_luid = t_site.create_monthly_subscription_schedule(u'First of the Month', u'1',
+                                                                       start_time=u'03:00:00', parallel_or_serial=u'Serial')
+        t_site.log(u'Creating a monthly extract schedule')
+        t_site.create_monthly_extract_schedule(u'Last Day of Month', u'LastDay', start_time=u'03:00:00', priority=25)
+        t_site.log(u'Creating a monthly extract schedule')
+        weekly_luid = t_site.create_weekly_subscription_schedule(u'Mon Wed Fri', [u'Monday', u'Wednesday', u'Friday'],
+                                                   start_time=u'05:00:00')
+        time.sleep(4)
+        t_site.log(u'Deleting monthly subscription schedule LUID {}'.format(new_monthly_luid))
+        t_site.delete_schedule(new_monthly_luid)
+
+        t_site.log(u'Updating schedule with LUID {}'.format(weekly_luid))
+        t_site.update_schedule(weekly_luid, new_name=u'Wed Fri', interval_value_s=[u'Wednesday', u'Friday'])
+
+    except AlreadyExistsException as e:
+        t_site.log(u'Skipping the add since it already exists')
+
+3.9 Subscriptions
+Starting with REST API 2.3 can subscribe a user to a view or a workbook on a given subscription schedule. This allows for mass actions such as subscribing everyone in a group to a given view or workbook, or removing subscriptions to old content and shifting them to new content.
+
+3.10 Refresh Extracts
+Starting with REST API 2.6 (Tableau 10.3), you can trigger extract refreshes. 
+
 
 4. Permissions
 The tableau_rest_api library handles permissions via the Permissions and PublishedContent (Project, Workbook, Datasource) classes, encapsulating all of the necessary logic to make changes to permissions both easy and efficient.
@@ -473,7 +525,6 @@ o_perms_obj_list = orig_proj.datasource_defaults.current_perms_obj_list
 n_perms_obj_list = new_proj.datasource_defaults.convert_permissions_obj_list_from_orig_site_to_current_site(o_perms_obj_list, o)
 new_proj.datasource_defaults.set_permissions_by_permissions_obj_list(n_perms_obj_list)
 
-
 5. Publishing Content
 The Tableau REST API can publish both data sources and workbooks, either as TWB / TDS files or TWBX or TDSX files. It actually has two different methods of publishing; one as a single upload, and the other which chunks the upload. tableau_rest_api encapsulates all this into two methods that detect the right calls to make. The default threshold is 20 MB for a file before it switches to chunking. This is set by the "single_upload_limit" variable. 
 
@@ -517,10 +568,28 @@ for sched in sched_dict:
     t.run_all_extract_refreshes_for_schedule(sched_dict[sched])  # This passes the LUID
     # t.run_all_extract_refreshes_for_schedule(sched_dict) # You can pass the name also, it just causes extra lookups
 
+6.1 Putting published content on an Extract Schedule (high risk)
+There is currently (as of Tableau 10.4) no REST API method for putting a given workbook or datasource on an extract schedule. 
+
+This can be accomplished by making a direct entry into the Tableau PostgreSQL Repository using the tblwgadmin user. You must be running your script FROM the Tableau Server machine to have access to connect to the repository (you may be able to modify firewall and other things per https://onlinehelp.tableau.com/current/server/en-us/perf_collect_server_repo.htm but it's easiest just to be on the Server itself)
+
+The TableauRepository class has a method for accomplishing the necessary insert.
+
+TableauRepository.set_workbook_on_schedule(workbook_luid, schedule_name)
+TableauRepository.set_datasource_on_schedule(datsource_luid, schedule_name)
+
+ex. 
+new_wb_luid = t.publish_workbook(new_filename, u'My Awesome TWBX Workbook', default_proj, overwrite=True, save_credentials=True)
+tab_rep = TableauRepository(u'https://tableauserver', repository_username=u'tblwgadmin', repository_password=u'')
+tab_rep.set_workbook_on_schedule(new_wb_luid, u'Saturday night')
+
+As mentioned, this requires have super access to the Tableau repository, including its password, which could be dangerous.
+
+    
 7. Modifying Tableau Documents (for Template Publishing)
 tableau_documents implements some features that go beyond the Tableau REST API, but are extremely useful when dealing with a large number of workbooks or datasources, particularly for multi-tenented Sites. These methods actually allow unsupported changes to the Tableau workbook or datasource XML. If something breaks with them, blame the author of the library and not Tableau Support, who won't help you with them.
 
-6.1 Document classes
+7.1 Document classes
 The tableau_documents library is a hierarchical set of classes which model Tableau's files and the data structures within them. The model looks slightly different whether a workbook or a datasource, because workbooks can embed multiple datasources:
 
 Datasource:
@@ -539,7 +608,7 @@ TableauFile
             TableauColumns
     
 
-6.1 TableauFile class
+7.2 TableauFile class
 The TableauFile class represents an actual existing Tableau file on the local storage (.tds, .tdsx, .twb, .twbx). It is initialized with:
 
 TableauFile(filename, logger_obj=None, create_new=False, ds_version=u'10')
@@ -556,7 +625,7 @@ tf = TableauFile(None, logger_obj, create_new=True, ds_version=u'10') # ds_versi
 
 The TableauFile.tableau_document object will be a new TableauDatasource object, ready to be set built up.
 
-6.2 TableauDocument
+7.3 TableauDocument
 The TableauDocument class helps map the differences between TableauWorkbook and TableauDatasource. It only implements two properties:
 
 TableauDocument.document_type  : return either [u'datasource', u'workbook'] . More generic than TableauFile.file_type
@@ -569,7 +638,7 @@ TableauDocument.save_file(filename_no_extension, save_to_directory=None)
 
 which does the correct action based on whether it is a TableauDatasource or a TableauWorkbook (implemented separately for each)
 
-6.3 TableauWorkbook class
+7.4 TableauWorkbook class
 At this point in time, the TableauWorkbook class is really just a container for TableauDatasources, which it creates automatically when initialized. Because workbook files can get very very large, the initializer algorithm only reads through the datasources, which are at the beginning of the document, and then leaves the rest of the file on disk.
 
 TableauWorkbook.save_file(filename_no_extension, save_to_directory=None)
@@ -578,7 +647,7 @@ is used to save a TWB file. It also uses the algorithm from the initializer meth
 
 At the current time, this means that you cannot modify any of the other functionality that is specified in the workbook itself. Additional methods could be implemented in the future based on a similar algorithm (picking out specific subsections and representing them in memory as ElementTree objects, then inserting back into place later). 
 
-6.4 TableauDatasource class
+7.5 TableauDatasource class
 The TableauDatasource class is represents the XML contained within a TDS (or an embedded datasource within a workbook). 
 
 Tableau Datasources changed considerably from the 9 series to the 10 series; Tableau 10 introduced the concept of Cross-Database JOIN, known internally as Federated Connections. So a datasource in 10.0+ can have multiple connections. tableau_tools handles determinig the all of this automatically, unless you are creating a TableauDatasource object from scratch (more on this later), in whcih case you need to specify which type of datasource you want. 
@@ -595,7 +664,7 @@ new_ds = TableauDatasource(ds_version=u'10', logger_obj=logger)
 
 ds_version takes either u'9' or u'10, because it is more on basic structure and the individual point numbers don't matter.
 
-6.5 TableauConnection
+7.6 TableauConnection
 In a u'9' version TableauDatasource, there is only connections[0] because there was only one connection. A u'10' version can have any number of federated connections in this array. If you are creating connections from scratch, I highly recommend doing single connections. There hasn't been any work to make sure federated connections work correctly with modifications.
 
 The TableauConnection class represents the connection to the datasource, whether it is a database, a text file. It should be created automatically for you through the TableauDatasource object. 
@@ -626,7 +695,7 @@ for ds in dses:
 twb.save_new_file(u'Modified Workbook')
 
 
-6.6 Published Datasources in a workbook
+7.7 Published Datasources in a workbook
 Datasources in a workbook come in two types: Embedded and Published. An embedded datasource looks just like a standard TDS file, except that there can be multiple in a workbook. Published Datasources have an additional tag called <repository-location> which tells the information about the Site and the published Datasource name
 
 To see if a datasource is published, use the property
@@ -647,7 +716,7 @@ for ds in dses:
         
 ***NOTE: From this point on, things become increasingly experimental and less supported. However, I can assure you that many Tableau customers do these very things, and we are constantly working to improve the functionality for making datasources dynamically.
 
-6.7 Adding an Extract to an Existing TableauDatasource
+7.8 Adding an Extract to an Existing TableauDatasource
 TableauDatasource.add_extract(new_extract_filename) 
 
 sets a datasource to have an extract added when the datasource is saved. This command will automatically switch a the saving from a TDS file to a TDSX file or a TWB file to a TWBX when the TableauFile.save_new_file() method is called.
@@ -669,9 +738,9 @@ for ds in dses:
 new_filename = twb.save_new_file(u'Extract Workbooks')
 print new_filename  # Extract Workbooks.twbx
         
-6.8 Modifying Table JOIN Structure in a Connection
+7.9 Modifying Table JOIN Structure in a Connection
 
-6.9 Creating a TableauDatasource from Scratch
+7.10 Creating a TableauDatasource from Scratch
 If you intialized a TableauFile object with no filename, you will have "from scratch" TableauDatasource as your .tableau_document object. The TableauDatasource object contains all of the functionality from TableauDatasourceGenerator from a previous version of tableau_tools. 
 
 

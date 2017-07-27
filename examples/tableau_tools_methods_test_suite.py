@@ -20,7 +20,7 @@ servers = {
            # u'10.0': {u"server": u"127.0.0.1", u"username": u"", u"password": u""},
            # u'10.1': {u"server": u"127.0.0.1", u"username": u"", u"password": u""},
            # u"10.2": {u"server": u"127.0.0.1", u"username": u"", u"password": u""},
-           u"10.3": {u"server": u"127.0.0.1", u"username": u"", u"password": u""}
+           u"10.3": {u"server": u"", u"username": u"", u"password": u""}
            }
 
 # Configure which tests you want to run in here
@@ -61,6 +61,11 @@ def run_tests(server_url, username, password):
 
     # Step 6: Publishing Workbook Tests
     workbooks_test(test_site, twbx_filename, twbx_content_name)
+
+    # These capabilities are only available in later API versions
+    # Step 7: Scheduling tests
+    if isinstance(test_site, TableauRestApiConnection23):
+        schedule_test(test_site)
 
 #    tde_filename = 'Flights Data.tde'
 #    tde_content_name = 'Flights Data'
@@ -382,44 +387,135 @@ def workbooks_test(t_site, twbx_filename, twbx_content_name):
     #        t_site.log(u"Saving a png for {}".format(wb_view)
     #        t_site.save_workbook_view_preview_image(wb_luid, wb_views_dict.get(wb_view), '{}_preview'.format(wb_view))
 
+    # t_site.log(u'Deleting workbook')
+    # t_site.delete_workbooks(new_wb_luid)
     print u'Finished Workbook tests'
 
 
-def publishing_datasources_test(t, proj_name, tde_filename, tde_content_name, tds_filename, tds_content_name):
-    project_luid = t.query_project_luid(proj_name)
-    print 'Publishing datasource to {}'.format(proj_name.encode(u'utf-8'))
+def publishing_datasources_test(t_site, tdsx_file, tdsx_content_name):
+    """
+    :type t_site: TableauRestApiConnection
+    :param tdsx_file:
+    :param tdsx_content_name:
+    :return:
+    """
+    print u"Starting Datasource tests"
+    default_project = t_site.query_project(u'Default')
 
-    new_ds_luid = t.publish_datasource(tde_filename, tde_content_name, project_luid, True)
-    print 'Publishing as {}'.format(new_ds_luid)
-    print "Query the datasource"
-    ds_xml = t.query_datasource(new_ds_luid)
+    t_site.log(u"Publishing as {}".format(tdsx_content_name))
+    new_ds_luid = t_site.publish_datasource(tdsx_file, tdsx_content_name, default_project, overwrite=True)
 
-    datasources = t.query_datasources()
+    time.sleep(3)
 
-    print "Saving Datasource"
-    t.download_datasource(new_ds_luid, 'saved_datasource')
+    projects = t_site.query_projects()
+    projects_dict = t_site.convert_xml_list_to_name_id_dict(projects)
+    projects_list = projects_dict.keys()
 
-    # print "Deleting the published DS"
-    # test_site.delete_datasources(new_ds_luid)
+    t_site.log(u'Moving datasource to {} project'.format(projects_list[1]))
+    t_site.update_datasource(new_ds_luid, default_project.luid, new_project_luid=projects_dict[projects_list[1]])
 
-    print "Publishing a TDS"
-    tds_luid = t.publish_datasource(tds_filename, tds_content_name, project_luid)
+    t_site.log(u"Querying datasource")
+    t_site.query_workbook(new_ds_luid)
 
-    # print "Publishing TDS with credentials -- reordered args"
-    # tds_cred_luid = test_site.publish_datasource('TDS with Credentials.tds', 'TDS w Creds', project_luid, connection_username='postgres', overwrite=True, connection_password='')
+    t_site.log(u'Downloading and saving datasource')
+    t_site.download_datasource(new_ds_luid, 'saved_datasource')
 
-    # print "Update Datasource connection"
-    # test_site.update_datasource_connection(tds_cred_luid, 'localhost', '5432', db_username, db_password)
+    # Can't add to favorites until API version 2.3
+    if isinstance(t_site, TableauRestApiConnection23):
+        t_site.log(u'Adding to Favorites')
+        t_site.add_datasource_to_user_favorites(u'The Greatest Datasource', new_ds_luid, t_site.username)
 
-    print "Saving TDS"
-    t.download_datasource(tds_luid, 'TDS Save')
+        t_site.log(u'Removing from Favorites')
+        t_site.delete_datasources_from_user_favorites(new_ds_luid, t_site.username)
 
-    # print "Publishing a TDSX"
-    # test_site.publish_datasource('TDSX to Publish.tdsx', 'TDSX Publish Test', project_luid)
+    # t_site.log("Publishing TDS with credentials -- reordered args")
+    # tds_cred_luid = t_site.publish_datasource('TDS with Credentials.tds', 'TDS w Creds', project,
+    # connection_username='postgres', overwrite=True, connection_password='')
 
-    return new_ds_luid
+    # t_site.log("Update Datasource connection")
+    # t_site.update_datasource_connection(tds_cred_luid, 'localhost', '5432', db_username, db_password)
+
+    # t_site.log("Deleting the published DS")
+    # t_site.delete_datasources(new_ds_luid)
+
+    print u'Finished Datasource Tests'
+
+
+def schedule_test(t_site):
+    """
+    :type t_site: TableauRestApiConnection23
+    :return:
+    """
+    print u'Started Schedule tests'
+    all_schedules = t_site.query_schedules()
+    schedule_dict = t_site.convert_xml_list_to_name_id_dict(all_schedules)
+    t_site.log(u'All schedules on Server: {}'.format(unicode(schedule_dict)))
+    try:
+        t_site.log(u'Creating a daily extract schedule')
+        t_site.create_daily_extract_schedule(u'Afternoon Delight', start_time=u'13:00:00')
+    except AlreadyExistsException as e:
+        t_site.log(u'Skipping the add since it already exists')
+
+    try:
+        t_site.log(u'Creating a monthly subscription schedule')
+        new_monthly_luid = t_site.create_monthly_subscription_schedule(u'First of the Month', u'1',
+                                                                       start_time=u'03:00:00', parallel_or_serial=u'Serial')
+        t_site.log(u'Deleting monthly subscription schedule LUID {}'.format(new_monthly_luid))
+        time.sleep(4)
+        t_site.delete_schedule(new_monthly_luid)
+    except AlreadyExistsException as e:
+        t_site.log(u'Skipping the add since it already exists')
+    try:
+        t_site.log(u'Creating a monthly extract schedule')
+        t_site.create_monthly_extract_schedule(u'Last Day of Month', u'LastDay', start_time=u'03:00:00', priority=25)
+    except AlreadyExistsException as e:
+        t_site.log(u'Skipping the add since it already exists')
+
+    try:
+        t_site.log(u'Creating a weekly extract schedule')
+        weekly_luid = t_site.create_weekly_subscription_schedule(u'Mon Wed Fri', [u'Monday', u'Wednesday', u'Friday'],
+                                                   start_time=u'05:00:00')
+        time.sleep(4)
+
+        t_site.log(u'Updating schedule with LUID {}'.format(weekly_luid))
+        t_site.update_schedule(weekly_luid, new_name=u'Wed Fri', interval_value_s=[u'Wednesday', u'Friday'])
+    except AlreadyExistsException as e:
+        t_site.log(u'Skipping the add since it already exists')
+
+    print u'Finished Schedule tests'
+
+
+def subscription_test(t_site):
+    """
+    :type t_site: TableauRestApiConnection23
+    :return:
+    """
+    # All users in a Group
+    groups = t_site.query_groups()
+    groups_dict = t_site.convert_xml_list_to_name_id_dict(groups)
+    group_names = groups_dict.keys()
+
+    users_in_group = t_site.query_users_in_group(groups_dict[group_names[0]])
+
+    t_site.create_subscription(u'Important weekly update')
+
+    # Subscribe them to the first workbook
+
+    # On the first schedule in the system
+
+
+def revision_tests(t_site):
+    """
+    :type t_site: TableauRestApiConnection23
+    :return:
+    """
+
+def extract_refresh_test(t_site):
+    r = "nah"
+
+
+
 
 for server in servers:
     print u"Logging in to {}".format(servers[server][u'server'])
     run_tests(u"http://" + servers[server][u'server'], servers[server][u'username'], servers[server][u'password'])
-

@@ -2666,6 +2666,19 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         self.end_log_block()
         return new_subscription_luid
 
+    def create_subscription_to_workbook(self, subscription_subject, wb_luid, schedule_luid, user_luid):
+        """
+        :param subscription_subject:
+        :param wb_luid:
+        :param schedule_luid:
+        :param user_luid:
+        :return:
+        """
+        self.start_log_block()
+        luid = self.create_subscription(subscription_subject, u'Workbook', wb_luid, )
+
+        self.end_log_block()
+
     def update_subscription_by_luid(self, subscription_luid, subject=None, schedule_luid=None):
         if subject is None and schedule_luid is None:
             raise InvalidOptionException(u"You must pass one of subject or schedule_luid, or both")
@@ -2703,8 +2716,8 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
     # Begin Schedule Methods
     #
 
-    def create_schedule(self, name, extract_or_subscription, frequency, parallel_or_serial, priority,
-                        start_time, end_time=None, interval_value=None, interval_hours_minutes=None):
+    def create_schedule(self, name, extract_or_subscription, frequency, parallel_or_serial, priority, start_time=None,
+                        end_time=None, interval_value_s=None, interval_hours_minutes=None):
         """
         :type name: unicode
         :type extract_or_subscription: unicode
@@ -2713,7 +2726,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         :type priority: int
         :type start_time: unicode
         :type end_time: unicode
-        :type interval_value: int
+        :type interval_value_s: unicode or List[unicode]
         :type interval_hours_minutes: unicode
         :rtype:
         """
@@ -2740,17 +2753,20 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         intervals = etree.Element(u'intervals')
 
         # Daily does not need an interval value
-        if interval_value is not None:
-            interval = etree.Element(u'interval')
-            if frequency == u'Hourly':
-                if interval_hours_minutes is None:
-                    raise InvalidOptionException(u'Hourly must set interval_hours_minutes to "hours" or "minutes"')
-                interval.set(interval_hours_minutes, unicode(interval_value))
-            if frequency == u'Weekly':
-                interval.set(u'weekDay', unicode(interval_value))
-            if frequency == u'Monthly':
-                interval.set(u'monthDay', unicode(interval_value))
-            intervals.append(interval)
+
+        if interval_value_s is not None:
+            ivs = self.to_list(interval_value_s)
+            for i in ivs:
+                interval = etree.Element(u'interval')
+                if frequency == u'Hourly':
+                    if interval_hours_minutes is None:
+                        raise InvalidOptionException(u'Hourly must set interval_hours_minutes to "hours" or "minutes"')
+                    interval.set(interval_hours_minutes, i)
+                if frequency == u'Weekly':
+                    interval.set(u'weekDay', i)
+                if frequency == u'Monthly':
+                    interval.set(u'monthDay', i)
+                intervals.append(interval)
 
         fd.append(intervals)
         s.append(fd)
@@ -2758,10 +2774,235 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
 
         # Schedule requests happen at the server rather than site level, like a login
         url = self.build_api_url(u"schedules", server_level=True)
-        new_schedule = self.send_add_request(url, tsr)
-        new_schedule_luid = new_schedule.findall(u'.//t:schedule', self.ns_map)[0].get("id")
+        try:
+            new_schedule = self.send_add_request(url, tsr)
+            new_schedule_luid = new_schedule.findall(u'.//t:schedule', self.ns_map)[0].get("id")
+            self.end_log_block()
+            return new_schedule_luid
+        except RecoverableHTTPException as e:
+            if e.tableau_error_code == u'409021':
+                raise AlreadyExistsException(u'Schedule Already exists on the server', None)
+
+    def update_schedule(self, schedule_name_or_luid, new_name=None, frequency=None, parallel_or_serial=None,
+                        priority=None, start_time=None, end_time=None, interval_value_s=None, interval_hours_minutes=None):
+        """
+        :type schedule_name_or_luid: unicode
+        :type new_name: unicode
+        :type frequency: unicode
+        :type parallel_or_serial: unicode
+        :type priority: int
+        :type start_time: unicode
+        :type end_time: unicode
+        :type interval_value_s: unicode or List[unicode]
+        :type interval_hours_minutes: unicode
+        :rtype:
+        """
+        self.start_log_block()
+        if self.is_luid(schedule_name_or_luid):
+            luid = schedule_name_or_luid
+        else:
+            luid = self.query_schedule_luid(schedule_name_or_luid)
+
+        tsr = etree.Element(u'tsRequest')
+        s = etree.Element(u'schedule')
+        if new_name is not None:
+            s.set(u'name', new_name)
+        if priority is not None:
+            if priority < 1 or priority > 100:
+                raise InvalidOptionException(u"priority must be an integer between 1 and 100")
+            s.set(u'priority', unicode(priority))
+        if frequency is not None:
+            s.set(u'frequency', frequency)
+        if parallel_or_serial is not None:
+            if parallel_or_serial not in [u'Parallel', u'Serial']:
+                raise InvalidOptionException(u"parallel_or_serial must be 'Parallel' or 'Serial'")
+            s.set(u'executionOrder', parallel_or_serial)
+        if frequency is not None:
+            if frequency not in [u'Hourly', u'Daily', u'Weekly', u'Monthly']:
+                raise InvalidOptionException(u"frequency must be 'Hourly', 'Daily', 'Weekly' or 'Monthly'")
+            fd = etree.Element(u'frequencyDetails')
+            fd.set(u'start', start_time)
+            if end_time is not None:
+                fd.set(u'end', end_time)
+            intervals = etree.Element(u'intervals')
+
+            # Daily does not need an interval value
+
+            if interval_value_s is not None:
+                ivs = self.to_list(interval_value_s)
+                for i in ivs:
+                    interval = etree.Element(u'interval')
+                    if frequency == u'Hourly':
+                        if interval_hours_minutes is None:
+                            raise InvalidOptionException(u'Hourly must set interval_hours_minutes to "hours" or "minutes"')
+                        interval.set(interval_hours_minutes, i)
+                    if frequency == u'Weekly':
+                        interval.set(u'weekDay', i)
+                    if frequency == u'Monthly':
+                        interval.set(u'monthDay', i)
+                    intervals.append(interval)
+
+            fd.append(intervals)
+            s.append(fd)
+        tsr.append(s)
+
+        # Schedule requests happen at the server rather than site level, like a login
+        url = self.build_api_url(u"schedules/{}".format(luid), server_level=True)
+        self.send_update_request(url, tsr)
         self.end_log_block()
-        return new_schedule_luid
+
+    def create_daily_extract_schedule(self, name, start_time, priority=1, parallel_or_serial=u'Parallel'):
+        """
+        :type name: unicode
+        :type parallel_or_serial: unicode
+        :type priority: int
+        :param start_time: In format HH:MM:SS , like 18:30:00
+        :type start_time: unicode
+        :rtype: unicode
+        """
+        self.start_log_block()
+        # Check the time format at some point
+
+        luid = self.create_schedule(name, u'Extract', u'Daily', parallel_or_serial, priority, start_time)
+        self.end_log_block()
+        return luid
+
+    def create_daily_subscription_schedule(self, name, start_time, priority=1, parallel_or_serial=u'Parallel'):
+        """
+        :type name: unicode
+        :type parallel_or_serial: unicode
+        :type priority: int
+        :param start_time: In format HH:MM:SS , like 18:30:00
+        :type start_time: unicode
+        :rtype: unicode
+        """
+        self.start_log_block()
+        # Check the time format at some point
+
+        luid = self.create_schedule(name, u'Subscription', u'Daily', parallel_or_serial, priority, start_time)
+        self.end_log_block()
+        return luid
+
+    def create_weekly_extract_schedule(self, name, weekday_s, start_time, priority=1, parallel_or_serial=u'Parallel'):
+        """
+        :type name: unicode
+        :type parallel_or_serial: unicode
+        :type priority: int
+        :param start_time: Must be in HH:MM:SS format
+        :type start_time: unicode
+        :param weekday_s: Use 'Monday', 'Tuesday' etc.
+        :type weekday_s: List[unicode] or unicode
+        :rtype: unicode
+        """
+        self.start_log_block()
+
+        luid = self.create_schedule(name, u'Extract', u'Weekly', parallel_or_serial, priority, start_time=start_time,
+                                    interval_value_s=weekday_s)
+        self.end_log_block()
+        return luid
+
+    def create_weekly_subscription_schedule(self, name, weekday_s, start_time, priority=1,
+                                            parallel_or_serial=u'Parallel'):
+        """
+        :type name: unicode
+        :type parallel_or_serial: unicode
+        :type priority: int
+        :param start_time: Must be in HH:MM:SS format
+        :type start_time: unicode
+        :param weekday_s: Use 'Monday', 'Tuesday' etc.
+        :type weekday_s: List[unicode] or unicode
+        :rtype: unicode
+        """
+        self.start_log_block()
+
+        luid = self.create_schedule(name, u'Subscription', u'Weekly', parallel_or_serial, priority,
+                                    start_time=start_time, interval_value_s=weekday_s)
+        self.end_log_block()
+        return luid
+
+    def create_monthly_extract_schedule(self, name, day_of_month, start_time, priority=1,
+                                        parallel_or_serial=u'Parallel'):
+        """
+        :type name: unicode
+        :type parallel_or_serial: unicode
+        :type priority: int
+        :param start_time: Must be in HH:MM:SS format
+        :type start_time: unicode
+        :param day_of_month: Use '1', '2' or 'LastDay'
+        :type day_of_month: unicode
+        :rtype: unicode
+        """
+        self.start_log_block()
+
+        luid = self.create_schedule(name, u'Extract', u'Monthly', parallel_or_serial, priority, start_time=start_time,
+                                    interval_value_s=day_of_month)
+        self.end_log_block()
+        return luid
+
+    def create_monthly_subscription_schedule(self, name, day_of_month, start_time, priority=1,
+                                             parallel_or_serial=u'Parallel'):
+        """
+        :type name: unicode
+        :type parallel_or_serial: unicode
+        :type priority: int
+        :param start_time: Must be in HH:MM:SS format
+        :type start_time: unicode
+        :param day_of_month: Use '1', '2' or 'LastDay'
+        :type day_of_month: unicode
+        :rtype: unicode
+        """
+        self.start_log_block()
+
+        luid = self.create_schedule(name, u'Subscription', u'Monthly', parallel_or_serial, priority,
+                                    start_time=start_time, interval_value_s=day_of_month)
+        self.end_log_block()
+        return luid
+
+    def create_hourly_extract_schedule(self, name, interval_hours_or_minutes, interval, start_time, end_time,
+                                       priority=1, parallel_or_serial=u'Parallel'):
+        """
+        :type name: unicode
+        :type parallel_or_serial: unicode
+        :type priority: int
+        :param start_time: In format HH:MM:SS , like 18:30:00
+        :type start_time: unicode
+        :param end_time: In format HH:MM:SS , like 18:30:00
+        :type end_time: unicode
+        :param interval_hours_or_minutes: Either 'hours' or 'minutes'
+        :type interval_hours_or_minutes: unicode
+        :parame interval: This can be '1','2', '4', '6', '8', or '12' for hours or '15' or '30' for minutes
+        :type interval: unicode
+        :rtype: unicode
+        """
+        self.start_log_block()
+
+        luid = self.create_schedule(name, u'Extract', u'Hourly', parallel_or_serial, priority, start_time, end_time,
+                                    interval, interval_hours_or_minutes)
+        self.end_log_block()
+        return luid
+
+    def create_hourly_subscription_schedule(self, name, interval_hours_or_minutes, interval, start_time, end_time,
+                                            priority=1, parallel_or_serial=u'Parallel'):
+        """
+        :type name: unicode
+        :type parallel_or_serial: unicode
+        :type priority: int
+        :param start_time: In format HH:MM:SS , like 18:30:00
+        :type start_time: unicode
+        :param end_time: In format HH:MM:SS , like 18:30:00
+        :type end_time: unicode
+        :param interval_hours_or_minutes: Either 'hours' or 'minutes'
+        :type interval_hours_or_minutes: unicode
+        :parame interval: This can be '1','2', '4', '6', '8', or '12' for hours or '15' or '30' for minutes
+        :type interval: unicode
+        :rtype: unicode
+        """
+        self.start_log_block()
+
+        luid = self.create_schedule(name, u'Subscription', u'Hourly', parallel_or_serial, priority, start_time, end_time,
+                                    interval, interval_hours_or_minutes)
+        self.end_log_block()
+        return luid
 
     def delete_schedule(self, schedule_name_or_luid):
         """
@@ -2782,11 +3023,12 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
     # End Schedule Methodws
     #
 
-    def add_datasource_to_user_favorites(self, favorite_name, ds_name_or_luid_s, username_or_luid):
+    def add_datasource_to_user_favorites(self, favorite_name, ds_name_or_luid_s, username_or_luid, p_name_or_luid=None):
         """
         :type favorite_name: unicode
         :type ds_name_or_luid_s: unicode
         :type username_or_luid: unicode
+        :type p_name_or_luid: unicode
         :rtype:
         """
         self.start_log_block()
@@ -2800,7 +3042,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
             if self.is_luid(ds_name_or_luid_s):
                 datasource_luid = ds
             else:
-                datasource_luid = self.query_datasource_luid(ds)
+                datasource_luid = self.query_datasource_luid(ds, p_name_or_luid)
 
             tsr = etree.Element(u'tsRequest')
             f = etree.Element(u'favorite')
