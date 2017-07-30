@@ -165,9 +165,10 @@ UrlFilter.create_tags_filter(operator, tags)
 Ex. 
 owner_name_filter = UrlFilter.create_owner_name_filter(u'Bryant')
 
-
 There is also a Sort object, which can just be initialized with the right parameters
-Sort(
+Sort(field, direction)
+
+where direction can be 'asc' or 'desc'
 
     
 2.3 LUID Lookup Methods
@@ -348,11 +349,39 @@ Ex.
     except AlreadyExistsException as e:
         t_site.log(u'Skipping the add since it already exists')
 
+When looking for Schedules to use for Subscriptions and Extracts, there are the following querying methods
+
+TableauRestApiConnection23.query_extract_schedules()
+TableauRestApiConnection23.query_subscription_schedules()
+TableauRestApiConnection23.query_schedules()
+TableauRestApiConnection23.query_schedule_luid(schedule_name)
+TableauRestApiConnection23.query_schedule(schedule_name_or_luid)
+
+Not much reason to ever use the plain query_schedules() and have them mixed together. Schedules have unique names so there is no need to specify extract or subscription when asking individually
+
 3.9 Subscriptions
 Starting with REST API 2.3 can subscribe a user to a view or a workbook on a given subscription schedule. This allows for mass actions such as subscribing everyone in a group to a given view or workbook, or removing subscriptions to old content and shifting them to new content.
 
-3.10 Refresh Extracts
-Starting with REST API 2.6 (Tableau 10.3), you can trigger extract refreshes. 
+TableauRestApiConnection23.create_subscription_to_workbook(subscription_subject, wb_name_or_luid, schedule_name_or_luid, username_or_luid, project_name_or_luid=None)
+TableauRestApiConnection23.create_subscription_to_view(subscription_subject, view_name_or_luid, schedule_name_or_luid, username_or_luid, wb_name_or_luid=None, project_name_or_luid=None)
+
+There is a generic
+TableauRestApiConnection23.create_subscription() 
+but there the helper functions handle anything it can.
+
+You can update a subscription with 
+
+TableauRestApiConnection23.update_subscription(subscription_luid, subject=None, schedule_luid=None)
+TableauRestApiConnection23.delete_subscriptions(subscription_luid_s)
+
+You'll note that the update and delete subscriptions methods only take LUIDs, unlike most other methods in tableau_tools. This is because Subscriptions do not have a reasonbly unique identifier -- to find the LUID, you would use a combination of things to filter on.
+
+This brings us to how to find subscriptions to do things to via query_subscriptions
+
+TableauRestApiConnection23.query_subscriptions(username_or_luid=None, schedule_name_or_luid=None, subscription_subject=None,view_or_workbook=None, content_name_or_luid=None, project_name_or_luid=None, wb_name_or_luid=None)
+
+You don't have to pass anything to query_subscriptions(), and you'll get all of them in the system. However, if you want to filter down to a subset, you can pass any of the parameters, and the filters will be applied successively.
+
 
 
 4. Permissions
@@ -537,8 +566,29 @@ TableauRestApiConnection.publish_workbook(workbook_filename, workbook_name, proj
 
 TableauRestApiConnection.publish_datasource(ds_filename, ds_name, project_obj, overwrite=False, connection_username=None, connection_password=None, save_credentials=True)
 
+5.2 Workbook and Datasource Revisions (2.3+)
+Starting in API Version 2.3, revision history can be turned on for a site, allowing you to see the changes that are made to workbooks over time. Workbook and datasource revisions are identified by a number that counts up starting from 1. So if there has only ever been one publish action, there is only revision 1.
 
-6. Refreshing Extracts (Tableau 10.3+)
+The REST API does not have a method for "promote to current". This means to restore to a particular revision you have two options:
+    1) Delete all revisions that come after the one you want to be the current published workbook or datasource
+    2) Download the revision you want to be current, and then republish it
+    
+To see the existing revisions, use
+
+TableauRestApiConnection23.get_workbook_revisions(workbook_name_or_luid, username_or_luid=None, project_name_or_luid=None)
+TableauRestApiConnection23.get_datasource_revisions(datasource_name_or_luid, project_name_or_luid=None)
+
+You can remove revisions via 
+
+TableauRestApiConnection23.remove_workbook_revision(wb_name_or_luid, revision_number, project_name_or_luid=None, username_or_luid=None)
+TableauRestApiConnection23.remove_datasource_revision(datasource_name_or_luid, revision_number, project_name_or_luid=None)
+
+You can download any revision as a file using methods that mirror the standard download workbook and datasource methods.
+
+TableauRestApiConnection23.download_datasource_revision(ds_name_or_luid, revision_number, filename_no_extension, proj_name_or_luid=None)
+TableauRestApiConnection23.download_workbook_revision(wb_name_or_luid, revision_number, filename_no_extension, proj_name_or_luid=None)
+
+6. Refreshing Extracts (Tableau 10.3+ / API 2.6)
 The TableauRestApiConnection26 class, representing the API for Tableau 10.3, includes methods for triggering extract refreshes via the REST API.
 
 TableauRestApiConnection26.run_all_extract_refreshes_for_schedule(schedule_name_or_luid) 

@@ -2240,6 +2240,16 @@ class TableauRestApiConnection22(TableauRestApiConnection21):
         self.end_log_block()
         return luid
 
+    def query_schedule(self, schedule_name_or_luid):
+        """
+        :type schedule_name_or_luid: unicode
+        :rtype: unicode
+        """
+        self.start_log_block()
+        luid = self.query_single_element_from_endpoint(u'schedule', schedule_name_or_luid, server_level=True)
+        self.end_log_block()
+        return luid
+
     def query_extract_refresh_tasks_by_schedule(self, schedule_name_or_luid):
         """
         :type schedule_name_or_luid: unicode
@@ -2611,37 +2621,102 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
     # Begin Subscription Methods
     #
 
-    def query_subscription_by_luid(self, subscription_luid):
+    def query_subscriptions(self, username_or_luid=None, schedule_name_or_luid=None, subscription_subject=None,
+                            view_or_workbook=None, content_name_or_luid=None, project_name_or_luid=None, wb_name_or_luid=None):
         """
-        :type subscription_luid: unicode
-        :rtype: etree.Element
-        """
-        self.start_log_block()
-        subscription = self.query_resource(u"subscriptions/{}".format(subscription_luid))
-        self.end_log_block()
-        return subscription
-
-    def query_subscriptions(self):
-        """
+        :type username_or_luid: unicode
+        :type schedule_name_or_luid: unicode
+        :type subscription_subject: unicode
+        :type view_or_workbook: unicode
+        :type content_name_or_luid: unicode
+        :type project_name_or_luid: unicode
+        :type wb_name_or_luid: unicode
         :rtype: etree.Element
         """
         self.start_log_block()
         subscriptions = self.query_resource(u'subscriptions')
+        filters_dict = {}
+        if subscription_subject is not None:
+            filters_dict[u'subject'] = u'[@subject="{}"]'.format(subscription_subject)
+        if schedule_name_or_luid is not None:
+            if self.is_luid(schedule_name_or_luid):
+                filters_dict[u'sched'] = u'schedule[@id="{}"'.format(schedule_name_or_luid)
+            else:
+                filters_dict[u'sched'] = u'schedule[@user="{}"'.format(schedule_name_or_luid)
+        if username_or_luid is not None:
+            if self.is_luid(username_or_luid):
+                filters_dict[u'user'] = u'user[@id="{}"]'.format(username_or_luid)
+            else:
+                filters_dict[u'user'] = u'user[@name="{}"]'.format(username_or_luid)
+        if view_or_workbook is not None:
+            if view_or_workbook not in [u'View', u'Workbook']:
+                raise InvalidOptionException(u"view_or_workbook must be 'Workbook' or 'View'")
+            # Does this search make sense my itself?
+
+        if content_name_or_luid is not None:
+            if self.is_luid(content_name_or_luid):
+                filters_dict[u'content_luid'] = u'content[@id="{}"'.format(content_name_or_luid)
+            else:
+                if view_or_workbook is None:
+                    raise InvalidOptionException(u'view_or_workbook must be specified for content: "Workook" or "View"')
+                if view_or_workbook == u'View':
+                    if wb_name_or_luid is None:
+                        raise InvalidOptionException(u'Must include wb_name_or_luid for a View name lookup')
+                    content_luid = self.query_workbook_view_luid(wb_name_or_luid, content_name_or_luid,
+                                                                 p_name_or_luid=project_name_or_luid)
+                elif view_or_workbook == u'Workbook':
+                    content_luid = self.query_workbook_luid(content_name_or_luid, project_name_or_luid)
+                filters_dict[u'content_luid'] = u'content[@id="{}"'.format(content_luid)
+
+        if u'subject' in filters_dict:
+            subscriptions = subscriptions.findall(u'.//t:subscription{}'.format(filters_dict[u'subject']))
+        if u'user' in filters_dict:
+            subscriptions = subscriptions.findall(u'.//t:subscription/{}/..'.format(filters_dict[u'user']))
+        if u'sched' in filters_dict:
+            subscriptions = subscriptions.findall(u'.//t:subscription/{}/..'.format(filters_dict[u'sched']))
+        if u'content_luid' in filters_dict:
+            subscriptions = subscriptions.findall(u'.//t:subscription/{}/..'.format(filters_dict[u'content_luid']))
         self.end_log_block()
         return subscriptions
 
-    def create_subscription(self, subscription_subject, view_or_workbook, content_luid, schedule_luid, user_luid):
+    def create_subscription(self, subscription_subject, view_or_workbook, content_name_or_luid, schedule_name_or_luid,
+                            username_or_luid, project_name_or_luid=None, wb_name_or_luid=None):
         """
         :type subscription_subject: unicode
         :type view_or_workbook: unicode
-        :type content_luid: unicode
-        :type schedule_luid: unicode
-        :type user_luid: unicode
+        :type content_name_or_luid: unicode
+        :type schedule_name_or_luid: unicode
+        :type username_or_luid: unicode
+        :type project_name_or_luid: unicode
+        :type wb_name_or_luid: unicode
         :rtype: unicode
         """
         self.start_log_block()
         if view_or_workbook not in [u'View', u'Workbook']:
             raise InvalidOptionException(u"view_or_workbook must be 'Workbook' or 'View'")
+
+        if self.is_luid(username_or_luid):
+            user_luid = username_or_luid
+        else:
+            user_luid = self.query_user_luid(username_or_luid)
+
+        if self.is_luid(schedule_name_or_luid):
+            schedule_luid = schedule_name_or_luid
+        else:
+            schedule_luid = self.query_schedule_luid(schedule_name_or_luid)
+
+        if self.is_luid(content_name_or_luid):
+            content_luid = content_name_or_luid
+        else:
+            if view_or_workbook == u'View':
+                if wb_name_or_luid is None:
+                    raise InvalidOptionException(u'Must include wb_name_or_luid for a View name lookup')
+                content_luid = self.query_workbook_view_luid(wb_name_or_luid, content_name_or_luid,
+                                                             p_name_or_luid=project_name_or_luid, username_or_luid=user_luid)
+            elif view_or_workbook == u'Workbook':
+                content_luid = self.query_workbook_luid(content_name_or_luid, project_name_or_luid, user_luid)
+            else:
+                raise InvalidOptionException(u"view_or_workbook must be 'Workbook' or 'View'")
 
         tsr = etree.Element(u'tsRequest')
         s = etree.Element(u'subscription')
@@ -2666,20 +2741,40 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         self.end_log_block()
         return new_subscription_luid
 
-    def create_subscription_to_workbook(self, subscription_subject, wb_luid, schedule_luid, user_luid):
+    def create_subscription_to_workbook(self, subscription_subject, wb_name_or_luid, schedule_name_or_luid,
+                                        username_or_luid, project_name_or_luid=None):
         """
-        :param subscription_subject:
-        :param wb_luid:
-        :param schedule_luid:
-        :param user_luid:
-        :return:
+        :type subscription_subject: unicode
+        :type wb_name_or_luid: unicode
+        :type schedule_name_or_luid: unicode
+        :type username_or_luid: unicode
+        :type project_name_or_luid: unicode
+        :rtype: unicode
         """
         self.start_log_block()
-        luid = self.create_subscription(subscription_subject, u'Workbook', wb_luid, )
-
+        luid = self.create_subscription(subscription_subject, u'Workbook', wb_name_or_luid, schedule_name_or_luid,
+                                        username_or_luid, project_name_or_luid=project_name_or_luid)
         self.end_log_block()
+        return luid
 
-    def update_subscription_by_luid(self, subscription_luid, subject=None, schedule_luid=None):
+    def create_subscription_to_view(self, subscription_subject, view_name_or_luid, schedule_name_or_luid,
+                                    username_or_luid, wb_name_or_luid=None, project_name_or_luid=None):
+        """
+        :type subscription_subject: unicode
+        :type view_name_or_luid: unicode
+        :type schedule_name_or_luid:
+        :type username_or_luid: unicode
+        :type wb_name_or_luid: unicode
+        :type project_name_or_luid: unicode
+        :rtype: unicode
+        """
+        self.start_log_block()
+        luid = self.create_subscription(subscription_subject, u'View', view_name_or_luid, schedule_name_or_luid,
+                                        username_or_luid, wb_name_or_luid=wb_name_or_luid, project_name_or_luid=project_name_or_luid)
+        self.end_log_block()
+        return luid
+
+    def update_subscription(self, subscription_luid, subject=None, schedule_luid=None):
         if subject is None and schedule_luid is None:
             raise InvalidOptionException(u"You must pass one of subject or schedule_luid, or both")
         request = u'<tsRequest>'
@@ -2696,7 +2791,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         self.end_log_block()
         return response
 
-    def delete_subscriptions_by_luid(self, subscription_luid_s):
+    def delete_subscriptions(self, subscription_luid_s):
         """
         :param subscription_luid_s:
         :rtype:
@@ -3202,7 +3297,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
     def remove_datasource_revision(self, datasource_name_or_luid, revision_number, project_name_or_luid=None):
         """
         :type datasource_name_or_luid: unicode
-        :type revision_number: unicode
+        :type revision_number: int
         :type project_name_or_luid: unicode
         :rtype:
         """
@@ -3211,7 +3306,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
             ds_luid = datasource_name_or_luid
         else:
             ds_luid = self.query_datasource_luid(datasource_name_or_luid, project_name_or_luid)
-        url = self.build_api_url(u"datasources/{}/revisions/{}".format(ds_luid, revision_number))
+        url = self.build_api_url(u"datasources/{}/revisions/{}".format(ds_luid, unicode(revision_number)))
         self.send_delete_request(url)
         self.end_log_block()
 
@@ -3219,7 +3314,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
                                  project_name_or_luid=None, username_or_luid=None):
         """
         :type wb_name_or_luid: unicode
-        :type revision_number: unicode
+        :type revision_number: int
         :type project_name_or_luid: unicode
         :type username_or_luid: unicode
         :rtype:
@@ -3229,19 +3324,24 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
             wb_luid = wb_name_or_luid
         else:
             wb_luid = self.query_workbook_luid(wb_name_or_luid, project_name_or_luid, username_or_luid)
-        url = self.build_api_url(u"workbooks/{}/revisions/{}".format(wb_luid, revision_number))
+        url = self.build_api_url(u"workbooks/{}/revisions/{}".format(wb_luid, unicode(revision_number)))
         self.send_delete_request(url)
         self.end_log_block()
 
     # Do not include file extension. Without filename, only returns the response
-    def download_datasource_revision(self, ds_luid, revision_number, filename_no_extension=None):
+    def download_datasource_revision(self, ds_name_or_luid, revision_number, filename_no_extension, proj_name_or_luid=None):
         """
-        :param ds_luid:
-        :param revision_number:
-        :param filename_no_extension:
-        :rtype:
+        :type ds_name_or_luid: unicode
+        :type revision_number: int
+        :type filename_no_extension: unicode
+        :type proj_name_or_luid: unicode
+        :rtype: unicode
         """
         self.start_log_block()
+        if self.is_luid(ds_name_or_luid):
+            ds_luid = ds_name_or_luid
+        else:
+            ds_luid = self.query_datasource_luid(ds_name_or_luid, proj_name_or_luid)
         try:
             url = self.build_api_url(u"datasources/{}/revisions/{}/content".format(ds_luid, unicode(revision_number)))
             ds = self.send_binary_get_request(url)
@@ -3268,27 +3368,28 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
             save_file = open(save_filename, 'wb')
             save_file.write(ds)
             save_file.close()
-            if extension == u'.tdsx':
-                self.log(u'Detected TDSX, creating TableauFile object')
-                saved_file = open(save_filename, 'rb')
-                return_obj = TableauFile(saved_file, self.logger)
-                saved_file.close()
-                if filename_no_extension is None:
-                    os.remove(save_filename)
+            return save_filename
         except IOError:
             self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
             raise
-        if extension == '.tds':
-            self.log(u'Detected TDS, creating TableauDatasource object')
-            return_obj = TableauDatasource(ds, self.logger)
 
         self.end_log_block()
-        return return_obj
 
     # Do not include file extension, added automatically. Without filename, only returns the response
     # Use no_obj_return for save without opening and processing
-    def download_workbook_revision(self, wb_luid, revision_number, filename_no_extension=None, no_obj_return=False):
+    def download_workbook_revision(self, wb_name_or_luid, revision_number, filename_no_extension, proj_name_or_luid=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type revision_number: int
+        :type filename_no_extension: unicode
+        :type proj_name_or_luid: unicode
+        :rtype: unicode
+        """
         self.start_log_block()
+        if self.is_luid(wb_name_or_luid):
+            wb_luid = wb_name_or_luid
+        else:
+            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
         try:
             url = self.build_api_url(u"workbooks/{}/revisions/{}/content".format(wb_luid, unicode(revision_number)))
             wb = self.send_binary_get_request(url)
@@ -3316,29 +3417,17 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
             save_file = open(save_filename, 'wb')
             save_file.write(wb)
             save_file.close()
-            if no_obj_return is True:
-                return
-            if extension == u'.twbx':
-                self.log(u'Detected TWBX, creating TableauFile object')
-                saved_file = open(save_filename, 'rb')
-                return_obj = TableauFile(saved_file, self.logger)
-                if filename_no_extension is None:
-                    os.remove(save_filename)
+            return save_filename
 
         except IOError:
             self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
             raise
-        if no_obj_return is True:
-            return
-        if extension == u'.twb':
-            self.log(u'Detected TWB, creating TableauWorkbook object')
-            return_obj = TableauWorkbook(wb, self.logger)
         self.end_log_block()
-        return return_obj
 
     #
     # End Revision Methods
     #
+
 
 class TableauRestApiConnection24(TableauRestApiConnection23):
     def __init__(self, server, username, password, site_content_url=u""):
