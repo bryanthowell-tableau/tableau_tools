@@ -2,7 +2,6 @@
 
 from tableau_tools.tableau_rest_api import *
 from tableau_tools import *
-import urllib2
 import time
 
 # This is meant to test all relevant functionality of the tableau_tools library.
@@ -13,15 +12,16 @@ import time
 
 # Allows for testing against multiple versions of Tableau Server. Feel free to use just one
 servers = {
-           # u"9.0": {u"server": u"127.0.0.1", u"username": u"", u"password": u""},
-           # u"9.1": {u"server": u"127.0.0.1", u"username": u"", u"password": u""},
-           # u"9.2": {u"server": u"127.0.0.1", u"username": u"", u"password": u""},
-           # u"9.3": {u"server": u"127.0.0.1", u"username": u"", u"password": u""},
-           # u'10.0': {u"server": u"127.0.0.1", u"username": u"", u"password": u""},
-           # u'10.1': {u"server": u"127.0.0.1", u"username": u"", u"password": u""},
-           # u"10.2": {u"server": u"127.0.0.1", u"username": u"", u"password": u""},
-           u"10.3": {u"server": u"", u"username": u"", u"password": u""}
+           # u"9.0": {u"server": u"http://127.0.0.1", u"username": u"", u"password": u""},
+           # u"9.1": {u"server": u"http://127.0.0.1", u"username": u"", u"password": u""},
+           # u"9.2": {u"server": u"http://127.0.0.1", u"username": u"", u"password": u""},
+           # u"9.3": {u"server": u"http://127.0.0.1", u"username": u"", u"password": u""},
+           # u'10.0': {u"server": u"http://127.0.0.1", u"username": u"", u"password": u""},
+           # u'10.1': {u"server": u"http://127.0.0.1", u"username": u"", u"password": u""},
+           # u"10.2": {u"server": u"http://127.0.0.1", u"username": u"", u"password": u""},
+           u"10.3": {u"server": u"http://127.0.0.1", u"username": u"", u"password": u""}
            }
+
 
 # Configure which tests you want to run in here
 def run_tests(server_url, username, password):
@@ -29,11 +29,14 @@ def run_tests(server_url, username, password):
     words = [u'ASCII', u'Οὐχὶ ταὐτὰ', u'γιγνώσκειν', u'რეგისტრაცია', u'Международную', u'โฮจิ๋นเรียกทัพทั่วหัวเมืองมา',
              u'አይተዳደርም።', u'晚飯', u'晩ご飯', u'저녁밥', u'bữa ăn tối', u'Señor']
 
-    # Test Files to Publish
-    twbx_filename = 'test_workbook.twbx' # Replace with your own test file
-    twbx_content_name = 'Test workbook' # Replace with your own name
-
     logger = Logger(u'tableau_tools_test.log')
+
+    # Test Files to Publish
+    twbx_filename = u'test_workbook.twbx' # Replace with your own test file
+    twbx_content_name = u'Test workbook' # Replace with your own name
+
+    tdsx_filename = u'test_datsource.twbx' # Replace with your own test file
+    tdsx_content_name = u'Test Datasource' # Use your own name
 
     # Create a default connection
     default = TableauRestApiConnection25(server_url, username, password, u'default')
@@ -51,9 +54,8 @@ def run_tests(server_url, username, password):
 
     # Step 4: Project Permissions tests
     version = test_site.api_version
-    if version == u'2.0':
-        project_permissions_tests20(test_site)
-    else:
+    # very few people still using 9.0-9.1, but permissions works the same without the default permissions
+    if version != u'2.0':
         project_permissions_tests21(test_site)
 
     # Step 5: User Tests
@@ -62,19 +64,19 @@ def run_tests(server_url, username, password):
     # Step 6: Publishing Workbook Tests
     workbooks_test(test_site, twbx_filename, twbx_content_name)
 
+    # Step 7: Publishing Datasource tests
+    publishing_datasources_test(test_site, tdsx_filename, tdsx_content_name)
+
     # These capabilities are only available in later API versions
-    # Step 7: Scheduling tests
+    # Step 8: Scheduling tests
     if isinstance(test_site, TableauRestApiConnection23):
         schedule_test(test_site)
 
-#    tde_filename = 'Flights Data.tde'
-#    tde_content_name = 'Flights Data'
-#    tds_filename = 'TDS to Publish SS.tds'
-#    tds_content_name = 'SS TDS'
-#    ds_luid = publishing_datasources_test(test_site, international_words[1], tde_filename, tde_content_name,
-  #                                        tds_filename, tds_content_name)
+    # Step 9: Subscription tests
+    if isinstance(test_site, TableauRestApiConnection23):
+        subscription_test(test_site)
 
- #   workbook_tests(test_site, wb_luid, username)
+    # Step 10: Extract Refresh tests
 
 
 def create_test_site(default_site, server_url, username, password, logger):
@@ -189,21 +191,6 @@ def group_tests(t_site, group_names):
     print u'Finished group tests'
     time.sleep(3)  # Let everything update
     return groups_dict
-
-
-def project_permissions_tests20(t, project_obj, group_luids):
-    """
-    :type t: TableauRestApiConnection20
-    :type project_obj: Project21 or Project20
-    :type group_luids: list[unicode]
-    :return:
-    """
-
-    for group_luid in group_luids:
-        perms = project_obj.get_project_permissions_object(u'group', group_luid)
-
-        perms.set_capability(u"View", u"Allow")
-        perms.set_capability(u"Save", u"Allow")
 
 
 def project_permissions_tests21(t_site):
@@ -490,18 +477,50 @@ def subscription_test(t_site):
     :type t_site: TableauRestApiConnection23
     :return:
     """
+    print u'Starting Subscription tests'
     # All users in a Group
     groups = t_site.query_groups()
     groups_dict = t_site.convert_xml_list_to_name_id_dict(groups)
     group_names = groups_dict.keys()
 
     users_in_group = t_site.query_users_in_group(groups_dict[group_names[0]])
+    users_dict = t_site.convert_xml_list_to_name_id_dict(users_in_group)
+    usernames = users_dict.keys()
 
-    t_site.create_subscription(u'Important weekly update')
+    wbs = t_site.query_workbooks()
+    wbs_dict = t_site.convert_xml_list_to_name_id_dict(wbs)
+    wb_names = wbs_dict.keys()
+
+    # Grab first workbook
+    wb_luid = wbs_dict[wb_names[0]]
+
+    sub_schedules = t_site.query_subscription_schedules()
+    sched_dict = t_site.convert_xml_list_to_name_id_dict(sub_schedules)
+    sched_names = sched_dict.keys()
+
+    # Grab first schedule
+    sched_luid = sched_dict[sched_names[0]]
 
     # Subscribe them to the first workbook
+    t_site.log(u'Adding subscription with subject Important weekly update to first workbook for all users in group 1')
+    for user in users_dict:
+        t_site.create_subscription_to_workbook(u'Important weekly update', wb_luid, sched_luid, users_dict[user])
 
-    # On the first schedule in the system
+    # Find the subscriptions for user 1, delete
+    user_1_subs = t_site.query_subscriptions(username_or_luid=usernames[0])
+    t_site.log(u'Deleting all subscriptions for user 1')
+    for sub in user_1_subs:
+        luid = sub.get(u'id')
+        t_site.delete_subscriptions(luid)
+
+    # Update user 2 subscriptions
+    t_site.log(u'Updating user 2s subscriptions to second schedule')
+    user_2_subs = t_site.query_subscriptions(username_or_luid=usernames[1])
+    for sub in user_2_subs:
+        luid = sub.get(u'id')
+        t_site.update_subscription(luid, schedule_luid=sched_dict[sched_names[1]])
+
+    print u'Finished subscription tests'
 
 
 def revision_tests(t_site):
@@ -510,12 +529,19 @@ def revision_tests(t_site):
     :return:
     """
 
+
 def extract_refresh_test(t_site):
-    r = "nah"
+    """
+    :type t_site: TableauRestApiConnection26
+    :return:
+    """
+    # Only possible in 10.3 / API 2.6 and above
+    if isinstance(t_site, TableauRestApiConnection26):
+        print u'Starting Extract Refresh tests'
+        tasks = t_site.get_extract_refresh_tasks()
 
-
-
+        print u'Finished Extract Refresh tests'
 
 for server in servers:
     print u"Logging in to {}".format(servers[server][u'server'])
-    run_tests(u"http://" + servers[server][u'server'], servers[server][u'username'], servers[server][u'password'])
+    run_tests(servers[server][u'server'], servers[server][u'username'], servers[server][u'password'])
