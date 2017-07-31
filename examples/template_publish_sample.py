@@ -3,6 +3,7 @@
 from tableau_tools.tableau_rest_api import *
 from tableau_tools.tableau_documents import *
 from tableau_tools import *
+from tableau_tools.tableau_repository import TableauRepository
 import urllib2
 import time
 import datetime
@@ -22,6 +23,7 @@ tableau_sites = [
      u'site_content_url': u'site3', u'db_server': u'dbserv2', u'db_name': u'db3',
      u'db_user': u'db3user', u'db_password': u'db3pass'}
 ]
+
 
 def promote_from_dev_to_test(logger_obj=None):
     dev_server = u'http://'
@@ -77,12 +79,13 @@ def promote_from_dev_to_test(logger_obj=None):
 
 # promote_from_dev_to_test(logger)
 
-
+# Uses experimental Deployer object, so commented out for now. The logic is sound though
+"""
 def publish_from_project_on_dev_server_to_multiple_sites(logger_obj=None):
 
-    dev_server = u'http://scvwtechcomp'
-    dev_username = u'bhowell'
-    dev_password = u'aq12wsDe#'
+    dev_server = u'http://'
+    dev_username = u''
+    dev_password = u''
     dev_site = u'dev'
     dev = TableauRestApiConnection26(dev_server, dev_username, dev_password, dev_site)
     dev.signin()
@@ -136,23 +139,89 @@ def publish_from_project_on_dev_server_to_multiple_sites(logger_obj=None):
     # Sign out of all sites
     for site in deployer:
         site.current_site.signout()
-
+"""
 
 def publish_from_live_connections_to_extracts(logger_obj=None):
     # This one goes from a file on disk, as opposed to downloading from dev or test site. This simulates
     # a scenario where you are using source control rather than Tableau Server.
 
     # Assume you might do this for a whole directory, just showing a single file
-    t_file = TableauFile(u'SS 1.tdsx', logger_obj)
+    t_file = TableauFile(u'SS.tds', logger_obj)
     dses = t_file.tableau_document.datasources
     for ds in dses:
-        ds.add_extract(u'Extract File')
+        #for conn in ds.connections:
+        #    conn.dbname = u'Global SuperStore Star Schema - Staging'
+        ds.add_extract(u'Extract File.tde')
+        ds.add_dimension_extract_filter(u'Customer Segment', [u'Home Office'])
+    new_filename = t_file.save_new_file(u'Saved Source')
+    t = TableauRestApiConnection26(u'http://', u'', u'', site_content_url=u'test')
+    t.signin()
+    t.enable_logging(logger_obj)
+
+    t2 = TableauRestApiConnection26(u'http://', u'', u'', site_content_url=u'tsite')
+    t2.signin()
+    t2.enable_logging(logger_obj)
+
+    default_proj = t.query_project(u'Default')
+    t.publish_datasource(new_filename, u'Auto TDSX', default_proj, overwrite=True, save_credentials=True)
+
+    t2_default = t2.query_project(u'Default')
+    t2.publish_datasource(new_filename, u'Auto TDSX', t2_default, overwrite=True, save_credentials=True)
+
+    t_file = TableauFile(u'SS Example.twb')
+    dses = t_file.tableau_document.datasources
+    for ds in dses:
+        #for conn in ds.connections:
+        #    conn.dbname = u'Global SuperStore Star Schema - Staging'
+        ds.add_extract(u'Extract File.tde')
         ds.add_dimension_extract_filter(u'Customer Segment', [u'Consumer'])
-    t_file.save_new_file(u'Saved Source')
+    new_filename = t_file.save_new_file(u'Saved Source')
+    default_proj = t.query_project(u'Default')
+    new_wb_luid = t.publish_workbook(new_filename, u'Auto TWBX', default_proj, overwrite=True, save_credentials=True)
+    logger_obj.log(u'New LUID is {}'.format(new_wb_luid))
+
+    # Here is where you would set this to be on an extract schedule via REST API, but there is no call for it
+
+    # This is the super-sneaky way to do this (requires the super secret password)
+    # Must be run from the Tableau Server itself, because superadmin connections are restrictd
+    #tab_rep = TableauRepository(u'', repository_username=u'tblwgadmin', repository_password=u'')
+    #tab_rep.set_workbook_on_schedule(new_wb_luid, u'Saturday night')
+
+    # Trigger the refresh
+
+    t.run_extract_refresh_for_workbook(new_wb_luid)
+
+    # HEre's one with a published data source
+
+    default_proj = t.query_project(u'Default')
+    new_wb_luid = t.publish_workbook(u'Published DS Connect.twb', u'Published DS', default_proj, overwrite=True,
+                                     save_credentials=True)
+    logger_obj.log(u'New LUID is {}'.format(new_wb_luid))
+
+    new_wb_luid = t2.publish_workbook(u'Published DS Connect.twb', u'Published DS', t2_default, overwrite=True,
+                                      save_credentials=True)
+    logger_obj.log(u'New LUID is {}'.format(new_wb_luid))
+
+    # This TWBX has one extract and one live connection
+    # This adds an extract to the live connection
+
+    t_file = TableauFile(u'Complex.twbx', logger_obj)
+    dses = t_file.tableau_document.datasources
+    i = 1
+    for ds in dses:
+        #for conn in ds.connections:
+        #    conn.dbname = u'Global SuperStore Star Schema - Staging'
+        try:
+            ds.add_extract(u'Extract {}.tde'.format(i))
+            i += 1
+        except AlreadyExistsException as e:
+            continue
+    new_filename = t_file.save_new_file(u'Complex Updated')
+    #default_proj = t.query_project(u'Default')
+    #new_wb_luid = t.publish_workbook(new_filename, u'Auto TWBX', default_proj, overwrite=True, save_credentials=True)
+    #logger_obj.log(u'New LUID is {}'.format(new_wb_luid))
 
 publish_from_live_connections_to_extracts(logger)
-        
-
 
 #def create_datasource_from_scratch(logger_obj=None):
 
