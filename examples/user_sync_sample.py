@@ -1,4 +1,5 @@
 import psycopg2.extensions
+import psycopg2
 
 from tableau_rest_api.tableau_rest_api_connection import *
 
@@ -57,14 +58,10 @@ print users_dict
 
 # Create projects for each user
 for user in users_dict:
-    proj_luid = t.create_project(u"My Saved Reports - {}".format(user))
+    proj_obj = t.create_project(u"My Saved Reports - {}".format(user))
     user_luid = users_dict[user]
-    gcap_obj = Permissions(u'user', user_luid)
-    gcap_obj.set_capabilities_to_match_role(u'Editor')
-    gcap_obj.set_capability_to_unspecified(u'Delete')
-    gcap_obj.set_capability_to_unspecified(u'Move')
-    gcap_obj.set_capability_to_unspecified(u'Set Permissions')
-    t.add_permissions_by_gcap_obj_list(u'project', proj_luid, [gcap_obj, ])
+    perms_obj = proj_obj.create_project_permissions_object_for_user(user_luid, u'Publisher')
+    proj_obj.set_permissions_by_permissions_obj_list([perms_obj, ])
 
 
 # Reset back to beginning to reuse query
@@ -88,7 +85,7 @@ for row in cur:
     groups_and_users[group_luid].append(user_luid)
 
     print 'Adding user {} to group {}'.format(row[0].encode('utf8'), row[2].encode('utf8'))
-    t.add_users_to_group_by_luid(user_luid, group_luid)
+    t.add_users_to_group(user_luid, group_luid)
 
 # Determine if any users are in a group who do not belong, then remove them
 for group_luid in groups_and_users:
@@ -100,7 +97,7 @@ for group_luid in groups_and_users:
     for user_luid in users_in_group_on_server_dict.values():
         if user_luid not in groups_and_users[group_luid]:
             print 'Removing user {} from group {}'.format(user_luid, group_luid)
-            t.remove_users_from_group_by_luid(user_luid, group_luid)
+            t.remove_users_from_group(user_luid, group_luid)
 
 # Determine if there are any users who are in the system and not in the database, set them to unlicsened
 users_on_server = t.query_users()

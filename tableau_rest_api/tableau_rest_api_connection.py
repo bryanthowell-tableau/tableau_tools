@@ -674,6 +674,22 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return user_luid
 
+    def query_username(self, user_luid):
+        """
+        :type user_luid: unicode
+        :rtype: unicode
+        """
+        self.start_log_block()
+        try:
+            luid_index = self.username_luid_cache.values().index(user_luid)
+            username = self.username_luid_cache.keys()[luid_index]
+        except ValueError as e:
+            user = self.query_user(user_luid)
+            username = user.get(u'name')
+
+        self.end_log_block()
+        return username
+
     def query_users_in_group(self, group_name_or_luid):
         """
         :type group_name_or_luid: unicode

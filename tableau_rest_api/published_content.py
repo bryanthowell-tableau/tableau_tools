@@ -690,6 +690,67 @@ class Project21(Project20):
 
         self.end_log_block()
 
+    def query_all_permissions(self):
+        # Returns all_permissions[luid] = { name: , type: , project_caps, workbook_default_caps: ,
+        #                                             datasource_default_caps: }
+
+        all_permissions = {}
+        for content_type in ['project', 'workbook_default', 'datasource_default']:
+            if content_type == 'project':
+                perms_obj_list = self.get_permissions_obj_list()
+            elif content_type == 'workbook_default':
+                perms_obj_list = self.workbook_defaults.get_permissions_obj_list()
+            elif content_type == 'datasource_default':
+                perms_obj_list = self.datasource_defaults.get_permissions_obj_list()
+            else:
+                raise InvalidOptionException('content_type must be project, workbook_default or datasource_default')
+
+            for perms_obj in perms_obj_list:
+                perm_luid = perms_obj.luid
+                if all_permissions.get(perm_luid) is None:
+                    all_permissions[perm_luid] = {"name": None, "type": None, "project_caps": None,
+                                                  "workbook_default_caps": None, "datasource_default_caps": None}
+                    perms_obj_type = perms_obj.group_or_user
+
+                    if perms_obj_type == 'user':
+                        all_permissions[perm_luid]["type"] = 'user'
+                        name = self.t_rest_api.query_username(perm_luid)
+                        all_permissions[perm_luid]["name"] = name
+
+                    elif perms_obj_type == 'group':
+                        all_permissions[perm_luid]["type"] = 'group'
+                        name = self.t_rest_api.query_group_name(perm_luid)
+                        all_permissions[perm_luid]["name"] = name
+
+                perms = perms_obj.get_capabilities_dict()
+                all_permissions[perm_luid]["{}_caps".format(content_type)] = perms
+
+        return all_permissions
+
+    # Exports all of the permissions on a project in the order displayed in Tableau Server
+    def convert_all_permissions_to_list(self, all_permissions):
+        final_list = []
+        # Project
+
+        for cap in self.t_rest_api.available_capabilities[self.t_rest_api.api_version][u'project']:
+            if all_permissions["project_caps"] is None:
+                final_list.append(None)
+            else:
+                final_list.append(all_permissions["project_caps"][cap])
+        # Workbook
+        for cap in self.t_rest_api.available_capabilities[self.t_rest_api.api_version][u'workbook']:
+            if all_permissions["workbook_default_caps"] is None:
+                final_list.append(None)
+            else:
+                final_list.append(all_permissions["workbook_default_caps"][cap])
+        # Datasource
+        for cap in self.t_rest_api.available_capabilities[self.t_rest_api.api_version][u'datasource']:
+            if all_permissions["datasource_default_caps"] is None:
+                final_list.append(None)
+            else:
+                final_list.append(all_permissions["datasource_default_caps"][cap])
+        return final_list
+
 
 class Workbook(PublishedContent):
     def __init__(self, luid, tableau_rest_api_obj, tableau_server_version, default=False, logger_obj=None,
