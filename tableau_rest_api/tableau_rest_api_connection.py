@@ -196,8 +196,8 @@ class TableauRestApiConnection(TableauBase):
 
         self.log(u'Logging in via: {}'.format(url.encode('utf-8')))
         api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
-        api.set_xml_request(tsr)
-        api.set_http_verb('post')
+        api.xml_request = tsr
+        api.http_verb = 'post'
         self.log(u'Login payload is\n {}'.format(etree.tostring(tsr)))
 
         api.request_from_api(0)
@@ -224,7 +224,7 @@ class TableauRestApiConnection(TableauBase):
             api = RestXmlRequest(url, session_token, self.logger, ns_map_url=self.ns_map['t'])
         else:
             api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
-        api.set_http_verb('post')
+        api.http_verb = 'post'
         api.request_from_api()
         self.log(u'Signed out successfully')
         self.end_log_block()
@@ -293,7 +293,7 @@ class TableauRestApiConnection(TableauBase):
     def send_post_request(self, url):
         self.start_log_block()
         api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
-        api.set_http_verb(u'post')
+        api.http_verb = u'post'
         api.request_from_api(0)
         xml = api.get_response().getroot()  # return Element rather than ElementTree
         self.end_log_block()
@@ -308,8 +308,8 @@ class TableauRestApiConnection(TableauBase):
         self.start_log_block()
 
         api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
-        api.set_xml_request(request)
-        api.set_http_verb('post')
+        api.xml_request = request
+        api.http_verb = 'post'
         api.request_from_api(0)  # Zero disables paging, for all non queries
         xml = api.get_response()  # return Element rather than ElementTree
         self.end_log_block()
@@ -319,8 +319,8 @@ class TableauRestApiConnection(TableauBase):
         self.start_log_block()
 
         api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
-        api.set_xml_request(request)
-        api.set_http_verb(u'put')
+        api.xml_request = request
+        api.http_verb = u'put'
         api.request_from_api(0)  # Zero disables paging, for all non queries
         self.end_log_block()
         return api.get_response()
@@ -328,7 +328,7 @@ class TableauRestApiConnection(TableauBase):
     def send_delete_request(self, url):
         self.start_log_block()
         api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
-        api.set_http_verb(u'delete')
+        api.http_verb = u'delete'
 
         try:
             api.request_from_api(0)  # Zero disables paging, for all non queries
@@ -348,7 +348,7 @@ class TableauRestApiConnection(TableauBase):
 
         api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
         api.set_publish_content(request, boundary_string)
-        api.set_http_verb(u'post')
+        api.http_verb = u'post'
         api.request_from_api(0)
         xml = api.get_response()  # return Element rather than ElementTree
         self.end_log_block()
@@ -359,7 +359,7 @@ class TableauRestApiConnection(TableauBase):
 
         api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
         api.set_publish_content(request, boundary_string)
-        api.set_http_verb(u'put')
+        api.http_verb = u'put'
         api.request_from_api(0)
         xml = api.get_response()  # return Element rather than ElementTree
         self.end_log_block()
@@ -370,7 +370,7 @@ class TableauRestApiConnection(TableauBase):
         self.start_log_block()
         api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
 
-        api.set_http_verb(u'get')
+        api.http_verb = u'get'
         api.set_response_type(u'binary')
         api.request_from_api(0)
         # Set this content type so we can set the file externsion

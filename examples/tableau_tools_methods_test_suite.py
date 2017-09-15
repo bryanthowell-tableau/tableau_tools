@@ -39,9 +39,10 @@ def run_tests(server_url, username, password):
     tdsx_content_name = u'Test Datasource' # Use your own name
 
     # Create a default connection
-    default = TableauRestApiConnection25(server_url, username, password, u'default')
-    default.enable_logging(logger)
+    default = TableauRestApiConnection26(server_url, username, password, u'default')
     default.signin()
+    default.enable_logging(logger)
+
 
     # Step 1: Creating a test site
     test_site = create_test_site(default, server_url, username, password, logger)
@@ -162,7 +163,7 @@ def project_tests(t_site, project_names):
     print u"Finished testing project methods"
 
 
-# Delete Groups not introudced until API 2.1
+# Delete Groups not introduced until API 2.1
 def group_tests(t_site, group_names):
     """
     :type t_site: TableauRestApiConnection21
@@ -170,6 +171,7 @@ def group_tests(t_site, group_names):
     :return:
     """
     print u"Starting group tests"
+
     for group in group_names:
         t_site.log(u"Creating Group {}".format(group))
         new_group_luid = t_site.create_group(group)
@@ -219,6 +221,7 @@ def project_permissions_tests21(t_site):
     for group in groups_dict:
         proj_perms = proj_1.create_project_permissions_object_for_group(groups_dict[group], u'Viewer')
         proj_perms_list.append(proj_perms)
+
     proj_1.set_permissions_by_permissions_obj_list(proj_perms_list)
 
     # WB defaults
@@ -507,6 +510,7 @@ def subscription_test(t_site):
         t_site.create_subscription_to_workbook(u'Important weekly update', wb_luid, sched_luid, users_dict[user])
 
     # Find the subscriptions for user 1, delete
+    t_site.query_subscriptions()
     user_1_subs = t_site.query_subscriptions(username_or_luid=usernames[0])
     t_site.log(u'Deleting all subscriptions for user 1')
     for sub in user_1_subs:
