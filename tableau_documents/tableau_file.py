@@ -7,7 +7,7 @@ from ..tableau_base import *
 from tableau_datasource import TableauDatasource
 from tableau_workbook import TableauWorkbook
 from tableau_document import TableauDocument
-
+import codecs
 
 class TableauFile(TableauBase):
 
@@ -78,8 +78,8 @@ class TableauFile(TableauBase):
                 elif self.file_type == u'tds':
                     # Here we throw out metadata-records even when opening a workbook from disk, they take up space
                     # and are recreate automatically. Very similar to what we do in initialization of TableauWorkbook
-                    o_ds_fh = open(filename, 'rb')
-                    ds_fh = open(u'temp_file.txt', 'wb')
+                    o_ds_fh = codecs.open(filename, 'r', encoding='utf-8')
+                    ds_fh = codecs.open(u'temp_file.txt', 'w', encoding='utf-8')
                     self.temp_filename = u'temp_file.txt'
                     metadata_flag = None
                     for line in o_ds_fh:

@@ -10,7 +10,7 @@ import os
 import copy
 from xml.sax.saxutils import quoteattr
 import datetime
-
+import codecs
 
 # Meant to represent a TDS file, does not handle the file opening
 class TableauDatasource(TableauDocument):
@@ -289,7 +289,7 @@ class TableauDatasource(TableauDocument):
             self.xml.append(new_l)
             self.xml.append(new_sv)
 
-        xmlstring = etree.tostring(self.xml, encoding='utf-8')
+        xmlstring = etree.tostring(self.xml, encoding='unicode')
         self.end_log_block()
         return xmlstring
 
@@ -309,9 +309,9 @@ class TableauDatasource(TableauDocument):
             filename_no_extension = filename_no_extension.split(u'.tds')[0]
             tds_filename = filename_no_extension + u'.tds'
             if save_to_directory is not None:
-                lh = open(save_to_directory + tds_filename, 'wb')
+                lh = codecs.open(save_to_directory + tds_filename, 'w', encoding='utf-8')
             else:
-                lh = open(tds_filename, 'wb')
+                lh = codecs.open(tds_filename, 'w', encoding='utf-8')
             lh.write(self.get_datasource_xml())
             lh.close()
 

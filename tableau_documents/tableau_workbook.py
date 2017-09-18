@@ -4,7 +4,7 @@ from ..tableau_base import *
 from tableau_datasource import TableauDatasource
 from tableau_document import TableauDocument
 import os
-
+import codecs
 
 class TableauWorkbook(TableauDocument):
     def __init__(self, twb_filename, logger_obj=None):
@@ -22,8 +22,8 @@ class TableauWorkbook(TableauDocument):
 #            self.enable_logging(self.logger)
 
     def build_document_objects(self, filename):
-        wb_fh = open(filename, 'rb')
-        ds_fh = open(u'temp_ds.txt', 'wb')
+        wb_fh = codecs.open(filename, 'r', encoding='utf-8')
+        ds_fh = codecs.open(u'temp_ds.txt', 'w', encoding='utf-8')
 
         # Stream through the file, only pulling the datasources section
         ds_flag = None
@@ -68,11 +68,11 @@ class TableauWorkbook(TableauDocument):
         """
         self.start_log_block()
         try:
-            orig_wb = open(self.twb_filename, 'rb')
+            orig_wb = codecs.open(self.twb_filename, 'r', encoding='utf-8')
             if filename_no_extension.find('.twb') == -1:
                 filename_no_extension += '.twb'
             self.log(u'Saving to {}'.format(filename_no_extension))
-            lh = open(filename_no_extension, 'wb')
+            lh = codecs.open(filename_no_extension, 'w', encoding='utf-8')
             # Stream through the file, only pulling the datasources section
             ds_flag = None
 

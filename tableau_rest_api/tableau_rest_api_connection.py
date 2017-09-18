@@ -194,20 +194,20 @@ class TableauRestApiConnection(TableauBase):
 
         url = self.build_api_url(u"auth/signin", server_level=True)
 
-        self.log(u'Logging in via: {}'.format(url.encode('utf-8')))
+        self.log(u'Logging in via: {}'.format(url))
         api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
         api.xml_request = tsr
         api.http_verb = 'post'
         self.log(u'Login payload is\n {}'.format(etree.tostring(tsr)))
 
         api.request_from_api(0)
-        self.log(api.get_raw_response())
+        # self.log(api.get_raw_response())
         xml = api.get_response()
         credentials_element = xml.findall(u'.//t:credentials', self.ns_map)
-        self.token = credentials_element[0].get("token").encode('utf-8')
+        self.token = credentials_element[0].get("token")
         self.log(u"Token is " + self.token)
-        self.site_luid = credentials_element[0].findall(u".//t:site", self.ns_map)[0].get("id").encode('utf-8')
-        self.user_luid = credentials_element[0].findall(u".//t:user", self.ns_map)[0].get("id").encode('utf-8')
+        self.site_luid = credentials_element[0].findall(u".//t:site", self.ns_map)[0].get("id")
+        self.user_luid = credentials_element[0].findall(u".//t:user", self.ns_map)[0].get("id")
         self.log(u"Site ID is " + self.site_luid)
 
         self.end_log_block()
@@ -219,7 +219,7 @@ class TableauRestApiConnection(TableauBase):
         """
         self.start_log_block()
         url = self.build_api_url(u"auth/signout", server_level=True)
-        self.log(u'Logging out via: {}'.format(url.encode('utf-8')))
+        self.log(u'Logging out via: {}'.format(url))
         if session_token is not None:
             api = RestXmlRequest(url, session_token, self.logger, ns_map_url=self.ns_map['t'])
         else:
@@ -1982,28 +1982,28 @@ class TableauRestApiConnection(TableauBase):
                     boundary_string = self.generate_boundary_string()
 
                     # Create the initial XML portion of the request
-                    publish_request = "--{}\r\n".format(boundary_string)
-                    publish_request += 'Content-Disposition: name="request_payload"\r\n'
-                    publish_request += 'Content-Type: text/xml\r\n\r\n'
-                    publish_request += '<tsRequest>\n<{} name="{}" '.format(content_type, content_name)
+                    publish_request = bytes("--{}\r\n".format(boundary_string).encode('utf-8'))
+                    publish_request += bytes('Content-Disposition: name="request_payload"\r\n'.encode('utf-8'))
+                    publish_request += bytes('Content-Type: text/xml\r\n\r\n'.encode('utf-8'))
+                    publish_request += bytes('<tsRequest>\n<{} name="{}" '.format(content_type, content_name).encode('utf-8'))
                     if show_tabs is not False:
-                        publish_request += 'showTabs="{}"'.format(str(show_tabs).lower())
-                    publish_request += '>\r\n'
+                        publish_request += bytes('showTabs="{}"'.format(str(show_tabs).lower()).encode('utf-8'))
+                    publish_request += bytes('>\r\n'.encode('utf-8'))
                     if connection_username is not None and connection_password is not None:
-                        publish_request += '<connectionCredentials name="{}" password="{}" embed="{}" />\r\n'.format(
-                            connection_username, connection_password, str(save_credentials).lower())
-                    publish_request += '<project id="{}" />\r\n'.format(project_luid)
-                    publish_request += "</{}></tsRequest>\r\n".format(content_type)
-                    publish_request += "--{}".format(boundary_string)
+                        publish_request += bytes('<connectionCredentials name="{}" password="{}" embed="{}" />\r\n'.format(
+                            connection_username, connection_password, str(save_credentials).lower()).encode('utf-8'))
+                    publish_request += bytes('<project id="{}" />\r\n'.format(project_luid).encode('utf-8'))
+                    publish_request += bytes("</{}></tsRequest>\r\n".format(content_type).encode('utf-8'))
+                    publish_request += bytes("--{}".format(boundary_string).encode('utf-8'))
 
                     # Upload as single if less than file_size_limit MB
                     if file_size_mb <= single_upload_limit:
                         # If part of a single upload, this if the next portion
                         self.log(u"Less than {} MB, uploading as a single call".format(str(single_upload_limit)))
-                        publish_request += '\r\n'
-                        publish_request += 'Content-Disposition: name="tableau_{}"; filename="{}"\r\n'.format(
-                            content_type, final_filename)
-                        publish_request += 'Content-Type: application/octet-stream\r\n\r\n'
+                        publish_request += bytes('\r\n'.encode('utf-8'))
+                        publish_request += bytes('Content-Disposition: name="tableau_{}"; filename="{}"\r\n'.format(
+                            content_type, final_filename).encode('utf-8'))
+                        publish_request += bytes('Content-Type: application/octet-stream\r\n\r\n'.encode('utf-8'))
 
                         # Content needs to be read unencoded from the file
                         content = content_file.read()
@@ -2011,8 +2011,8 @@ class TableauRestApiConnection(TableauBase):
                         # Add to string as regular binary, no encoding
                         publish_request += content
 
-                        publish_request += "\r\n--{}--".format(boundary_string)
-                        url = self.build_api_url(u"{}s").format(content_type) + "?overwrite={}".format(
+                        publish_request += bytes("\r\n--{}--".format(boundary_string).encode('utf-8'))
+                        url = self.build_api_url(u"{}s").format(content_type) + u"?overwrite={}".format(
                             str(overwrite).lower())
                         content_file.close()
                         if temp_wb_filename is not None:
@@ -2029,11 +2029,11 @@ class TableauRestApiConnection(TableauBase):
                             self.log(u"Appending chunk to upload session {}".format(upload_session_id))
                             self.append_to_file_upload(upload_session_id, piece, final_filename)
 
-                        url = self.build_api_url(u"{}s").format(content_type) + "?uploadSessionId={}".format(
-                            upload_session_id) + "&{}Type={}".format(content_type,
-                                                                     file_extension) + "&overwrite={}".format(
+                        url = self.build_api_url(u"{}s").format(content_type) + u"?uploadSessionId={}".format(
+                            upload_session_id) + u"&{}Type={}".format(content_type,
+                                                                     file_extension) + u"&overwrite={}".format(
                             str(overwrite).lower())
-                        publish_request += "--"  # Need to finish off the last boundary
+                        publish_request += b"--"  # Need to finish off the last boundary
                         self.log(u"Finishing the upload with a publish request")
                         content_file.close()
                         if temp_wb_filename is not None:
@@ -2749,13 +2749,15 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         s.append(u)
         tsr.append(s)
 
-        # URL is directly to the site
-        url = self.build_api_url()
-        url = url[:-1]
-        new_subscription = self.send_add_request(url, tsr)
-        new_subscription_luid = new_subscription.findall(u'.//t:subscription', self.ns_map)[0].get("id")
-        self.end_log_block()
-        return new_subscription_luid
+        url = self.build_api_url(u'subscriptions')
+        try:
+            new_subscription = self.send_add_request(url, tsr)
+            new_subscription_luid = new_subscription.findall(u'.//t:subscription', self.ns_map)[0].get("id")
+            self.end_log_block()
+            return new_subscription_luid
+        except RecoverableHTTPException as e:
+            self.end_log_block()
+            raise e
 
     def create_subscription_to_workbook(self, subscription_subject, wb_name_or_luid, schedule_name_or_luid,
                                         username_or_luid, project_name_or_luid=None):

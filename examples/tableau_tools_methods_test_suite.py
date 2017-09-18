@@ -32,7 +32,7 @@ def run_tests(server_url, username, password):
     logger = Logger(u'tableau_tools_test.log')
 
     # Test Files to Publish
-    twbx_filename = u'test_workbook.twbx' # Replace with your own test file
+    twbx_filename = u'test_workbook_excel.twbx' # Replace with your own test file
     twbx_content_name = u'Test workbook' # Replace with your own name
 
     tdsx_filename = u'test_datsource.twbx' # Replace with your own test file
@@ -66,7 +66,7 @@ def run_tests(server_url, username, password):
     workbooks_test(test_site, twbx_filename, twbx_content_name)
 
     # Step 7: Publishing Datasource tests
-    publishing_datasources_test(test_site, tdsx_filename, tdsx_content_name)
+    #publishing_datasources_test(test_site, tdsx_filename, tdsx_content_name)
 
     # These capabilities are only available in later API versions
     # Step 8: Scheduling tests

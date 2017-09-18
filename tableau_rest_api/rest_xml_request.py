@@ -2,12 +2,13 @@ from ..tableau_base import *
 from ..tableau_exceptions import *
 import xml.etree.cElementTree as etree
 # from HTMLParser import HTMLParser
-from StringIO import StringIO
+# from StringIO import StringIO
+from io import BytesIO
 import re
 import math
 import copy
 import requests
-
+import sys
 
 # Handles all of the actual HTTP calling
 class RestXmlRequest(TableauBase):
@@ -97,17 +98,14 @@ class RestXmlRequest(TableauBase):
 
     def get_response(self):
         if self.__response_type == 'xml' and self.__xml_object is not None:
-            self.log_debug(u"XML Object Response: {}".format(etree.tostring(self.__xml_object, encoding='utf8').decode('utf8')))
+            self.log_debug(u"XML Object Response: {}".format(etree.tostring(self.__xml_object, encoding='unicode')))
             return self.__xml_object
         else:
             return self.__raw_response
 
-    # Internal method to handle all of the http request variations, using given library.
-    # Using urllib2 with some modification, you could substitute in Requests or httplib
-    # depending on preference. Must be able to do the verbs listed in self.defined_http_verbs
     # Larger requests require pagination (starting at 1), thus page_number argument can be called.
     def __make_request(self, page_number=1):
-        url = self.__base_url.encode('utf8')
+        url = self.__base_url
         if page_number > 0:
             param_separator = '?'
             # If already a parameter, just append
@@ -117,25 +115,19 @@ class RestXmlRequest(TableauBase):
 
         self.__last_url_request = url
 
-        # Logic to create correct request
-        #opener = urllib2.build_opener(urllib2.HTTPHandler)
-        #request = urllib2.Request(url)
-
-
         request_headers = {}
         if self.__token is not None:
-            request_headers['X-tableau-auth'] = self.__token.encode('utf8')
-            #request.add_header('X-tableau-auth', self.__token.encode('utf8'))
+            request_headers['X-tableau-auth'] = self.__token
 
         if self.__publish is True:
-            request_headers['Content-Type'] = 'multipart/mixed; boundary={}'.format(self.__boundary_string.encode('utf8'))
+            request_headers['Content-Type'] = 'multipart/mixed; boundary={}'.format(self.__boundary_string)
 
         # Need to handle binary return for image somehow
         try:
             self.log(u"Request {}  {}".format(self._http_verb.upper(), url))
             # Log the XML request being sent
             if self.xml_request is not None:
-                self.log(u"Request XML: {}".format(etree.tostring(self.xml_request, encoding='utf8').decode('utf8')))
+                self.log(u"Request XML: {}".format(etree.tostring(self.xml_request, encoding='unicode')))
 
             if self.http_verb == u'get':
                 response = requests.get(url, headers=request_headers)
@@ -149,9 +141,9 @@ class RestXmlRequest(TableauBase):
                     response = requests.post(url, data=self.__publish_content, headers=request_headers)
                 elif self.xml_request is not None:
                     if isinstance(self.xml_request, str):
-                        encoded_request = self.xml_request.encode('utf8')
+                        encoded_request = self.xml_request.encode('utf-8')
                     else:
-                        encoded_request = etree.tostring(self.xml_request, encoding='utf8')
+                        encoded_request = etree.tostring(self.xml_request, encoding='utf-8')
                     response = requests.post(url, data=encoded_request, headers=request_headers)
                 else:
                     response = requests.post(url, data="", headers=request_headers)
@@ -163,7 +155,7 @@ class RestXmlRequest(TableauBase):
                     if isinstance(self.xml_request, str):
                         encoded_request = self.xml_request.encode('utf8')
                     else:
-                        encoded_request = etree.tostring(self.xml_request, encoding='utf8')
+                        encoded_request = etree.tostring(self.xml_request, encoding='utf-8')
                     response = requests.put(url, data=encoded_request, headers=request_headers)
                 else:
                     response = requests.put(url, data="", headers=request_headers)
@@ -189,11 +181,14 @@ class RestXmlRequest(TableauBase):
             #parser = HTMLParser()
             #unicode_raw_response = parser.unescape(initial_response)
             unicode_raw_response = initial_response
-
-            try:
-                self.__raw_response = unicode_raw_response.encode('utf-8')
-            # Sometimes it appears we actually send this stuff in UTF8
-            except UnicodeDecodeError:
+            if sys.version_info[0] < 3:
+                try:
+                    self.__raw_response = unicode_raw_response.encode('utf-8')
+                # Sometimes it appears we actually send this stuff in UTF8
+                except UnicodeDecodeError:
+                    self.__raw_response = unicode_raw_response
+                    unicode_raw_response = unicode_raw_response.decode('utf-8')
+            else:
                 self.__raw_response = unicode_raw_response
                 unicode_raw_response = unicode_raw_response.decode('utf-8')
 
@@ -213,7 +208,7 @@ class RestXmlRequest(TableauBase):
             self.log(raw_error_response.decode('utf8'))
 
             utf8_parser = etree.XMLParser(encoding='utf-8')
-            xml = etree.parse(StringIO(raw_error_response), parser=utf8_parser)
+            xml = etree.parse(BytesIO(raw_error_response), parser=utf8_parser)
             try:
                 tableau_error = xml.findall(u'.//t:error', namespaces=self.ns_map)
                 error_code = tableau_error[0].get('code')
@@ -250,10 +245,10 @@ class RestXmlRequest(TableauBase):
         except:
             raise
         if self.__response_type == 'xml':
-            if self.__raw_response == '':
+            if self.__raw_response == '' or self.__raw_response is None or len(self.__raw_response) == 0:
                 return True
             utf8_parser = etree.XMLParser(encoding='UTF-8')
-            sio = StringIO(self.__raw_response)
+            sio = BytesIO(self.__raw_response)
             xml = etree.parse(sio, parser=utf8_parser)
             # Set the XML object to the first returned. Will be replaced if there is pagination
             self.__xml_object = xml.getroot()
@@ -276,7 +271,7 @@ class RestXmlRequest(TableauBase):
 
                         self.__make_request(i)  # Get next page
                         utf8_parser2 = etree.XMLParser(encoding='utf-8')
-                        xml = etree.parse(StringIO(self.__raw_response), parser=utf8_parser2)
+                        xml = etree.parse(BytesIO(self.__raw_response), parser=utf8_parser2)
                         for obj in xml.getroot():
                             if obj.tag != 'pagination':
                                 full_xml_obj = obj
@@ -286,7 +281,7 @@ class RestXmlRequest(TableauBase):
 
                 self.__xml_object = combined_xml_obj
                 self.log_debug(u"Logging the combined xml object")
-                self.log_debug(etree.tostring(self.__xml_object))
+                self.log_debug(etree.tostring(self.__xml_object, encoding='unicode'))
                 self.log(u"Request succeeded")
                 return True
         elif self.__response_type in ['binary', 'png']:
