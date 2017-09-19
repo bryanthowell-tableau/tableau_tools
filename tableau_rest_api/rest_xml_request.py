@@ -98,7 +98,7 @@ class RestXmlRequest(TableauBase):
 
     def get_response(self):
         if self.__response_type == 'xml' and self.__xml_object is not None:
-            self.log_debug(u"XML Object Response: {}".format(etree.tostring(self.__xml_object, encoding='unicode')))
+            self.log_debug(u"XML Object Response: {}".format(etree.tostring(self.__xml_object, encoding='utf-8').decode('utf-8')))
             return self.__xml_object
         else:
             return self.__raw_response
@@ -127,7 +127,7 @@ class RestXmlRequest(TableauBase):
             self.log(u"Request {}  {}".format(self._http_verb.upper(), url))
             # Log the XML request being sent
             if self.xml_request is not None:
-                self.log(u"Request XML: {}".format(etree.tostring(self.xml_request, encoding='unicode')))
+                self.log(u"Request XML: {}".format(etree.tostring(self.xml_request, encoding='utf-8').decode('utf-8')))
 
             if self.http_verb == u'get':
                 response = requests.get(url, headers=request_headers)
@@ -281,7 +281,7 @@ class RestXmlRequest(TableauBase):
 
                 self.__xml_object = combined_xml_obj
                 self.log_debug(u"Logging the combined xml object")
-                self.log_debug(etree.tostring(self.__xml_object, encoding='unicode'))
+                self.log_debug(etree.tostring(self.__xml_object, encoding='utf-8').decode('utf-8'))
                 self.log(u"Request succeeded")
                 return True
         elif self.__response_type in ['binary', 'png']:
