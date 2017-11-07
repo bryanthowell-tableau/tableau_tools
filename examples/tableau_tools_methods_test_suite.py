@@ -42,6 +42,7 @@ def run_tests(server_url, username, password):
     default = TableauRestApiConnection26(server_url, username, password, u'default')
     default.signin()
     default.enable_logging(logger)
+    default.query_workbook()
 
 
     # Step 1: Creating a test site
@@ -532,7 +533,7 @@ def revision_tests(t_site):
     :type t_site: TableauRestApiConnection23
     :return:
     """
-
+    revisions = t_site.get_workbook_revisions("My Workbook", "Project")
 
 def extract_refresh_test(t_site):
     """

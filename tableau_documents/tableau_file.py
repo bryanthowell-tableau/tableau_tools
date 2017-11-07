@@ -9,6 +9,7 @@ from tableau_workbook import TableauWorkbook
 from tableau_document import TableauDocument
 import codecs
 
+
 class TableauFile(TableauBase):
 
     def __init__(self, filename, logger_obj=None, create_new=False, ds_version=u'10'):

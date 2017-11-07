@@ -1296,8 +1296,15 @@ class TableauRestApiConnection(TableauBase):
                                                   storage_quota, disable_subscriptions)
         url = self.build_api_url(u"sites/",
                                  server_level=True)  # Site actions drop back out of the site ID hierarchy like login
-        new_site = self.send_add_request(url, add_request)
-        return new_site.findall(u'.//t:site', self.ns_map)[0].get("id")
+        try:
+            new_site = self.send_add_request(url, add_request)
+            return new_site.findall(u'.//t:site', self.ns_map)[0].get("id")
+        except RecoverableHTTPException as e:
+            if e.http_code == 409:
+                self.log(u"Site with content_url {} already exists".format(new_content_url))
+                self.end_log_block()
+                raise AlreadyExistsException(u"Site with content_url {} already exists".format(new_content_url),
+                                             new_content_url)
 
     # Take a single user_luid string or a collection of luid_strings
     def add_users_to_group(self, username_or_luid_s, group_name_or_luid):
@@ -4028,6 +4035,66 @@ class UrlFilter:
         if operator == u'eq' and len(tags) > 1:
             raise InvalidOptionException(u'Use "in" operator for multiple tag search')
         return UrlFilter(u'tags', operator, tags)
+
+    @staticmethod
+    def create_domain_names_filter(operator, domain_names):
+        """
+        :param operator: Should be 'eq' for single tag match, 'in' for multiple tag match
+        :type operator: unicode
+        :type domain_names: list[unicode]
+        :rtype: UrlFilter
+        """
+        comparison_operators = [u'eq', u'in']
+        if operator not in comparison_operators:
+            raise InvalidOptionException(u"operator must be one of 'eq', 'in' ")
+        if operator == u'eq' and len(domain_names) > 1:
+            raise InvalidOptionException(u'Use "in" operator for multiple domainName search')
+        return UrlFilter(u'domainName', operator, domain_names)
+
+    @staticmethod
+    def create_domain_nicknames_filter(operator, domain_nicknames):
+        """
+        :param operator: Should be 'eq' for single tag match, 'in' for multiple tag match
+        :type operator: unicode
+        :type domain_nicknames: list[unicode]
+        :rtype: UrlFilter
+        """
+        comparison_operators = [u'eq', u'in']
+        if operator not in comparison_operators:
+            raise InvalidOptionException(u"operator must be one of 'eq', 'in' ")
+        if operator == u'eq' and len(domain_nicknames) > 1:
+            raise InvalidOptionException(u'Use "in" operator for multiple domainName search')
+        return UrlFilter(u'domainNickname', operator, domain_nicknames)
+
+    @staticmethod
+    def create_minimum_site_roles_filter(operator, minimum_site_roles):
+        """
+        :param operator: Should be 'eq' for single tag match, 'in' for multiple tag match
+        :type operator: unicode
+        :type minimum_site_roles: list[unicode]
+        :rtype: UrlFilter
+        """
+        comparison_operators = [u'eq', u'in']
+        if operator not in comparison_operators:
+            raise InvalidOptionException(u"operator must be one of 'eq', 'in' ")
+        if operator == u'eq' and len(minimum_site_roles) > 1:
+            raise InvalidOptionException(u'Use "in" operator for multiple domainName search')
+        return UrlFilter(u'minimumSiteRole', operator, minimum_site_roles)
+
+    @staticmethod
+    def create_user_count_filter(operator, user_count):
+        """
+        :param operator: Should be one of 'eq', 'gt', 'gte', 'lt', 'lte'
+        :type operator: unicode
+        :type user_count: int
+        :rtype: UrlFilter
+        """
+        comparison_operators = [u'eq', u'gt', u'gte', u'lt', u'lte']
+        if operator not in comparison_operators:
+            raise InvalidOptionException(u"operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
+        # Convert to the correct time format
+
+        return UrlFilter(u'userCount', operator, [user_count, ])
 
 
 class Sort:

@@ -141,6 +141,7 @@ def publish_from_project_on_dev_server_to_multiple_sites(logger_obj=None):
         site.current_site.signout()
 """
 
+
 def publish_from_live_connections_to_extracts(logger_obj=None):
     # This one goes from a file on disk, as opposed to downloading from dev or test site. This simulates
     # a scenario where you are using source control rather than Tableau Server.
@@ -149,8 +150,13 @@ def publish_from_live_connections_to_extracts(logger_obj=None):
     t_file = TableauFile(u'SS.tds', logger_obj)
     dses = t_file.tableau_document.datasources
     for ds in dses:
-        #for conn in ds.connections:
-        #    conn.dbname = u'Global SuperStore Star Schema - Staging'
+        cols = ds.xml.find(u'.//cols')
+        for m in cols:
+            print m.get(u'value')
+
+        for conn in ds.connections:
+            conn.dbname = u'Global SuperStore Star Schema - Staging'
+
         ds.add_extract(u'Extract File.tde')
         ds.add_dimension_extract_filter(u'Customer Segment', [u'Home Office'])
     new_filename = t_file.save_new_file(u'Saved Source')

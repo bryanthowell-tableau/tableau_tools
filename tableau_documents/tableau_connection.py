@@ -17,6 +17,13 @@ class TableauConnection(TableauBase):
             self.xml_obj = connection_xml_obj
 
     @property
+    def cols(self):
+        """
+        :rtype: etree.Element
+        """
+        return self.xml_obj.find(u'cols')
+
+    @property
     def dbname(self):
         # Looks for schema tag as well in case it's an Oracle system
         if self.xml_obj.get(u'dbname'):
@@ -100,8 +107,8 @@ class TableauConnection(TableauBase):
         return self.xml_obj.get(u'sslmode')
 
     @sslmode.setter
-    def sslmode(self, value='require'):
-        self.xml_obj.attrib["sslmode"] = value
+    def sslmode(self, value=u'require'):
+        self.xml_obj.attrib[u"sslmode"] = value
 
     @property
     def authentication(self):
