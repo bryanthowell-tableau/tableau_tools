@@ -251,6 +251,9 @@ class PublishedContent(TableauBase):
         return self.obj_perms_xml
 
     def get_permissions_obj_list(self):
+        """
+        :rtype: list[Permissions]
+        """
         return self.current_perms_obj_list
 
     def set_permissions_by_permissions_obj_list(self, new_permissions_obj_list):
@@ -758,6 +761,7 @@ class Workbook(PublishedContent):
         PublishedContent.__init__(self, luid, u"workbook", tableau_rest_api_obj, tableau_server_version,
                                   default=default, logger_obj=logger_obj, content_xml_obj=content_xml_obj)
         self.__available_capabilities = self.available_capabilities[self.api_version][u"workbook"]
+        self.log(u"Workbook object initiating")
 
     @property
     def luid(self):

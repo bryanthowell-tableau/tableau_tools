@@ -144,7 +144,7 @@ class TableauRestApiConnection(TableauBase):
         proj_obj = Project20(luid, self, self.version, self.logger, project_xml_obj)
         return proj_obj
 
-    def get_published_workbook_object(self, workbook_name_or_luid, project_name_or_luid):
+    def get_published_workbook_object(self, workbook_name_or_luid, project_name_or_luid=None):
         """
         :type project_name_or_luid: unicode
         :type workbook_name_or_luid: unicode
@@ -154,10 +154,10 @@ class TableauRestApiConnection(TableauBase):
             luid = workbook_name_or_luid
         else:
             luid = self.query_datasource_luid(workbook_name_or_luid, project_name_or_luid)
-        wb_obj = Workbook(luid, self, self.version, self.logger)
+        wb_obj = Workbook(luid, self, tableau_server_version=self.version, default=False, logger_obj=self.logger)
         return wb_obj
 
-    def get_published_datasource_object(self, datasource_name_or_luid, project_name_or_luid):
+    def get_published_datasource_object(self, datasource_name_or_luid, project_name_or_luid=None):
         """
         :param project_name_or_luid:
         :param datasource_name_or_luid:
@@ -168,7 +168,7 @@ class TableauRestApiConnection(TableauBase):
             luid = datasource_name_or_luid
         else:
             luid = self.query_datasource_luid(datasource_name_or_luid, project_name_or_luid)
-        ds_obj = Datasource(luid, self, self.version, self.logger)
+        ds_obj = Datasource(luid, self, tableau_server_version=self.version, default=False, logger_obj=self.logger)
         return ds_obj
 
 
