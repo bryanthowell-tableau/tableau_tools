@@ -284,6 +284,6 @@ class RestXmlRequest(TableauBase):
                 self.log_debug(etree.tostring(self.__xml_object, encoding='utf-8').decode('utf-8'))
                 self.log(u"Request succeeded")
                 return True
-        elif self.__response_type in ['binary', 'png']:
-            self.log(u'Binary response (binary or png) rather than XML')
+        elif self.__response_type in ['binary', 'png', 'csv']:
+            self.log(u'Non XML response')
             return True

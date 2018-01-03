@@ -17,14 +17,25 @@ The TableauDatasourceGenerator class uses the TDEFileGenerator class, which requ
 2.1.0+: works with 9.3 (previous versions as well). Python 2.7 compatible
 3.0.0+: tableau_rest_api library refactored and added to new tableau_tools package
 4.0.0: Big rewrite to simplify and improve. You will need to update your scripts most likely.
+4.3.0: 10.5 (API 2.8) compatibility, 100% coverage of all features in the spec, and refactoring in the code itself
 
 0.0 tableau_tools Library Structure
 tableau_tools
     tableau_rest_api
-        tableau_rest_api_server_connection
-        published_content (Project, Workbook, Datasource)
         permissions
+        published_content (Project, Workbook, Datasource)
         rest_xml_request
+        sort
+        tableau_rest_api_server_connection
+        tableau_rest_api_server_connection21
+        tableau_rest_api_server_connection22
+        tableau_rest_api_server_connection23
+        tableau_rest_api_server_connection24
+        tableau_rest_api_server_connection25
+        tableau_rest_api_server_connection26
+        tableau_rest_api_server_connection27
+        tableau_rest_api_server_connection28
+        url_filter
     tableau_documents
         tableau_connection
         tableau_datasource 
@@ -67,9 +78,14 @@ It should never be necessary to use TableauBase by itself.
 0.4 tableau_exceptions
 The tableau_exceptions file defines a variety of Exceptions that are specific to Tableau, particularly the REST API. They are not very complex, and most simply include a msg property that will clarify the problem if logged
 
-1. tableau_tools.tableau_rest_api sub-package
-Please see the README.txt file in the sub-package folder itself.
+1. tableau_tools.tableau_rest_api sub-package is designed to fully implement every feature in every version of the Tableau Server REST API. As much as possible, every action that is available in the reference guide here
+
+https://onlinehelp.tableau.com/current/api/rest_api/en-us/REST/rest_api_ref.htm#API_Reference
+
+is implemented as a method using the same name. For example, the action listed as "Get Users in Group" is implemented as TableauRestApiConnection.get_users_in_group() . There are a few places where there are deviations from this pattern, but in general you can start typing based on what you see in the reference and find the method implementing it.
+
 1.0 tableau_rest_api
+The tableau_rest_api sub-package
 
 1.1 TableauRestApiConnection classes
 tableau_tools 4.0+ implements the different versions of the Tableau Server REST API as descendent classes from the parent TableauRestApiConnection class. TableauRestApiConnection implements the 2.0 version of the API, equivalent to Tableau 9.0 and 9.1. TableauRestApiConnection21 implements the 2.1 version of the API, and so forth. New versions of Tableau Server support older versions of the API, so this allows you to keep your scripts the same even when moving to a new release of Tableau Server, and then you can try new functionality by simply changing to the new TableauRestApiConnection version.
@@ -81,10 +97,12 @@ TableauRestApiConnection23: 10.0
 TableauRestApiConnection24: 10.1
 TableauRestApiConnection25: 10.2
 TableauRestApiConnection26: 10.3
+TableauRestApiConnection27: 10.4
+TableauRestApiConnection28: 10.5
 
 You need to intialize at least one object of this class. 
 Ex.:
-t = TableauRestApiConnection25(u"http://127.0.0.1", u"admin", u"adminsp@ssw0rd", site_content_url=u"site1")
+t = TableauRestApiConnection26(u"http://127.0.0.1", u"admin", u"adminsp@ssw0rd", site_content_url=u"site1")
 
 
 1.2 Enabling logging for TableauRestApiConnection classes
@@ -96,10 +114,10 @@ TableauRestApiConnection.enable_logging(logger)
 The TableauRestApiConnection doesn't actually sign in and create a session until you make a signin() call
 
 Ex.
-t = TableauRestApiConnection(u"http://127.0.0.1", u"admin", u"adminsp@ssw0rd", site_content_url=u"site1")
+t = TableauRestApiConnection26(u"http://127.0.0.1", u"admin", u"adminsp@ssw0rd", site_content_url=u"site1")
+t.signin()
 logger = Logger(u"log_file.txt")
 t.enable_logging(logger)
-t.signin() 
 
 Now that you are signed-in, the TableauRestApiConnection object will hold all of the session state information and can be used to make any number of calls to that Site. 
 
@@ -108,7 +126,7 @@ The Tableau REST API only allows a session to a single Site at a time. To deal w
 
 TableauRestApiConnection.query_all_site_content_urls()
 
-returns an array that can be iterated. You must sign in to one site first to get this list however. So if you wanted to do an action to all sites, do the following:
+returns an list that can be iterated over. You must sign in to one site first to get this list however. So if you wanted to do an action to all sites, do the following:
 
 default = TableauRestApiConnection26(u"http://127.0.0.1", u"admin", u"adminsp@ssw0rd")
 default.signin()
@@ -122,7 +140,7 @@ for site_content_url in site_content_urls:
 2. Basics and Querying
 
 2.1 LUIDs - Locally Unique IDentifiers
-The Tableau REST API represents each object on the server (project, workbook, user, group, etc.) with a Locally Unique IDentifier (LUID). Every command other than the sign-in to a particular site (which uses the site_content_url) requires a LUID. LUIDs are returned when you create an object on the server, or they can be retrieved by the Query methods and then searched to find the matching LUID. tableau_tools 4.0 handles translations between real world names and LUIDs automatically for the vast majority of methods. Any parameter names that can accept both LUIDs and names are named along the pattern : "..._name_or_luid". There are few cases where only the LUID can be accepted. In this case, there are
+The Tableau REST API represents each object on the server (project, workbook, user, group, etc.) with a Locally Unique IDentifier (LUID). Every command other than the sign-in to a particular site (which uses the site_content_url) requires a LUID. LUIDs are returned when you create an object on the server, or they can be retrieved by the Query methods and then searched to find the matching LUID. tableau_tools 4.0+ handles translations between real world names and LUIDs automatically for the vast majority of methods. Any parameter names that can accept both LUIDs and names are named along the pattern : "..._name_or_luid". There are few cases where only the LUID can be accepted. In this case, the parameter will show just "_luid"
 
 
 2.2 Plural querying methods
@@ -136,7 +154,7 @@ TableauRestApiConnection.query_datasources()
 
 These will all return an ElementTree object representing the results from the REST API call. This can be useful if you need all of the information returned, but most of your calls to these methods will be to get a dictionary of names : luids you can use for lookup. There is a simple static method for this conversion
 
-TableauRestApiConnection.convert_xml_list_to_name_id_dict(lxml_obj)
+TableauRestApiConnection.convert_xml_list_to_name_id_dict(xml_obj)
 
 Ex.
 default = TableauRestApiConnection25(u"http://127.0.0.1", u"admin", u"adminsp@ssw0rd")
@@ -152,31 +170,67 @@ TableauRestApiConnection22 implements filtering and sorting for the methods wher
 
 http://onlinehelp.tableau.com/current/api/rest_api/en-us/help.htm#REST/rest_api_concepts_filtering_and_sorting.htm%3FTocPath%3DConcepts%7C_____7
 
-Filters can be passed via a UrlFilter class object. The UrlFilter class implements static factory methods to generate objects with the correct settings for each type of filter you might want to pass. 
+You should definitely check in the REST API reference as to which filters can be applied to which calls. Most of the function parameters should give you the expected filter (you can use a plural or singular version).
 
-UrlFilter.create_name_filter(name):
-UrlFilter.create_owner_name_filter(owner_name)
-UrlFilter.create_site_role_filter(site_role)
-UrlFilter.create_last_login_filter(operator, last_login_time)
-UrlFilter.create_created_at_filter(operator, created_at_time)
-UrlFilter.create_updated_at_filter(operator, updated_at_time)
-UrlFilter.create_tags_filter(operator, tags)
+For example, query_projects will run by itself, but it also contains optional parameters for each of the filter types it can take.
+
+TableauRestApiConnection25.query_projects(self, name_filter=None, owner_name_filter=None, updated_at_filter=None, created_at_filter=None,
+                       owner_domain_filter=None, owner_email_filter=None, sorts=None)
+
+Filters can be passed via a UrlFilter class object. However, you do not need to generate them directly, but instead should use factory methods to make sure you get them created with the right options.
+
+Each API version has an associated UrlFilter class which implements static factory methods to generate objects with the correct settings for each type of filter you might want to pass. The latest version always has all of the previous capabilities available. The following lists out in which version each filter factory method was implemented:
+
+UrlFilter23.create_name_filter(name)
+UrlFilter23.create_site_role_filter(site_role)
+UrlFilter23.create_owner_name_filter(owner_name)
+UrlFilter23.create_created_at_filter(operator, created_at_time)
+UrlFilter23.create_updated_at_filter(operator, updated_at_time)
+UrlFilter23.create_last_login_filter(operator, last_login_time)
+UrlFilter23.create_tags_filter(tags)
+UrlFilter23.create_tag_filter(tag)
+UrlFilter24.create_datasource_type_filter(ds_type)
+UrlFilter27.create_names_filter(names)
+UrlFilter27.create_site_roles_filter(site_roles)
+UrlFilter27.create_owner_names_filter(owner_names)
+UrlFilter27.create_domain_names_filter(domain_names)
+UrlFilter27.create_domain_nicknames_filter(domain_nicknames)
+UrlFilter27.create_domain_name_filter(domain_name)
+UrlFilter27.create_domain_nickname_filter(domain_nickname)
+UrlFilter27.create_minimum_site_roles_filter(minimum_site_roles)
+UrlFilter27.create_minimum_site_role_filter(minimum_site_role)
+UrlFilter27.create_is_local_filter(is_local)
+UrlFilter27.create_user_count_filter(operator, user_count)
+UrlFilter27.create_owner_domains_filter(owner_domains)
+UrlFilter27.create_owner_domain_filter(owner_domain)
+UrlFilter27.create_owner_emails_filter(owner_emails)
+UrlFilter27.create_owner_email_filter(owner_email)
+UrlFilter27.create_hits_total_filter(operator, hits_total)
 
 Ex. 
-owner_name_filter = UrlFilter.create_owner_name_filter(u'Bryant')
+bryant_filter = UrlFilter27.create_owner_name_filter(u'Bryant')
+t_filter = UrlFilter27.create_tags_filter([u'sales', u'sandbox'])
+t.query_workbooks(owner_name_filter=bryant_filter, tags_filter=t_filter)
 
 There is also a Sort object, which can just be initialized with the right parameters
 Sort(field, direction)
 
 where direction can be 'asc' or 'desc'
 
-    
+Sorts can be passed as a list to those methods that can accept them like the following:
+
+s = Sort(u'name', 'asc')
+t.query_workbooks(owner_name_filter=bryant_filter, tags_filter=t_filter, sorts=[s,])
+
+
 2.3 LUID Lookup Methods
 There are numerous methods for finding an LUID based on the name of a piece of content. An example would be:
 
 TableauRestApiConnection24.query_group_luid(name)
 
-These methods are very useful when you need a LUID to generate another action. With tableau_tools 4.0+, you shouldn't need these methods very frequently, as the majority of methods will do the lookup automaticaly if a name is passed in.   
+These methods are very useful when you need a LUID to generate another action. With tableau_tools 4.0+, you shouldn't need these methods very frequently, as the majority of methods will do the lookup automaticaly if a name is passed in.
+
+However, if you do have a LUID from a call or a create method, it will be faster to pass in the LUIDs, particularly for large lists.
 
 
 2.4 Singular querying methods
@@ -205,11 +259,10 @@ Published content (workbooks and datasources) and thumbnails can all be queried,
 TableauRestApiConnection.save_workbook_preview_image(wb_luid, filename)
 TableauRestApiConnection.save_workbook_view_preview_image_by_luid(wb_luid, view_luid, filename)
 
-The download_ methods actually can result in a programmatic representation of the content if there is no filename given. This will be discussed in another section of the guide.
 
 # Do not include file extension. Without filename, only returns the response
-TableauRestApiConnection.download_datasource_by_luid(ds_luid, filename=None)
-TableauRestApiConnection.download_workbook_by_luid(wb_luid, filename=None, no_obj_return=False)
+TableauRestApiConnection.download_datasource(ds_name_or_luid, filename_no_extension, proj_name_or_luid=None)
+TableauRestApiConnection.download_workbook(wb_name_or_luid, filename_no_extension, proj_name_or_luid=None)
 
 
 3. Administrative Actions (adding, removing, and syncing)
@@ -257,7 +310,7 @@ If you want to make a change to an existing piece of content on the server, ther
 
 Here's an example for updating a datasource:
 TableauRestApiConnection.update_datasource(name_or_luid, new_datasource_name=None, new_project_luid=None,
-                          new_owner_luid=None, proj_name_or_luid=False
+                          new_owner_luid=None, proj_name_or_luid=False)
 
 Note that if you want to change the actual content of a workbook or datasource, that requires a Publish action with Overwrite set to True                          
                           
@@ -281,15 +334,15 @@ TableauRestApiConnection.delete_current_site()
 If you are testing a script that creates a new site, you might use the following pattern to delete the existing version before rebuilding it:
 
 d = TableauRestApiConnection24(server, username, password, site_content_url='default')
-d.enable_logging(logger)
 d.signin()
+d.enable_logging(logger)
 
 new_site_content_url = u"my_site_name"
 try:
-    print "Attempting to create site {}".format(new_site_content_url)
+    print("Attempting to create site {}".format(new_site_content_url))
     d.create_site(new_site_content_url, new_site_content_url)
 except AlreadyExistsException:
-    print "Site replica already exists, deleting bad replica"
+    print("Site replica already exists, deleting bad replica")
     t = TableauRestApiConnection24(server, username, password, site_content_url=new_site_content_url)
     t.enable_logging(logger)
     t.signin()
@@ -298,13 +351,13 @@ except AlreadyExistsException:
     d.signin()
     d.create_site(new_site_content_url, new_site_content_url)
 
-print "Logging into {} site".format(new_site_content_url)
+print("Logging into {} site".format(new_site_content_url))
 t = TableauRestApiConnection(server, username, password, site_content_url=new_site_content_url)
-t.enable_logging(logger)
 t.signin()
+t.enable_logging(logger)
 
 3.8 Schedules (Extract and Subscriptions)
-Starting with TableauRestApiConnection23 , you can add or delete schedules for extracts and subscriptions. While there is a generic TableauRestApiConnection23.create_schedule() method , the unique aspects of each type schedule make it better to use the helper methods that specifically create the type of schedule you want:
+Starting with TableauRestApiConnection23 , you can add or delete schedules for extracts and subscriptions. While there is a generic TableauRestApiConnection23.create_schedule() method , the unique aspects of each type schedule make it better to use the helper factory methods that specifically create the type of schedule you want:
 
 TableauRestApiConnection23.create_daily_extract_schedule(name, start_time, priority=1, parallel_or_serial=u'Parallel')
 TableauRestApiConnection23.create_daily_subscription_schedule(name, start_time, priority=1, parallel_or_serial=u'Parallel')
@@ -359,7 +412,17 @@ TableauRestApiConnection23.query_schedule(schedule_name_or_luid)
 
 Not much reason to ever use the plain query_schedules() and have them mixed together. Schedules have unique names so there is no need to specify extract or subscription when asking individually
 
-3.9 Subscriptions
+3.8.1 Enabling and Disabling Schedules
+One use case for updating schedules is to enable or disable the schedule. There are two methods for doing just this action:
+
+TableauRestApiConnection23.disable_schedule(schedule_name_or_luid)
+TableauRestApiConnection23.enable_schedule(schedule_name_or_luid)
+
+If you want to create a new schedule and then disable it, combine the two commands:
+sched_luid = t_site.create_daily_extract_schedule(u'Afternoon Delight', start_time=u'13:00:00')
+t_site.disable_schedule(sched_luid)
+
+3.9 Subscriptions (API 2.3+)
 Starting with REST API 2.3 can subscribe a user to a view or a workbook on a given subscription schedule. This allows for mass actions such as subscribing everyone in a group to a given view or workbook, or removing subscriptions to old content and shifting them to new content.
 
 TableauRestApiConnection23.create_subscription_to_workbook(subscription_subject, wb_name_or_luid, schedule_name_or_luid, username_or_luid, project_name_or_luid=None)
@@ -381,7 +444,6 @@ This brings us to how to find subscriptions to do things to via query_subscripti
 TableauRestApiConnection23.query_subscriptions(username_or_luid=None, schedule_name_or_luid=None, subscription_subject=None,view_or_workbook=None, content_name_or_luid=None, project_name_or_luid=None, wb_name_or_luid=None)
 
 You don't have to pass anything to query_subscriptions(), and you'll get all of them in the system. However, if you want to filter down to a subset, you can pass any of the parameters, and the filters will be applied successively.
-
 
 
 4. Permissions
@@ -440,19 +502,19 @@ ProjectPermissions21(group_or_user, group_or_user_luid)
 
 You can get the correct permissions object through factory methods on the Project20 and Project21 classes. The option role parameter sets the permissions to match one of the named roles in Tableau Server. It is a shortcut to the set_capabilities_to_match_role method:
 
-Project20.create_datasource_permissions_object_for_group(luid, role=None)
-Project20.create_workbook_permissions_object_for_group(luid, role=None)
-Project20.create_project_permissions_object_for_group(luid, role=None)
-Project20.create_datasource_permissions_object_for_user(luid, role=None)
-Project20.create_workbook_permissions_object_for_user(luid, role=None)
-Project20.create_project_permissions_object_for_user(luid, role=None)
+Project20.create_datasource_permissions_object_for_group(group_name_or_luid, role=None)
+Project20.create_workbook_permissions_object_for_group(group_name_or_luid, role=None)
+Project20.create_project_permissions_object_for_group(group_name_or_luid, role=None)
+Project20.create_datasource_permissions_object_for_user(username_or_luid, role=None)
+Project20.create_workbook_permissions_object_for_user(username_or_luid, role=None)
+Project20.create_project_permissions_object_for_user(username_or_luid, role=None)
 
-Project21.create_datasource_permissions_object_for_group(luid, role=None)
-Project21.create_workbook_permissions_object_for_group(luid, role=None)
-Project21.create_project_permissions_object_for_group(luid, role=None)
-Project21.create_datasource_permissions_object_for_user(luid, role=None)
-Project21.create_workbook_permissions_object_for_user(luid, role=None)
-Project21.create_project_permissions_object_for_user(luid, role=None)
+Project21.create_datasource_permissions_object_for_group(group_name_or_luid, role=None)
+Project21.create_workbook_permissions_object_for_group(group_name_or_luid, role=None)
+Project21.create_project_permissions_object_for_group(group_name_or_luid, role=None)
+Project21.create_datasource_permissions_object_for_user(username_or_luid, role=None)
+Project21.create_workbook_permissions_object_for_user(username_or_luid, role=None)
+Project21.create_project_permissions_object_for_user(username_or_luid, role=None)
 
 This ProjectXX object should be acquired by querying or creating a project, returning the correct Project object. You shouldn't ever need to contruct any of them manually.
 
@@ -554,6 +616,7 @@ o_perms_obj_list = orig_proj.datasource_defaults.current_perms_obj_list
 n_perms_obj_list = new_proj.datasource_defaults.convert_permissions_obj_list_from_orig_site_to_current_site(o_perms_obj_list, o)
 new_proj.datasource_defaults.set_permissions_by_permissions_obj_list(n_perms_obj_list)
 
+
 5. Publishing Content
 The Tableau REST API can publish both data sources and workbooks, either as TWB / TDS files or TWBX or TDSX files. It actually has two different methods of publishing; one as a single upload, and the other which chunks the upload. tableau_rest_api encapsulates all this into two methods that detect the right calls to make. The default threshold is 20 MB for a file before it switches to chunking. This is set by the "single_upload_limit" variable. 
 
@@ -589,6 +652,8 @@ TableauRestApiConnection23.download_datasource_revision(ds_name_or_luid, revisio
 TableauRestApiConnection23.download_workbook_revision(wb_name_or_luid, revision_number, filename_no_extension, proj_name_or_luid=None)
 
 6. Refreshing Extracts (Tableau 10.3+ / API 2.6)
+
+6.1 Running an Extract Refresh Schedule (Tableau 10.3+ / API 2.6)
 The TableauRestApiConnection26 class, representing the API for Tableau 10.3, includes methods for triggering extract refreshes via the REST API.
 
 TableauRestApiConnection26.run_all_extract_refreshes_for_schedule(schedule_name_or_luid) 
@@ -618,10 +683,23 @@ for sched in sched_dict:
     t.run_all_extract_refreshes_for_schedule(sched_dict[sched])  # This passes the LUID
     # t.run_all_extract_refreshes_for_schedule(sched_dict) # You can pass the name also, it just causes extra lookups
 
-6.1 Putting published content on an Extract Schedule (high risk)
-There is currently (as of Tableau 10.4) no REST API method for putting a given workbook or datasource on an extract schedule. 
+6.1.1 Running an Extract Refresh (no schedule) (10.5/ API 2.8)
+In 10.5+, there is a method to update the extract in a published data source without specifying the Schedule Task. The run_extract_refresh_for_datasource() method in TableauRestApiConnection28 automatically takes advantage of this, but it is implemented internaly by calling the new method:
 
-This can be accomplished by making a direct entry into the Tableau PostgreSQL Repository using the tblwgadmin user. You must be running your script FROM the Tableau Server machine to have access to connect to the repository (you may be able to modify firewall and other things per https://onlinehelp.tableau.com/current/server/en-us/perf_collect_server_repo.htm but it's easiest just to be on the Server itself)
+TableauRestApiConnection28.update_datasource_now(ds_name_or_luid, project_name_or_luid=False)
+
+
+6.2 Putting published content on an Extract Schedule (10.5+)
+Starting in Tableau 10.5 (API 2.8), you can put a workbook or datasource on an Extract Refresh Schedule using the REST API.
+
+TableauRestApiConnection28.add_workbook_to_schedule(wb_name_or_luid, schedule_name_or_luid, proj_name_or_luid)
+TableauRestApiConnection28.add_datasource_to_schedule(ds_name_or_luid, schedule_name_or_luid, proj_name_or_luid)
+
+
+6.2.1 Putting published content on an Extract Schedule Prior to 10.5 (high risk)
+Prior to Tableau 10.5, there was no REST API method for putting a given workbook or datasource on an extract schedule.
+
+This could be accomplished by making a direct entry into the Tableau PostgreSQL Repository using the tblwgadmin user. You must be running your script FROM the Tableau Server machine to have access to connect to the repository (you may be able to modify firewall and other things per https://onlinehelp.tableau.com/current/server/en-us/perf_collect_server_repo.htm but it's easiest just to be on the Server itself)
 
 The TableauRepository class has a method for accomplishing the necessary insert.
 
@@ -633,7 +711,7 @@ new_wb_luid = t.publish_workbook(new_filename, u'My Awesome TWBX Workbook', defa
 tab_rep = TableauRepository(u'https://tableauserver', repository_username=u'tblwgadmin', repository_password=u'')
 tab_rep.set_workbook_on_schedule(new_wb_luid, u'Saturday night')
 
-As mentioned, this requires have super access to the Tableau repository, including its password, which could be dangerous.
+As mentioned, this requires have super access to the Tableau repository, including its password, which could be dangerous. If you can at all, update to Tableau 10.5+ and use the REST API methods from above.
 
     
 7. Modifying Tableau Documents (for Template Publishing)
@@ -680,7 +758,7 @@ The TableauDocument class helps map the differences between TableauWorkbook and 
 
 TableauDocument.document_type  : return either [u'datasource', u'workbook'] . More generic than TableauFile.file_type
 TableauDocument.datasources : returns an array of TableauDatasource objects. 
-For a TableauDatasource, TableauDocuemnt.datasources will only have a single datasource, itself, in datasources[0]. TableauWorkbooks might have more than one. This property thus allows you to do modifications on both individual datasources and those embedded within workbooks without worrying about whether the document is a workbook or a datasource.
+For a TableauDatasource, TableauDocument.datasources will only have a single datasource, itself, in datasources[0]. TableauWorkbooks might have more than one. This property thus allows you to do modifications on both individual datasources and those embedded within workbooks without worrying about whether the document is a workbook or a datasource.
 
 TableauDocument also implements a save_file method:
 
@@ -794,52 +872,3 @@ print new_filename  # Extract Workbooks.twbx
 If you intialized a TableauFile object with no filename, you will have "from scratch" TableauDatasource as your .tableau_document object. The TableauDatasource object contains all of the functionality from TableauDatasourceGenerator from a previous version of tableau_tools. 
 
 
-
-6.10
-
-6.8 Translating Columns
-TableauDatasource.translate_columns(key_value_dict) will do a find/replace on the caption attribute of the column tags in the XML.
-
-When you save the datasource (or workbook), the changed captions will be written into the new XML.
-
-translate_columns actually calls translate_captions in the TableauColumns object, which follows the following rules for a match:
-
-    If no caption is set, look for a dict key that matches the name attribute, and if it matches, create a caption attribute and give it the value from the dict
-    If a caption is already set, look for a matching dict key for the existing caption.
-        If matching caption exists, replace with the new value
-        If matching caption does not exist, look for a matching name attribute, then replace the caption if one is found
-
-This is why the best method is to set your tokens in Tableau Desktop, so that you know exactly the captions you want to match to.
-
-Here is some example code in action (in an ideal world, you would pull your translations from a table and create the dicts programmatically):
-
-logger = Logger('translate.log')
-# Translation dictionaries (build automatically from a table)
-translations = { 'en': {
-                       '{Order Date}': 'Order Date',
-                       '{Sales}': 'Sales'
-                       },
-                 'de': {
-                        '{Order Date}': 'Auftragsdatum',
-                        '{Sales}': 'Bestellungen'
-                       },
-                 'ru': {
-                        '{Order Date}': u'Дата заказа',
-                        '{Sales}': u'заказы'
-                       },
-                'th': {
-                        '{Order Date}': u'วันสั่ง',
-                        '{Sales}': u'คำสั่งซื้อ'
-                      }
-              }
-
-
-for lang in translations:
-    wb_obj = TableauWorkbook(wb_filename, logger_obj=logger)
-    
-    for ds in wb_obj.datasources.values():
-        # Input the dict with translations
-        ds.translate_columns(translations[lang])
-
-    # Save to a new workbook with the correct language code appended
-    wb_obj.save_workbook_xml('workbook_{}.twb'.format(lang))

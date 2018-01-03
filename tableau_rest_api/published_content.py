@@ -61,6 +61,29 @@ class PublishedContent(TableauBase):
    #     users_dict = self.t_rest_api.convert_xml_list_to_name_id_dict(users)
    #     return users_dict
 
+    # Copy Permissions for users or group
+    def _copy_permissions_obj(self, perms_obj, user_or_group, name_or_luid):
+        self.start_log_block()
+        if self.is_luid(name_or_luid):
+            luid = name_or_luid
+        else:
+            if user_or_group == u'group':
+                luid = self.t_rest_api.query_group_luid(name_or_luid)
+            elif user_or_group == u'user':
+                luid = self.t_rest_api.query_user_luid(name_or_luid)
+            else:
+                raise InvalidOptionException(u'Must send group or user only')
+        new_perms_obj = copy.deepcopy(perms_obj)
+        new_perms_obj.luid = luid
+        self.end_log_block()
+        return new_perms_obj
+
+    def copy_permissions_obj_for_group(self, perms_obj, group_name_or_luid):
+        return self._copy_permissions_obj(perms_obj, u'group', group_name_or_luid)
+
+    def copy_permissions_obj_for_user(self, perms_obj, username_or_luid):
+        return self._copy_permissions_obj(perms_obj, u'user', username_or_luid)
+
     # Runs through the gcap object list, and tries to do a conversion all principals to matching LUIDs on current site
     # Use case is replicating settings from one site to another
     # Orig_site must be TableauRestApiConnection
