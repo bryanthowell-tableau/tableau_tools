@@ -222,6 +222,26 @@ Sorts can be passed as a list to those methods that can accept them like the fol
 s = Sort(u'name', 'asc')
 t.query_workbooks(owner_name_filter=bryant_filter, tags_filter=t_filter, sorts=[s,])
 
+2.2.2 Fields (API 2.5+)
+API 2.5 introduced the concept of fields, which all for bringing back additional fields not in the original specifications for certain calls, or limit down what is retrieved so that there is not so much additional to process through.
+
+Fields are only available on certain calls, detailed here:
+
+https://onlinehelp.tableau.com/current/api/rest_api/en-us/help.htm#REST/rest_api_concepts_fields.htm%3FTocPath%3DConcepts%7C_____8
+
+Where a field reduction can improve efficiency, it is implemented without any need to call it explicitly.
+
+For the calls where there is MORE information available now with fields, they all have been converted to automatically call the "_all_" method of the fields, to bring back everything. If you instead want to send a particular set of fields, you can include them as a list of unicode values. Just make sure to the look at the reference guide for what to send.
+
+For example, the definition of query_users() looks like this starting in 2.5:
+
+TableauRestApiConnection25.query_users(all_fields=True, last_login_filter=None, site_role_filter=None, sorts=None, fields=None)
+
+You can use like this to specify specific fields only to come back:
+
+t_site.query_users(fields=[u'name', u'id', u'lastLogin')
+
+(This is a lot more useful on something like query_workbooks which has additional info about the owner and the project which are not included in the defaults).
 
 2.3 LUID Lookup Methods
 There are numerous methods for finding an LUID based on the name of a piece of content. An example would be:
