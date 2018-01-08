@@ -118,6 +118,7 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         else:
             view_luid = self.query_workbook_view_luid(wb_name_or_luid, view_name=view_name_or_luid,
                                                       p_name_or_luid=proj_name_or_luid)
+
         self.end_log_block()
 
     ###
