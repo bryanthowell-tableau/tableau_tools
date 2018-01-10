@@ -93,13 +93,13 @@ class TableauRestApiConnection(TableauBase):
         if admin_mode is not None:
             s.set(u'adminMode', admin_mode)
         if user_quota is not None:
-            s.set(u'userQuota', user_quota)
+            s.set(u'userQuota', unicode(user_quota))
         if state is not None:
             s.set(u'state', state)
         if storage_quota is not None:
-            s.set(u'storageQuota', storage_quota)
+            s.set(u'storageQuota', unicode(storage_quota))
         if disable_subscriptions is not None:
-            s.set(u'disableSubscriptions', str(disable_subscriptions).lower())
+            s.set(u'disableSubscriptions', unicode(disable_subscriptions).lower())
 
         tsr.append(s)
         return tsr
@@ -1134,9 +1134,7 @@ class TableauRestApiConnection(TableauBase):
         """
         self.start_log_block()
         # Check to make sure role that is passed is a valid role in the API
-        try:
-            self.__site_roles.index(site_role)
-        except:
+        if site_role not in self.site_roles:
             raise InvalidOptionException(u"{} is not a valid site role in Tableau Server".format(site_role))
 
         self.log(u"Adding {}".format(username))
@@ -1658,7 +1656,7 @@ class TableauRestApiConnection(TableauBase):
         self.start_log_block()
         tsr = self.build_site_request_xml(site_name, content_url, admin_mode, user_quota, storage_quota,
                                                      disable_subscriptions, state)
-        url = self.build_api_url(u"/")
+        url = self.build_api_url(u"")
         response = self.send_update_request(url, tsr)
         self.end_log_block()
         return response

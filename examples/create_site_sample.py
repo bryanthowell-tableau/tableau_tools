@@ -2,7 +2,6 @@
 
 from tableau_tools.tableau_rest_api import *
 from tableau_tools import *
-import urllib2
 import time
 
 server = u'http://127.0.0.1'
@@ -13,17 +12,19 @@ new_site_content_url = u'test_site'
 new_site_name = u'Sample Test Site'
 
 # Choose the API version for your server. 10.2 = 25
-default = TableauRestApiConnection25(server, username, password)
+default = TableauRestApiConnection26(server, username, password)
 try:
     default.signin()
     default.create_site(new_site_name, new_site_content_url)
-except AlreadyExistsException:
+except AlreadyExistsException as e:
     print e.msg
     print u"Cannot create new site, it already exists"
     exit()
 
 time.sleep(4)
-t = TableauRestApiConnection25(server, username, password, new_site_content_url)
+
+
+t = TableauRestApiConnection26(server, username, password, new_site_content_url)
 t.signin()
 logger = Logger(u'create_site_sample.log')
 # Enable logging after sign-in to hide credentials

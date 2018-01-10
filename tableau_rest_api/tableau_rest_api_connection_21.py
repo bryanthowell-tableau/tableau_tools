@@ -136,9 +136,7 @@ class TableauRestApiConnection21(TableauRestApiConnection):
         """
         self.start_log_block()
         # Check to make sure role that is passed is a valid role in the API
-        try:
-            self.__site_roles.index(site_role)
-        except:
+        if site_role not in self.site_roles:
             raise InvalidOptionException(u"{} is not a valid site role in Tableau Server".format(site_role))
 
         if auth_setting is not None:

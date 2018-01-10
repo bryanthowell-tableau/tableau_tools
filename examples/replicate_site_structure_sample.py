@@ -71,6 +71,9 @@ for proj in proj_dict:
     # This assumes locked permissions and no description. Can iterate over objects if you need some of that
     n.create_project(proj, no_return=True)
 
+
+    n.create_project()
+
 # Let the projects get all settled in
 time.sleep(4)
 

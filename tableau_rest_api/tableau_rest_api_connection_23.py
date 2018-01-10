@@ -38,17 +38,17 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         if admin_mode is not None:
             s.set(u'adminMode', admin_mode)
         if user_quota is not None:
-            s.set(u'userQuota', user_quota)
+            s.set(u'userQuota', unicode(user_quota))
         if state is not None:
             s.set(u'state', state)
         if storage_quota is not None:
-            s.set(u'storageQuota', storage_quota)
+            s.set(u'storageQuota', unicode(storage_quota))
         if disable_subscriptions is not None:
             s.set(u'disableSubscriptions', str(disable_subscriptions).lower())
         if revision_history_enabled is not None:
             s.set(u'revisionHistoryEnabled', str(revision_history_enabled).lower())
         if revision_limit is not None:
-            s.set(u'revisionLimit', revision_limit)
+            s.set(u'revisionLimit', unicode(revision_limit))
 
         tsr.append(s)
         return tsr
@@ -874,7 +874,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         self.start_log_block()
         tsr = self.build_site_request_xml(site_name, content_url, admin_mode, user_quota, storage_quota,
                                           disable_subscriptions, state)
-        url = self.build_api_url(u"/")
+        url = self.build_api_url(u"")
         response = self.send_update_request(url, tsr)
         self.end_log_block()
         return response
