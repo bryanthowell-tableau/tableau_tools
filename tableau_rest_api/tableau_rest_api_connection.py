@@ -1178,6 +1178,7 @@ class TableauRestApiConnection(TableauBase):
         :type password: unicode
         :type email: unicode
         :type update_if_exists: bool
+        :type auth_setting: unicode
         :rtype: unicode
         """
         self.start_log_block()

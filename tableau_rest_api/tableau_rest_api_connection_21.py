@@ -125,3 +125,79 @@ class TableauRestApiConnection21(TableauRestApiConnection):
             url = self.build_api_url(u"groups/{}".format(group_luid))
             self.send_delete_request(url)
         self.end_log_block()
+
+    def add_user_by_username(self, username, site_role=u'Unlicensed', auth_setting=None, update_if_exists=False):
+        """
+        :type username: unicode
+        :type site_role: unicode
+        :type update_if_exists: bool
+        :type auth_setting: unicode
+        :rtype: unicode
+        """
+        self.start_log_block()
+        # Check to make sure role that is passed is a valid role in the API
+        try:
+            self.__site_roles.index(site_role)
+        except:
+            raise InvalidOptionException(u"{} is not a valid site role in Tableau Server".format(site_role))
+
+        if auth_setting is not None:
+            if auth_setting not in [u'SAML', u'ServerDefault']:
+                raise InvalidOptionException(u'auth_setting must be either "SAML" or "ServerDefault"')
+        self.log(u"Adding {}".format(username))
+        tsr = etree.Element(u"tsRequest")
+        u = etree.Element(u"user")
+        u.set(u"name", username)
+        u.set(u"siteRole", site_role)
+        if auth_setting is not None:
+            u.set(u'authSetting', auth_setting)
+        tsr.append(u)
+
+        url = self.build_api_url(u'users')
+        try:
+            new_user = self.send_add_request(url, tsr)
+            new_user_luid = new_user.findall(u'.//t:user', self.ns_map)[0].get("id")
+            self.end_log_block()
+            return new_user_luid
+        # If already exists, update site role unless overridden.
+        except RecoverableHTTPException as e:
+            if e.http_code == 409:
+                self.log(u"Username '{}' already exists on the server".format(username))
+                if update_if_exists is True:
+                    self.log(u'Updating {} to site role {}'.format(username, site_role))
+                    self.update_user(username, site_role=site_role)
+                    self.end_log_block()
+                    return self.query_user_luid(username)
+                else:
+                    self.end_log_block()
+                    raise AlreadyExistsException(u'Username already exists ', self.query_user_luid(username))
+        except:
+            self.end_log_block()
+            raise
+
+    # This is "Add User to Site", since you must be logged into a site.
+    # Set "update_if_exists" to True if you want the equivalent of an 'upsert', ignoring the exceptions
+    def add_user(self, username, fullname, site_role=u'Unlicensed', password=None, email=None, auth_setting=None,
+                 update_if_exists=False):
+        """
+        :type username: unicode
+        :type fullname: unicode
+        :type site_role: unicode
+        :type password: unicode
+        :type email: unicode
+        :type update_if_exists: bool
+        :type auth_setting: unicode
+        :rtype: unicode
+        """
+        self.start_log_block()
+        try:
+            # Add username first, then update with full name
+            new_user_luid = self.add_user_by_username(username, site_role=site_role, update_if_exists=update_if_exists,
+                                                      auth_setting=auth_setting)
+            self.update_user(new_user_luid, fullname, site_role, password, email)
+            self.end_log_block()
+            return new_user_luid
+        except AlreadyExistsException as e:
+            self.log(u"Username '{}' already exists on the server; no updates performed".format(username))
+            self.end_log_block()
+            return e.existing_luid
