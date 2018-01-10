@@ -40,8 +40,8 @@ def update_workbook_permissions(project_obj, published_workbook_object, group_lu
     # Query the permissions objects (comes as a list)
     permissions = published_workbook_object.get_permissions_obj_list()
     print(u"Retrieved Permissions")
-    # Get the permissions object for "All Users"
-    # Have to check for "All Users" not being set at all
+    # Get the permissions object for the group_luid
+    # Have to check for group_luid not being set at all
     does_group_have_any_permissions = False
     for perm_obj in permissions:
 
