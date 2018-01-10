@@ -1,7 +1,6 @@
 from ..tableau_base import *
 from tableau_connection import TableauConnection
 from tableau_document import TableauColumns, TableauDocument
-from tableau_datasource_generator import TableauDatasourceGenerator, TableauParametersGenerator
 
 import xml.etree.cElementTree as etree
 from ..tableau_exceptions import *
@@ -11,6 +10,7 @@ import copy
 from xml.sax.saxutils import quoteattr
 import datetime
 import codecs
+
 
 # Meant to represent a TDS file, does not handle the file opening
 class TableauDatasource(TableauDocument):

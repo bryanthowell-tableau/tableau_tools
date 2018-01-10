@@ -35,10 +35,13 @@ class TableauRepository:
         self.db_conn.close()
 
     # Base method for querying
-    def query(self, sql, sql_parameter_array):
+    def query(self, sql, sql_parameter_list=None):
 
         cur = self.db_conn.cursor()
-        cur.execute(sql, sql_parameter_array)
+        if sql_parameter_list is None:
+            cur.execute(sql, sql_parameter_list)
+        else:
+            cur.execute(sql)
         return cur
 
     def query_sessions(self, username=None):
@@ -54,13 +57,12 @@ sessions.shared_wg_write,
 sessions.shared_vizql_write,
 system_users.name AS user_name,
 users.system_user_id
-FROM sessions,
-system_users,
-users
-WHERE sessions.user_id = users.id AND users.system_user_id = system_users.id
-        """
+FROM sessions
+JOIN users ON sessions.user_id = users.id
+JOIN system_users ON users.system_user_id = system_users.id
+"""
         if username is not None:
-            sessions_sql += "AND system_users.name = %s\n"
+            sessions_sql += "WHERE system_users.name = %s\n"
         sessions_sql += "ORDER BY sessions.updated_at DESC;"
 
         if username is not None:
@@ -291,11 +293,11 @@ FROM _sites
 """
         self.query(insert_query, [schedule_id, wb_id, site_id])
 
-    def set_datasource_on_schedule(self, datsource_luid, schedule_name):
-        if TableauBase.is_luid(datsource_luid) is False:
-            raise InvalidOptionException(u'Workbook luid must be a luid. You passed in {}'.format(datsource_luid))
-        ds_id = self.query_datasource_id_from_luid(datsource_luid)
-        site_id = self.query_site_id_from_datasource_luid(datsource_luid)
+    def set_datasource_on_schedule(self, datasource_luid, schedule_name):
+        if TableauBase.is_luid(datasource_luid) is False:
+            raise InvalidOptionException(u'Workbook luid must be a luid. You passed in {}'.format(datasource_luid))
+        ds_id = self.query_datasource_id_from_luid(datasource_luid)
+        site_id = self.query_site_id_from_datasource_luid(datasource_luid)
         schedule_id = self.get_extract_schedule_id_by_name(schedule_name)
 
         insert_query = """

@@ -19,7 +19,10 @@ servers = {
            # u'10.0': {u"server": u"http://127.0.0.1", u"username": u"", u"password": u""},
            # u'10.1': {u"server": u"http://127.0.0.1", u"username": u"", u"password": u""},
            # u"10.2": {u"server": u"http://127.0.0.1", u"username": u"", u"password": u""},
-           u"10.3": {u"server": u"http://127.0.0.1", u"username": u"", u"password": u""}
+           #u"10.3": {u"server": u"http://127.0.0.1", u"username": u"", u"password": u""},
+           #u"10.4": {u"server": u"http://127.0.0.1", u"username": u"", u"password": u""},
+           #u"10.5": {u"server": u"http://127.0.0.1", u"username": u"", u"password": u""},
+           u"10.5 Linux": {u"server": u"http://127.0.0.1", u"username": u"", u"password": u""}
            }
 
 
@@ -29,24 +32,29 @@ def run_tests(server_url, username, password):
     words = [u'ASCII', u'Οὐχὶ ταὐτὰ', u'γιγνώσκειν', u'რეგისტრაცია', u'Международную', u'โฮจิ๋นเรียกทัพทั่วหัวเมืองมา',
              u'አይተዳደርም።', u'晚飯', u'晩ご飯', u'저녁밥', u'bữa ăn tối', u'Señor']
 
-    logger = Logger(u'tableau_tools_test.log')
+    log_obj = Logger(u'tableau_tools_test.log')
 
     # Test Files to Publish
-    twbx_filename = u'test_workbook_excel.twbx' # Replace with your own test file
-    twbx_content_name = u'Test workbook' # Replace with your own name
+    twbx_filename = u'test_workbook_excel.twbx'  # Replace with your own test file
+    twbx_content_name = u'Test TWBX workbook'  # Replace with your own name
 
-    tdsx_filename = u'test_datsource.twbx' # Replace with your own test file
-    tdsx_content_name = u'Test Datasource' # Use your own name
+    twb_filename = u'twb_workbook.twb'  # Replace with your own file
+    twb_content_name = u'Test Live Connection Workbook'
+
+    tdsx_filename = u'test_datasource.tdsx'  # Replace with your own test file
+    tdsx_content_name = u'Test TDSX Datasource'  # Use your own name
+
+    tds_filename = u'test_live_datasource.tds'  # Replace with your test file
+    tds_content_name = u'Test TDS Live Data Source'
+    # End Test Files
 
     # Create a default connection
-    default = TableauRestApiConnection26(server_url, username, password, u'default')
+    default = TableauRestApiConnection26(server_url, username, password, site_content_url=u'default')
     default.signin()
-    default.enable_logging(logger)
-    default.query_workbook()
-
+    default.enable_logging(log_obj)
 
     # Step 1: Creating a test site
-    test_site = create_test_site(default, server_url, username, password, logger)
+    test_site = create_test_site(default, server_url, username, password, log_obj)
 
     # Step 2: Project tests
     project_tests(test_site, words)
@@ -66,17 +74,17 @@ def run_tests(server_url, username, password):
     # Step 6: Publishing Workbook Tests
     workbooks_test(test_site, twbx_filename, twbx_content_name)
 
-    # Step 7: Publishing Datasource tests
+    # Step 7: Subscription tests
+    #if isinstance(test_site, TableauRestApiConnection23):
+    #    subscription_tests(test_site)
+
+    # Step 8: Publishing Datasource tests
     #publishing_datasources_test(test_site, tdsx_filename, tdsx_content_name)
 
     # These capabilities are only available in later API versions
-    # Step 8: Scheduling tests
-    if isinstance(test_site, TableauRestApiConnection23):
-        schedule_test(test_site)
-
-    # Step 9: Subscription tests
-    if isinstance(test_site, TableauRestApiConnection23):
-        subscription_test(test_site)
+    # Step 9: Scheduling tests
+    #if isinstance(test_site, TableauRestApiConnection23):
+    #    schedule_test(test_site)
 
     # Step 10: Extract Refresh tests
 
@@ -90,31 +98,31 @@ def create_test_site(default_site, server_url, username, password, logger):
     :type logger: Logger
     :rtype: TableauRestApiConnection25
     """
-    print u"Creating a test site"
+    print(u"Creating a test site")
     logger.log(u'Creating test site')
+
     # Assign this however you'd like
-    new_site_content_url = u'tsite'
-    new_site_name = u'Test Site'
-    new_site_name_to_change_to = u'Test Site 2'
+    new_site_content_url = u'tableau_tools'
+    new_site_name = u'Test Site 1'
+    new_site_name_to_change_to = u'Test Site - tableau_tools'
+
     # Determine if site exists with current name. Delete if it does.
     # Then create new site with the same name and contentUrl
     try:
-        logger.log(u'Received content_url to delete ' + new_site_content_url)
+        logger.log(u'Received content_url to delete {}'.format(new_site_content_url))
         test_site = TableauRestApiConnection25(server_url, username, password, new_site_content_url)
         test_site.signin()
         test_site.enable_logging(logger)
-        logger.log(u'Signed in successfully to ' + new_site_content_url)
+        logger.log(u'Signed in successfully to {}'.format(new_site_content_url))
 
         site_xml = test_site.query_current_site()
 
         logger.log(u'Attempting to delete current site')
         test_site.delete_current_site()
-        logger.log(u"Deleted site " + new_site_name)
+        logger.log(u"Deleted site {}".format(new_site_name))
     except RecoverableHTTPException as e:
         logger.log(e.tableau_error_code)
         logger.log(u"Cannot delete site that does not exist, assuming it already exists and continuing")
-    except Exception as e:
-        raise
 
     try:
         # Create the new site
@@ -122,26 +130,42 @@ def create_test_site(default_site, server_url, username, password, logger):
         default_site.log(u'Logging with the log function')
         new_site_id = default_site.create_site(new_site_name, new_site_content_url)
         logger.log(u'Created new site ' + new_site_id)
+    # This shouldn't happen if the existing check and delete happened earlier, but might as well protect
     except AlreadyExistsException as e:
-        print e.msg
-        print u"Cannot create new site due to error, exiting"
+        print(e.msg)
+        print(u"Cannot create new site due to error, exiting")
         exit()
-    except Exception as e:
-        raise
 
     # Once we've created the site, we need to sign into it to do anything else
-    test_site = TableauRestApiConnection25(server_url, username, password, new_site_content_url)
-    test_site.enable_logging(logger)
-
+    test_site = TableauRestApiConnection25(server_url, username, password, site_content_url=new_site_content_url)
     test_site.signin()
+    test_site.enable_logging(logger)
     logger.log(u'Signed in successfully to ' + new_site_content_url)
+
     # Update the site name
     logger.log(u'Updating site name')
     test_site.update_site(site_name=new_site_name_to_change_to)
+
+    logger.log(u'Updating everything about site')
+    if isinstance(test_site, TableauRestApiConnection23):
+        # If e-mail subscriptions are disabled for the Server, this comes back with an error
+        #test_site.update_site(content_url=new_site_content_url, admin_mode=u'ContentAndUsers', user_quota=u'30',
+        #                      storage_quota=u'400', disable_subscriptions=False, state=u'Active',
+        #                      revision_history_enabled=True, revision_limit=u'15')
+        test_site.update_site(content_url=new_site_content_url, admin_mode=u'ContentAndUsers', user_quota=u'30',
+                              storage_quota=u'400', state=u'Active',
+                              revision_history_enabled=True, revision_limit=u'15')
+    else:
+        test_site.update_site(content_url=new_site_content_url, admin_mode=u'ContentAndUsers', user_quota=u'30',
+                              storage_quota=u'400', disable_subscriptions=False, state=u'Active')
+
     logger.log(u"Getting all site_content_urls on the server")
     all_site_content_urls = test_site.query_all_site_content_urls()
+
     logger.log(unicode(all_site_content_urls))
-    print u'Finished creating new site'
+    test_site.query_sites()
+
+    print(u'Finished creating new site')
     return test_site
 
 
@@ -150,21 +174,21 @@ def project_tests(t_site, project_names):
     :type t_site: TableauRestApiConnection
     :type project_names: list[unicode]
     """
-    print u'Testing project methods'
+    print(u'Testing project methods')
     for project in project_names:
         t_site.log(u"Creating Project {}".format(project).encode(u'utf8'))
-        t_site.create_project(project)
+        t_site.create_project(project, project_desc=u'I am a not a folder, I am project', no_return=True)
 
     # Sleep ensures we don't get ahead of the REST API updating with the new projects
     time.sleep(4)
     t_site.log(u'Updating first project')
-    t_site.update_project(project_names[0], u'Updated ' + project_names[0], u'This is only for important people')
+    t_site.update_project(project_names[0], new_project_name=u'Updated {}'.format(project_names[0]),
+                          new_project_description=u'This is only for important people')
     t_site.log(u"Deleting second and third projects")
     t_site.delete_projects([project_names[1], project_names[2]])
-    print u"Finished testing project methods"
+    print(u"Finished testing project methods")
 
 
-# Delete Groups not introduced until API 2.1
 def group_tests(t_site, group_names):
     """
     :type t_site: TableauRestApiConnection21
@@ -180,10 +204,12 @@ def group_tests(t_site, group_names):
     # Let all of the groups settle in
     time.sleep(3)
     t_site.log(u'Updating first group name')
-    t_site.update_group(group_names[0], group_names[0] + u' (updated)')
+    t_site.update_group(group_names[0], u'{} (updated)'.format(group_names[0]))
 
-    t_site.log(u'Deleting fourth group')
-    t_site.delete_groups(group_names[3])
+    # Delete Groups not introduced until API 2.1
+    if isinstance(t_site, TableauRestApiConnection21):
+        t_site.log(u'Deleting fourth group')
+        t_site.delete_groups(group_names[3])
 
     t_site.log(u"Querying all the groups")
     groups_on_site = t_site.query_groups()
@@ -191,7 +217,7 @@ def group_tests(t_site, group_names):
     # Convert the list to a dict {name : luid}
     groups_dict = t_site.convert_xml_list_to_name_id_dict(groups_on_site)
     t_site.log(unicode(groups_dict))
-    print u'Finished group tests'
+    print(u'Finished group tests')
     time.sleep(3)  # Let everything update
     return groups_dict
 
@@ -201,7 +227,7 @@ def project_permissions_tests21(t_site):
     :type t_site: TableauRestApiConnection21
     :return:
     """
-    print u"Starting Permissions tests"
+    print(u"Starting Permissions tests")
     projects = t_site.query_projects()
     projects_dict = t_site.convert_xml_list_to_name_id_dict(projects)
     project_names = projects_dict.keys()
@@ -268,7 +294,7 @@ def user_tests(t_site, names):
     :type names: list[unicode]
     :return:
     """
-    print u'Starting User tests'
+    print(u'Starting User tests')
     # Create some fake users to assign to groups
 
     new_user_luids = []
@@ -276,7 +302,11 @@ def user_tests(t_site, names):
         username = name
         full_name = name.upper()
         t_site.log(u"Creating User '{}' named '{}'".format(username, full_name))
-        new_user_luid = t_site.add_user(username, full_name, u'Interactor', u'password', username + u'@nowhere.com')
+        try:
+            new_user_luid = t_site.add_user(username, full_name, u'Interactor', u'password', username + u'@nowhere.com')
+        except InvalidOptionException as e:
+            print(e.msg)
+            raise
         new_user_luids.append(new_user_luid)
 
     # This takes Users x Groups amount of time to complete, can really stretch out the test
@@ -300,6 +330,9 @@ def user_tests(t_site, names):
     t_site.log(u'Unlicensing the second user')
     t_site.update_user(new_user_luids[1], site_role=u'Unlicensed')
 
+    t_site.log(u'Updating second user')
+    t_site.update_user(new_user_luids[1], full_name=u'Updated User', password=u'h@ckm3', email=u'me@gmail.com')
+
     t_site.log(u'Removing the third user')
     t_site.remove_users_from_site(new_user_luids[2])
 
@@ -309,22 +342,49 @@ def user_tests(t_site, names):
     users_dict = t_site.convert_xml_list_to_name_id_dict(users)
     t_site.log(unicode(users_dict.keys()))
 
-    print u'Finished User tests'
+    if isinstance(t_site, TableauRestApiConnection25):
+        name_sort = Sort(u'name', u'desc')
+        if isinstance(t_site, TableauRestApiConnection28):
+            role_f = UrlFilter28.create_site_roles_filter([u'Interactor', u'Publisher'])
+        else:
+            role_f = UrlFilter25.create_site_role_filter(u'Interactor')
+        ll_f = UrlFilter25.create_last_login_filter(u'gte', u'2018-01-01T00:00:00:00Z')
+
+        users = t_site.query_users(sorts=[name_sort, ], site_role_filter=role_f, last_login_filter=ll_f)
+        t_site.log(u'Here are sorted and filtered users')
+        for user in users:
+            t_site.log(user.get(u'name'))
+
+    print(u'Finished User tests')
 
 
-def workbooks_test(t_site, twbx_filename, twbx_content_name):
+def workbooks_test(t_site, twbx_filename, twbx_content_name, twb_filename=None, twb_content_name=None):
     """
     :type t_site: TableauRestApiConnection
     :type twbx_filename: unicode
     :type twbx_content_name: unicode
+    :type twb_filename: unicode
+    :type twb_content_name: unicode
     :return:
     """
-    print u"Starting Workbook tests"
+    print(u"Starting Workbook tests")
 
     default_project = t_site.query_project(u'Default')
     t_site.log(u'Publishing workbook as {}'.format(twbx_content_name))
     new_wb_luid = t_site.publish_workbook(twbx_filename, twbx_content_name, default_project, overwrite=True)
 
+    # Repeat Multiple times to creates some revisions
+    time.sleep(3)
+    new_wb_luid = t_site.publish_workbook(twbx_filename, twbx_content_name, default_project, overwrite=True)
+
+    time.sleep(3)
+    new_wb_luid = t_site.publish_workbook(twbx_filename, twbx_content_name, default_project, overwrite=True)
+
+    time.sleep(3)
+
+    # Publish second one to be deleted
+    new_wb_luid_2 = t_site.publish_workbook(twbx_filename, u"{} - 2".format(twbx_content_name),
+                                            default_project, overwrite=True)
     time.sleep(3)
 
     projects = t_site.query_projects()
@@ -378,9 +438,9 @@ def workbooks_test(t_site, twbx_filename, twbx_content_name):
     #        t_site.log(u"Saving a png for {}".format(wb_view)
     #        t_site.save_workbook_view_preview_image(wb_luid, wb_views_dict.get(wb_view), '{}_preview'.format(wb_view))
 
-    # t_site.log(u'Deleting workbook')
-    # t_site.delete_workbooks(new_wb_luid)
-    print u'Finished Workbook tests'
+    t_site.log(u'Deleting workbook')
+    t_site.delete_workbooks(new_wb_luid_2)
+    print(u'Finished Workbook tests')
 
 
 def publishing_datasources_test(t_site, tdsx_file, tdsx_content_name):
@@ -390,7 +450,7 @@ def publishing_datasources_test(t_site, tdsx_file, tdsx_content_name):
     :param tdsx_content_name:
     :return:
     """
-    print u"Starting Datasource tests"
+    print(u"Starting Datasource tests")
     default_project = t_site.query_project(u'Default')
 
     t_site.log(u"Publishing as {}".format(tdsx_content_name))
@@ -409,7 +469,7 @@ def publishing_datasources_test(t_site, tdsx_file, tdsx_content_name):
     t_site.query_workbook(new_ds_luid)
 
     t_site.log(u'Downloading and saving datasource')
-    t_site.download_datasource(new_ds_luid, 'saved_datasource')
+    t_site.download_datasource(new_ds_luid, u'saved_datasource')
 
     # Can't add to favorites until API version 2.3
     if isinstance(t_site, TableauRestApiConnection23):
@@ -429,7 +489,7 @@ def publishing_datasources_test(t_site, tdsx_file, tdsx_content_name):
     # t_site.log("Deleting the published DS")
     # t_site.delete_datasources(new_ds_luid)
 
-    print u'Finished Datasource Tests'
+    print(u'Finished Datasource Tests')
 
 
 def schedule_test(t_site):
@@ -437,7 +497,7 @@ def schedule_test(t_site):
     :type t_site: TableauRestApiConnection23
     :return:
     """
-    print u'Started Schedule tests'
+    print(u'Started Schedule tests')
     all_schedules = t_site.query_schedules()
     schedule_dict = t_site.convert_xml_list_to_name_id_dict(all_schedules)
     t_site.log(u'All schedules on Server: {}'.format(unicode(schedule_dict)))
@@ -473,15 +533,15 @@ def schedule_test(t_site):
     except AlreadyExistsException as e:
         t_site.log(u'Skipping the add since it already exists')
 
-    print u'Finished Schedule tests'
+    print(u'Finished Schedule tests')
 
 
-def subscription_test(t_site):
+def subscription_tests(t_site):
     """
     :type t_site: TableauRestApiConnection23
     :return:
     """
-    print u'Starting Subscription tests'
+    print(u'Starting Subscription tests')
     # All users in a Group
     groups = t_site.query_groups()
     groups_dict = t_site.convert_xml_list_to_name_id_dict(groups)
@@ -525,15 +585,20 @@ def subscription_test(t_site):
         luid = sub.get(u'id')
         t_site.update_subscription(luid, schedule_luid=sched_dict[sched_names[1]])
 
-    print u'Finished subscription tests'
+    print(u'Finished subscription tests')
 
 
-def revision_tests(t_site):
+def revision_tests(t_site, workbook_name, project_name):
     """
     :type t_site: TableauRestApiConnection23
     :return:
     """
-    revisions = t_site.get_workbook_revisions("My Workbook", "Project")
+    print(u'Starting revision tests')
+    revisions = t_site.get_workbook_revisions(workbook_name, project_name)
+    t_site.log(u'There are {} revisions of workbook {}'.format(len(revisions), workbook_name))
+
+    print(u'Finished revision tests')
+
 
 def extract_refresh_test(t_site):
     """
@@ -542,10 +607,11 @@ def extract_refresh_test(t_site):
     """
     # Only possible in 10.3 / API 2.6 and above
     if isinstance(t_site, TableauRestApiConnection26):
-        print u'Starting Extract Refresh tests'
+        print(u'Starting Extract Refresh tests')
         tasks = t_site.get_extract_refresh_tasks()
 
-        print u'Finished Extract Refresh tests'
+        print(u'Finished Extract Refresh tests')
+
 
 for server in servers:
     print u"Logging in to {}".format(servers[server][u'server'])
