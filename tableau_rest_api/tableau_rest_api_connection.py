@@ -118,13 +118,13 @@ class TableauRestApiConnection(TableauBase):
         tsr = etree.Element(u'tsRequest')
         c = etree.Element(u"connection")
         if new_server_address is not None:
-            c.set(u'serverAddress="{}" ', new_server_address)
+            c.set(u'serverAddress', new_server_address)
         if new_server_port is not None:
-            c.set(u'serverPort="{}" ', new_server_port)
+            c.set(u'serverPort', new_server_port)
         if new_connection_username is not None:
-            c.set(u'userName="{}" ', new_connection_username)
+            c.set(u'userName', new_connection_username)
         if new_connection_username is not None:
-            c.set(u'password="{}"', new_connection_password)
+            c.set(u'password', new_connection_password)
         tsr.append(c)
         return tsr
 

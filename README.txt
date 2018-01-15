@@ -4,6 +4,30 @@ tableau_tools was written by Bryant Howell (bhowell@tableau.com) and is document
 
 tableau_tools is intended to be a simple-to-use library to handle all Tableau Server needs. The tableau_rest_api sub-package is a complete implementation of the Tableau Server REST API (https://onlinehelp.tableau.com/current/api/rest_api/en-us/help.htm#REST/rest_api.htm ). The tableau_documents sub-package works directly with Tableau files to do manipulations necessary for making programmatic changes. There is an examples folder filled with scripts that do the most common Tableau Server administrative challenges. 
 
+How to Install:
+The latest version should always be available on PyPi (https://pypi.python.org). This means you can install or upgrade via the standard pip tool using the following command
+
+pip install tableau_tools
+
+or
+
+pip install tableau_tools --upgrade
+
+If installing on Linux or macOS, you made need to run those commands using sudo.
+
+If you are new to Python and using Windows, once you have installed Python, you should add to your Windows PATH variable so that you can call Python and pip from any directory. If you don't know what the PATH is, the following explains how to add to it: https://www.howtogeek.com/118594/how-to-edit-your-system-path-for-easy-command-line-access/
+
+The necessary additions to the PATH are (adjust if you are using a Python 3 environment):
+
+;C:\Python27;C:\Python27\Scripts
+
+If you are installing on Windows and getting issues related to SSL, it's possible that you have a corporate proxy. A method around this is to use Fiddler, which by default opens up a proxy on 127.0.0.1, port 8888. Once Fiddler is open and running, you can do the following command, which tells pip to use the Fiddler proxy, and to trusted pypi.python.org regardless of any SSL certificate issues.
+
+set http_proxy=127.0.0.1:8888
+pip install --proxy 127.0.0.1:8888 --trusted-host pypi.python.org tableau_tools
+
+(A bit more explanation on the SSL issues here https://stackoverflow.com/questions/25981703/pip-install-fails-with-connection-error-ssl-certificate-verify-failed-certi)
+
 Notes on Getting Started:
 All strings passed into tableau_tools should be Unicode. The library is completely Unicode throughout and passing text in this way ensures no issues with encoding. tableau_tools uses ElementTree (cElementTree more precisely) library for all its XML parsing and generation. Some of the methods return Element objects which can be manipulated via standard ElementTree methods. 
 
@@ -545,7 +569,6 @@ There are three classes that represent the state of published content to a serve
 
 Project obviously represents a project. In API Verison 2.1, a Project also contains a child Workbook and Datasource object that represent the Default Permissions that can be set for that project. In API Version 2.0, the Project simply has a full set of capabilities that include those that apply to a workbook or a datasource. This reflects the difference in Tableau Server itself. If you are still on 9.1 or before, make sure to set your tableau_server_version argument so that the Project class behaves correctly.
 
-
 TableauRestApiConnection.get_published_datasource_object(datasource_name_or_luid, project_name_or_luid)
 TableauRestApiConnection.get_published_workbook_object(workbook_name_or_luid, project_name_or_luid)
 
@@ -562,6 +585,7 @@ Project21 implements the lock and unlock methods that only work in API Version 2
 Project21.lock_permissions()
 Project21.unlock_permission()
 Project21.are_permissions_locked()
+
 
 You access the default permissions objects with the following, which are Workbook or Datasource object:
 
@@ -630,6 +654,14 @@ best_group_perms_obj.set_capabilities_to_match_role(u"Publisher")
 All of the PublishedContent classes (Workbook, ProjectXX and Datasource) inherit the following method for setting permissions:
 
 PublishedContent.set_permissions_by_permissions_obj_list(new_permissions_obj_list)
+
+There is also a method to clear all permissions for a given object:
+
+PublishedContent.clear_all_permissions()
+
+Project21 has an additional optional parameter to control if the defaults should be cleared as well:
+
+Project21.clear_all_permissions(clear_defaults=True)
 
 This method does all of the necessary checks to send the simplest set of calls to update the content object. It takes a list of Permissions objects and compares against any existing permissions to add or update as necessary.
 
