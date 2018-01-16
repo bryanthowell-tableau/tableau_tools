@@ -1967,7 +1967,7 @@ class TableauRestApiConnection(TableauBase):
         final_filename = None
         cleanup_temp_file = False
 
-        for ending in [u'.twb', u'.twbx', u'.tde', u'.tdsx', u'.tds']:
+        for ending in [u'.twb', u'.twbx', u'.tde', u'.tdsx', u'.tds', u'.tde']:
             if content_filename.endswith(ending):
                 file_extension = ending[1:]
 
@@ -2048,7 +2048,7 @@ class TableauRestApiConnection(TableauBase):
                             upload_session_id) + u"&{}Type={}".format(content_type,
                                                                      file_extension) + u"&overwrite={}".format(
                             str(overwrite).lower())
-                        publish_request += b"--"  # Need to finish off the last boundary
+                        publish_request += bytes("--".encode('utf-8'))  # Need to finish off the last boundary
                         self.log(u"Finishing the upload with a publish request")
                         content_file.close()
                         if temp_wb_filename is not None:
@@ -2063,7 +2063,7 @@ class TableauRestApiConnection(TableauBase):
 
         if file_extension is None:
             raise InvalidOptionException(
-                u"File {} does not have an acceptable extension. Should be .twb,.twbx,.tde,.tdsx,.tds".format(
+                u"File {} does not have an acceptable extension. Should be .twb,.twbx,.tde,.tdsx,.tds,.tde".format(
                     content_filename))
 
     def initiate_file_upload(self):
