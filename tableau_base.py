@@ -15,8 +15,8 @@ class TableauBase(object):
         self.luid_pattern = r"[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*"
 
         # Defaults, will get updated with each update. Overwritten by set_tableau_server_version
-        self.version = u"10.2"
-        self.api_version = u"2.5"
+        self.version = u"10.3"
+        self.api_version = u"2.6"
         self.tableau_namespace = u'http://tableau.com/api'
         self.ns_map = {'t': 'http://tableau.com/api'}
         self.ns_prefix = '{' + self.ns_map['t'] + '}'
@@ -78,7 +78,9 @@ class TableauBase(object):
             u"2.3": server_content_roles_2_1,
             u"2.4": server_content_roles_2_1,
             u"2.5": server_content_roles_2_1,
-            u"2.6": server_content_roles_2_1
+            u"2.6": server_content_roles_2_1,
+            u"2.7": server_content_roles_2_1,
+            u"2.8": server_content_roles_2_1
         }
 
         self.server_to_rest_capability_map = {
@@ -186,7 +188,9 @@ class TableauBase(object):
             u'2.3': capabilities_2_1,
             u'2.4': capabilities_2_1,
             u'2.5': capabilities_2_1,
-            u'2.6': capabilities_2_1
+            u'2.6': capabilities_2_1,
+            u'2.7': capabilities_2_1,
+            u'2.8': capabilities_2_1
         }
 
         self.datasource_class_map = {
@@ -242,7 +246,7 @@ class TableauBase(object):
         :type tableau_server_version: unicode
         """
         # API Versioning (starting in 9.2)
-        if unicode(tableau_server_version)in [u"9.2", u"9.3", u"10.0", u"10.1", u"10.2", u"10.3"]:
+        if unicode(tableau_server_version)in [u"9.2", u"9.3", u"10.0", u"10.1", u"10.2", u"10.3", u"10.4", u"10.5"]:
             if unicode(tableau_server_version) == u"9.2":
                 self.api_version = u"2.1"
             elif unicode(tableau_server_version) == u"9.3":
