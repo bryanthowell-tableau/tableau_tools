@@ -10,7 +10,7 @@ import xml.etree.cElementTree as etree
 class TableauBase(object):
     def __init__(self):
         # In reverse order to work down until the acceptable version is found on the server, through login process
-        self.supported_versions = (u"10.3", u"10.2", u"10.1", u"10.0", u"9.3", u"9.2", u"9.1", u"9.0")
+        self.supported_versions = (u"10.5", u"10.4", u"10.3", u"10.2", u"10.1", u"10.0", u"9.3", u"9.2", u"9.1", u"9.0")
         self.logger = None
         self.luid_pattern = r"[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*"
 
