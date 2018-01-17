@@ -12,8 +12,27 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
         TableauRestApiConnection27.__init__(self, server, username, password, site_content_url)
         self.set_tableau_server_version(u"10.5")
 
-    def create_project(self, project_name, parent_project_name_or_luid=None, project_desc=None, locked_permissions=True, publish_samples=False,
-                       no_return=False):
+    def get_published_project_object(self, project_name_or_luid, project_xml_obj=None):
+        """
+        :type project_name_or_luid: unicode
+        :type project_xml_obj: project_xml_obj
+        :rtype: Project28
+        """
+        if self.is_luid(project_name_or_luid):
+            luid = project_name_or_luid
+        else:
+            luid = self.query_project_luid(project_name_or_luid)
+
+        parent_project_luid = None
+        if project_xml_obj.get(u'parentProjectId'):
+            parent_project_luid = project_xml_obj.get(u'parentProjectId')
+
+        proj_obj = Project28(luid, self, self.version, self.logger, content_xml_obj=project_xml_obj,
+                             parent_project_luid=parent_project_luid)
+        return proj_obj
+
+    def create_project(self, project_name, parent_project_name_or_luid=None, project_desc=None, locked_permissions=True,
+                       publish_samples=False, no_return=False):
         """
         :type project_name: unicode
         :type project_desc: unicode
@@ -33,6 +52,7 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
             p.set(u'description', project_desc)
         if locked_permissions is not False:
             p.set(u'contentPermissions', u"LockedToProject")
+
         if parent_project_name_or_luid is not None:
             if self.is_luid(parent_project_name_or_luid):
                 parent_project_luid = parent_project_name_or_luid
@@ -49,7 +69,9 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
             self.end_log_block()
             project_luid = new_project.findall(u'.//t:project', self.ns_map)[0].get("id")
             if no_return is False:
-                return self.get_published_project_object(project_luid, new_project)
+                proj_obj = self.get_published_project_object(project_luid, new_project)
+
+                return proj_obj
         except RecoverableHTTPException as e:
             if e.http_code == 409:
                 self.log(u'Project named {} already exists, finding and returning the Published Project Object'.format(project_name))
@@ -57,8 +79,8 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
                 if no_return is False:
                     return self.query_project(project_name)
 
-    def update_project(self, name_or_luid, parent_project_name_or_luid=None, new_project_name=None, new_project_description=None,
-                       locked_permissions=True, publish_samples=False):
+    def update_project(self, name_or_luid, parent_project_name_or_luid=None, new_project_name=None,
+                       new_project_description=None, locked_permissions=True, publish_samples=False):
         """
         :type name_or_luid: unicode
         :type parent_project_name_or_luid: unicode
@@ -66,7 +88,7 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
         :type new_project_description: unicode
         :type locked_permissions: bool
         :type publish_samples: bool
-        :rtype: Project21
+        :rtype: Project28
         """
         self.start_log_block()
         if self.is_luid(name_or_luid):

@@ -778,6 +778,28 @@ class Project21(Project20):
         return final_list
 
 
+class Project28(Project21):
+    def __init__(self, luid, tableau_rest_api_obj, tableau_server_version, logger_obj=None,
+                 content_xml_obj=None, parent_project_luid=None):
+        Project21.__init__(self, luid, tableau_rest_api_obj, tableau_server_version, logger_obj=logger_obj,
+                           content_xml_obj=content_xml_obj)
+        self._parent_project_luid = parent_project_luid
+
+    @property
+    def parent_project_luid(self):
+        return self._parent_project_luid
+
+    def query_child_projects(self):
+        """
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        projects = self.t_rest_api.query_projects()
+        child_projects = projects.findall(u'.//t:project[@parentProjectId="{}"]'.format(self.luid), self.ns_map)
+        self.end_log_block()
+        return child_projects
+
+
 class Workbook(PublishedContent):
     def __init__(self, luid, tableau_rest_api_obj, tableau_server_version, default=False, logger_obj=None,
                  content_xml_obj=None):
