@@ -255,6 +255,10 @@ class TableauBase(object):
                 self.api_version = u'2.5'
             elif unicode(tableau_server_version) == u'10.3':
                 self.api_version = u'2.6'
+            elif unicode(tableau_server_version) == u'10.4':
+                self.api_version = u'2.7'
+            elif unicode(tableau_server_version) == u'10.5':
+                self.api_version = u'2.8'
             self.tableau_namespace = u'http://tableau.com/api'
             self.ns_map = {'t': 'http://tableau.com/api'}
             self.version = tableau_server_version
