@@ -46,6 +46,9 @@ class TableauRestApiConnection(TableauBase):
         # Lookup caches to minimize calls
         self.username_luid_cache = {}
         self.group_name_luid_cache = {}
+
+        # For working around SSL issues
+        self.verify_ssl_cert = True
     #
     # Object helpers and setter/getters
     #
@@ -195,7 +198,8 @@ class TableauRestApiConnection(TableauBase):
         url = self.build_api_url(u"auth/signin", server_level=True)
 
         self.log(u'Logging in via: {}'.format(url))
-        api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
+        api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'],
+                             verify_ssl_cert=self.verify_ssl_cert)
         api.xml_request = tsr
         api.http_verb = 'post'
         self.log(u'Login payload is\n {}'.format(etree.tostring(tsr)))
@@ -221,9 +225,11 @@ class TableauRestApiConnection(TableauBase):
         url = self.build_api_url(u"auth/signout", server_level=True)
         self.log(u'Logging out via: {}'.format(url))
         if session_token is not None:
-            api = RestXmlRequest(url, session_token, self.logger, ns_map_url=self.ns_map['t'])
+            api = RestXmlRequest(url, session_token, self.logger, ns_map_url=self.ns_map['t'],
+                                 verify_ssl_cert=self.verify_ssl_cert)
         else:
-            api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
+            api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'],
+                                 verify_ssl_cert=self.verify_ssl_cert)
         api.http_verb = 'post'
         api.request_from_api()
         self.log(u'Signed out successfully')
@@ -242,7 +248,8 @@ class TableauRestApiConnection(TableauBase):
         """
         self.start_log_block()
         api_call = self.build_api_url(url_ending, server_level)
-        api = RestXmlRequest(api_call, self.token, self.logger, ns_map_url=self.ns_map['t'])
+        api = RestXmlRequest(api_call, self.token, self.logger, ns_map_url=self.ns_map['t'],
+                             verify_ssl_cert=self.verify_ssl_cert)
         api.request_from_api()
         xml = api.get_response()  # return Element rather than ElementTree
         self.end_log_block()
@@ -292,7 +299,8 @@ class TableauRestApiConnection(TableauBase):
 
     def send_post_request(self, url):
         self.start_log_block()
-        api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
+        api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'],
+                             verify_ssl_cert=self.verify_ssl_cert)
         api.http_verb = u'post'
         api.request_from_api(0)
         xml = api.get_response().getroot()  # return Element rather than ElementTree
@@ -307,7 +315,8 @@ class TableauRestApiConnection(TableauBase):
         """
         self.start_log_block()
 
-        api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
+        api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'],
+                             verify_ssl_cert=self.verify_ssl_cert)
         api.xml_request = request
         api.http_verb = 'post'
         api.request_from_api(0)  # Zero disables paging, for all non queries
@@ -318,7 +327,8 @@ class TableauRestApiConnection(TableauBase):
     def send_update_request(self, url, request):
         self.start_log_block()
 
-        api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
+        api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'],
+                             verify_ssl_cert=self.verify_ssl_cert)
         api.xml_request = request
         api.http_verb = u'put'
         api.request_from_api(0)  # Zero disables paging, for all non queries
@@ -327,7 +337,8 @@ class TableauRestApiConnection(TableauBase):
 
     def send_delete_request(self, url):
         self.start_log_block()
-        api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
+        api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'],
+                             verify_ssl_cert=self.verify_ssl_cert)
         api.http_verb = u'delete'
 
         try:
@@ -346,7 +357,8 @@ class TableauRestApiConnection(TableauBase):
     def send_publish_request(self, url, request, boundary_string):
         self.start_log_block()
 
-        api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
+        api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'],
+                             verify_ssl_cert=self.verify_ssl_cert)
         api.set_publish_content(request, boundary_string)
         api.http_verb = u'post'
         api.request_from_api(0)
@@ -357,7 +369,8 @@ class TableauRestApiConnection(TableauBase):
     def send_append_request(self, url, request, boundary_string):
         self.start_log_block()
 
-        api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
+        api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'],
+                             verify_ssl_cert=self.verify_ssl_cert)
         api.set_publish_content(request, boundary_string)
         api.http_verb = u'put'
         api.request_from_api(0)
@@ -368,7 +381,8 @@ class TableauRestApiConnection(TableauBase):
     # Used when the result is not going to be XML and you want to save the raw response as binary
     def send_binary_get_request(self, url):
         self.start_log_block()
-        api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'])
+        api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'],
+                             verify_ssl_cert=self.verify_ssl_cert)
 
         api.http_verb = u'get'
         api.set_response_type(u'binary')

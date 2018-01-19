@@ -12,7 +12,8 @@ import sys
 
 # Handles all of the actual HTTP calling
 class RestXmlRequest(TableauBase):
-    def __init__(self, url, token=None, logger=None, ns_map_url='http://tableau.com/api'):
+    def __init__(self, url, token=None, logger=None, ns_map_url='http://tableau.com/api',
+                 verify_ssl_cert=True):
         """
         :param url:
         :param token:
@@ -40,6 +41,7 @@ class RestXmlRequest(TableauBase):
         self.__response_type = None
         self.__last_response_content_type = None
         self.__luid_pattern = self.luid_pattern
+        self.__verify_ssl_cert = verify_ssl_cert
 
         try:
             self.http_verb = 'get'
@@ -130,35 +132,60 @@ class RestXmlRequest(TableauBase):
                 self.log(u"Request XML: {}".format(etree.tostring(self.xml_request, encoding='utf-8').decode('utf-8')))
 
             if self.http_verb == u'get':
-                response = requests.get(url, headers=request_headers)
+                if self.__verify_ssl_cert is False:
+                    response = requests.get(url, headers=request_headers, verify=False)
+                else:
+                    response = requests.get(url, headers=request_headers)
                 # response = opener.open(request)
 
             if self.http_verb == u'delete':
-                response = requests.delete(url, headers=request_headers)
+                if self.__verify_ssl_cert is False:
+                    response = requests.delete(url, headers=request_headers, verify=False)
+                else:
+                    response = requests.delete(url, headers=request_headers)
 
             if self.http_verb == u'post':
                 if self.__publish_content is not None:
-                    response = requests.post(url, data=self.__publish_content, headers=request_headers)
+                    if self.__verify_ssl_cert is False:
+                        response = requests.post(url, data=self.__publish_content, headers=request_headers,
+                                                 verify=False)
+                    else:
+                        response = requests.post(url, data=self.__publish_content, headers=request_headers)
                 elif self.xml_request is not None:
                     if isinstance(self.xml_request, str):
                         encoded_request = self.xml_request.encode('utf-8')
                     else:
                         encoded_request = etree.tostring(self.xml_request, encoding='utf-8')
-                    response = requests.post(url, data=encoded_request, headers=request_headers)
+                    if self.__verify_ssl_cert is False:
+                        response = requests.post(url, data=encoded_request, headers=request_headers, verify=False)
+                    else:
+                        response = requests.post(url, data=encoded_request, headers=request_headers)
                 else:
-                    response = requests.post(url, data="", headers=request_headers)
+                    if self.__verify_ssl_cert is False:
+                        response = requests.post(url, data="", headers=request_headers, verify=False)
+                    else:
+                        response = requests.post(url, data="", headers=request_headers)
 
             if self.http_verb == u'put':
                 if self.__publish_content is not None:
-                    response = requests.put(url, data=self.__publish_content, headers=request_headers)
+                    if self.__verify_ssl_cert is False:
+                        response = requests.put(url, data=self.__publish_content, headers=request_headers, verify=False)
+                    else:
+                        response = requests.put(url, data=self.__publish_content, headers=request_headers)
                 elif self.xml_request is not None:
                     if isinstance(self.xml_request, str):
                         encoded_request = self.xml_request.encode('utf8')
                     else:
                         encoded_request = etree.tostring(self.xml_request, encoding='utf-8')
-                    response = requests.put(url, data=encoded_request, headers=request_headers)
+                    if self.__verify_ssl_cert is False:
+                        response = requests.put(url, data=encoded_request, headers=request_headers, verify=False)
+                    else:
+                        response = requests.put(url, data=encoded_request, headers=request_headers)
                 else:
-                    response = requests.put(url, data="", headers=request_headers)
+                    if self.__verify_ssl_cert is False:
+                        response = requests.put(url, data="", headers=request_headers, verify=False)
+                    else:
+                        response = requests.put(url, data="", headers=request_headers)
             # To match previous exception handling pattern with urllib2
             response.raise_for_status()
 
