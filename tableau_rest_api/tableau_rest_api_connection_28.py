@@ -123,6 +123,22 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
         self.end_log_block()
         return self.get_published_project_object(project_luid, response)
 
+    def query_project(self, project_name_or_luid):
+        """
+        :type project_name_or_luid: unicode
+        :rtype: Project28
+        """
+        self.start_log_block()
+        if self.is_luid(project_name_or_luid):
+            luid = project_name_or_luid
+        else:
+            luid = self.query_project_luid(project_name_or_luid)
+        proj = self.get_published_project_object(luid, self.query_single_element_from_endpoint_with_filter(u'project',
+                                                                                               project_name_or_luid))
+
+        self.end_log_block()
+        return proj
+
     def add_workbook_to_schedule(self, wb_name_or_luid, schedule_name_or_luid, proj_name_or_luid):
         """
         :type wb_name_or_luid: unicode
@@ -289,6 +305,36 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
 
         self.end_log_block()
         return response
+
+    def update_workbook_now(self, wb_name_or_luid, project_name_or_luid=False):
+        """
+        :type wb_name_or_luid: unicode
+        :type project_name_or_luid: unicode
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if self.is_luid(wb_name_or_luid) is False:
+            wb_luid = self.query_workbook_luid(wb_name_or_luid, p_name_or_luid=project_name_or_luid)
+        else:
+            wb_luid = wb_name_or_luid
+
+        # Has an empty request but is POST because it makes a
+        tsr = etree.Element(u'tsRequest')
+
+        url = self.build_api_url(u'workbooks/{}/data'.format(wb_luid))
+        response = self.send_add_request(url, tsr)
+
+        self.end_log_block()
+        return response
+
+    def run_extract_refresh_for_workbook(self, wb_name_or_luid, proj_name_or_luid=None, username_or_luid=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type username_or_luid: unicode
+        :return:
+        """
+        return self.update_workbook_now(wb_name_or_luid, proj_name_or_luid)
 
     # Use the specific refresh rather than the schedule task in 2.8
     def run_extract_refresh_for_datasource(self, ds_name_or_luid, proj_name_or_luid=None):

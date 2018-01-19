@@ -38,7 +38,7 @@ class TableauRepository:
     def query(self, sql, sql_parameter_list=None):
 
         cur = self.db_conn.cursor()
-        if sql_parameter_list is None:
+        if sql_parameter_list is not None:
             cur.execute(sql, sql_parameter_list)
         else:
             cur.execute(sql)
