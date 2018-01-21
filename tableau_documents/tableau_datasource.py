@@ -291,6 +291,7 @@ class TableauDatasource(TableauDocument):
 
         xmlstring = etree.tostring(self.xml)
         self.end_log_block()
+        xmlstring = str(xmlstring, 'utf-8')
         return xmlstring
 
     def save_file(self, filename_no_extension, save_to_directory=None):
