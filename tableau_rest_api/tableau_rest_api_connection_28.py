@@ -225,7 +225,7 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
         try:
             if filename_no_extension.find('.pdf') == -1:
                 filename_no_extension += '.pdf'
-            save_file = open(filename_no_extension + ".pdf", 'wb')
+            save_file = open(filename_no_extension, 'wb')
             url = self.build_api_url(u"views/{}/pdf".format(view_luid))
             image = self.send_binary_get_request(url)
             save_file.write(image)
@@ -266,7 +266,7 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
             if filename_no_extension is not None:
                 if filename_no_extension.find('.csv') == -1:
                     filename_no_extension += '.csv'
-                save_file = open(filename_no_extension + ".csv", 'wb')
+                save_file = open(filename_no_extension, 'wb')
                 save_file.write(data)
                 save_file.close()
                 self.end_log_block()
@@ -300,7 +300,7 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
         # Has an empty request but is POST because it makes a
         tsr = etree.Element(u'tsRequest')
 
-        url = self.build_api_url(u'datasources/{}/data'.format(ds_luid))
+        url = self.build_api_url(u'datasources/{}/refresh'.format(ds_luid))
         response = self.send_add_request(url, tsr)
 
         self.end_log_block()
@@ -321,7 +321,7 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
         # Has an empty request but is POST because it makes a
         tsr = etree.Element(u'tsRequest')
 
-        url = self.build_api_url(u'workbooks/{}/data'.format(wb_luid))
+        url = self.build_api_url(u'workbooks/{}/refresh'.format(wb_luid))
         response = self.send_add_request(url, tsr)
 
         self.end_log_block()

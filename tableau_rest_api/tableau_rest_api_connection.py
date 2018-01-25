@@ -988,7 +988,7 @@ class TableauRestApiConnection(TableauBase):
         try:
             if filename_no_extension.find('.png') == -1:
                 filename_no_extension += '.png'
-            save_file = open(filename_no_extension + ".png", 'wb')
+            save_file = open(filename_no_extension, 'wb')
             url = self.build_api_url(u"workbooks/{}/views/{}/previewImage".format(wb_luid, view_luid))
             image = self.send_binary_get_request(url)
             save_file.write(image)
