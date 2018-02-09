@@ -839,7 +839,7 @@ class TableauDatasource(TableauDocument):
             m.set(u"key", u"[{}]".format(key))
             m.set(u"value", self.column_mapping[key])
             c.append(m)
-        self.ds_xml.append(c)
+        self.xml.append(c)
 
     @staticmethod
     def generate_aliases_tag():

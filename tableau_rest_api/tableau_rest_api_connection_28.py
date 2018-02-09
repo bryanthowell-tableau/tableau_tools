@@ -192,7 +192,7 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
         tsr = etree.Element(u'tsRequest')
         t = etree.Element(u'task')
         er = etree.Element(u'extractRefresh')
-        d = etree.Element(u'dataasource')
+        d = etree.Element(u'datasource')
         d.set(u'id', ds_luid)
         er.append(d)
         t.append(er)

@@ -204,9 +204,12 @@ class TableauRestApiConnection(TableauBase):
         api.http_verb = 'post'
         self.log(u'Login payload is\n {}'.format(etree.tostring(tsr)))
 
+
         api.request_from_api(0)
         # self.log(api.get_raw_response())
         xml = api.get_response()
+
+
         credentials_element = xml.findall(u'.//t:credentials', self.ns_map)
         self.token = credentials_element[0].get("token")
         self.log(u"Token is " + self.token)

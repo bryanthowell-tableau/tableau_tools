@@ -80,9 +80,9 @@ class TableauConnection(TableauBase):
     @port.setter
     def port(self, new_port):
         if self.xml_obj.get(u"port") is not None:
-            self.xml_obj.attrib[u"port"] = new_port
+            self.xml_obj.attrib[u"port"] = unicode(new_port)
         else:
-            self.xml_obj.set(u'port', new_port)
+            self.xml_obj.set(u'port', unicode(new_port))
 
     @property
     def connection_type(self):
@@ -103,12 +103,30 @@ class TableauConnection(TableauBase):
                 return False
 
     @property
+    def filename(self):
+        if self.xml_obj.get(u'filename') is None:
+            raise NoResultsException(u'Connection type {} does not have filename attribute'.format(
+                self.connection_type))
+        else:
+            return self.xml_obj.get(u'filename')
+
+    @filename.setter
+    def filename(self, filename):
+        if self.xml_obj.get(u'filename') is not None:
+            self.xml_obj.attrib[u'filename'] = filename
+        else:
+            self.xml_obj.set(u'filename', filename)
+
+    @property
     def sslmode(self):
         return self.xml_obj.get(u'sslmode')
 
     @sslmode.setter
     def sslmode(self, value=u'require'):
-        self.xml_obj.attrib[u"sslmode"] = value
+        if self.xml_obj.get(u'sslmode') is not None:
+            self.xml_obj.attrib[u"sslmode"] = value
+        else:
+            self.xml_obj.set(u'sslmode', value)
 
     @property
     def authentication(self):
@@ -119,7 +137,7 @@ class TableauConnection(TableauBase):
         if self.xml_obj.get(u"authentication") is not None:
             self.xml_obj.attrib[u"authentication"] = auth_type
         else:
-            self.xml_obj.set(u"authentication")
+            self.xml_obj.set(u"authentication", auth_type)
 
     @property
     def service(self):
@@ -130,5 +148,5 @@ class TableauConnection(TableauBase):
         if self.xml_obj.get(u"service") is not None:
             self.xml_obj.attrib[u"service"] = service
         else:
-            self.xml_obj.set(u"service")
+            self.xml_obj.set(u"service", service)
 

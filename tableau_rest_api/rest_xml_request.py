@@ -10,6 +10,7 @@ import copy
 import requests
 import sys
 
+
 # Handles all of the actual HTTP calling
 class RestXmlRequest(TableauBase):
     def __init__(self, url, token=None, logger=None, ns_map_url='http://tableau.com/api',
@@ -254,6 +255,9 @@ class RestXmlRequest(TableauBase):
             else:
                 detail_luid = False
             self.log(u'Tableau REST API error code is: {}'.format(error_code))
+            # If you are not signed in
+            if error_code == u'401000':
+                raise NotSignedInException(u'You must sign in first')
             # Everything that is not 400 can potentially be recovered from
             if status_code in [401, 402, 403, 404, 405, 409]:
                 # If 'not exists' for a delete, recover and log
@@ -262,6 +266,7 @@ class RestXmlRequest(TableauBase):
                 if status_code == 409:
                     self.log(u'HTTP 409 error, most likely an already exists')
                 raise RecoverableHTTPException(status_code, error_code, detail_luid)
+
             raise
         except:
             raise
