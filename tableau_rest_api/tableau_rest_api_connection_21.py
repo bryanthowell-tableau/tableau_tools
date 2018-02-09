@@ -75,7 +75,7 @@ class TableauRestApiConnection21(TableauRestApiConnection):
                     return self.query_project(project_name)
 
     def update_project(self, name_or_luid, new_project_name=None, new_project_description=None,
-                       locked_permissions=True):
+                       locked_permissions=None):
         """
         :type name_or_luid: unicode
         :type new_project_name: unicode
