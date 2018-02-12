@@ -104,6 +104,7 @@ class TableauBase(object):
             u'Download Full Data' : u'ViewUnderlyingData',
             u'Web Edit': u'WebAuthoring',
             u'Save': u'Write',
+            u'Inherited Project Leader': u'InheritedProjectLeader',
             u'all': u'all'  # special command to do everything
         }
 
@@ -181,6 +182,35 @@ class TableauBase(object):
                 )
             }
 
+        capabilities_2_8 = {
+                u"project": (u"Read", u"Write", u'ProjectLeader', u'InheritedProjectLeader'),
+                u"workbook": (
+                    u'Read',
+                    u'ExportImage',
+                    u'ExportData',
+                    u'ViewComments',
+                    u'AddComment',
+                    u'Filter',
+                    u'ViewUnderlyingData',
+                    u'ShareView',
+                    u'WebAuthoring',
+                    u'Write',
+                    u'ExportXml',
+                    u'ChangeHierarchy',
+                    u'Delete',
+                    u'ChangePermissions',
+
+                ),
+                u"datasource": (
+                    u'Read',
+                    u'Connect',
+                    u'Write',
+                    u'ExportXml',
+                    u'Delete',
+                    u'ChangePermissions'
+                )
+            }
+
         self.available_capabilities = {
             u"2.0": capabilities_2_0,
             u"2.1": capabilities_2_1,
@@ -190,7 +220,7 @@ class TableauBase(object):
             u'2.5': capabilities_2_1,
             u'2.6': capabilities_2_1,
             u'2.7': capabilities_2_1,
-            u'2.8': capabilities_2_1
+            u'2.8': capabilities_2_8
         }
 
         self.datasource_class_map = {
