@@ -85,8 +85,13 @@ class TableauDatasource(TableauDocument):
                 for published_datasource in published_datasources:
                     self.log(u'Published Datasource connection tags found, building a TableauConnection object')
                     self.connections.append(TableauConnection(published_datasource))
-            self.relation_xml_obj = self.xml.find(u'.//relation', self.ns_map)
-            self.read_existing_relations()
+
+            # Skip the relation if it is a Parameters datasource. Eventually, build out separate object
+            if self.xml.get(u'name') != u'Parameters':
+                self.relation_xml_obj = self.xml.find(u'.//relation', self.ns_map)
+                self.read_existing_relations()
+            else:
+                self.log(u'Found a Parameters datasource')
 
         self.repository_location = None
 
