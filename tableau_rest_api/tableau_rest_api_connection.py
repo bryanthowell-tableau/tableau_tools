@@ -202,7 +202,7 @@ class TableauRestApiConnection(TableauBase):
                              verify_ssl_cert=self.verify_ssl_cert)
         api.xml_request = tsr
         api.http_verb = 'post'
-        self.log(u'Login payload is\n {}'.format(etree.tostring(tsr)))
+        self.log(u'Login payload is\n {}'.format(etree.tostring(tsr, encoding="unicode")))
 
         api.request_from_api(0)
         # self.log(api.get_raw_response())
