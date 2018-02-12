@@ -799,6 +799,62 @@ class Project28(Project21):
         self.end_log_block()
         return child_projects
 
+    def convert_capabilities_xml_into_obj_list(self, xml_obj):
+        """
+        :type xml_obj: etree.Element
+        :rtype: list[ProjectPermissions21]
+        """
+        self.start_log_block()
+        obj_list = []
+        xml = xml_obj.findall(u'.//t:granteeCapabilities', self.ns_map)
+        if len(xml) == 0:
+            return []
+        else:
+            for gcaps in xml:
+                for tags in gcaps:
+                    # Namespace fun
+                    if tags.tag == u'{}group'.format(self.ns_prefix):
+                        luid = tags.get(u'id')
+                        perms_obj = ProjectPermissions28(u'group', luid)
+                        self.log_debug(u'group {}'.format(luid))
+                    elif tags.tag == u'{}user'.format(self.ns_prefix):
+                        luid = tags.get(u'id')
+                        perms_obj = ProjectPermissions28(u'user', luid)
+                        self.log_debug(u'user {}'.format(luid))
+                    elif tags.tag == u'{}capabilities'.format(self.ns_prefix):
+                        for caps in tags:
+                            self.log_debug(caps.get(u'name') + ' : ' + caps.get(u'mode'))
+                            perms_obj.set_capability(caps.get(u'name'), caps.get(u'mode'))
+                obj_list.append(perms_obj)
+            self.log(u'Permissions object list has {} items'.format(unicode(len(obj_list))))
+            self.end_log_block()
+            return obj_list
+
+    def _get_permissions_object(self, group_or_user, name_or_luid, obj_type, role=None):
+
+        if self.is_luid(name_or_luid):
+            luid = name_or_luid
+        else:
+            if group_or_user == u'group':
+                luid = self.t_rest_api.query_group_luid(name_or_luid)
+            elif group_or_user == u'user':
+                luid = self.t_rest_api.query_user_luid(name_or_luid)
+            else:
+                raise InvalidOptionException(u'group_or_user must be group or user')
+
+        if obj_type == u'project':
+            perms_obj = ProjectPermissions28(group_or_user, luid)
+        elif obj_type == u'workbook':
+            perms_obj = WorkbookPermissions28(group_or_user, luid)
+        elif obj_type == u'datasource':
+            perms_obj = DatasourcePermissions28(group_or_user, luid)
+        else:
+            raise InvalidOptionException(u'obj_type must be project, workbook or datasource')
+        perms_obj.enable_logging(self.logger)
+        if role is not None:
+            perms_obj.set_capabilities_to_match_role(role)
+        return perms_obj
+
 
 class Workbook(PublishedContent):
     def __init__(self, luid, tableau_rest_api_obj, tableau_server_version, default=False, logger_obj=None,
