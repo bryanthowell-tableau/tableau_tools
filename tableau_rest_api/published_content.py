@@ -824,7 +824,7 @@ class Project28(Project21):
                     elif tags.tag == u'{}capabilities'.format(self.ns_prefix):
                         for caps in tags:
                             self.log_debug(caps.get(u'name') + ' : ' + caps.get(u'mode'))
-                            perms_obj.set_capability(caps.get(u'name'), caps.get(u'mode'))
+                            perms_obj._set_capability_from_published_content(caps.get(u'name'), caps.get(u'mode'))
                 obj_list.append(perms_obj)
             self.log(u'Permissions object list has {} items'.format(unicode(len(obj_list))))
             self.end_log_block()

@@ -68,11 +68,14 @@ class TableauDatasource(TableauDocument):
             # Create Connections
             # 9.0 style
             if self.ds_version == u'9':
-
                 connection_xml_obj = self.xml.find(u'.//connection', self.ns_map)
-                self.log(u'connection tags found, building a TableauConnection object')
-                new_conn = TableauConnection(connection_xml_obj)
-                self.connections.append(new_conn)
+                # Skip the relation if it is a Parameters datasource. Eventually, build out separate object
+                if connection_xml_obj is None:
+                    self.log(u'Found a Parameters datasource')
+                else:
+                    self.log(u'connection tags found, building a TableauConnection object')
+                    new_conn = TableauConnection(connection_xml_obj)
+                    self.connections.append(new_conn)
 
                 # Grab the relation
             elif self.ds_version == u'10':

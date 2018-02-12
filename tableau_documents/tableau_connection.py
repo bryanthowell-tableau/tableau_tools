@@ -9,7 +9,7 @@ class TableauConnection(TableauBase):
         TableauBase.__init__(self)
         self.logger = logger_obj
         self.connection_name = None
-        # Differentiate between named-connetion and connection itself
+        # Differentiate between named-connection and connection itself
         if connection_xml_obj.tag == u'named-connection':
             self.connection_name = connection_xml_obj.get(u'name')
             self.xml_obj = connection_xml_obj.find(u'connection')

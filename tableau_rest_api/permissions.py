@@ -115,6 +115,26 @@ class Permissions(TableauBase):
                 raise InvalidOptionException(u'"{}" is not a capability in REST API or Server'.format(capability_name))
         self.capabilities[capability_name] = mode
 
+    # This exists specifically to allow the setting of read-only permissions
+    def _set_capability_from_published_content(self, capability_name, mode):
+        """
+        :param capability_name: You can input the names from the REST API or what you see in Tableau Server
+        :type capability_name: unicode
+        :param mode: Can only be Allow or Deny. Use set_capability_to_unspecified to set to Unspecified
+        :type mode: unicode
+        :return:
+        """
+
+        if capability_name not in self.__server_to_rest_capability_map.values():
+            # If it's the Tableau UI naming, translate it over
+            if capability_name in self.__server_to_rest_capability_map:
+                if capability_name != u'all':
+                    capability_name = self.__server_to_rest_capability_map[capability_name]
+            else:
+                raise InvalidOptionException(u'"{}" is not a capability in REST API or Server'.format(capability_name))
+        self.capabilities[capability_name] = mode
+
+
     def set_capability_to_unspecified(self, capability_name):
         """
         :param capability_name: You can input the names from the REST API or what you see in Tableau Server
