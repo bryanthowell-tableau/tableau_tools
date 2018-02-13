@@ -980,7 +980,19 @@ print new_filename  # Extract Workbooks.twbx
         
 2.9 Modifying Table JOIN Structure in a Connection (unfinished)
 
-2.10 Creating a TableauDatasource from Scratch (unfinished)
+2.10 Creating a TableauDatasource from Scratch (WIP)
+This API is a work in progress as the details between 9 and 10 type connections are hammered out. At a basic level, it should work starting in v.4.3.15.
+
+new_tableau_file = TableauFile("test.tds", logger_obj=logger, create_new=True, ds_version=u'10')
+new_tableau_document = new_tableau_file.tableau_document
+
+ds = new_tableau_document.datasources[0]
+ds.add_new_connection(ds_type=u'postgres', server=u'pgdb.your.domain',
+                                     db_or_schema_name=u'my_pg_schema')
+ds.set_first_table(db_table_name=u'fact_table', table_alias=u'Table of Facts',
+                   connection=ds.connections[0].connection_name)
+new_tableau_document.save_file(u'New TDS')
+
 
 3 tabcmd
 The Tableau Server REST API can do most of the things that the tabcmd command line tool can, but if you are using older versions of Tableau Server, some of those features may not have been implemented yet. If you need a functionality from tabcmd, the tabcmd.py file in the main part of tableau_tools library wraps most of the commonly used functionality to allow for easier scripting of calls (rather than doing it directly on the command line or using batch files)

@@ -43,6 +43,7 @@ class TableauDatasource(TableauDocument):
         self.column_instances = []
         self.main_table_relation = None
         self.main_table_name = None
+        self._connection_root = None
 
         # Create from new or from existing object
         if datasource_xml is None:
@@ -233,9 +234,11 @@ class TableauDatasource(TableauDocument):
 
     def add_new_connection(self, ds_type, server, db_or_schema_name, authentication=None, initial_sql=None):
         self.start_log_block()
+        self.ds_generator = True
         conn = self.create_new_connection_xml(self.ds_version, ds_type, server, db_or_schema_name, authentication, initial_sql)
         if self.ds_version == u'9':
             self.xml.append(conn)
+            self._connection_root = conn
         elif self.ds_version == u'10':
             c = etree.Element(u'connection')
             c.set(u'class', u'federated')
@@ -243,6 +246,7 @@ class TableauDatasource(TableauDocument):
             ncs.append(conn)
             c.append(ncs)
             self.xml.append(c)
+            self._connection_root = c
         else:
             raise InvalidOptionException(u'ds_version of TableauDatasource must be u"9" or u"10" ')
         self.connections.append(TableauConnection(conn))
@@ -259,20 +263,23 @@ class TableauDatasource(TableauDocument):
 
         # Column Aliases
         if self.ds_generator is not None:
-            cas = self.ds_generator.generate_aliases_column_section()
+            self.generate_relation_section()
+
+            self._connection_root.append(self.relation_xml_obj)
+            cas = self.generate_aliases_column_section()
             # If there is no existing aliases tag, gotta add one. Unlikely but safety first
             if len(cas) > 0 and self.xml.find('aliases') is False:
-                self.xml.append(self.ds_generator.generate_aliases_tag())
+                self.xml.append(self.generate_aliases_tag())
             for c in cas:
                 self.log(u'Appending the column alias XML')
                 self.xml.append(c)
             # Column Instances
-            cis = self.ds_generator.generate_column_instances_section()
+            cis = self.generate_column_instances_section()
             for ci in cis:
                 self.log(u'Appending the column-instances XML')
                 self.xml.append(ci)
             # Datasource Filters
-            dsf = self.ds_generator.generate_datasource_filters_section()
+            dsf = self.generate_datasource_filters_section()
             self.log(u'Appending the ds filters to existing XML')
             for f in dsf:
                 self.xml.append(f)
@@ -481,9 +488,11 @@ class TableauDatasource(TableauDocument):
     # For creating new table relations
     #
     def set_first_table(self, db_table_name, table_alias, connection=None):
+        self.ds_generator = True
         self.main_table_relation = self.create_table_relation(db_table_name, table_alias, connection=connection)
 
     def set_first_custom_sql(self, custom_sql, table_alias, connection=None):
+        self.ds_generator = True
         self.main_table_relation = self.create_custom_sql_relation(custom_sql, table_alias, connection=connection)
 
     @staticmethod
@@ -536,8 +545,10 @@ class TableauDatasource(TableauDocument):
         # Because of the strange way that the interior definition is the last on, you need to work inside out
         # "Middle-out" as Silicon Valley suggests.
         # Generate the actual JOINs
-
-        self.relation_xml_obj.clear()
+        if self.relation_xml_obj is not None:
+            self.relation_xml_obj.clear()
+        else:
+            self.relation_xml_obj = etree.Element(u"relation")
         # There's only a single main relation with only one table
 
         if len(self.join_relations) == 0:
