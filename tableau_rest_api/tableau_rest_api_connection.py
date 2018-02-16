@@ -1984,7 +1984,7 @@ class TableauRestApiConnection(TableauBase):
         final_filename = None
         cleanup_temp_file = False
 
-        for ending in [u'.twb', u'.twbx', u'.tde', u'.tdsx', u'.tds', u'.tde']:
+        for ending in [u'.twb', u'.twbx', u'.tde', u'.tdsx', u'.tds', u'.tde', u'.hyper']:
             if content_filename.endswith(ending):
                 file_extension = ending[1:]
 

@@ -18,6 +18,7 @@ class TableauDatasource(TableauDocument):
         """
         :type datasource_xml: etree.Element
         :type logger_obj: Logger
+        :type ds_version: unicode
         """
         TableauDocument.__init__(self)
         self._document_type = u'datasource'
@@ -25,7 +26,8 @@ class TableauDatasource(TableauDocument):
         self.logger = logger_obj
         self._connections = []
         self.ds_name = None
-        self.ds_version = None
+        self.ds_version_type = None
+        self._ds_version = None
         self._published = False
         self.relation_xml_obj = None
         self.existing_tde_filename = None
@@ -47,11 +49,17 @@ class TableauDatasource(TableauDocument):
 
         # Create from new or from existing object
         if datasource_xml is None:
-            self.xml = self.create_new_datasource_xml()
             if ds_version is None:
-                self.ds_version = u'10'
+                raise InvalidOptionException(u'When creating Datasource from scratch, must declare a ds_version')
+            self._ds_version = ds_version
+            if self._ds_version.split(u'.')[0] == u'10':
+                self.ds_version_type = u'10'
+            elif self._ds_version.split(u'.')[0] == u'9':
+                self.ds_version_type = u'9'
             else:
-                self.ds_version = ds_version
+                raise InvalidOptionException(u'Datasource being created with wrong version type')
+            self.xml = self.create_new_datasource_xml(ds_version)
+
         else:
             self.xml = datasource_xml
             if self.xml.get(u"caption"):
@@ -61,14 +69,14 @@ class TableauDatasource(TableauDocument):
             xml_version = self.xml.attrib[u'version']
             # Determine whether it is a 9 style or 10 style federated datasource
             if xml_version in [u'9.0', u'9.1', u'9.2', u'9.3']:
-                self.ds_version = u'9'
+                self.ds_version_type = u'9'
             else:
-                self.ds_version = u'10'
-            self.log(u'Data source is Tableau {} style'.format(self.ds_version))
+                self.ds_version_type = u'10'
+            self.log(u'Data source is Tableau {} style'.format(self.ds_version_type))
 
             # Create Connections
             # 9.0 style
-            if self.ds_version == u'9':
+            if self.ds_version_type == u'9':
                 connection_xml_obj = self.xml.find(u'.//connection', self.ns_map)
                 # Skip the relation if it is a Parameters datasource. Eventually, build out separate object
                 if connection_xml_obj is None:
@@ -79,7 +87,7 @@ class TableauDatasource(TableauDocument):
                     self.connections.append(new_conn)
 
                 # Grab the relation
-            elif self.ds_version == u'10':
+            elif self.ds_version_type == u'10':
                 named_connections = self.xml.findall(u'.//named-connection', self.ns_map)
                 for named_connection in named_connections:
                     self.log(u'connection tags found, building a TableauConnection object')
@@ -204,9 +212,11 @@ class TableauDatasource(TableauDocument):
             self.connections[0].dbname = new_content_url
 
     @staticmethod
-    def create_new_datasource_xml():
+    def create_new_datasource_xml(version):
         # nsmap = {u"user": u'http://www.tableausoftware.com/xml/user'}
         ds_xml = etree.Element(u"datasource")
+        ds_xml.set(u'version', version)
+        ds_xml.set(u'inline', u"true")
         return ds_xml
 
     @staticmethod
@@ -235,11 +245,11 @@ class TableauDatasource(TableauDocument):
     def add_new_connection(self, ds_type, server, db_or_schema_name, authentication=None, initial_sql=None):
         self.start_log_block()
         self.ds_generator = True
-        conn = self.create_new_connection_xml(self.ds_version, ds_type, server, db_or_schema_name, authentication, initial_sql)
-        if self.ds_version == u'9':
+        conn = self.create_new_connection_xml(self.ds_version_type, ds_type, server, db_or_schema_name, authentication, initial_sql)
+        if self.ds_version_type == u'9':
             self.xml.append(conn)
             self._connection_root = conn
-        elif self.ds_version == u'10':
+        elif self.ds_version_type == u'10':
             c = etree.Element(u'connection')
             c.set(u'class', u'federated')
             ncs = etree.Element(u'named-connections')
@@ -327,6 +337,10 @@ class TableauDatasource(TableauDocument):
                 lh = codecs.open(save_to_directory + tds_filename, 'w', encoding='utf-8')
             else:
                 lh = codecs.open(tds_filename, 'w', encoding='utf-8')
+
+            # Write the XML header line
+            lh.write(u"<?xml version='1.0' encoding='utf-8' ?>\n\n")
+            # Write the datasource XML itself
             lh.write(self.get_datasource_xml())
             lh.close()
 
