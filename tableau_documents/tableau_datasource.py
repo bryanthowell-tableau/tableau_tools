@@ -288,11 +288,12 @@ class TableauDatasource(TableauDocument):
             for ci in cis:
                 self.log(u'Appending the column-instances XML')
                 self.xml.append(ci)
-            # Datasource Filters
-            dsf = self.generate_datasource_filters_section()
-            self.log(u'Appending the ds filters to existing XML')
-            for f in dsf:
-                self.xml.append(f)
+
+        # Datasource Filters Can be added no matter what
+        dsf = self.generate_datasource_filters_section()
+        self.log(u'Appending the ds filters to existing XML')
+        for f in dsf:
+            self.xml.append(f)
         # Extracts
         if self.tde_filename is not None:
             # Extract has to be in a sort of order it appears, before the layout and semantic-values nodes
