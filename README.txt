@@ -141,7 +141,12 @@ If you want to log something in your script into this log, you can call
 
 Logger.log(l)
 
-where l is a unicode string. You do not need to add a "\n", it will be added automatically. 
+where l is a unicode string. You do not need to add a "\n", it will be added automatically.
+
+The Logger class by default only logs Requests but not Responses. If you need to see the full responses, use the following method:
+
+Logger.enable_debug_level()
+
 
 0.3 TableauBase class
 Many classes within the tableau_tools package inherit from the TableauBase class. TableauBase implements the enable_logging(Logger) method, along with other a .log() method that calls to Logger.log(). It also has many static methods, mapping dicts, and helper classes related to Tableau in general. 
@@ -952,11 +957,20 @@ for ds in dses:
         # Change the ds_site
         ds.published_ds_site = u'new_site'  # Remember to use content_url rather than the pretty site name
 
-        
-        
+
 ***NOTE: From this point on, things become increasingly experimental and less supported. However, I can assure you that many Tableau customers do these very things, and we are constantly working to improve the functionality for making datasources dynamically.
 
-2.8 Adding an Extract to an Existing TableauDatasource
+2.8 Adding an Extract to an Existing Tableau Datasource
+Adding an extract to a data source is the one place where tableau_tools needs the TableauSDK Python package to be installed. The SDK for version 10.4 and before is located at https://onlinehelp.tableau.com/current/api/sdk/en-us/help.htm. You must install this package on your own for tableau_tools to be able to do these functions.
+
+Data Sources created in 10.4 using a TDE can be published to a Tableau 10.5 Server, and will be upgraded to Hyper files on the first refresh.
+
+Hyper files can be created using the 10.5 Tableau Extract API package (https://onlinehelp.tableau.com/current/api/extract_api/en-us/help.htm). At the current time, tableau_tools has not been updated to use this package, but will be at some point.
+
+The SDK / Extract API are used to generate a "blank" or "stub extract", which contains no data and only the minimum amount of fields for the data source to be validated. The last step in the process is to publish the data source and refresh it on the Tableau Server.
+
+See sections 1.5 for Publishing and 1.6 for refreshing extracts.
+
 TableauDatasource.add_extract(new_extract_filename) 
 
 sets a datasource to have an extract added when the datasource is saved. This command will automatically switch a the saving from a TDS file to a TDSX file or a TWB file to a TWBX when the TableauFile.save_new_file() method is called.
@@ -966,7 +980,7 @@ If there is an existing extract, an AlreadyExistsException will be raised.
 ex.
 
 twb = TableauFile(u'My TWB.twb')
-dses = twb.tableau_document.datasources
+dses = twb.tableau_document.datasources  #type list[TableauDatasource]
 i = 1
 for ds in dses:
     try:
@@ -976,20 +990,92 @@ for ds in dses:
         # Skip any existing extracts in the workbook
         continue
 new_filename = twb.save_new_file(u'Extract Workbooks')
-print new_filename  # Extract Workbooks.twbx
-        
-2.9 Modifying Table JOIN Structure in a Connection (unfinished)
+print(new_filename)  # Extract Workbooks.twbx
 
-2.10 Creating a TableauDatasource from Scratch (WIP)
+If you add filters to the extract, they are similar to the Data Source Filter functions described below in section 2.9.
+
+TableauDatasourceGenerator.add_dimension_extract_filter(column_name, values, include_or_exclude=u'include', custom_value_list=False)
+TableauDatasourceGenerator.add_continuous_extract_filter(column_name, min_value=None, max_value=None, date=False)
+TableauDatasourceGenerator.add_relative_date_extract_filter(column_name, period_type, number_of_periods=None, previous_next_current=u'previous', to_date=False)
+
+2.9 Adding Data Source Filters to an Existing Data Source
+There are many situations where programmatically setting the values in a Data Source filter can be useful -- particularly if you are publishing data sources to different sites which are filtered per customer, but actually all connect to a common data warehouse table. Even with Row Level Security in place, it's a nice extra security layer to have a Data Source filter that insures the customer will only ever see their data, no matter what.
+
+The TableauDatasource class has methods for adding the three different types of data sources.
+
+TableauDatasource.add_dimension_datasource_filter(column_name, values, include_or_exclude=u'include', custom_value_list=False)
+TableauDatasource.add_continuous_datasource_filter(column_name, min_value=None, max_value=None, date=False)
+TableauDatasource.add_relative_date_datasource_filter(column_name, period_type, number_of_periods=None, previous_next_current=u'previous', to_date=False)
+
+One thing to consider is that column_name needs to be the True Database Column name, not the fancy "alias" that is visible in Tableau Desktop. You can see what this field name is in Desktop by right clicking on a field and choosing "Describe" - the "Remote Column Name" will tell you the actual name. You do not need to pass in the square brackets [] around the column_name, this will be done automatically for you.
+
+Values takes a Python list of values, so to send a single value us the [u'value', ] syntax
+
+Here is an examples of setting many dimension filters:
+
+existing_tableau_file = TableauFile(u'Desktop DS.tds')
+doc = existing_tableau_file.tableau_document
+# This syntax gets you correct type hinting
+dses = doc.datasources  #type: list[TableauDatasource]
+ds = dses[0]
+ds.add_dimension_datasource_filter(column_name=u"call_category",
+                                                  values=[u"Account Status", u"Make Payment"])
+ds.add_dimension_datasource_filter(column_name=u"customer_name", values=[u"Customer A", ])
+ds.add_dimension_datasource_filter(column_name=u"state", values=[u"Hawaii", u"Alaska"], include_or_exclude=u'exclude')
+mod_filename = existing_tableau_file.save_new_file(u'Modified from Desktop')
+
+2.10 Defining
+
+2.11 Modifying Table JOIN Structure in a Connection (unfinished)
+
+2.12 Creating a TableauDatasource from Scratch (WIP)
 This API is a work in progress as the details between 9 and 10 type connections are hammered out. At a basic level, it should work starting in v.4.3.15.
 
-new_tableau_file = TableauFile("test.tds", logger_obj=logger, create_new=True, ds_version=u'10')
+The Tableau Data Source has a lot going on -- it's not simply just the connection the table (or tables). The best description of how it works is
+
+https://tableauandbehold.com/2016/06/29/defining-a-tableau-data-source-programmatically/
+
+which probably needs to be updated at this point. What is essential is understanding the concept of the tables and the Relations.
+
+To create a "from scratch" data source, construct a TableauFile object with a ".tds" filename (this file won't actually be created, but the .tds tells the TableauFile constructor you are building a datasource). Set the "create_new" parameter to True, and declare the ds_version you are using (this will be just a standard Tableau Version number -- u"10.2" or u"10.5").
+
+The tableau_document will be a new TableauDatasource which has an empty datasource root node. Now you can use the data source creation functions.
+
+The first step is creating a "first table", which all other relations will attach to. This is the equivalent of the FROM clause in a SQL SELECT statement:
+
+TableauDatasource.add_first_table(db_table_name, table_alias) 
+TableauDatasource.add_first_custom_sql(custom_sql, table_alias)
+
+Then JOIN clauses can be defined to expand out the relations.
+
+You must define the ON clauses first, then pass the ON clauses as a list to the join_table method:
+TableauDatasourceGenerator.define_join_on_clause(left_table_alias, left_field, operator, right_table_alias, right_field)
+ TableauDatasourceGenerator.join_table(join_type, db_table_name, table_alias, join_on_clauses, custom_sql=None)
+
+Example of a single table:
+
+new_tableau_file = TableauFile("test.tds", logger_obj=logger, create_new=True, ds_version=u'10.3')
 new_tableau_document = new_tableau_file.tableau_document
 
-ds = new_tableau_document.datasources[0]
+dses = new_tableau_document.datasources  # type: list[TableauDatasource]
+ds = dses[0]
 ds.add_new_connection(ds_type=u'postgres', server=u'pgdb.your.domain',
                                      db_or_schema_name=u'my_pg_schema')
 ds.set_first_table(db_table_name=u'fact_table', table_alias=u'Table of Facts',
+                   connection=ds.connections[0].connection_name)
+new_tableau_document.save_file(u'New TDS')
+
+
+Example of a single table using Custom SQL:
+
+new_tableau_file = TableauFile("test.tds", logger_obj=logger, create_new=True, ds_version=u'10.3')
+new_tableau_document = new_tableau_file.tableau_document
+
+dses = new_tableau_document.datasources  # type: list[TableauDatasource]
+ds = dses[0]
+ds.add_new_connection(ds_type=u'postgres', server=u'pgdb.your.domain',
+                                     db_or_schema_name=u'my_pg_schema')
+ds.set_first_custom_sql(u"SELECT * FROM table_a a INNER JOIN table_b b ON a.key = b.key WHERE b.customer ='Customer A'" ,
                    connection=ds.connections[0].connection_name)
 new_tableau_document.save_file(u'New TDS')
 
