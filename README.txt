@@ -1024,9 +1024,22 @@ ds.add_dimension_datasource_filter(column_name=u"customer_name", values=[u"Custo
 ds.add_dimension_datasource_filter(column_name=u"state", values=[u"Hawaii", u"Alaska"], include_or_exclude=u'exclude')
 mod_filename = existing_tableau_file.save_new_file(u'Modified from Desktop')
 
-2.10 Defining
+2.10 Defining Calculated Fields Programmatically
+For certain filters, you made need to define a calculation in the data source itself, that the filter can reference. This is particularly useful for row level security type filters. You'll note that there are a lot of particulars to declare with a given calculation. If you are wondering what values you might need, it might be advised to create the calculation in Tableau Desktop, then save the TDS file and open it in a text editor to take a look.
+
+TableauDatasource.add_calculation(calculation, calculation_name, dimension_or_measure, discrete_or_continuous, datatype)
+
+The add_calculation method returns the internally defined name for the calculation, which is necessary if you want to define a Data Source filter against it. This is particularly useful for creating Row Level Security calculations programmatically.
+
+The following is an example:
+# Add a calculation (this one does row level security
+calc_id = ds.add_calculation(u'IIF([salesperson_user_id]=USERNAME(),1,0) ', u'Row Level Security', u'dimension', u'discrete', u'integer')
+
+# Create a data source filter that references the calculation
+ds.add_dimension_datasource_filter(calc_id, [1, ], custom_value_list=True)
 
 2.11 Modifying Table JOIN Structure in a Connection (unfinished)
+
 
 2.12 Creating a TableauDatasource from Scratch (WIP)
 This API is a work in progress as the details between 9 and 10 type connections are hammered out. At a basic level, it should work starting in v.4.3.15.
@@ -1045,12 +1058,6 @@ The first step is creating a "first table", which all other relations will attac
 
 TableauDatasource.add_first_table(db_table_name, table_alias) 
 TableauDatasource.add_first_custom_sql(custom_sql, table_alias)
-
-Then JOIN clauses can be defined to expand out the relations.
-
-You must define the ON clauses first, then pass the ON clauses as a list to the join_table method:
-TableauDatasourceGenerator.define_join_on_clause(left_table_alias, left_field, operator, right_table_alias, right_field)
- TableauDatasourceGenerator.join_table(join_type, db_table_name, table_alias, join_on_clauses, custom_sql=None)
 
 Example of a single table:
 
@@ -1078,6 +1085,25 @@ ds.add_new_connection(ds_type=u'postgres', server=u'pgdb.your.domain',
 ds.set_first_custom_sql(u"SELECT * FROM table_a a INNER JOIN table_b b ON a.key = b.key WHERE b.customer ='Customer A'" ,
                    connection=ds.connections[0].connection_name)
 new_tableau_document.save_file(u'New TDS')
+
+
+Creating single table connections is fairly well tested and should work in most cases. To define multiple tables that work together requires a two step process. These tables are the equivalent of the tables in the JOIN clause of an SQL query. However, you must define the ON clauses first, then pass the ON clauses as a list to the join_table method:
+
+TableauDatasource.define_join_on_clause(left_table_alias, left_field, operator, right_table_alias, right_field)
+ TableauDatasource.join_table(join_type, db_table_name, table_alias, join_on_clauses, custom_sql=None)
+
+You'll notice there are parameters with "alias" in both functions. The real name of the table in the database is referenced as "db_table_name". Tableau gives an internal name to a given table, which is the "table_alias" from the set_first_table and join_table methods. The define_join_on_clause method only uses these aliases, but you need to decide on the first, which doesn't happen until the join_table method. This is a little bit backwards, but once you see the example it should make a bit more sense.
+
+define_join_on_clause returns a JOIN ON data structure, which should be passed in as part of a list in the join_on_clauses parameter of the join_table method.
+
+
+Example:
+
+ds.add_first_table(u'agency_sales', u'Super Store')
+join_on = ds.define_join_on_clause(u'Super Store', u'region', u'=', u'Entitled People', u'region')
+ds.join_table(u'Inner', u'superstore_entitlements', u'Entitled People', [join_on, ])
+
+2.13 Creating and Modifying Parameters
 
 
 3 tabcmd
