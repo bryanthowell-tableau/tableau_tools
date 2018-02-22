@@ -79,8 +79,11 @@ The TableauDatasourceGenerator class uses the TDEFileGenerator class, which requ
     2.6 TableauConnection Class
     2.7 Published Datasources in a Workbook
     2.8 Adding an Extract to an Existing TableauDatasource
-    2.9 Modifying Table JOIN Structure in a Connection (unfinished)
-    2.10 Creating a TableauDatasource from Scratch (unfinished)
+    2.9 Adding Data Source Filters to an Existing Data Source
+    2.10 Defining Calculated Fields Programmatically
+    2.11 Modifying Table JOIN Structure in a Connection (unfinished)
+    2.12 Creating a TableauDatasource from Scratch
+    2.13 Creating and Modifying Parameters
 3. tabcmd
     3.1 Tabcmd Class
     3.2 Triggering an Extract Refresh
