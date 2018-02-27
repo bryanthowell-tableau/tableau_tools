@@ -1106,7 +1106,25 @@ ds.add_first_table(u'agency_sales', u'Super Store')
 join_on = ds.define_join_on_clause(u'Super Store', u'region', u'=', u'Entitled People', u'region')
 ds.join_table(u'Inner', u'superstore_entitlements', u'Entitled People', [join_on, ])
 
+
 2.13 Creating and Modifying Parameters
+Parameters are actually stored in the TWB file as a special type of data source. They don't behave at all like other data sources, so they are modeled differently. If detected, the TableauParameters class will be created to
+
+If a data source does not have any parameters, you can add them in with your own definitions by instantiating a new TableauParameters object.
+
+TableauParameters(datasource_xml=None, logger_obj=None)
+
+When you pass None for the datasource_xml, the TableauParameters data source object is created, but it does not have any parameters yet. You'll need to create and manipulate them using TableauParameter objects, which you can create using the factory method
+
+TableauParameters.create_parameter()
+
+You need to explicitly add the newly create parameter object back using
+
+TableauParameters.add_parameter()
+
+Parameters have an numbering scheme, which is why you should create and add them through the TableauParameters factory methods rather than directly
+
+2.13.1 TableauParameter class
 
 
 3 tabcmd

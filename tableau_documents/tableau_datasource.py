@@ -636,7 +636,7 @@ class TableauDatasource(TableauDocument):
         if dimension_or_measure.lower() in [u'dimension', u'measure']:
             role = dimension_or_measure.lower()
         else:
-            raise InvalidOptionException("{} should be either measure or dimension".format(dimension_or_measure))
+            raise InvalidOptionException(u"{} should be either measure or dimension".format(dimension_or_measure))
 
         if discrete_or_continuous.lower() in [u'discrete', u'continuous']:
             if discrete_or_continuous.lower() == u'discrete':
@@ -647,10 +647,10 @@ class TableauDatasource(TableauDocument):
             elif discrete_or_continuous.lower() == u'continuous':
                 t_type = u'quantitative'
         else:
-            raise InvalidOptionException("{} should be either discrete or continuous".format(discrete_or_continuous))
+            raise InvalidOptionException(u"{} should be either discrete or continuous".format(discrete_or_continuous))
 
         if datatype.lower() not in [u'string', u'integer', u'datetime', u'date', u'real', u'boolean']:
-            raise InvalidOptionException("{} is not a valid datatype".format(datatype))
+            raise InvalidOptionException(u"{} is not a valid datatype".format(datatype))
 
         self.column_aliases[tableau_field_alias] = {u"caption": caption,
                                                     u"type": t_type,
@@ -921,7 +921,7 @@ class TableauDatasource(TableauDocument):
 
 
 class TableauParameters(TableauDocument):
-    def __init__(self, datasource_xml, logger_obj=None):
+    def __init__(self, datasource_xml=None, logger_obj=None):
         """
         :type datasource_xml: etree.Element
         :type logger_obj: Logger
@@ -929,7 +929,310 @@ class TableauParameters(TableauDocument):
         TableauDocument.__init__(self)
         self.logger = logger_obj
 
+        # Initialize new Parameters datasource if existing xml is not passed in
+
+        if datasource_xml is None:
+            self.ds_xml = etree.Element(u"datasource")
+            self.ds_xml.set(u'name', u'Parameters')
+            # Initialization of the datasource
+            self.ds_xml.set(u'hasconnection', u'false')
+            self.ds_xml.set(u'inline', u'true')
+            a = etree.Element(u'aliases')
+            a.set(u'enabled', u'yes')
+            self.ds_xml.append(a)
+        else:
+            self.ds_xml = datasource_xml
+
+    # Save Parameters as Element objects with a named key based on the alias
+    # Or perhaps just store the column object itself
+    #def _load_existing_parameters(self):
+        # param_columns =
+
     # Parameters manipulation methods
     def get_parameter_by_name(self, parameter_name):
         param_column = self.xml.xpath(u'//t:column[@alias="{}"]'.format(parameter_name), namespaces=self.ns_map)
         return param_column
+
+    def add_parameter(self, name, datatype, allowable_values, current_value, values_list=None, range_dict=None):
+        if datatype.lower() not in [u'string', u'integer', u'datetime', u'date', u'real', u'boolean']:
+            raise InvalidOptionException(u"{} is not a valid datatype".format(datatype))
+        if allowable_values not in [u'all', u'list', u'range']:
+            raise InvalidOptionException(u"{} is not valid allowable_values option. Only 'all', 'list' or 'range'")
+
+        # range_dict = { min: None, max: None, step_size: None, period_type: None}
+
+        param_dict = {
+                        u'allowable_values': allowable_values,
+                        u'datatype': datatype,
+                        u'current_value': current_value,
+                        u'values_list': values_list,
+                        u'range_dict': range_dict,
+                        u'caption': name
+        }
+        self.parameters.append(param_dict)
+
+    @staticmethod
+    def create_parameter_column(param_number, param_dict):
+        c = etree.Element(u"column")
+        c.set(u'caption', param_dict[u'caption'])
+        c.set(u'name', u'[Parameter {}]'.format(str(param_number)))
+        c.set(u'param-domain-type', param_dict[u'allowable_values'])
+        if param_dict[u'datatype'] in [u'integer', u'real']:
+            c.set(u'type', u'quantitative')
+        else:
+            c.set(u'type', u'nominal')
+        c.set(u'role', u'measure')
+        c.set(u'datatype', param_dict[u'datatype'])
+
+        # Range
+        if param_dict[u'allowable_values'] == u'range':
+            r = etree.Element(u'range')
+            if param_dict[u'range_dict'][u'max'] is not None:
+                r.set(u'max', str(param_dict[u'range_dict'][u'max']))
+            if param_dict[u'range_dict'][u'min'] is not None:
+                r.set(u'min', str(param_dict[u'range_dict'][u'min']))
+            if param_dict[u'range_dict'][u'step_size'] is not None:
+                r.set(u'granularity', str(param_dict[u'range_dict'][u'step_size']))
+            if param_dict[u'range_dict'][u'period_type'] is not None:
+                r.set(u'period-type', str(param_dict[u'range_dict'][u'period_type']))
+            c.append(r)
+
+        # List
+        aliases = None
+        if param_dict[u'allowable_values'] == u'list':
+            members = etree.Element(u'members')
+
+            for value_pair in param_dict[u'values_list']:
+                for value in value_pair:
+                    member = etree.Element(u'member')
+                    member.set(u'value', str(value))
+                    if value_pair[value] is not None:
+                        if aliases is None:
+                            aliases = etree.Element(u'aliases')
+                        alias = etree.Element(u'alias')
+                        alias.set(u'key', str(value))
+                        alias.set(u'value', str(value_pair[value]))
+                        member.set(u'alias', str(value_pair[value]))
+                        aliases.append(alias)
+                    members.append(member)
+                if aliases is not None:
+                    c.append(aliases)
+                c.append(members)
+
+        # If you have aliases, then need to put alias in the alias parameter, and real value in the value parameter
+        if aliases is not None:
+            c.set(u'alias', str(param_dict[u'current_value']))
+            # Lookup the actual value of the alias
+            for value_pair in param_dict[u'values_list']:
+                for value in value_pair:
+                    if value_pair[value] == param_dict[u'current_value']:
+                        actual_value = value
+        else:
+            actual_value = param_dict[u'current_value']
+
+        if isinstance(param_dict[u'current_value'], str) and param_dict[u'datatype'] not in [u'date', u'datetime']:
+            c.set(u'value', quoteattr(actual_value))
+        else:
+            c.set(u'value', str(actual_value))
+
+        calc = etree.Element(u'calculation')
+        calc.set(u'class', u'tableau')
+        if isinstance(param_dict[u'current_value'], str) and param_dict[u'datatype'] not in [u'date', u'datetime']:
+            calc.set(u'formula', quoteattr(actual_value))
+        else:
+            calc.set(u'formula', str(actual_value))
+        c.append(calc)
+
+        return c
+
+    def get_xml_string(self):
+        i = 1
+        for parameter in self.parameters:
+            c = self.create_parameter_column(i, parameter)
+            self.ds_xml.append(c)
+            i += 1
+
+        xmlstring = etree.tostring(self.ds_xml, encoding='utf-8')
+        self.log(xmlstring)
+        return xmlstring
+
+
+class TableauParameter(TableauBase):
+    def __init__(self, parameter_xml=None, parameter_number=None, logger_obj=None):
+        """
+        :type parameter_xml: etree.Element
+        :type logger_obj: Logger
+        """
+        TableauBase.__init__(self)
+        self.logger = logger_obj
+        self._aliases = False
+        self._values_list = None
+
+        if parameter_xml is not None:
+            self.p_xml = parameter_xml
+
+            # Grab any aliases and members and generate a list of the values
+
+        # Initialization of the column element
+        else:
+            if parameter_number is None:
+                raise InvalidOptionException(u'Must pass a parameter_number if creating a new Parameter')
+            self.p_xml = etree.Element(u"column")
+            self.p_xml.set(u'name', u'[Parameter {}]'.format(str(parameter_number)))
+            self.p_xml.set(u'role', u'measure')
+            # Set allowable_values to all by default
+            self.p_xml.set(u'param-domain-type', u'all')
+
+    @property
+    def name(self):
+        return self.p_xml.get(u'caption')
+
+    @name.setter
+    def name(self, name):
+        if self.p_xml.get(u'caption') is not None:
+            self.p_xml.attrib[u'caption'] = name
+        else:
+            self.p_xml.set(u'caption', name)
+
+    @property
+    def datatype(self):
+        return self.p_xml.get(u'datatype')
+
+    @datatype.setter
+    def datatype(self, datatype):
+        if datatype.lower() not in [u'string', u'integer', u'datetime', u'date', u'real', u'boolean']:
+            raise InvalidOptionException(u"{} is not a valid datatype".format(datatype))
+        if self.p_xml.get(u"datatype") is not None:
+            self.p_xml.attrib[u"datatype"] = datatype
+            if datatype in [u'integer', u'real']:
+                self.p_xml.attrib[u'type'] = u'quantitative'
+            else:
+                self.p_xml.attrib[u'type'] = u'nominal'
+
+        else:
+            self.p_xml.set(u'datatype', datatype)
+            if datatype in [u'integer', u'real']:
+                self.p_xml.set(u'type', u'quantitative')
+            else:
+                self.p_xml.set(u'type', u'nominal')
+
+    @property
+    def allowable_values(self):
+        return self.p_xml.get(u'param-domain-type')
+
+    def set_allowable_values_range(self, minimum=None, maximum=None, step_size=None, period_type=None):
+        # Automatically switch to a range param-domain-type and clean up list version
+        if self.p_xml.get(u'param-domain-type') == u'list':
+            a = self.p_xml.find(u'./aliases')
+            if a is not None:
+                self.p_xml.remove(a)
+
+            m = self.p_xml.find(u'./members')
+            if m is not None:
+                self.p_xml.remove(m)
+
+            c = self.p_xml.find(u'./calculation')
+            if c is not None:
+                self.p_xml.remove(c)
+
+        self.p_xml.set(u'param-domain-type', u'range')
+        # See if a range already exists, otherwise create it
+        r = self.p_xml.find(u'./range', self.ns_map)
+        if r is None:
+            r = etree.Element(u'range')
+            self.p_xml.append(r)
+
+        # Set any new values that come through
+        if maximum is not None:
+            r.set(u'max', unicode(maximum))
+        if minimum is not None:
+            r.set(u'min', unicode(minimum))
+        if step_size is not None:
+            r.set(u'granularity', unicode(step_size))
+        if period_type is not None:
+            r.set(u'period-type', unicode(period_type))
+
+    def set_allowable_values_list(self, list_value_display_as_pairs):
+        """
+        :param list_value_display_as_pairs: To maintain ordering, pass in the values as a list of {value : display_as } dict elements
+        :type list_value_display_as_pairs: list[dict]
+        :return:
+        """
+        # Automatically switch to a range param-domain-type and clean up list version
+        if self.p_xml.get(u'param-domain-type') == u'range':
+            r = self.p_xml.find(u'./range')
+            if r is not None:
+                self.p_xml.remove(r)
+            # Clear the preset value if a RANGE previously, leave it if it was already a list
+            c = self.p_xml.find(u'./calculation')
+            if c is not None:
+                self.p_xml.remove(c)
+
+        self.p_xml.set(u'param-domain-type', u'list')
+        # Store the values list for lookups later
+
+        # Remove existing members and aliases
+        a = self.p_xml.find(u'./aliases')
+        if a is not None:
+            self.p_xml.remove(a)
+
+        m = self.p_xml.find(u'./members')
+        if m is not None:
+            self.p_xml.remove(m)
+
+        aliases = None
+        members = etree.Element(u'members')
+
+        for value_pair in list_value_display_as_pairs:
+            for value in value_pair:
+                member = etree.Element(u'member')
+                member.set(u'value', str(value))
+                if value_pair[value] is not None:
+                    if aliases is None:
+                        aliases = etree.Element(u'aliases')
+                    alias = etree.Element(u'alias')
+                    alias.set(u'key', str(value))
+                    alias.set(u'value', str(value_pair[value]))
+                    member.set(u'alias', str(value_pair[value]))
+                    aliases.append(alias)
+                members.append(member)
+        if aliases is not None:
+            self.p_xml.append(aliases)
+            self._aliases = True
+        else:
+            self._aliases = False
+        self.p_xml.append(members)
+
+    @property
+    def current_value(self):
+        # Returns the alias if one exists
+        if self.p_xml.get(u'alias') is None:
+            return self.p_xml.get(u'value')
+        else:
+            return self.p_xml.get(u'alias')
+
+    @current_value.setter
+    def current_value(self, current_value):
+        # The set value is both in the column tag and has a separate calculation tag
+
+        # If there is an alias, have to grab the real value
+        actual_value = current_value
+        if self._aliases is not None:
+            self.p_xml.set(u'alias', unicode(current_value))
+            # Lookup the actual value of the alias
+            for value_pair in self._values_list:
+                for value in value_pair:
+                    if value_pair[value] == current_value:
+                        actual_value = value
+
+        # Why there have to be a calculation tag as well? I don't know, but there does
+        calc = etree.Element(u'calculation')
+        calc.set(u'class', u'tableau')
+        if isinstance(current_value, basestring) and self.datatype not in [u'date', u'datetime']:
+            self.p_xml.set(u'value', quoteattr(actual_value))
+            calc.set(u'formula', quoteattr(actual_value))
+        else:
+            self.p_xml.set(u'value', unicode(actual_value))
+            calc.set(u'formula', str(actual_value))
+
+        self.p_xml.append(calc)
