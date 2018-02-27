@@ -10,7 +10,7 @@ import copy
 from xml.sax.saxutils import quoteattr
 import datetime
 import codecs
-
+import collections
 
 # Meant to represent a TDS file, does not handle the file opening
 class TableauDatasource(TableauDocument):
@@ -928,6 +928,8 @@ class TableauParameters(TableauDocument):
         """
         TableauDocument.__init__(self)
         self.logger = logger_obj
+        self.parameters = collections.OrderedDict()
+        self._highest_param_num = 1
 
         # Initialize new Parameters datasource if existing xml is not passed in
 
@@ -942,108 +944,47 @@ class TableauParameters(TableauDocument):
             self.ds_xml.append(a)
         else:
             self.ds_xml = datasource_xml
+            params_xml = self.ds_xml.findall(u'./column')
+            for column in params_xml:
+                alias = column.get(u'alias')
+                internal_name = column.get(u'name')
+                # Parameters are all given internal name [Parameter #]
+                param_num = internal_name.split(u" ")[1][0]
+                # Move up the highest_param_num counter for when you add new ones
+                if param_num > self._highest_param_num:
+                    self._highest_param_num = param_num
+
+                p = TableauParameter(parameter_xml=column, logger_obj=self.logger)
+                self.parameters[alias] = p
+
 
     # Save Parameters as Element objects with a named key based on the alias
     # Or perhaps just store the column object itself
     #def _load_existing_parameters(self):
         # param_columns =
+    # param_obj = self.xml.xpath(u'//t:column[@alias="{}"]'.format(parameter_name), namespaces=self.ns_map)
 
     # Parameters manipulation methods
     def get_parameter_by_name(self, parameter_name):
-        param_column = self.xml.xpath(u'//t:column[@alias="{}"]'.format(parameter_name), namespaces=self.ns_map)
-        return param_column
+        """
+        :type parameter_name: unicode
+        :rtype: TableauParameter
+        """
+        return self.parameters.get(parameter_name)
 
-    def add_parameter(self, name, datatype, allowable_values, current_value, values_list=None, range_dict=None):
-        if datatype.lower() not in [u'string', u'integer', u'datetime', u'date', u'real', u'boolean']:
-            raise InvalidOptionException(u"{} is not a valid datatype".format(datatype))
-        if allowable_values not in [u'all', u'list', u'range']:
-            raise InvalidOptionException(u"{} is not valid allowable_values option. Only 'all', 'list' or 'range'")
+    def create_new_parameter(self):
+        """
+        :rtype: TableauParameter
+        """
+        # Need to check existing Parameter numbers
+        param_num = 1
+        p = TableauParameter(parameter_xml=None, parameter_number=param_num, logger_obj=self.logger)
 
-        # range_dict = { min: None, max: None, step_size: None, period_type: None}
+        return p
 
-        param_dict = {
-                        u'allowable_values': allowable_values,
-                        u'datatype': datatype,
-                        u'current_value': current_value,
-                        u'values_list': values_list,
-                        u'range_dict': range_dict,
-                        u'caption': name
-        }
-        self.parameters.append(param_dict)
+    #def add_parameter(self, parameter):
+    #
 
-    @staticmethod
-    def create_parameter_column(param_number, param_dict):
-        c = etree.Element(u"column")
-        c.set(u'caption', param_dict[u'caption'])
-        c.set(u'name', u'[Parameter {}]'.format(str(param_number)))
-        c.set(u'param-domain-type', param_dict[u'allowable_values'])
-        if param_dict[u'datatype'] in [u'integer', u'real']:
-            c.set(u'type', u'quantitative')
-        else:
-            c.set(u'type', u'nominal')
-        c.set(u'role', u'measure')
-        c.set(u'datatype', param_dict[u'datatype'])
-
-        # Range
-        if param_dict[u'allowable_values'] == u'range':
-            r = etree.Element(u'range')
-            if param_dict[u'range_dict'][u'max'] is not None:
-                r.set(u'max', str(param_dict[u'range_dict'][u'max']))
-            if param_dict[u'range_dict'][u'min'] is not None:
-                r.set(u'min', str(param_dict[u'range_dict'][u'min']))
-            if param_dict[u'range_dict'][u'step_size'] is not None:
-                r.set(u'granularity', str(param_dict[u'range_dict'][u'step_size']))
-            if param_dict[u'range_dict'][u'period_type'] is not None:
-                r.set(u'period-type', str(param_dict[u'range_dict'][u'period_type']))
-            c.append(r)
-
-        # List
-        aliases = None
-        if param_dict[u'allowable_values'] == u'list':
-            members = etree.Element(u'members')
-
-            for value_pair in param_dict[u'values_list']:
-                for value in value_pair:
-                    member = etree.Element(u'member')
-                    member.set(u'value', str(value))
-                    if value_pair[value] is not None:
-                        if aliases is None:
-                            aliases = etree.Element(u'aliases')
-                        alias = etree.Element(u'alias')
-                        alias.set(u'key', str(value))
-                        alias.set(u'value', str(value_pair[value]))
-                        member.set(u'alias', str(value_pair[value]))
-                        aliases.append(alias)
-                    members.append(member)
-                if aliases is not None:
-                    c.append(aliases)
-                c.append(members)
-
-        # If you have aliases, then need to put alias in the alias parameter, and real value in the value parameter
-        if aliases is not None:
-            c.set(u'alias', str(param_dict[u'current_value']))
-            # Lookup the actual value of the alias
-            for value_pair in param_dict[u'values_list']:
-                for value in value_pair:
-                    if value_pair[value] == param_dict[u'current_value']:
-                        actual_value = value
-        else:
-            actual_value = param_dict[u'current_value']
-
-        if isinstance(param_dict[u'current_value'], str) and param_dict[u'datatype'] not in [u'date', u'datetime']:
-            c.set(u'value', quoteattr(actual_value))
-        else:
-            c.set(u'value', str(actual_value))
-
-        calc = etree.Element(u'calculation')
-        calc.set(u'class', u'tableau')
-        if isinstance(param_dict[u'current_value'], str) and param_dict[u'datatype'] not in [u'date', u'datetime']:
-            calc.set(u'formula', quoteattr(actual_value))
-        else:
-            calc.set(u'formula', str(actual_value))
-        c.append(calc)
-
-        return c
 
     def get_xml_string(self):
         i = 1
