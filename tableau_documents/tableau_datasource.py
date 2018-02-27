@@ -957,14 +957,6 @@ class TableauParameters(TableauDocument):
                 p = TableauParameter(parameter_xml=column, logger_obj=self.logger)
                 self.parameters[alias] = p
 
-
-    # Save Parameters as Element objects with a named key based on the alias
-    # Or perhaps just store the column object itself
-    #def _load_existing_parameters(self):
-        # param_columns =
-    # param_obj = self.xml.xpath(u'//t:column[@alias="{}"]'.format(parameter_name), namespaces=self.ns_map)
-
-    # Parameters manipulation methods
     def get_parameter_by_name(self, parameter_name):
         """
         :type parameter_name: unicode
@@ -977,25 +969,27 @@ class TableauParameters(TableauDocument):
         :rtype: TableauParameter
         """
         # Need to check existing Parameter numbers
-        param_num = 1
-        p = TableauParameter(parameter_xml=None, parameter_number=param_num, logger_obj=self.logger)
+        self._highest_param_num += 1
+        p = TableauParameter(parameter_xml=None, parameter_number=self._highest_param_num, logger_obj=self.logger)
 
         return p
 
-    #def add_parameter(self, parameter):
-    #
+    def add_parameter(self, parameter):
+        """
+        :type parameter: TableauParameter
+        :return:
+        """
+        if isinstance(parameter, TableauParameter) is not True:
+            raise InvalidOptionException(u'parameter must be a TableauParameter object')
+        self.parameters[parameter.name] = parameter
 
-
-    def get_xml_string(self):
-        i = 1
-        for parameter in self.parameters:
-            c = self.create_parameter_column(i, parameter)
-            self.ds_xml.append(c)
-            i += 1
-
-        xmlstring = etree.tostring(self.ds_xml, encoding='utf-8')
-        self.log(xmlstring)
-        return xmlstring
+    def delete_parameter_by_name(self, parameter_name):
+        if self.parameters.get(parameter_name) is not None:
+            param_xml = self.ds_xml.find(u'./column[@alias="{}"]'.format(parameter_name))
+            del self.parameters[parameter_name]
+            # Might be unnecessary but who am I to say what won't happen
+            if param_xml is not None:
+                self.ds_xml.remove(param_xml)
 
 
 class TableauParameter(TableauBase):
@@ -1061,7 +1055,7 @@ class TableauParameter(TableauBase):
     def allowable_values(self):
         return self.p_xml.get(u'param-domain-type')
 
-    def set_allowable_values_range(self, minimum=None, maximum=None, step_size=None, period_type=None):
+    def set_allowable_values_to_range(self, minimum=None, maximum=None, step_size=None, period_type=None):
         # Automatically switch to a range param-domain-type and clean up list version
         if self.p_xml.get(u'param-domain-type') == u'list':
             a = self.p_xml.find(u'./aliases')
@@ -1093,7 +1087,7 @@ class TableauParameter(TableauBase):
         if period_type is not None:
             r.set(u'period-type', unicode(period_type))
 
-    def set_allowable_values_list(self, list_value_display_as_pairs):
+    def set_allowable_values_to_list(self, list_value_display_as_pairs):
         """
         :param list_value_display_as_pairs: To maintain ordering, pass in the values as a list of {value : display_as } dict elements
         :type list_value_display_as_pairs: list[dict]
@@ -1143,6 +1137,24 @@ class TableauParameter(TableauBase):
         else:
             self._aliases = False
         self.p_xml.append(members)
+
+    def set_allowable_values_to_all(self):
+
+        # Clear anything that range or list would have
+
+        r = self.p_xml.find(u'./range')
+        if r is not None:
+            self.p_xml.remove(r)
+
+        a = self.p_xml.find(u'./aliases')
+        if a is not None:
+            self.p_xml.remove(a)
+
+        m = self.p_xml.find(u'./members')
+        if m is not None:
+            self.p_xml.remove(m)
+
+        self.p_xml.set(u'param-domain-type', u'all')
 
     @property
     def current_value(self):

@@ -1120,11 +1120,48 @@ TableauParameters.create_parameter()
 
 You need to explicitly add the newly create parameter object back using
 
-TableauParameters.add_parameter()
+TableauParameters.add_parameter(parameter)    # parameter is a TableauParameter object
 
 Parameters have an numbering scheme, which is why you should create and add them through the TableauParameters factory methods rather than directly
 
+You can also delete an existing Parameter by its name/alias:
+
+TableauParameters.delete_parameter_by_name(parameter_name)
+
+
 2.13.1 TableauParameter class
+The actual values and settings of a Tableau Parameter are set using the TableauParameter class. When it is instantiated from an existing parameter in the XML of a TWB, all of the values are mapped to their properties, which are the only interface you should use to set or retrieve values.
+
+When you create a TableauParameter from scratch, it comes pre-defined as an "all" type parameter, but with no datatype defined.
+
+The properties you can set are:
+
+TableauParameter.name
+TableauParameter.datatype  # u'string', u'integer', u'datetime', u'date', u'real', u'boolean'
+TableauParameter.current_value  # Use the alias i.e. the value that is visible to the end user
+
+You can retrieve what type of allowable_values a parameter has using the property
+
+TableauParameter.allowable_values   # returns either "all", "range", or "list"
+
+However, the actual value of allowable_values is set automatically if you set a range or a list of values.
+
+To set the allowable values:
+
+TableauParameter.set_allowable_values_to_all()
+TableauParameter.set_allowable_values_to_range(minimum=None, maximum=None, step_size=None, period_type=None)
+TableauParameter.set_allowable_values_to_list(list_value_display_as_pairs)
+
+When using set_allowable_values_to_list(), the data structure that is expected is a list of {value : display_as} dicts.
+
+Ex.
+tab_params = TableauParameters()
+param = tab_params.create_parameter()
+param.name = u'Semester'
+param.datatype = u'string'
+allowable_values = [ { u"Spring 2018" : u"2018-02-01"} , { u"Fall 2018" : u"2018-09-01" } ]
+param.set_allowable_values_to_list(allowable_values)
+param.set_current_value(u'Spring 2018')
 
 
 3 tabcmd
