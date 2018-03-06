@@ -266,7 +266,8 @@ class TableauBase(object):
             u"Statistical File": u"",
             u"Tableau Data Extract": u"dataengine",
             u"Teradata": u"teradata",
-            u"Text file": u"textscan"
+            u"Text file": u"textscan",
+            u"Hyper": u'hyper'
         }
 
         self.permissionable_objects = (u'datasource', u'project', u'workbook')

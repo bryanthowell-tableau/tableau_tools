@@ -11,6 +11,7 @@ from xml.sax.saxutils import quoteattr
 import datetime
 import codecs
 import collections
+import random
 
 # Meant to represent a TDS file, does not handle the file opening
 class TableauDatasource(TableauDocument):
@@ -34,7 +35,7 @@ class TableauDatasource(TableauDocument):
         self.nsmap = {u"user": u'http://www.tableausoftware.com/xml/user'}
 
         # All used for creating from scratch
-        self._tde_filename = None
+        self._extract_filename = None
         self.incremental_refresh_field = None
         self.join_relations = []
         self.column_mapping = {}
@@ -52,9 +53,13 @@ class TableauDatasource(TableauDocument):
             if ds_version is None:
                 raise InvalidOptionException(u'When creating Datasource from scratch, must declare a ds_version')
             self._ds_version = ds_version
-            if self._ds_version.split(u'.')[0] == u'10':
-                self.ds_version_type = u'10'
-            elif self._ds_version.split(u'.')[0] == u'9':
+            version_split = self._ds_version.split(u'.')
+            if version_split[0] == u'10':
+                if int(version_split[1]) < 5:
+                    self.ds_version_type = u'10'
+                else:
+                    self.ds_version_type = u'10.5'
+            elif version_split[0] == u'9':
                 self.ds_version_type = u'9'
             else:
                 raise InvalidOptionException(u'Datasource being created with wrong version type')
@@ -71,7 +76,11 @@ class TableauDatasource(TableauDocument):
             if xml_version in [u'9.0', u'9.1', u'9.2', u'9.3']:
                 self.ds_version_type = u'9'
             else:
-                self.ds_version_type = u'10'
+                version_split = xml_version.split(u'.')
+                if int(version_split[1]) < 5:
+                    self.ds_version_type = u'10'
+                else:
+                    self.ds_version_type = u'10.5'
             self.log(u'Data source is Tableau {} style'.format(self.ds_version_type))
 
             # Create Connections
@@ -87,7 +96,7 @@ class TableauDatasource(TableauDocument):
                     self.connections.append(new_conn)
 
                 # Grab the relation
-            elif self.ds_version_type == u'10':
+            elif self.ds_version_type in [u'10', u'10.5']:
                 named_connections = self.xml.findall(u'.//named-connection', self.ns_map)
                 for named_connection in named_connections:
                     self.log(u'connection tags found, building a TableauConnection object')
@@ -128,7 +137,7 @@ class TableauDatasource(TableauDocument):
             columns_list = self.xml.findall(u'column')
             self._columns = TableauColumns(columns_list, self.logger)
 
-        self._tde_filename = None
+        self._extract_filename = None
         self.ds_generator = None
 
     @property
@@ -136,11 +145,11 @@ class TableauDatasource(TableauDocument):
         """
         :rtype: unicode
         """
-        return self._tde_filename
+        return self._extract_filename
 
     @tde_filename.setter
     def tde_filename(self, tde_filename):
-        self._tde_filename = tde_filename
+        self._extract_filename = tde_filename
 
     @property
     def connections(self):
@@ -224,10 +233,12 @@ class TableauDatasource(TableauDocument):
         connection = etree.Element(u"connection")
         if ds_version == u'9':
             c = connection
-        elif ds_version == u'10':
+        elif ds_version in [u'10', u'10.5']:
             nc = etree.Element(u'named-connection')
             nc.set(u'caption', u'Connection')
-            nc.set(u'name', u'connection.{}'.format(u'1912381971719892841')) # add in real random generated num
+            # Connection has a random number of 20 digits appended
+            rnumber = random.randrange(10**20, 10**21)
+            nc.set(u'name', u'connection.{}'.format(rnumber))
             nc.append(connection)
             c = nc
         else:
@@ -249,7 +260,7 @@ class TableauDatasource(TableauDocument):
         if self.ds_version_type == u'9':
             self.xml.append(conn)
             self._connection_root = conn
-        elif self.ds_version_type == u'10':
+        elif self.ds_version_type in [u'10', u'10.5']:
             c = etree.Element(u'connection')
             c.set(u'class', u'federated')
             ncs = etree.Element(u'named-connections')
@@ -384,22 +395,28 @@ class TableauDatasource(TableauDocument):
             raise AlreadyExistsException(u"An extract already exists, can't add a new one", u"")
         else:
             self.log(u'Extract doesnt exist')
-            if new_extract_filename.find(u'.tde') == -1:
-                new_extract_filename += u'.tde'
-            self._tde_filename = new_extract_filename
+            new_extract_filename_start = new_extract_filename.split(u".")[0]
+            if self.ds_version_type == u'10.5':
+                final_extract_filename = u"{}.hyper".format(new_extract_filename_start)
+            else:
+                final_extract_filename = u"{}.tde".format(new_extract_filename_start)
+            self._extract_filename = final_extract_filename
             self.log(u'Adding extract to the  data source')
 
     def generate_extract_section(self):
         # Short circuit if no extract had been set
-        if self._tde_filename is None:
-            self.log(u'No tde_filename, no extract being added')
+        if self._extract_filename is None:
+            self.log(u'No extract_filename, no extract being added')
             return False
         self.log(u'Importing the Tableau SDK to build the extract')
 
         # Import only if necessary
         self.log(u'Building the extract Element object')
         try:
-            from tde_file_generator import TDEFileGenerator
+            if self.ds_version_type == u'10.5':
+                from hyper_file_generator import HyperFileGenerator
+            else:
+                from tde_file_generator import TDEFileGenerator
         except Exception as ex:
             print u"Must install the Tableau Extract SDK to add extracts"
             raise
@@ -409,8 +426,18 @@ class TableauDatasource(TableauDocument):
         e.set(u'units', u'records')
 
         c = etree.Element(u'connection')
-        c.set(u'class', u'dataengine')
-        c.set(u'dbname', u'Data/Datasources/{}'.format(self._tde_filename))
+        if self.ds_version_type in [u'9', u'10']:
+            c.set(u'class', u'dataengine')
+        # 10.5 has hyper data sources instead
+        if self.ds_version_type in [u'10.5']:
+            c.set(u'class', u'hyper')
+            #c.set(u'class', u'tdescan')
+            c.set(u'username', u'tableau_internal_user')
+            c.set(u'access_mode', u'readonly')
+            c.set(u'authentication', u'auth-none')
+            c.set(u'default-settings', u'yes')
+            c.set(u'sslmode', u'')
+        c.set(u'dbname', u'Data/Datasources/{}'.format(self._extract_filename))
         c.set(u'schema', u'Extract')
         c.set(u'tablename', u'Extract')
         right_now = datetime.datetime.now()
@@ -479,9 +506,14 @@ class TableauDatasource(TableauDocument):
             tde_columns[u'Generic Field'] = 'str'
 
         self.log(u'Using the Extract SDK to build an empty extract file with the right definition')
-        tde_file_generator = TDEFileGenerator(self.logger)
-        tde_file_generator.set_table_definition(tde_columns)
-        tde_file_generator.create_tde(self.tde_filename)
+        if self.ds_version_type == u'10.5':
+            from hyper_file_generator import HyperFileGenerator
+            extract_file_generator = HyperFileGenerator(self.logger)
+        else:
+            from tde_file_generator import TDEFileGenerator
+            extract_file_generator = TDEFileGenerator(self.logger)
+        extract_file_generator.set_table_definition(tde_columns)
+        extract_file_generator.create_extract(self.tde_filename)
         return e
 
     #

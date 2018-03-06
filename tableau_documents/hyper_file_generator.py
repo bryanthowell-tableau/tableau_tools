@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
 from tableausdk import *
-from tableausdk.Extract import *
+from tableausdk.HyperExtract import *
 from ..tableau_base import *
 
 
-class TDEFileGenerator(TableauBase):
+class HyperFileGenerator(TableauBase):
     def __init__(self, logger_obj=None):
         super(self.__class__, self).__init__()
         self.logger = logger_obj
