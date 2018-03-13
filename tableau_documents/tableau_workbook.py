@@ -108,7 +108,15 @@ class TableauWorkbook(TableauDocument):
                     self.log(u'Adding in the newly modified datasources')
                     ds_flag = False
                     lh.write('<datasources>\n')
-                    for ds in self.datasources:
+
+                    final_datasources = []
+                    if self.parameters is not None:
+                        self.log(u'Adding parameters datasource back in')
+                        final_datasources.append(self.parameters)
+                        final_datasources.extend(self.datasources)
+                    else:
+                        final_datasources = self.datasources
+                    for ds in final_datasources:
                         self.log(u'Writing datasource XML into the workbook')
                         lh.write(ds.get_datasource_xml())
                     lh.write('</datasources>\n')

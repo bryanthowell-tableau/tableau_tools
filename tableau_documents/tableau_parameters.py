@@ -49,6 +49,12 @@ class TableauParameters(TableauDocument):
                 p = TableauParameter(parameter_xml=column, logger_obj=self.logger)
                 self._parameters[alias] = p
 
+    def get_datasource_xml(self):
+        self.start_log_block()
+        xmlstring = etree.tostring(self.ds_xml)
+        self.end_log_block()
+        return xmlstring
+
     def get_parameter_by_name(self, parameter_name):
         """
         :type parameter_name: unicode
