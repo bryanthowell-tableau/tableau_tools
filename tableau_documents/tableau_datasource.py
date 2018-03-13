@@ -7,11 +7,12 @@ from ..tableau_exceptions import *
 import zipfile
 import os
 import copy
-from xml.sax.saxutils import quoteattr
+from xml.sax.saxutils import quoteattr, unescape
 import datetime
 import codecs
 import collections
 import random
+
 
 # Meant to represent a TDS file, does not handle the file opening
 class TableauDatasource(TableauDocument):
@@ -33,6 +34,7 @@ class TableauDatasource(TableauDocument):
         self.relation_xml_obj = None
         self.existing_tde_filename = None
         self.nsmap = {u"user": u'http://www.tableausoftware.com/xml/user'}
+        self.parameters = None
 
         # All used for creating from scratch
         self._extract_filename = None
@@ -47,6 +49,7 @@ class TableauDatasource(TableauDocument):
         self.main_table_relation = None
         self.main_table_name = None
         self._connection_root = None
+        self._stored_proc_parameters_xml = None
 
         # Create from new or from existing object
         if datasource_xml is None:
@@ -95,7 +98,7 @@ class TableauDatasource(TableauDocument):
                     new_conn = TableauConnection(connection_xml_obj)
                     self.connections.append(new_conn)
 
-                # Grab the relation
+            # Grab the relation
             elif self.ds_version_type in [u'10', u'10.5']:
                 named_connections = self.xml.findall(u'.//named-connection', self.ns_map)
                 for named_connection in named_connections:
@@ -113,6 +116,7 @@ class TableauDatasource(TableauDocument):
                 self.read_existing_relations()
             else:
                 self.log(u'Found a Parameters datasource')
+
 
         self.repository_location = None
 
@@ -230,6 +234,15 @@ class TableauDatasource(TableauDocument):
 
     @staticmethod
     def create_new_connection_xml(ds_version, ds_type, server, db_name, authentication=None, initial_sql=None):
+        """
+        :type ds_version: unicode
+        :type ds_type: unicode
+        :type server: unicode
+        :type db_name: unicode
+        :type authentication: unicode
+        :type initial_sql: unicode
+        :return:
+        """
         connection = etree.Element(u"connection")
         if ds_version == u'9':
             c = connection
@@ -275,8 +288,13 @@ class TableauDatasource(TableauDocument):
         self.end_log_block()
 
     def get_datasource_xml(self):
+        # The TableauDatasource object basically stores all properties separately and doesn't actually create
+        # the final XML until this function is called.
         self.start_log_block()
         self.log(u'Generating datasource xml')
+
+        # Generate a copy of the XML object that was originally passed in
+        new_xml = copy.deepcopy(self.xml)
 
         # Run through and generate any new sections to be added from the datasource_generator
 
@@ -284,49 +302,49 @@ class TableauDatasource(TableauDocument):
 
         # Column Aliases
         if self.ds_generator is not None:
-            self.generate_relation_section()
-
-            self._connection_root.append(self.relation_xml_obj)
+            new_rel_xml = self.generate_relation_section()
+            connection_root = new_xml.find(u'.//connection', self.ns_map)
+            connection_root.append(new_rel_xml)
             cas = self.generate_aliases_column_section()
             # If there is no existing aliases tag, gotta add one. Unlikely but safety first
-            if len(cas) > 0 and self.xml.find('aliases') is False:
-                self.xml.append(self.generate_aliases_tag())
+            if len(cas) > 0 and new_xml.find('aliases') is False:
+                new_xml.append(self.generate_aliases_tag())
             for c in cas:
                 self.log(u'Appending the column alias XML')
-                self.xml.append(c)
+                new_xml.append(c)
             # Column Instances
             cis = self.generate_column_instances_section()
             for ci in cis:
                 self.log(u'Appending the column-instances XML')
-                self.xml.append(ci)
+                new_xml.append(ci)
 
         # Datasource Filters Can be added no matter what
         dsf = self.generate_datasource_filters_section()
         self.log(u'Appending the ds filters to existing XML')
         for f in dsf:
-            self.xml.append(f)
+            new_xml.append(f)
         # Extracts
         if self.tde_filename is not None:
             # Extract has to be in a sort of order it appears, before the layout and semantic-values nodes
             # Try and remove them if possible
-            l = self.xml.find(u"layout")
+            l = new_xml.find(u"layout")
             new_l = copy.deepcopy(l)
-            self.xml.remove(l)
+            new_xml.remove(l)
 
-            sv = self.xml.find(u'semantic-values')
+            sv = new_xml.find(u'semantic-values')
             new_sv = copy.deepcopy(sv)
-            self.xml.remove(sv)
+            new_xml.remove(sv)
             # chop, then readd
 
             self.log(u'Generating the extract and XML object related to it')
             extract_xml = self.generate_extract_section()
             self.log(u'Appending the new extract XML to the existing XML')
-            self.xml.append(extract_xml)
+            new_xml.append(extract_xml)
 
-            self.xml.append(new_l)
-            self.xml.append(new_sv)
+            new_xml.append(new_l)
+            new_xml.append(new_sv)
 
-        xmlstring = etree.tostring(self.xml)
+        xmlstring = etree.tostring(new_xml)
         self.end_log_block()
         return xmlstring
 
@@ -521,26 +539,111 @@ class TableauDatasource(TableauDocument):
     #
     def read_existing_relations(self):
         # Test for single relation
-        if len(self.relation_xml_obj) == 0:
-                if self.relation_xml_obj.get(u'type') == u'text':
-                    self.set_first_custom_sql(self.relation_xml_obj.get(u'table'),
-                                              self.relation_xml_obj.get(u'name'),
-                                              self.relation_xml_obj.get(u'connection'))
-                else:
-                    self.set_first_table(self.relation_xml_obj.get(u'table'),
-                                         self.relation_xml_obj.get(u'name'),
-                                         self.relation_xml_obj.get(u'connection'))
+        relation_type = self.relation_xml_obj.get(u'type')
+        if relation_type != u'join':
+                self.main_table_relation = self.relation_xml_obj
+
+        else:
+            table_relations = self.relation_xml_obj.findall(u'.//relation', self.ns_map)
+            final_table_relations = []
+            # ElementTree doesn't implement the != operator, so have to find all then iterate through to exclude
+            # the JOINs to only get the tables, stored-procs and Custom SQLs
+            for t in table_relations:
+                if t.get(u'type') != u'join':
+                    final_table_relations.append(t)
+            self.main_table_relation = final_table_relations[0]
+
+        # Read any parameters that a stored-proc might have
+        if self.main_table_relation.get(u'type') == u'stored-proc':
+            self._stored_proc_parameters_xml = self.main_table_relation.find(u'.//actual-parameters')
 
     #
     # For creating new table relations
     #
     def set_first_table(self, db_table_name, table_alias, connection=None):
         self.ds_generator = True
+        # Grab the original connection name
+        if self.main_table_relation is not None and connection is None:
+            connection = self.main_table_relation.get(u'connection')
         self.main_table_relation = self.create_table_relation(db_table_name, table_alias, connection=connection)
 
     def set_first_custom_sql(self, custom_sql, table_alias, connection=None):
         self.ds_generator = True
+        if self.main_table_relation is not None and connection is None:
+            connection = self.main_table_relation.get(u'connection')
         self.main_table_relation = self.create_custom_sql_relation(custom_sql, table_alias, connection=connection)
+
+    def set_first_stored_proc(self, stored_proc_name, table_alias, connection=None):
+        self.ds_generator = True
+        if self.main_table_relation is not None and connection is None:
+            connection = self.main_table_relation.get(u'connection')
+        self.main_table_relation = self.create_stored_proc_relation(stored_proc_name, table_alias, connection=connection)
+
+    def get_stored_proc_parameter_value_by_name(self, parameter_name):
+        if self._stored_proc_parameters_xml is None:
+            return NoResultsException(u'There are no parameters set for this stored proc (or it is not a stored proc)')
+        param = self._stored_proc_parameters_xml.find(u'../column[@name="{}"]'.format(parameter_name))
+        if param is None:
+            return NoMatchFoundException(u'Could not find Stored Proc parameter with name {}'.format(parameter_name))
+        else:
+            value = param.get(u'value')
+
+            # Maybe add deserializing of the dates and datetimes eventally?
+
+            # Remove the quoting and any escaping
+            if value[0] == u'"' and value[-1] == u'"':
+                return unescape(value[1:-1])
+            else:
+                return unescape(value)
+
+    def set_stored_proc_parameter_value_by_name(self, parameter_name, parameter_value):
+        if parameter_name[0] != u'@':
+            raise InvalidOptionException(u'Stored Proc parameter names must start with @')
+
+        # Create if there is none
+        if self._stored_proc_parameters_xml is None:
+            self._stored_proc_parameters_xml = etree.Element(u'actual-parameters')
+        # Find parameter with that name (if exists)
+        param = self._stored_proc_parameters_xml.find(u'.//column[@name="{}"]'.format(parameter_name), self.ns_map)
+
+        if param is None:
+            # create_stored... already converts to correct quoting
+            new_param = self.create_stored_proc_parameter(parameter_name, parameter_value)
+
+            self._stored_proc_parameters_xml.append(new_param)
+        else:
+            if isinstance(parameter_value, basestring):
+                final_val = quoteattr(parameter_value)
+            elif isinstance(parameter_value, datetime.date) or isinstance(parameter_value, datetime.datetime):
+                    time_str = u"#{}#".format(parameter_value.strftime(u'%Y-%m-%d %H-%M-%S'))
+                    final_val = time_str
+            else:
+                final_val = unicode(parameter_value)
+            param.set(u'value', final_val)
+
+    @staticmethod
+    def create_stored_proc_parameter(parameter_name, parameter_value):
+        """
+        :type parameter_name: unicode
+        :type parameter_value: all
+        :return: etree.Element
+        """
+        if parameter_name is None or parameter_value is None:
+            raise InvalidOptionException(u'Must specify both a parameter_name (starting with @) and a parameter_value')
+        c = etree.Element(u'column')
+        # Check to see if this varies at all depending on type or whatever
+        c.set(u'ordinal', u'1')
+        if parameter_name[0] != u'@':
+            parameter_name = u"@{}".format(parameter_name)
+        c.set(u'name', parameter_name)
+        if isinstance(parameter_value, basestring):
+            c.set(u'value', quoteattr(parameter_value))
+        elif isinstance(parameter_value, datetime.date) or isinstance(parameter_value, datetime.datetime):
+            time_str = u"#{}#".format(parameter_value.strftime(u'%Y-%m-%d %H-%M-%S'))
+            c.set(u'value', time_str)
+        else:
+            c.set(u'value', unicode(parameter_value))
+        return c
 
     @staticmethod
     def create_random_calculation_name():
@@ -570,6 +673,18 @@ class TableauDatasource(TableauDocument):
             r.set(u'connection', connection)
         return r
 
+    @staticmethod
+    def create_stored_proc_relation(custom_sql, table_alias, connection=None, actual_parameters=None):
+        r = etree.Element(u"relation")
+        r.set(u'name', table_alias)
+        r.text = custom_sql
+        r.set(u"type", u"stored-proc")
+        if connection is not None:
+            r.set(u'connection', connection)
+        if actual_parameters is not None:
+            r.append(actual_parameters)
+        return r
+
     # on_clauses = [ { left_table_alias : , left_field : , operator : right_table_alias : , right_field : ,  },]
     @staticmethod
     def define_join_on_clause(left_table_alias, left_field, operator, right_table_alias, right_field):
@@ -592,22 +707,22 @@ class TableauDatasource(TableauDocument):
         # Because of the strange way that the interior definition is the last on, you need to work inside out
         # "Middle-out" as Silicon Valley suggests.
         # Generate the actual JOINs
-        if self.relation_xml_obj is not None:
-            self.relation_xml_obj.clear()
-        else:
-            self.relation_xml_obj = etree.Element(u"relation")
+        #if self.relation_xml_obj is not None:
+        #    self.relation_xml_obj.clear()
+        #else:
+        rel_xml_obj = etree.Element(u"relation")
         # There's only a single main relation with only one table
 
         if len(self.join_relations) == 0:
             for item in self.main_table_relation.items():
-                self.relation_xml_obj.set(item[0], item[1])
+                rel_xml_obj.set(item[0], item[1])
             if self.main_table_relation.text is not None:
-                self.relation_xml_obj.text = self.main_table_relation.text
+                rel_xml_obj.text = self.main_table_relation.text
         else:
-            prev_relation = self.relation_xml_obj
+            prev_relation = rel_xml_obj
 
             # We go through each relation, build the whole thing, then append it to the previous relation, then make
-            # that the new prev_relationship. Something like recurssion
+            # that the new prev_relationship. Something like recursion
             for join_desc in self.join_relations:
                 r = etree.Element(u"relation")
                 r.set(u"join", join_desc[u"join_type"])
@@ -654,7 +769,9 @@ class TableauDatasource(TableauDocument):
                 r.append(new_table_rel)
                 prev_relation = r
 
-                self.relation_xml_obj.append(prev_relation)
+                rel_xml_obj.append(prev_relation)
+
+                return rel_xml_obj
 
     def add_table_column(self, table_alias, table_field_name, tableau_field_alias):
         # Check to make sure the alias has been added
@@ -950,274 +1067,3 @@ class TableauDatasource(TableauDocument):
             ci.set(u'type', column_instance[u'type'])
             column_instances_array.append(ci)
         return column_instances_array
-
-
-class TableauParameters(TableauDocument):
-    def __init__(self, datasource_xml=None, logger_obj=None):
-        """
-        :type datasource_xml: etree.Element
-        :type logger_obj: Logger
-        """
-        TableauDocument.__init__(self)
-        self.logger = logger_obj
-        self.parameters = collections.OrderedDict()
-        self._highest_param_num = 1
-
-        # Initialize new Parameters datasource if existing xml is not passed in
-
-        if datasource_xml is None:
-            self.ds_xml = etree.Element(u"datasource")
-            self.ds_xml.set(u'name', u'Parameters')
-            # Initialization of the datasource
-            self.ds_xml.set(u'hasconnection', u'false')
-            self.ds_xml.set(u'inline', u'true')
-            a = etree.Element(u'aliases')
-            a.set(u'enabled', u'yes')
-            self.ds_xml.append(a)
-        else:
-            self.ds_xml = datasource_xml
-            params_xml = self.ds_xml.findall(u'./column')
-            for column in params_xml:
-                alias = column.get(u'alias')
-                internal_name = column.get(u'name')
-                # Parameters are all given internal name [Parameter #]
-                param_num = internal_name.split(u" ")[1][0]
-                # Move up the highest_param_num counter for when you add new ones
-                if param_num > self._highest_param_num:
-                    self._highest_param_num = param_num
-
-                p = TableauParameter(parameter_xml=column, logger_obj=self.logger)
-                self.parameters[alias] = p
-
-    def get_parameter_by_name(self, parameter_name):
-        """
-        :type parameter_name: unicode
-        :rtype: TableauParameter
-        """
-        return self.parameters.get(parameter_name)
-
-    def create_new_parameter(self):
-        """
-        :rtype: TableauParameter
-        """
-        # Need to check existing Parameter numbers
-        self._highest_param_num += 1
-        p = TableauParameter(parameter_xml=None, parameter_number=self._highest_param_num, logger_obj=self.logger)
-
-        return p
-
-    def add_parameter(self, parameter):
-        """
-        :type parameter: TableauParameter
-        :return:
-        """
-        if isinstance(parameter, TableauParameter) is not True:
-            raise InvalidOptionException(u'parameter must be a TableauParameter object')
-        self.parameters[parameter.name] = parameter
-
-    def delete_parameter_by_name(self, parameter_name):
-        if self.parameters.get(parameter_name) is not None:
-            param_xml = self.ds_xml.find(u'./column[@alias="{}"]'.format(parameter_name))
-            del self.parameters[parameter_name]
-            # Might be unnecessary but who am I to say what won't happen
-            if param_xml is not None:
-                self.ds_xml.remove(param_xml)
-
-
-class TableauParameter(TableauBase):
-    def __init__(self, parameter_xml=None, parameter_number=None, logger_obj=None):
-        """
-        :type parameter_xml: etree.Element
-        :type logger_obj: Logger
-        """
-        TableauBase.__init__(self)
-        self.logger = logger_obj
-        self._aliases = False
-        self._values_list = None
-
-        if parameter_xml is not None:
-            self.p_xml = parameter_xml
-
-            # Grab any aliases and members and generate a list of the values
-
-        # Initialization of the column element
-        else:
-            if parameter_number is None:
-                raise InvalidOptionException(u'Must pass a parameter_number if creating a new Parameter')
-            self.p_xml = etree.Element(u"column")
-            self.p_xml.set(u'name', u'[Parameter {}]'.format(str(parameter_number)))
-            self.p_xml.set(u'role', u'measure')
-            # Set allowable_values to all by default
-            self.p_xml.set(u'param-domain-type', u'all')
-
-    @property
-    def name(self):
-        return self.p_xml.get(u'caption')
-
-    @name.setter
-    def name(self, name):
-        if self.p_xml.get(u'caption') is not None:
-            self.p_xml.attrib[u'caption'] = name
-        else:
-            self.p_xml.set(u'caption', name)
-
-    @property
-    def datatype(self):
-        return self.p_xml.get(u'datatype')
-
-    @datatype.setter
-    def datatype(self, datatype):
-        if datatype.lower() not in [u'string', u'integer', u'datetime', u'date', u'real', u'boolean']:
-            raise InvalidOptionException(u"{} is not a valid datatype".format(datatype))
-        if self.p_xml.get(u"datatype") is not None:
-            self.p_xml.attrib[u"datatype"] = datatype
-            if datatype in [u'integer', u'real']:
-                self.p_xml.attrib[u'type'] = u'quantitative'
-            else:
-                self.p_xml.attrib[u'type'] = u'nominal'
-
-        else:
-            self.p_xml.set(u'datatype', datatype)
-            if datatype in [u'integer', u'real']:
-                self.p_xml.set(u'type', u'quantitative')
-            else:
-                self.p_xml.set(u'type', u'nominal')
-
-    @property
-    def allowable_values(self):
-        return self.p_xml.get(u'param-domain-type')
-
-    def set_allowable_values_to_range(self, minimum=None, maximum=None, step_size=None, period_type=None):
-        # Automatically switch to a range param-domain-type and clean up list version
-        if self.p_xml.get(u'param-domain-type') == u'list':
-            a = self.p_xml.find(u'./aliases')
-            if a is not None:
-                self.p_xml.remove(a)
-
-            m = self.p_xml.find(u'./members')
-            if m is not None:
-                self.p_xml.remove(m)
-
-            c = self.p_xml.find(u'./calculation')
-            if c is not None:
-                self.p_xml.remove(c)
-
-        self.p_xml.set(u'param-domain-type', u'range')
-        # See if a range already exists, otherwise create it
-        r = self.p_xml.find(u'./range', self.ns_map)
-        if r is None:
-            r = etree.Element(u'range')
-            self.p_xml.append(r)
-
-        # Set any new values that come through
-        if maximum is not None:
-            r.set(u'max', unicode(maximum))
-        if minimum is not None:
-            r.set(u'min', unicode(minimum))
-        if step_size is not None:
-            r.set(u'granularity', unicode(step_size))
-        if period_type is not None:
-            r.set(u'period-type', unicode(period_type))
-
-    def set_allowable_values_to_list(self, list_value_display_as_pairs):
-        """
-        :param list_value_display_as_pairs: To maintain ordering, pass in the values as a list of {value : display_as } dict elements
-        :type list_value_display_as_pairs: list[dict]
-        :return:
-        """
-        # Automatically switch to a range param-domain-type and clean up list version
-        if self.p_xml.get(u'param-domain-type') == u'range':
-            r = self.p_xml.find(u'./range')
-            if r is not None:
-                self.p_xml.remove(r)
-            # Clear the preset value if a RANGE previously, leave it if it was already a list
-            c = self.p_xml.find(u'./calculation')
-            if c is not None:
-                self.p_xml.remove(c)
-
-        self.p_xml.set(u'param-domain-type', u'list')
-        # Store the values list for lookups later
-
-        # Remove existing members and aliases
-        a = self.p_xml.find(u'./aliases')
-        if a is not None:
-            self.p_xml.remove(a)
-
-        m = self.p_xml.find(u'./members')
-        if m is not None:
-            self.p_xml.remove(m)
-
-        aliases = None
-        members = etree.Element(u'members')
-
-        for value_pair in list_value_display_as_pairs:
-            for value in value_pair:
-                member = etree.Element(u'member')
-                member.set(u'value', str(value))
-                if value_pair[value] is not None:
-                    if aliases is None:
-                        aliases = etree.Element(u'aliases')
-                    alias = etree.Element(u'alias')
-                    alias.set(u'key', str(value))
-                    alias.set(u'value', str(value_pair[value]))
-                    member.set(u'alias', str(value_pair[value]))
-                    aliases.append(alias)
-                members.append(member)
-        if aliases is not None:
-            self.p_xml.append(aliases)
-            self._aliases = True
-        else:
-            self._aliases = False
-        self.p_xml.append(members)
-
-    def set_allowable_values_to_all(self):
-
-        # Clear anything that range or list would have
-
-        r = self.p_xml.find(u'./range')
-        if r is not None:
-            self.p_xml.remove(r)
-
-        a = self.p_xml.find(u'./aliases')
-        if a is not None:
-            self.p_xml.remove(a)
-
-        m = self.p_xml.find(u'./members')
-        if m is not None:
-            self.p_xml.remove(m)
-
-        self.p_xml.set(u'param-domain-type', u'all')
-
-    @property
-    def current_value(self):
-        # Returns the alias if one exists
-        if self.p_xml.get(u'alias') is None:
-            return self.p_xml.get(u'value')
-        else:
-            return self.p_xml.get(u'alias')
-
-    @current_value.setter
-    def current_value(self, current_value):
-        # The set value is both in the column tag and has a separate calculation tag
-
-        # If there is an alias, have to grab the real value
-        actual_value = current_value
-        if self._aliases is not None:
-            self.p_xml.set(u'alias', unicode(current_value))
-            # Lookup the actual value of the alias
-            for value_pair in self._values_list:
-                for value in value_pair:
-                    if value_pair[value] == current_value:
-                        actual_value = value
-
-        # Why there have to be a calculation tag as well? I don't know, but there does
-        calc = etree.Element(u'calculation')
-        calc.set(u'class', u'tableau')
-        if isinstance(current_value, basestring) and self.datatype not in [u'date', u'datetime']:
-            self.p_xml.set(u'value', quoteattr(actual_value))
-            calc.set(u'formula', quoteattr(actual_value))
-        else:
-            self.p_xml.set(u'value', unicode(actual_value))
-            calc.set(u'formula', str(actual_value))
-
-        self.p_xml.append(calc)

@@ -2,9 +2,11 @@
 
 from ..tableau_base import *
 from tableau_datasource import TableauDatasource
+from tableau_parameters import TableauParameters
 from tableau_document import TableauDocument
 import os
 import codecs
+
 
 class TableauWorkbook(TableauDocument):
     def __init__(self, twb_filename, logger_obj=None):
@@ -17,6 +19,7 @@ class TableauWorkbook(TableauDocument):
         if self.twb_filename.find('.twb') == -1:
             raise InvalidOptionException(u'Must input a .twb filename that exists')
         self.build_document_objects(self.twb_filename)
+        self.parameters = None
 
 #        if self.logger is not None:
 #            self.enable_logging(self.logger)
@@ -56,8 +59,21 @@ class TableauWorkbook(TableauDocument):
         if datasource_elements is None:
             raise InvalidOptionException(u'Error with the datasources from the workbook')
         for datasource in datasource_elements:
+            if datasource.get(u'name') == u'Parameters':
+                self.log(u'Found embedded Parameters datasource, creating TableauParameters object')
+                self.parameters = TableauParameters(datasource, self.logger)
             ds = TableauDatasource(datasource, self.logger)
             self._datasources.append(ds)
+
+    def add_parameters_to_workbook(self):
+        """
+        :rtype: TableauParameters
+        """
+        if self.parameters is not None:
+            return self.parameters
+        else:
+            self.parameters = TableauParameters(logger_obj=self.logger)
+            return self.parameters
 
     def save_file(self, filename_no_extension, save_to_directory=None):
         """
