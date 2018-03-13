@@ -10,6 +10,7 @@ class TableauDocument(TableauBase):
         TableauBase.__init__(self)
         self._datasources = []
         self._document_type = None
+        self.parameters = None
 
     @property
     def datasources(self):

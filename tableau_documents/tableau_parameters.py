@@ -17,12 +17,14 @@ class TableauParameters(TableauDocument):
         """
         TableauDocument.__init__(self)
         self.logger = logger_obj
-        self.parameters = collections.OrderedDict()
+        self._parameters = collections.OrderedDict()
         self._highest_param_num = 1
-
+        self.log(u'Initializing TableauParameters object')
+        self._document_type = u'parameters'
         # Initialize new Parameters datasource if existing xml is not passed in
 
         if datasource_xml is None:
+            self.log(u'No Parameter XML passed in, building from scratch')
             self.ds_xml = etree.Element(u"datasource")
             self.ds_xml.set(u'name', u'Parameters')
             # Initialization of the datasource
@@ -32,26 +34,27 @@ class TableauParameters(TableauDocument):
             a.set(u'enabled', u'yes')
             self.ds_xml.append(a)
         else:
+            self.log(u'Parameter XML passed in, finding essential characteristics')
             self.ds_xml = datasource_xml
             params_xml = self.ds_xml.findall(u'./column')
             for column in params_xml:
-                alias = column.get(u'alias')
+                alias = column.get(u'caption')
                 internal_name = column.get(u'name')
                 # Parameters are all given internal name [Parameter #]
-                param_num = internal_name.split(u" ")[1][0]
+                param_num = int(internal_name.split(u" ")[1][0])
                 # Move up the highest_param_num counter for when you add new ones
                 if param_num > self._highest_param_num:
                     self._highest_param_num = param_num
 
                 p = TableauParameter(parameter_xml=column, logger_obj=self.logger)
-                self.parameters[alias] = p
+                self._parameters[alias] = p
 
     def get_parameter_by_name(self, parameter_name):
         """
         :type parameter_name: unicode
         :rtype: TableauParameter
         """
-        return self.parameters.get(parameter_name)
+        return self._parameters.get(parameter_name)
 
     def create_new_parameter(self):
         """
@@ -70,12 +73,12 @@ class TableauParameters(TableauDocument):
         """
         if isinstance(parameter, TableauParameter) is not True:
             raise InvalidOptionException(u'parameter must be a TableauParameter object')
-        self.parameters[parameter.name] = parameter
+        self._parameters[parameter.name] = parameter
 
     def delete_parameter_by_name(self, parameter_name):
-        if self.parameters.get(parameter_name) is not None:
-            param_xml = self.ds_xml.find(u'./column[@alias="{}"]'.format(parameter_name))
-            del self.parameters[parameter_name]
+        if self._parameters.get(parameter_name) is not None:
+            param_xml = self.ds_xml.find(u'./column[@caption="{}"]'.format(parameter_name))
+            del self._parameters[parameter_name]
             # Might be unnecessary but who am I to say what won't happen
             if param_xml is not None:
                 self.ds_xml.remove(param_xml)
@@ -259,7 +262,7 @@ class TableauParameter(TableauBase):
 
         # If there is an alias, have to grab the real value
         actual_value = current_value
-        if self._aliases is not None:
+        if self._aliases is True:
             self.p_xml.set(u'alias', unicode(current_value))
             # Lookup the actual value of the alias
             for value_pair in self._values_list:

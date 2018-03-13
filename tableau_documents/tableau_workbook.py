@@ -12,6 +12,7 @@ class TableauWorkbook(TableauDocument):
     def __init__(self, twb_filename, logger_obj=None):
         TableauDocument.__init__(self)
         self._document_type = u'workbook'
+        self.parameters = None
         self.logger = logger_obj
         self.log(u'Initializing a TableauWorkbook object')
         self.twb_filename = twb_filename
@@ -19,7 +20,7 @@ class TableauWorkbook(TableauDocument):
         if self.twb_filename.find('.twb') == -1:
             raise InvalidOptionException(u'Must input a .twb filename that exists')
         self.build_document_objects(self.twb_filename)
-        self.parameters = None
+
 
 #        if self.logger is not None:
 #            self.enable_logging(self.logger)
@@ -62,8 +63,9 @@ class TableauWorkbook(TableauDocument):
             if datasource.get(u'name') == u'Parameters':
                 self.log(u'Found embedded Parameters datasource, creating TableauParameters object')
                 self.parameters = TableauParameters(datasource, self.logger)
-            ds = TableauDatasource(datasource, self.logger)
-            self._datasources.append(ds)
+            else:
+                ds = TableauDatasource(datasource, self.logger)
+                self._datasources.append(ds)
 
     def add_parameters_to_workbook(self):
         """
