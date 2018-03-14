@@ -33,7 +33,9 @@ All strings passed into tableau_tools should be Unicode. The library is complete
 
 tableau_tools was programmed using PyCharm and works very well in that IDE. It is highly recommended if you are going to code with tableau_tools.
 
-The TableauDatasourceGenerator class uses the TDEFileGenerator class, which requires the TableauSDK to be installed. You can find the SDK at https://onlinehelp.tableau.com/current/api/sdk/en-us/SDK/tableau_sdk_installing.htm#downloading
+The TableauDatasource class uses the TDEFileGenerator and/or the HyperFileGenerator class, which requires the TableauSDK and/or Extract API 2.0 to be installed. You can find the (pre-10.5) SDK at https://onlinehelp.tableau.com/current/api/sdk/en-us/SDK/tableau_sdk_installing.htm#downloading and the Extract API 2.0 (10.5+ for Hyper) at https://onlinehelp.tableau.com/current/api/extract_api/en-us/help.htm#Extract/extract_api_using_python.htm%3FTocPath%3D_____4
+
+
 
 --- Version history ---
 1.5.2: works with 9.1 and before. Python 2.7 compatible
@@ -81,9 +83,13 @@ The TableauDatasourceGenerator class uses the TDEFileGenerator class, which requ
     2.8 Adding an Extract to an Existing TableauDatasource
     2.9 Adding Data Source Filters to an Existing Data Source
     2.10 Defining Calculated Fields Programmatically
-    2.11 Modifying Table JOIN Structure in a Connection (unfinished)
+    2.11 Modifying Table JOIN Structure in a Connection
+        2.11.1 Database Table Relations
+        2.11.2 Custom SQL Relations
+        2.11.3 Stored Procedure Relations
     2.12 Creating a TableauDatasource from Scratch
     2.13 Creating and Modifying Parameters
+        2.13.1 TableauParameter class
 3. tabcmd
     3.1 Tabcmd Class
     3.2 Triggering an Extract Refresh
@@ -898,7 +904,7 @@ At the current time, this means that you cannot modify any of the other function
 2.5 TableauDatasource Class
 The TableauDatasource class is represents the XML contained within a TDS (or an embedded datasource within a workbook). 
 
-Tableau Datasources changed considerably from the 9 series to the 10 series; Tableau 10 introduced the concept of Cross-Database JOIN, known internally as Federated Connections. So a datasource in 10.0+ can have multiple connections. tableau_tools handles determinig the all of this automatically, unless you are creating a TableauDatasource object from scratch (more on this later), in whcih case you need to specify which type of datasource you want. 
+Tableau Datasources changed considerably from the 9 series to the 10 series; Tableau 10 introduced the concept of Cross-Database JOIN, known internally as Federated Connections. So a datasource in 10.0+ can have multiple connections. tableau_tools handles determinig the all of this automatically, unless you are creating a TableauDatasource object from scratch (more on this later), in which case you need to specify which type of datasource you want.
 
 
 If you are opening a TDS file, you should use TableauFile to open it, where the TableauDatasource object will be available via TableauFile.tableau_document. You really only need to create TableauDatasource object yourself when creating one from scratch, in which case you initialize it like:
@@ -911,6 +917,7 @@ logger = Logger('ds_log.txt')
 new_ds = TableauDatasource(ds_version=u'10', logger_obj=logger)
 
 ds_version takes either u'9' or u'10, because it is more on basic structure and the individual point numbers don't matter.
+
 
 2.6 TableauConnection Class
 In a u'9' version TableauDatasource, there is only connections[0] because there was only one connection. A u'10' version can have any number of federated connections in this array. If you are creating connections from scratch, I highly recommend doing single connections. There hasn't been any work to make sure federated connections work correctly with modifications.
@@ -964,11 +971,13 @@ for ds in dses:
 ***NOTE: From this point on, things become increasingly experimental and less supported. However, I can assure you that many Tableau customers do these very things, and we are constantly working to improve the functionality for making datasources dynamically.
 
 2.8 Adding an Extract to an Existing Tableau Datasource
-Adding an extract to a data source is the one place where tableau_tools needs the TableauSDK Python package to be installed. The SDK for version 10.4 and before is located at https://onlinehelp.tableau.com/current/api/sdk/en-us/help.htm. You must install this package on your own for tableau_tools to be able to do these functions.
+Adding an extract to a data source is the one place where tableau_tools needs the TableauSDK Python package to be installed. The SDK for version 10.4 and before is located at https://onlinehelp.tableau.com/current/api/sdk/en-us/help.htm. You must install this package on your own for tableau_tools to be able to do these functions. The SDK for version 10.5 and after is called Extract API 2.0 and is located at https://onlinehelp.tableau.com/current/api/extract_api/en-us/help.htm.
 
 Data Sources created in 10.4 using a TDE can be published to a Tableau 10.5 Server, and will be upgraded to Hyper files on the first refresh.
 
-Hyper files can be created using the 10.5 Tableau Extract API package (https://onlinehelp.tableau.com/current/api/extract_api/en-us/help.htm). At the current time, tableau_tools has not been updated to use this package, but will be at some point.
+As of version 4.4.0, tableau_tools can also create Hyper extracts using the Extract API 2.0 packages.
+
+NOTE: Only one Tableau Extract API / SDK can be installed to Python's packaging system at a time, since they both use the same tableausdk namespace. So you may need to use two different virtual environments installs, one with each SDK package, if you need to generate for both pre and post 10.5 versions of Tableau.
 
 The SDK / Extract API are used to generate a "blank" or "stub extract", which contains no data and only the minimum amount of fields for the data source to be validated. The last step in the process is to publish the data source and refresh it on the Tableau Server.
 
@@ -997,9 +1006,9 @@ print(new_filename)  # Extract Workbooks.twbx
 
 If you add filters to the extract, they are similar to the Data Source Filter functions described below in section 2.9.
 
-TableauDatasourceGenerator.add_dimension_extract_filter(column_name, values, include_or_exclude=u'include', custom_value_list=False)
-TableauDatasourceGenerator.add_continuous_extract_filter(column_name, min_value=None, max_value=None, date=False)
-TableauDatasourceGenerator.add_relative_date_extract_filter(column_name, period_type, number_of_periods=None, previous_next_current=u'previous', to_date=False)
+TableauDatasource.add_dimension_extract_filter(column_name, values, include_or_exclude=u'include', custom_value_list=False)
+TableauDatasource.add_continuous_extract_filter(column_name, min_value=None, max_value=None, date=False)
+TableauDatasource.add_relative_date_extract_filter(column_name, period_type, number_of_periods=None, previous_next_current=u'previous', to_date=False)
 
 2.9 Adding Data Source Filters to an Existing Data Source
 There are many situations where programmatically setting the values in a Data Source filter can be useful -- particularly if you are publishing data sources to different sites which are filtered per customer, but actually all connect to a common data warehouse table. Even with Row Level Security in place, it's a nice extra security layer to have a Data Source filter that insures the customer will only ever see their data, no matter what.
@@ -1041,10 +1050,79 @@ calc_id = ds.add_calculation(u'IIF([salesperson_user_id]=USERNAME(),1,0) ', u'Ro
 # Create a data source filter that references the calculation
 ds.add_dimension_datasource_filter(calc_id, [1, ], custom_value_list=True)
 
-2.11 Modifying Table JOIN Structure in a Connection (unfinished)
+2.11 Modifying Table JOIN Structure in a Connection
+The way that Tableau stores the relationships between the various tables, stored procedures, and custom SQL definitions is fairly convoluted. It is explained in some detail here https://tableauandbehold.com/2016/06/29/defining-a-tableau-data-source-programmatically/ .
+
+The long and short of it is that the first / left-most table you see in the Data Connections pane in Tableau Desktop is the "main table"  which other relations connect to. At the current time (4.4.0+), tableau_tools can identify and modify this "main table", which allows for the vast majority of data source swapping use cases.
+
+You can access the main table relationship using
+
+TableauDatasource.main_table_relation
+
+which is a standard ElementTree.Element object.
+
+To determine the type, use:
+
+TableauDatasource.main_table_relation.get(u'type')
+
+which should return either u'table', u'stored-proc' or u'text' (which represents Custom SQL)
+
+2.11.1 Database Table Relations
+If the type is u'table', then unsurprisingly this relation represents a real table or view in the database. The actual table name in the database is stored in the 'table' attribute, with brackets around the name (regardless of the database type).
+
+Access it via:
+TableauDatasource.main_table_relation.get(u'table')
+
+Set it via:
+TableauDatasource.main_table_relation.set(u'table', table_name_in_brackets)
+
+Ex.
+
+for ds in dses:
+    if ds.main_table_relation.get(u'type') == u'table':
+        if ds.main_table_relation.get(u'table') == u'[Test Table]':
+            ds.main_table_relation.set(u'table',u'[Real Data]'
+
+2.11.2 Custom SQL Relations
+Custom SQL relations are stored with a type of u'text' (don't ask me, I didn't come up with it). The text of the query is stored as the actual text value of the relation tag in the XML, which is also unusual for the Tableau XML files.
+
+To retrieve the Custom SQL itself, use:
+
+TableauDatasource.main_table_relation.text
+
+And to set it, use:
+
+TableauDatasource.main_table_relation.text = new_custom_sql
+
+Ex.
+for ds in dses:
+    if ds.main_table_relation.get(u'type') == u'text':
+        ds.main_table_relation.text = u'SELECT * FROM my_cool_table'
+
+2.11.3 Stored Procedure Relations
+Stored Procedures are thankfully referred to as 'stored-proc' types in the XML, so they are easy to find. Stored Procedures differ from the other relation types by having parameters for the input values of the Stored Procedure. They also can only connect to that one Stored Procedure (no JOINing of other tables or Custom SQL). This means that a Stored Procedure Data Source only has one relation, the main_table_relation.
+
+There are actually two ways to set Stored Procedure Parameters in Tableau -- either with Direct Value or linking them to a Tableau Parameter. Currently, tableau_tools allows you to set Direct Values only.
+
+To see the current value of a Stored Procedure Parameter, use (remember to search for the exact parameter name. If SQL Server or Sybase, include the @ at the beginning):
+TableauDatasource.get_stored_proc_parameter_value_by_name(parameter_name)
+
+To set the value:
+TableauDatasource.set_stored_proc_parameter_value_by_name(parameter_name, parameter_value)
+
+For time or datetime values, it is best to pass in a datetime.date or datetime.datetime variable, but you can also pass in unicode text in the exact format that Tableau's XML uses:
+
+datetime: u'#YYYY-MM-DD HH:MM:SS#'
+date: u'#YYYY-MM-DD#'
+
+Ex.
+for ds in dses:
+    if ds.main_table_relation.get(u'type') == u'stored-proc':
+        ds.set_stored_proc_parameter_value_by_name(u'@StartDate', datetime.date(2018, 1, 1))
+        ds.set_stored_proc_parameter_value_by_name(u'@EndDate', u"#2019-01-01#")
 
 
-2.12 Creating a TableauDatasource from Scratch (WIP)
+2.12 Creating a TableauDatasource from Scratch
 This API is a work in progress as the details between 9 and 10 type connections are hammered out. At a basic level, it should work starting in v.4.3.15.
 
 The Tableau Data Source has a lot going on -- it's not simply just the connection the table (or tables). The best description of how it works is
@@ -1108,17 +1186,21 @@ ds.join_table(u'Inner', u'superstore_entitlements', u'Entitled People', [join_on
 
 
 2.13 Creating and Modifying Parameters
-Parameters are actually stored in the TWB file as a special type of data source. They don't behave at all like other data sources, so they are modeled differently. If detected, the TableauParameters class will be created to
+Parameters are actually stored in the TWB file as a special type of data source. They don't behave at all like other data sources, so they are modeled differently. If detected, the TableauParameters class will be created by the TableauWorkbook object during instantiation, and stored as the property:
 
-If a data source does not have any parameters, you can add them in with your own definitions by instantiating a new TableauParameters object.
+TableauWorkbook.parameters
 
-TableauParameters(datasource_xml=None, logger_obj=None)
+If a workbook does not have any parameters, you can add a TableauParameters object using
 
-When you pass None for the datasource_xml, the TableauParameters data source object is created, but it does not have any parameters yet. You'll need to create and manipulate them using TableauParameter objects, which you can create using the factory method
+TableauWorkbook.add_parameters_to_workbook()
 
-TableauParameters.create_parameter()
+which returns the new TableauParameters object (equivalent to TableauWorkbook.parameters), or will simply return the existing TableauParameters object if it already existed.
 
-You need to explicitly add the newly create parameter object back using
+The parameters themselves are represented via TableauParameter objects. Because they have a specific naming convention that depends on the overall TableauParameters object, if you want to create a new parameter, use the factory method:
+
+TableauParameters.create_parameter(name=None, datatype=None, current_value=None)  # Returns a TableauParameter object
+
+You'll need to explicitly add the newly create parameter object back using:
 
 TableauParameters.add_parameter(parameter)    # parameter is a TableauParameter object
 
@@ -1128,11 +1210,28 @@ You can also delete an existing Parameter by its name/alias:
 
 TableauParameters.delete_parameter_by_name(parameter_name)
 
+If you want to modify an existing parameter, use the following method:
+
+TableauParameters.get_parameter_by_name(parameter_name)  # parameter_name is the name visible to the end user, from the caption attribute.
+
+If you want to change the name of a parameter, you should delete the existing parameter and then add a new one with the new name. The TableauParameters class tracks the parameters via their caption names, and while you can directly change the name of a parameter using the TableauParameter class, it will not overwrite the previous one with the different name.
+
+Ex.
+
+t_file = TableauFile(u'Workbook with Parameters.twb', logger)
+    if t_file.tableau_document.document_type == u'workbook':
+        parameters = t_file.tableau_document.parameters  # type: TableauParameters
+        p1 = parameters.get_parameter_by_name(u'Parameter 1')
+        print(p1.current_value)
+        p1.current_value = u'All'
+        new_param = parameters.create_new_parameter(u'Choose a Number', u'integer', 1111)
+        parameters.add_parameter(new_param)
+
 
 2.13.1 TableauParameter class
 The actual values and settings of a Tableau Parameter are set using the TableauParameter class. When it is instantiated from an existing parameter in the XML of a TWB, all of the values are mapped to their properties, which are the only interface you should use to set or retrieve values.
 
-When you create a TableauParameter from scratch, it comes pre-defined as an "all" type parameter, but with no datatype defined.
+When you create a TableauParameter from scratch, it comes pre-defined as an "all" type parameter, but with no datatype defined (unless you defined the datatype at creation time)
 
 The properties you can set are:
 
@@ -1155,10 +1254,13 @@ TableauParameter.set_allowable_values_to_list(list_value_display_as_pairs)
 When using set_allowable_values_to_list(), the data structure that is expected is a list of {value : display_as} dicts.
 
 Ex.
-tab_params = TableauParameters()
-param = tab_params.create_parameter()
-param.name = u'Semester'
-param.datatype = u'string'
+
+tab_params = wb.parameters
+param = tab_params.create_parameter(u'Semester', u'string')
+# Alternatively:
+# param = tab_params.create_parameter()
+# param.name = u'Semester'
+# param.datatype = u'string'
 allowable_values = [ { u"Spring 2018" : u"2018-02-01"} , { u"Fall 2018" : u"2018-09-01" } ]
 param.set_allowable_values_to_list(allowable_values)
 param.set_current_value(u'Spring 2018')

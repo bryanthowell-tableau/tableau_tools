@@ -597,9 +597,6 @@ class TableauDatasource(TableauDocument):
                 return unescape(value)
 
     def set_stored_proc_parameter_value_by_name(self, parameter_name, parameter_value):
-        if parameter_name[0] != u'@':
-            raise InvalidOptionException(u'Stored Proc parameter names must start with @')
-
         # Create if there is none
         if self._stored_proc_parameters_xml is None:
             self._stored_proc_parameters_xml = etree.Element(u'actual-parameters')

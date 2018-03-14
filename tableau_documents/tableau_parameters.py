@@ -62,13 +62,14 @@ class TableauParameters(TableauDocument):
         """
         return self._parameters.get(parameter_name)
 
-    def create_new_parameter(self):
+    def create_new_parameter(self, name=None, datatype=None, current_value=None):
         """
         :rtype: TableauParameter
         """
         # Need to check existing Parameter numbers
         self._highest_param_num += 1
-        p = TableauParameter(parameter_xml=None, parameter_number=self._highest_param_num, logger_obj=self.logger)
+        p = TableauParameter(parameter_xml=None, parameter_number=self._highest_param_num, logger_obj=self.logger,
+                             name=name, datatype=datatype, current_value=current_value)
 
         return p
 
@@ -91,7 +92,8 @@ class TableauParameters(TableauDocument):
 
 
 class TableauParameter(TableauBase):
-    def __init__(self, parameter_xml=None, parameter_number=None, logger_obj=None):
+    def __init__(self, parameter_xml=None, parameter_number=None, logger_obj=None, name=None, datatype=None,
+                 current_value=None):
         """
         :type parameter_xml: etree.Element
         :type logger_obj: Logger
@@ -115,6 +117,12 @@ class TableauParameter(TableauBase):
             self.p_xml.set(u'role', u'measure')
             # Set allowable_values to all by default
             self.p_xml.set(u'param-domain-type', u'all')
+            if name is not None:
+                self.name = name
+            if datatype is not None:
+                self.datatype = datatype
+            if current_value is not None:
+                self.current_value = current_value
 
     @property
     def name(self):
