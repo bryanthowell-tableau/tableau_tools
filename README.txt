@@ -879,6 +879,24 @@ tf = TableauFile(None, logger_obj, create_new=True, ds_version=u'10') # ds_versi
 
 The TableauFile.tableau_document object will be a new TableauDatasource object, ready to be set built up.
 
+TableauFile allows you to save to a new file based on any modifications made in the documents contained within using:
+
+TableauFile.save_new_file(new_filename_no_extension)  # returns new filename
+
+It automatically appends the correct extension based on whether the documents have extracts attached.
+
+If a file is found on disk with the same name, a number will be appended to the end.
+
+ex.
+
+tf = TableauFile(u'A Workbook.twb')
+file_1 = tf.save_new_file(u'A Workbook')
+file_2 = tf.save_new_file(u'A Workbook')
+print(file_1)
+# u'A Workbook (1).twb'
+print(file_2)
+# u'A Workbook (2).twb'
+
 2.3 TableauDocument Class
 The TableauDocument class helps map the differences between TableauWorkbook and TableauDatasource. It only implements two properties:
 
@@ -886,18 +904,11 @@ TableauDocument.document_type  : return either [u'datasource', u'workbook'] . Mo
 TableauDocument.datasources : returns an array of TableauDatasource objects. 
 For a TableauDatasource, TableauDocument.datasources will only have a single datasource, itself, in datasources[0]. TableauWorkbooks might have more than one. This property thus allows you to do modifications on both individual datasources and those embedded within workbooks without worrying about whether the document is a workbook or a datasource.
 
-TableauDocument also implements a save_file method:
-
-TableauDocument.save_file(filename_no_extension, save_to_directory=None)
-
-which does the correct action based on whether it is a TableauDatasource or a TableauWorkbook (implemented separately for each)
 
 2.4 TableauWorkbook Class
 At this point in time, the TableauWorkbook class is really just a container for TableauDatasources, which it creates automatically when initialized. Because workbook files can get very very large, the initializer algorithm only reads through the datasources, which are at the beginning of the document, and then leaves the rest of the file on disk.
 
-TableauWorkbook.save_file(filename_no_extension, save_to_directory=None)
-
-is used to save a TWB file. It also uses the algorithm from the initializer method to read the existing TWB file from disk, line by line. It skips the original datasource section and instead writes in the new datasource XML from the array of TableauDatasource objects. The benefit of this is that the majority of the workbook is untouched, and larger documents do not cause high memory usage.
+The save method, which you do not call directly, also uses the algorithm from the initializer method to read the existing TWB file from disk, line by line. It skips the original datasource section and instead writes in the new datasource XML from the array of TableauDatasource objects. The benefit of this is that the majority of the workbook is untouched, and larger documents do not cause high memory usage.
 
 At the current time, this means that you cannot modify any of the other functionality that is specified in the workbook itself. Additional methods could be implemented in the future based on a similar algorithm (picking out specific subsections and representing them in memory as ElementTree objects, then inserting back into place later). 
 

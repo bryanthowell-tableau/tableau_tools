@@ -175,7 +175,7 @@ def publish_from_live_connections_to_extracts(logger_obj=None):
     t2.publish_datasource(new_filename, u'Auto TDSX', t2_default, overwrite=True, save_credentials=True)
 
     t_file = TableauFile(u'SS Example.twb')
-    dses = t_file.tableau_document.datasources
+    dses = t_file.tableau_document.datasources  # type: list[TableauDatasource]
     for ds in dses:
         #for conn in ds.connections:
         #    conn.dbname = u'Global SuperStore Star Schema - Staging'
