@@ -39,12 +39,14 @@ class TableauParameters(TableauDocument):
             params_xml = self.ds_xml.findall(u'./column')
             for column in params_xml:
                 alias = column.get(u'caption')
-                internal_name = column.get(u'name')
-                # Parameters are all given internal name [Parameter #]
-                param_num = int(internal_name.split(u" ")[1][0])
-                # Move up the highest_param_num counter for when you add new ones
-                if param_num > self._highest_param_num:
-                    self._highest_param_num = param_num
+                internal_name = column.get(u'name')  # type: unicode
+                # Parameters are all given internal name [Parameter #], unless they are copies where they
+                # end with (copy) h/t Jeff James for discovering
+                if internal_name.find(u'(copy)') == -1:
+                    param_num = int(internal_name.split(u" ")[1])
+                    # Move up the highest_param_num counter for when you add new ones
+                    if param_num > self._highest_param_num:
+                        self._highest_param_num = param_num
 
                 p = TableauParameter(parameter_xml=column, logger_obj=self.logger)
                 self._parameters[alias] = p
