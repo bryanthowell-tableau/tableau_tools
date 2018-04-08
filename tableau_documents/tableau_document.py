@@ -150,3 +150,13 @@ class TableauColumn(TableauBase):
         if final_aggregation_type not in [u'ordinal', u'nominal', u'quantitative']:
             raise InvalidOptionException(u'aggregation_type must be "ordinal", "nominal" or "quantiative"')
         self.xml_obj.set(u'type', final_aggregation_type)
+
+
+class TableauHierarchies(TableauBase):
+    def __init__(self, hierarchies_xml, logger_obj=None):
+        self.logger = logger_obj
+        self.log_debug(u'Initializing TableauHierarchies object')
+        self.xml_obj = hierarchies_xml
+        self.hierarchies = self.xml_obj.findall(u'./drill-path')
+
+

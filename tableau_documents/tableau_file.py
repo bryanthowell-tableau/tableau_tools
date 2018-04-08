@@ -106,10 +106,6 @@ class TableauFile(TableauBase):
             self.log(u"Cannot open file {}".format(filename))
             raise
 
-    def __del__(self):
-        if self.temp_filename is not None:
-            os.remove(self.temp_filename)
-
     @property
     def file_type(self):
         return self._original_file_type
