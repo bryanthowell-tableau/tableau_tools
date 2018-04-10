@@ -164,6 +164,7 @@ class TableauFile(TableauBase):
                 shutil.copy(self.tableau_document.twb_filename, u'temp.twb')
                 os.remove(self.tableau_document.twb_filename)
                 self.tableau_document.twb_filename = u'temp.twb'
+                file_obj.close()
             self.tableau_document.save_file(self.packaged_filename)
             new_zf.write(self.packaged_filename)
             self.log(u'Removing file {}'.format(self.packaged_filename))

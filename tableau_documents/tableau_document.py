@@ -68,6 +68,17 @@ class TableauColumns(TableauBase):
         self.end_log_block()
         return d
 
+    def get_column_by_name(self, column_name):
+        """
+        :type parameter_name: unicode
+        :rtype: TableauParameter
+        """
+        for p in self._parameters:
+            if p.name == parameter_name:
+                return p
+        else:
+            raise NoMatchFoundException(u'No parameter named {}'.format(parameter_name))
+
 
 class TableauColumn(TableauBase):
     def __init__(self, column_xml_obj, logger_obj=None):
@@ -159,4 +170,78 @@ class TableauHierarchies(TableauBase):
         self.xml_obj = hierarchies_xml
         self.hierarchies = self.xml_obj.findall(u'./drill-path')
 
+    def get_hierarchy_by_name(self, hierarchy_name):
+        """
+        :type hierarchy_name: unicode
+        :rtype:
+        """
+        for h in self.hierarchies:
+            if h.get(u'name') == hierarchy_name:
+                return h
+        else:
+            raise NoMatchFoundException(u'No hierarchy named {}'.format(hierarchy_name))
 
+
+class TableauHierarchy(TableauBase):
+    def __init__(self, hierarchy_xml, logger_obj=None):
+        self.logger = logger_obj
+        self.log_debug(u'Initializing TableauHierarchies object')
+        self.xml_obj = hierarchy_xml
+        self._name = self.xml_obj.get(u'name')
+        self._fields = []
+        for f in self.xml_obj:
+            self._fields.append(f.text)
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, new_name):
+        """
+        :type new_name: unicode
+        :return:
+        """
+        self.xml_obj.set(u'name', new_name)
+
+    @property
+    def fields(self):
+        return self._fields
+
+    def set_existing_field(self, field_position, field_value):
+        """
+        :type field_position: int
+        :type field_value: unicode
+        :return:
+        """
+        if field_position < 0:
+            raise InvalidOptionException(u'Field position must be positive integer')
+        if field_position >= len(self._fields):
+            raise InvalidOptionException(u'Only {} fields, field_position {} too high'.format(len(self._fields),
+                                                                                              field_position))
+        if field_value[0] == u"[" and field_value[-1] == u"]":
+            self._fields[field_position] = field_value
+        else:
+            self._fields[field_position] = u"[{}]".format(field_value)
+
+    def add_field(self, field_value):
+        """
+        :type field_value: unicode
+        :return:
+        """
+        if field_value[0] == u"[" and field_value[-1] == u"]":
+            self._fields.append(field_value)
+        else:
+            self._fields.append(u"[{}]".format(field_value))
+
+    def remove_field(self, field_position):
+        """
+        :type field_position: int
+        :return:
+        """
+        if field_position < 0:
+            raise InvalidOptionException(u'Field position must be positive integer')
+        if field_position >= len(self._fields):
+            raise InvalidOptionException(u'Only {} fields, field_position {} too high'.format(len(self._fields),
+                                                                                              field_position))
+        del self._fields[field_position]

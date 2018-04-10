@@ -17,7 +17,7 @@ class TableauParameters(TableauDocument):
         """
         TableauDocument.__init__(self)
         self.logger = logger_obj
-        self._parameters = collections.OrderedDict()
+        self._parameters = []  # type: list[TableauParameter]
         self._highest_param_num = 1
         self.log(u'Initializing TableauParameters object')
         self._document_type = u'parameters'
@@ -43,13 +43,13 @@ class TableauParameters(TableauDocument):
                 # Parameters are all given internal name [Parameter #], unless they are copies where they
                 # end with (copy) h/t Jeff James for discovering
                 if internal_name.find(u'(copy)') == -1:
-                    param_num = int(internal_name.split(u" ")[1])
+                    param_num = int(internal_name.split(u" ")[1][0])
                     # Move up the highest_param_num counter for when you add new ones
                     if param_num > self._highest_param_num:
                         self._highest_param_num = param_num
 
                 p = TableauParameter(parameter_xml=column, logger_obj=self.logger)
-                self._parameters[alias] = p
+                self._parameters.append(p)
 
     def get_datasource_xml(self):
         self.start_log_block()
@@ -62,7 +62,11 @@ class TableauParameters(TableauDocument):
         :type parameter_name: unicode
         :rtype: TableauParameter
         """
-        return self._parameters.get(parameter_name)
+        for p in self._parameters:
+            if p.name == parameter_name:
+                return p
+        else:
+            raise NoMatchFoundException(u'No parameter named {}'.format(parameter_name))
 
     def create_new_parameter(self, name=None, datatype=None, current_value=None):
         """
