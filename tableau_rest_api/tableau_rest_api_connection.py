@@ -52,6 +52,17 @@ class TableauRestApiConnection(TableauBase):
         # For working around SSL issues
         self.verify_ssl_cert = True
 
+
+    def enable_logging(self, logger_obj):
+        """
+        :type logger_obj: Logger
+        :return:
+        """
+        if isinstance(logger_obj, Logger):
+            self.logger = logger_obj
+            if self._request_obj is not None:
+                self._request_obj.enable_logging(logger_obj)
+
     #
     # Object helpers and setter/getters
     #
@@ -314,7 +325,7 @@ class TableauRestApiConnection(TableauBase):
         self._request_obj.url = url
         self._request_obj.http_verb = u'post'
         self._request_obj.request_from_api(0)
-        xml = self._request_obj.get_response().getroot()  # return Element rather than ElementTree
+        xml = self._request_obj.get_response()  # return Element rather than ElementTree
         self._request_obj.url = None
         self.end_log_block()
         return xml
@@ -329,7 +340,7 @@ class TableauRestApiConnection(TableauBase):
 
         self._request_obj.url = url
         self._request_obj.xml_request = request
-        self._request_obj.http_verb = 'post'
+        self._request_obj.http_verb = u'post'
         self._request_obj.request_from_api(0)  # Zero disables paging, for all non queries
         xml = self._request_obj.get_response()  # return Element rather than ElementTree
         # Clean up after request made
@@ -2037,8 +2048,8 @@ class TableauRestApiConnection(TableauBase):
 
                     # Create the initial XML portion of the request
                     publish_request = bytes("--{}\r\n".format(boundary_string).encode('utf-8'))
-                    #publish_request += bytes('Content-Disposition: name="request_payload"\r\n'.encode('utf-8'))
-                    #publish_request += bytes('Content-Type: text/xml\r\n\r\n'.encode('utf-8'))
+                    publish_request += bytes('Content-Disposition: name="request_payload"\r\n'.encode('utf-8'))
+                    publish_request += bytes('Content-Type: text/xml\r\n\r\n'.encode('utf-8'))
                     #publish_request += bytes('<tsRequest>\n<{} name="{}" '.format(content_type, content_name).encode('utf-8'))
                     #if show_tabs is not False:
                     #    publish_request += bytes('showTabs="{}"'.format(str(show_tabs).lower()).encode('utf-8'))
@@ -2053,7 +2064,9 @@ class TableauRestApiConnection(TableauBase):
                     # Build publish request in ElementTree then convert at publish
                     publish_request_xml = etree.Element(u'tsRequest')
                     # could be either workbook or datasource
-                    t1 = etree.Element(u''.format(content_type))
+                    print(content_type)
+                    t1 = etree.Element(content_type)
+                    print(t1)
                     t1.set(u'name', content_name)
                     if show_tabs is not False:
                         t1.set(u'showTabs', str(show_tabs).lower())
@@ -2073,7 +2086,7 @@ class TableauRestApiConnection(TableauBase):
                     encoded_request = etree.tostring(publish_request_xml, encoding='utf-8')
 
                     publish_request += bytes(encoded_request)
-                    publish_request += bytes("--{}".format(boundary_string).encode('utf-8'))
+                    publish_request += bytes("\r\n--{}".format(boundary_string).encode('utf-8'))
 
                     # Upload as single if less than file_size_limit MB
                     if file_size_mb <= single_upload_limit:
@@ -2098,16 +2111,18 @@ class TableauRestApiConnection(TableauBase):
                             os.remove(temp_wb_filename)
                         if cleanup_temp_file is True:
                             os.remove(final_filename)
-                        return self.send_publish_request(url, publish_request, None, boundary_string)
+                        return self.send_publish_request(url, None, publish_request, boundary_string)
                     # Break up into chunks for upload
                     else:
                         self.log(u"Greater than 10 MB, uploading in chunks")
                         upload_session_id = self.initiate_file_upload()
 
+                        # Upload each chunk
                         for piece in self.read_file_in_chunks(content_file):
                             self.log(u"Appending chunk to upload session {}".format(upload_session_id))
                             self.append_to_file_upload(upload_session_id, piece, final_filename)
 
+                        # Finalize the publish
                         url = self.build_api_url(u"{}s").format(content_type) + u"?uploadSessionId={}".format(
                             upload_session_id) + u"&{}Type={}".format(content_type,
                                                                      file_extension) + u"&overwrite={}".format(
@@ -2119,7 +2134,7 @@ class TableauRestApiConnection(TableauBase):
                             os.remove(temp_wb_filename)
                         if cleanup_temp_file is True:
                             os.remove(final_filename)
-                        return self.send_publish_request(url, publish_request, None, boundary_string)
+                        return self.send_publish_request(url, None, publish_request, boundary_string)
 
                 except IOError:
                     print u"Error: File '{}' cannot be opened to upload".format(content_filename)

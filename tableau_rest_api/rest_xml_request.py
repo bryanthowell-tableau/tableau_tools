@@ -39,6 +39,7 @@ class RestXmlRequest(TableauBase):
         self.ns_map = {'t': ns_map_url}
         etree.register_namespace('t', ns_map_url)
         self.logger = logger
+        self.log(u'RestXmlRequest intialized')
         self.__publish = None
         self.__boundary_string = None
         self.__publish_content = None
@@ -171,9 +172,15 @@ class RestXmlRequest(TableauBase):
             initial_response = response.content  # Leave the UTF8 decoding to lxml
 
             # self.__last_response_content_type = response.info().getheader('Content-Type')
-            self.__last_response_content_type = response.headers.get('Content-Type')
+            self.__last_response_content_type = response.headers.get(u'Content-Type')
 
             self.log_debug(u"Content type from headers: {}".format(self.__last_response_content_type))
+
+            # Don't bother with any extra work if the response is expected to be binary
+            if self.__response_type == u'binary':
+                self.__raw_response = initial_response
+                return initial_response
+
 
             # Use HTMLParser to get rid of the escaped unicode sequences, then encode the thing as utf-8
             # parser = HTMLParser()
