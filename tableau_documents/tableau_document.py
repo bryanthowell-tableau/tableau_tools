@@ -73,8 +73,8 @@ class TableauColumns(TableauBase):
         :type parameter_name: unicode
         :rtype: TableauParameter
         """
-        for p in self._parameters:
-            if p.name == parameter_name:
+        for c in self.columns_list:
+            if c.name == parameter_name:
                 return p
         else:
             raise NoMatchFoundException(u'No parameter named {}'.format(parameter_name))

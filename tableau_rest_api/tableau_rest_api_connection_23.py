@@ -90,11 +90,12 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
             url_ending += additional_url_ending
 
         api_call = self.build_api_url(url_ending, server_level)
-        api = RestXmlRequest(api_call, self.token, self.logger, ns_map_url=self.ns_map['t'])
+        self._request_obj.http_verb = u'get'
+        self._request_obj.url = api_call
+        self._request_obj.request_from_api()
+        xml = self._request_obj.get_response()  # return Element rather than ElementTree
+        self._request_obj.url = None
 
-        api.request_from_api()
-        xml = api.get_response()  # return Element rather than ElementTree
-        self.end_log_block()
         return xml
 
     def query_elements_from_endpoint_with_filter(self, element_name, name_or_luid=None):
@@ -921,7 +922,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
 
         publish_request += "\r\n--{}--".format(boundary_string)
         url = self.build_api_url(u'')[:-1]
-        return self.send_publish_request(url, publish_request, boundary_string)
+        return self.send_publish_request(url, publish_request, None, boundary_string)
 
     def restore_online_site_logo(self):
         """
@@ -938,7 +939,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         publish_request += "--{}".format(boundary_string)
 
         url = self.build_api_url(u'')[:-1]
-        return self.send_publish_request(url, publish_request, boundary_string)
+        return self.send_publish_request(url, publish_request, None, boundary_string)
 
     #
     # Begin Revision Methods
@@ -1027,9 +1028,9 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
             url = self.build_api_url(u"datasources/{}/revisions/{}/content".format(ds_luid, unicode(revision_number)))
             ds = self.send_binary_get_request(url)
             extension = None
-            if self.__last_response_content_type.find(u'application/xml') != -1:
+            if self._last_response_content_type.find(u'application/xml') != -1:
                 extension = u'.tds'
-            elif self.__last_response_content_type.find(u'application/octet-stream') != -1:
+            elif self._last_response_content_type.find(u'application/octet-stream') != -1:
                 extension = u'.tdsx'
             if extension is None:
                 raise IOError(u'File extension could not be determined')
@@ -1075,9 +1076,9 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
             url = self.build_api_url(u"workbooks/{}/revisions/{}/content".format(wb_luid, unicode(revision_number)))
             wb = self.send_binary_get_request(url)
             extension = None
-            if self.__last_response_content_type.find(u'application/xml') != -1:
+            if self._last_response_content_type.find(u'application/xml') != -1:
                 extension = u'.twb'
-            elif self.__last_response_content_type.find(u'application/octet-stream') != -1:
+            elif self._last_response_content_type.find(u'application/octet-stream') != -1:
                 extension = u'.twbx'
             if extension is None:
                 raise IOError(u'File extension could not be determined')

@@ -29,19 +29,21 @@ class TableauRestApiConnection(TableauBase):
         self.server = server
         self.site_content_url = site_content_url
         self.username = username
-        self.__password = password
+        self._password = password
         self.token = None  # Holds the login token from the Sign In call
         self.site_luid = ""
         self.user_luid = ""
-        self.__login_as_user_id = None
-        self.__last_error = None
+        self._login_as_user_id = None
+        self._last_error = None
         self.logger = None
-        self.__last_response_content_type = None
+        self._last_response_content_type = None
+
+        self._request_obj = None  # type: RestXmlRequest
 
         # All defined in TableauBase superclass
-        self.__site_roles = self.site_roles
-        self.__permissionable_objects = self.permissionable_objects
-        self.__server_to_rest_capability_map = self.server_to_rest_capability_map
+        self._site_roles = self.site_roles
+        self._permissionable_objects = self.permissionable_objects
+        self._server_to_rest_capability_map = self.server_to_rest_capability_map
 
         # Lookup caches to minimize calls
         self.username_luid_cache = {}
@@ -49,16 +51,17 @@ class TableauRestApiConnection(TableauBase):
 
         # For working around SSL issues
         self.verify_ssl_cert = True
+
     #
     # Object helpers and setter/getters
     #
 
     def get_last_error(self):
-        self.log(self.__last_error)
-        return self.__last_error
+        self.log(self._last_error)
+        return self._last_error
 
     def set_last_error(self, error):
-        self.__last_error = error
+        self._last_error = error
 
     #
     # REST API Helper Methods
@@ -187,7 +190,7 @@ class TableauRestApiConnection(TableauBase):
         tsr = etree.Element(u"tsRequest")
         c = etree.Element(u"credentials")
         c.set(u"name", self.username)
-        c.set(u"password", self.__password)
+        c.set(u"password", self._password)
         s = etree.Element(u"site")
         if self.site_content_url.lower() not in ['default', '']:
             s.set(u"contentUrl", self.site_content_url)
@@ -198,25 +201,28 @@ class TableauRestApiConnection(TableauBase):
         url = self.build_api_url(u"auth/signin", server_level=True)
 
         self.log(u'Logging in via: {}'.format(url))
-        api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'],
-                             verify_ssl_cert=self.verify_ssl_cert)
-        api.xml_request = tsr
-        api.http_verb = 'post'
+
+        # Create the RestXmlRequest to be used throughout
+
+        self._request_obj = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'],
+                                           verify_ssl_cert=self.verify_ssl_cert)
+        self._request_obj.xml_request = tsr
+        self._request_obj.http_verb = u'post'
         self.log(u'Login payload is\n {}'.format(etree.tostring(tsr)))
 
-
-        api.request_from_api(0)
+        self._request_obj.request_from_api(0)
         # self.log(api.get_raw_response())
-        xml = api.get_response()
-
+        xml = self._request_obj.get_response()
 
         credentials_element = xml.findall(u'.//t:credentials', self.ns_map)
-        self.token = credentials_element[0].get("token")
+        self.token = credentials_element[0].get(u"token")
         self.log(u"Token is " + self.token)
-        self.site_luid = credentials_element[0].findall(u".//t:site", self.ns_map)[0].get("id")
-        self.user_luid = credentials_element[0].findall(u".//t:user", self.ns_map)[0].get("id")
+        self._request_obj.token = self.token
+        self.site_luid = credentials_element[0].findall(u".//t:site", self.ns_map)[0].get(u"id")
+        self.user_luid = credentials_element[0].findall(u".//t:user", self.ns_map)[0].get(u"id")
         self.log(u"Site ID is " + self.site_luid)
-
+        self._request_obj.url = None
+        self._request_obj.xml_request = None
         self.end_log_block()
 
     def signout(self, session_token=None):
@@ -227,14 +233,16 @@ class TableauRestApiConnection(TableauBase):
         self.start_log_block()
         url = self.build_api_url(u"auth/signout", server_level=True)
         self.log(u'Logging out via: {}'.format(url))
+        self._request_obj.url = url
+        # This allows for signout when using the older session token style
         if session_token is not None:
-            api = RestXmlRequest(url, session_token, self.logger, ns_map_url=self.ns_map['t'],
-                                 verify_ssl_cert=self.verify_ssl_cert)
-        else:
-            api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'],
-                                 verify_ssl_cert=self.verify_ssl_cert)
-        api.http_verb = 'post'
-        api.request_from_api()
+            self._request_obj.token = session_token
+
+        self._request_obj.http_verb = u'post'
+        self._request_obj.request_from_api()
+        # Reset the main object to the original token for other requests
+        self._request_obj.token = self.token
+        self._request_obj.url = None
         self.log(u'Signed out successfully')
         self.end_log_block()
 
@@ -251,10 +259,11 @@ class TableauRestApiConnection(TableauBase):
         """
         self.start_log_block()
         api_call = self.build_api_url(url_ending, server_level)
-        api = RestXmlRequest(api_call, self.token, self.logger, ns_map_url=self.ns_map['t'],
-                             verify_ssl_cert=self.verify_ssl_cert)
-        api.request_from_api()
-        xml = api.get_response()  # return Element rather than ElementTree
+        self._request_obj.http_verb = u'get'
+        self._request_obj.url = api_call
+        self._request_obj.request_from_api()
+        xml = self._request_obj.get_response()  # return Element rather than ElementTree
+        self._request_obj.url = None
         self.end_log_block()
         return xml
 
@@ -302,11 +311,11 @@ class TableauRestApiConnection(TableauBase):
 
     def send_post_request(self, url):
         self.start_log_block()
-        api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'],
-                             verify_ssl_cert=self.verify_ssl_cert)
-        api.http_verb = u'post'
-        api.request_from_api(0)
-        xml = api.get_response().getroot()  # return Element rather than ElementTree
+        self._request_obj.url = url
+        self._request_obj.http_verb = u'post'
+        self._request_obj.request_from_api(0)
+        xml = self._request_obj.get_response().getroot()  # return Element rather than ElementTree
+        self._request_obj.url = None
         self.end_log_block()
         return xml
 
@@ -318,82 +327,95 @@ class TableauRestApiConnection(TableauBase):
         """
         self.start_log_block()
 
-        api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'],
-                             verify_ssl_cert=self.verify_ssl_cert)
-        api.xml_request = request
-        api.http_verb = 'post'
-        api.request_from_api(0)  # Zero disables paging, for all non queries
-        xml = api.get_response()  # return Element rather than ElementTree
+        self._request_obj.url = url
+        self._request_obj.xml_request = request
+        self._request_obj.http_verb = 'post'
+        self._request_obj.request_from_api(0)  # Zero disables paging, for all non queries
+        xml = self._request_obj.get_response()  # return Element rather than ElementTree
+        # Clean up after request made
+        self._request_obj.url = None
+        self._request_obj.xml_request = None
         self.end_log_block()
         return xml
 
     def send_update_request(self, url, request):
         self.start_log_block()
 
-        api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'],
-                             verify_ssl_cert=self.verify_ssl_cert)
-        api.xml_request = request
-        api.http_verb = u'put'
-        api.request_from_api(0)  # Zero disables paging, for all non queries
+        self._request_obj.url = url
+        self._request_obj.xml_request = request
+        self._request_obj.http_verb = u'put'
+        self._request_obj.request_from_api(0)  # Zero disables paging, for all non queries
         self.end_log_block()
-        return api.get_response()
+        self._request_obj.url = None
+        self._request_obj.xml_request = None
+        return self._request_obj.get_response()
 
     def send_delete_request(self, url):
         self.start_log_block()
-        api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'],
-                             verify_ssl_cert=self.verify_ssl_cert)
-        api.http_verb = u'delete'
+        self._request_obj.url = url
+        self._request_obj.http_verb = u'delete'
 
         try:
-            api.request_from_api(0)  # Zero disables paging, for all non queries
+            self._request_obj.request_from_api(0)  # Zero disables paging, for all non queries
+            self._request_obj.url = None
             self.end_log_block()
             # Return for counter
             return 1
         except RecoverableHTTPException as e:
             self.log(u'Non fatal HTTP Exception Response {}, Tableau Code {}'.format(e.http_code, e.tableau_error_code))
             if e.tableau_error_code in [404003, 404002]:
-                self.log(u'Delete action did not find the resouce. Consider successful, keep going')
+                self.log(u'Delete action did not find the resource. Consider successful, keep going')
+            self._request_obj.url = None
             self.end_log_block()
         except:
             raise
 
-    def send_publish_request(self, url, request, boundary_string):
+    def send_publish_request(self, url, xml_request, content, boundary_string):
         self.start_log_block()
 
-        api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'],
-                             verify_ssl_cert=self.verify_ssl_cert)
-        api.set_publish_content(request, boundary_string)
-        api.http_verb = u'post'
-        api.request_from_api(0)
-        xml = api.get_response()  # return Element rather than ElementTree
+        self._request_obj.url = url
+        self._request_obj.set_publish_content(content, boundary_string)
+        self._request_obj.xml_request = xml_request
+        self._request_obj.http_verb = u'post'
+        self._request_obj.request_from_api(0)
+        xml = self._request_obj.get_response()  # return Element rather than ElementTree
+        # Cleanup
+        self._request_obj.set_publish_content(None, None)
+        self._request_obj.xml_request = None
+        self._request_obj.url = None
         self.end_log_block()
         return xml
 
     def send_append_request(self, url, request, boundary_string):
         self.start_log_block()
 
-        api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'],
-                             verify_ssl_cert=self.verify_ssl_cert)
-        api.set_publish_content(request, boundary_string)
-        api.http_verb = u'put'
-        api.request_from_api(0)
-        xml = api.get_response()  # return Element rather than ElementTree
+        self._request_obj.url = url
+        self._request_obj.set_publish_content(request, boundary_string)
+        self._request_obj.http_verb = u'put'
+        self._request_obj.request_from_api(0)
+        xml = self._request_obj.get_response()  # return Element rather than ElementTree
+        # Cleanup
+        self._request_obj.set_publish_content(None, None)
+        self._request_obj.url = None
         self.end_log_block()
         return xml
 
     # Used when the result is not going to be XML and you want to save the raw response as binary
     def send_binary_get_request(self, url):
         self.start_log_block()
-        api = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'],
-                             verify_ssl_cert=self.verify_ssl_cert)
+        self._request_obj.url = url
 
-        api.http_verb = u'get'
-        api.set_response_type(u'binary')
-        api.request_from_api(0)
-        # Set this content type so we can set the file externsion
-        self.__last_response_content_type = api.get_last_response_content_type()
+        self._request_obj.http_verb = u'get'
+        self._request_obj.set_response_type(u'binary')
+        self._request_obj.request_from_api(0)
+        # Set this content type so we can set the file extension
+        self._last_response_content_type = self._request_obj.get_last_response_content_type()
+
+        # Cleanup
+        self._request_obj.url = None
+        self._request_obj.set_response_type(u'xml')
         self.end_log_block()
-        return api.get_response()
+        return self._request_obj.get_response()
 
     #
     # Basic Querying / Get Methods
@@ -1060,9 +1082,9 @@ class TableauRestApiConnection(TableauBase):
             url = self.build_api_url(u"datasources/{}/content".format(ds_luid))
             ds = self.send_binary_get_request(url)
             extension = None
-            if self.__last_response_content_type.find(u'application/xml') != -1:
+            if self._last_response_content_type.find(u'application/xml') != -1:
                 extension = u'.tds'
-            elif self.__last_response_content_type.find(u'application/octet-stream') != -1:
+            elif self._last_response_content_type.find(u'application/octet-stream') != -1:
                 extension = u'.tdsx'
             if extension is None:
                 raise IOError(u'File extension could not be determined')
@@ -1106,9 +1128,9 @@ class TableauRestApiConnection(TableauBase):
             url = self.build_api_url(u"workbooks/{}/content".format(wb_luid))
             wb = self.send_binary_get_request(url)
             extension = None
-            if self.__last_response_content_type.find(u'application/xml') != -1:
+            if self._last_response_content_type.find(u'application/xml') != -1:
                 extension = u'.twb'
-            elif self.__last_response_content_type.find(u'application/octet-stream') != -1:
+            elif self._last_response_content_type.find(u'application/octet-stream') != -1:
                 extension = u'.twbx'
             if extension is None:
                 raise IOError(u'File extension could not be determined')
@@ -1245,7 +1267,7 @@ class TableauRestApiConnection(TableauBase):
         :rtype: unicode
         """
         self.start_log_block()
-        if default_site_role not in self.__site_roles:
+        if default_site_role not in self._site_roles:
             raise InvalidOptionException(u'"{}" is not an acceptable site role'.format(default_site_role))
 
         tsr = etree.Element(u"tsRequest")
@@ -1599,7 +1621,7 @@ class TableauRestApiConnection(TableauBase):
             error = u"'{}' passed for sync_as_background. Use True or False".format(str(sync_as_background).lower())
             raise InvalidOptionException(error)
 
-        if default_site_role not in self.__site_roles:
+        if default_site_role not in self._site_roles:
             raise InvalidOptionException(u"'{}' is not a valid site role in Tableau".format(default_site_role))
         # Check that the group exists
         self.query_group(group_name_or_luid)
@@ -2015,17 +2037,42 @@ class TableauRestApiConnection(TableauBase):
 
                     # Create the initial XML portion of the request
                     publish_request = bytes("--{}\r\n".format(boundary_string).encode('utf-8'))
-                    publish_request += bytes('Content-Disposition: name="request_payload"\r\n'.encode('utf-8'))
-                    publish_request += bytes('Content-Type: text/xml\r\n\r\n'.encode('utf-8'))
-                    publish_request += bytes('<tsRequest>\n<{} name="{}" '.format(content_type, content_name).encode('utf-8'))
+                    #publish_request += bytes('Content-Disposition: name="request_payload"\r\n'.encode('utf-8'))
+                    #publish_request += bytes('Content-Type: text/xml\r\n\r\n'.encode('utf-8'))
+                    #publish_request += bytes('<tsRequest>\n<{} name="{}" '.format(content_type, content_name).encode('utf-8'))
+                    #if show_tabs is not False:
+                    #    publish_request += bytes('showTabs="{}"'.format(str(show_tabs).lower()).encode('utf-8'))
+                    #publish_request += bytes('>\r\n'.encode('utf-8'))
+                    #if connection_username is not None and connection_password is not None:
+                    #    publish_request += bytes('<connectionCredentials name="{}" password="{}" embed="{}" />\r\n'.format(
+                    #        connection_username, connection_password, str(save_credentials).lower()).encode('utf-8'))
+                    #publish_request += bytes('<project id="{}" />\r\n'.format(project_luid).encode('utf-8'))
+                    #publish_request += bytes("</{}></tsRequest>\r\n".format(content_type).encode('utf-8'))
+
+
+                    # Build publish request in ElementTree then convert at publish
+                    publish_request_xml = etree.Element(u'tsRequest')
+                    # could be either workbook or datasource
+                    t1 = etree.Element(u''.format(content_type))
+                    t1.set(u'name', content_name)
                     if show_tabs is not False:
-                        publish_request += bytes('showTabs="{}"'.format(str(show_tabs).lower()).encode('utf-8'))
-                    publish_request += bytes('>\r\n'.encode('utf-8'))
+                        t1.set(u'showTabs', str(show_tabs).lower())
+
                     if connection_username is not None and connection_password is not None:
-                        publish_request += bytes('<connectionCredentials name="{}" password="{}" embed="{}" />\r\n'.format(
-                            connection_username, connection_password, str(save_credentials).lower()).encode('utf-8'))
-                    publish_request += bytes('<project id="{}" />\r\n'.format(project_luid).encode('utf-8'))
-                    publish_request += bytes("</{}></tsRequest>\r\n".format(content_type).encode('utf-8'))
+                        cc = etree.Element(u'connectionCredentials')
+                        cc.set(u'name', connection_username)
+                        cc.set(u'password', connection_password)
+                        cc.set(u'embed', str(save_credentials).lower())
+                        t1.append(cc)
+
+                    p = etree.Element(u'project')
+                    p.set(u'id', project_luid)
+                    t1.append(p)
+                    publish_request_xml.append(t1)
+
+                    encoded_request = etree.tostring(publish_request_xml, encoding='utf-8')
+
+                    publish_request += bytes(encoded_request)
                     publish_request += bytes("--{}".format(boundary_string).encode('utf-8'))
 
                     # Upload as single if less than file_size_limit MB
@@ -2051,7 +2098,7 @@ class TableauRestApiConnection(TableauBase):
                             os.remove(temp_wb_filename)
                         if cleanup_temp_file is True:
                             os.remove(final_filename)
-                        return self.send_publish_request(url, publish_request, boundary_string)
+                        return self.send_publish_request(url, publish_request, None, boundary_string)
                     # Break up into chunks for upload
                     else:
                         self.log(u"Greater than 10 MB, uploading in chunks")
@@ -2072,7 +2119,7 @@ class TableauRestApiConnection(TableauBase):
                             os.remove(temp_wb_filename)
                         if cleanup_temp_file is True:
                             os.remove(final_filename)
-                        return self.send_publish_request(url, publish_request, boundary_string)
+                        return self.send_publish_request(url, publish_request, None, boundary_string)
 
                 except IOError:
                     print u"Error: File '{}' cannot be opened to upload".format(content_filename)
@@ -2087,7 +2134,7 @@ class TableauRestApiConnection(TableauBase):
         url = self.build_api_url(u"fileUploads")
         xml = self.send_post_request(url)
         file_upload = xml.findall(u'.//t:fileUpload', self.ns_map)
-        return file_upload[0].get("uploadSessionId")
+        return file_upload[0].get(u"uploadSessionId")
 
     # Uploads a chunk to an already started session
     def append_to_file_upload(self, upload_session_id, content, filename):

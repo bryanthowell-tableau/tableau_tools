@@ -173,10 +173,11 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
                     url_ending += u"&{}".format(ending)
 
         api_call = self.build_api_url(url_ending, server_level)
-        api = RestXmlRequest(api_call, self.token, self.logger, ns_map_url=self.ns_map['t'])
-
-        api.request_from_api()
-        xml = api.get_response()  # return Element rather than ElementTree
+        self._request_obj.url = api_call
+        self._request_obj.http_verb = u'get'
+        self._request_obj.request_from_api()
+        xml = self._request_obj.get_response()  # return Element rather than ElementTree
+        self._request_obj.url = None
         self.end_log_block()
         return xml
 
@@ -268,7 +269,20 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
                          u'type': datasource_type_filter}
         filters = self._check_filter_objects(filter_checks)
 
-        ds = self.query_resource(u'datasources', filters=filters, sorts=sorts, fields=fields)
+        datasources = self.query_resource(u'datasources', filters=filters, sorts=sorts, fields=fields)
+
+        # If there is a project filter
+        if project_name_or_luid is not None:
+            datasources = self.query_resource(u"datasources")
+
+            if self.is_luid(project_name_or_luid):
+                project_luid = project_name_or_luid
+            else:
+                project_luid = self.query_project_luid(project_name_or_luid)
+            ds = datasources.findall(u'.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
+        else:
+            ds = datasources
+
         self.end_log_block()
         return ds
 
