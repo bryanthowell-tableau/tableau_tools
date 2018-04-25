@@ -44,6 +44,7 @@ The TableauDatasource class uses the TDEFileGenerator and/or the HyperFileGenera
 3.0.0+: tableau_rest_api library refactored and added to new tableau_tools package
 4.0.0: Big rewrite to simplify and improve. You will need to update your scripts most likely.
 4.3.0: 10.5 (API 2.8) compatibility, 100% coverage of all features in the spec, and refactoring in the code itself. README vastly updated to cover all topics.
+4.5.0: 2018.1 (API 3.0) compatibility. All requests for a given connection using a single HTTP session.
 
 --- Table(au) of Contents ---
 0. Getting Started
@@ -67,6 +68,7 @@ The TableauDatasource class uses the TDEFileGenerator and/or the HyperFileGenera
     1.5 Publishing Content
         1.5.1 Publishing a Workbook or Datasource
         1.5.2 Workbook and Datasource Revisions (2.3+)
+        1.5.3 Asynchronous Publishing (API 3.0+)
     1.6 Refreshing Extracts (Tableau 10.3+ / API 2.6)
         1.6.1 Running an Extract Refresh Schedule (Tableau 10.3+ / API 2.6)
         1.6.2 Running an Extract Refresh (no schedule) (10.5/ API 2.8)
@@ -776,6 +778,33 @@ You can download any revision as a file using methods that mirror the standard d
 
 TableauRestApiConnection23.download_datasource_revision(ds_name_or_luid, revision_number, filename_no_extension, proj_name_or_luid=None)
 TableauRestApiConnection23.download_workbook_revision(wb_name_or_luid, revision_number, filename_no_extension, proj_name_or_luid=None)
+
+1.5.3 Asynchronous Publishing (API 3.0+)
+In API 3.0+ (Tableau 2018.1 and above), you can publish workbooks asychronously, so you can move on to other actions after you have pushed up the bits to the server.
+
+The publish_workbook method has a new "async_publish" argument -- simply set it to True to publish async.
+
+TableauRestApiConnection30.publish_workbook(workbook_filename, workbook_name, project_obj, overwrite=False, async_publish=False, connection_username=None, connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=False)
+
+When you choose async_publish, rather than returning a workbook tag in the response, you get a job tag. From that job tag, you can pull the 'id' attribute and then use the query_job() method to find out when it has finished.
+
+It appears when the publish completes, the progress attribute goes to 100, and the finishCode attribute turns from 1 to 0. At the time of writing (2018-04-24), there does not appear to be any indication of the LUID of the newly created workbook in the response. Always check the official documentation to determine if this is still the case.
+
+Here's an example of an async publish, then polling every second to see if it has finished:
+
+proj_obj = t.query_project(u'Default')
+job_id = t.publish_workbook(u'A Big Workbook.twbx', u'Big Published Workbook & Stuff', proj_obj, overwrite=True, async_publish=True)
+print(u'Published async using job {}'.format(job_id))
+
+progress = 0
+while progress < 100:
+    job_obj = t.query_job(job_id)
+    job = job_obj.findall(u'.//t:job', t.ns_map)
+    # When updating our while loop variable, need to cast progress attribute to int
+    progress = int(job[0].get(u'progress'))
+    print('Progress is {}'.format(progress))
+    time.sleep(1)
+print(u'Finished publishing')
 
 1.6 Refreshing Extracts (Tableau 10.3+ / API 2.6)
 
