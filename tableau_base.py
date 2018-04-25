@@ -10,7 +10,7 @@ import xml.etree.cElementTree as etree
 class TableauBase(object):
     def __init__(self):
         # In reverse order to work down until the acceptable version is found on the server, through login process
-        self.supported_versions = (u"10.5", u"10.4", u"10.3", u"10.2", u"10.1", u"10.0", u"9.3", u"9.2", u"9.1", u"9.0")
+        self.supported_versions = (u'2018.1', u"10.5", u"10.4", u"10.3", u"10.2", u"10.1", u"10.0", u"9.3", u"9.2", u"9.1", u"9.0")
         self.logger = None
         self.luid_pattern = r"[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*"
 
@@ -27,10 +27,16 @@ class TableauBase(object):
             u'Publisher',
             u'SiteAdministrator',
             u'Unlicensed',
-            u'UnlicensedWithPublish',
+            u'UnlicensedWithPublish',   # This was sunset at some point
             u'Viewer',
             u'ViewerWithPublish',
-            u'ServerAdministrator'
+            u'ServerAdministrator',
+            u'ReadOnly',
+            u'Explorer',
+            u'ExplorerCanPublish',
+            u'SiteAdministratorExplorer',
+            u'Creator',
+            u'SiteAdministratorCreator'
         )
 
         server_content_roles_2_0 = {
@@ -80,7 +86,8 @@ class TableauBase(object):
             u"2.5": server_content_roles_2_1,
             u"2.6": server_content_roles_2_1,
             u"2.7": server_content_roles_2_1,
-            u"2.8": server_content_roles_2_1
+            u"2.8": server_content_roles_2_1,
+            u'3.0': server_content_roles_2_1
         }
 
         self.server_to_rest_capability_map = {
@@ -220,7 +227,9 @@ class TableauBase(object):
             u'2.5': capabilities_2_1,
             u'2.6': capabilities_2_1,
             u'2.7': capabilities_2_1,
-            u'2.8': capabilities_2_8
+            u'2.8': capabilities_2_8,
+            u'3.0': capabilities_2_8
+
         }
 
         self.datasource_class_map = {
@@ -277,7 +286,8 @@ class TableauBase(object):
         :type tableau_server_version: unicode
         """
         # API Versioning (starting in 9.2)
-        if unicode(tableau_server_version)in [u"9.2", u"9.3", u"10.0", u"10.1", u"10.2", u"10.3", u"10.4", u"10.5"]:
+        if unicode(tableau_server_version)in [u"9.2", u"9.3", u"10.0", u"10.1", u"10.2", u"10.3", u"10.4", u"10.5",
+                                              u'2018.1']:
             if unicode(tableau_server_version) == u"9.2":
                 self.api_version = u"2.1"
             elif unicode(tableau_server_version) == u"9.3":
@@ -294,6 +304,8 @@ class TableauBase(object):
                 self.api_version = u'2.7'
             elif unicode(tableau_server_version) == u'10.5':
                 self.api_version = u'2.8'
+            elif unicode(tableau_server_version) == u'2018.1':
+                self.api_version = u'3.0'
             self.tableau_namespace = u'http://tableau.com/api'
             self.ns_map = {'t': 'http://tableau.com/api'}
             self.version = tableau_server_version

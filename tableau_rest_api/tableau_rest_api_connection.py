@@ -1974,9 +1974,9 @@ class TableauRestApiConnection(TableauBase):
         """
 
         project_luid = project_obj.luid
-        xml = self.publish_content(u'workbook', workbook_filename, workbook_name, project_luid, overwrite,
-                                   connection_username, connection_password, save_credentials, show_tabs=show_tabs,
-                                   check_published_ds=check_published_ds)
+        xml = self.publish_content(u'workbook', workbook_filename, workbook_name, project_luid,
+                                   {u"overwrite": overwrite}, connection_username, connection_password,
+                                   save_credentials, show_tabs=show_tabs, check_published_ds=check_published_ds)
         workbook = xml.findall(u'.//t:workbook', self.ns_map)
         return workbook[0].get('id')
 
@@ -1993,14 +1993,14 @@ class TableauRestApiConnection(TableauBase):
         :rtype: unicode
         """
         project_luid = project_obj.luid
-        xml = self.publish_content(u'datasource', ds_filename, ds_name, project_luid, overwrite, connection_username,
-                                   connection_password, save_credentials)
+        xml = self.publish_content(u'datasource', ds_filename, ds_name, project_luid, {u"overwrite": overwrite},
+                                   connection_username, connection_password, save_credentials)
         datasource = xml.findall(u'.//t:datasource', self.ns_map)
         return datasource[0].get('id')
 
     # Main method for publishing a workbook. Should intelligently decide to chunk up if necessary
     # If a TableauDatasource or TableauWorkbook is passed, will upload from its content
-    def publish_content(self, content_type, content_filename, content_name, project_luid, overwrite=False,
+    def publish_content(self, content_type, content_filename, content_name, project_luid, url_params=None,
                         connection_username=None, connection_password=None, save_credentials=True, show_tabs=False,
                         check_published_ds=True):
         # Single upload limit in MB
@@ -2050,23 +2050,11 @@ class TableauRestApiConnection(TableauBase):
                     publish_request = bytes("--{}\r\n".format(boundary_string).encode('utf-8'))
                     publish_request += bytes('Content-Disposition: name="request_payload"\r\n'.encode('utf-8'))
                     publish_request += bytes('Content-Type: text/xml\r\n\r\n'.encode('utf-8'))
-                    #publish_request += bytes('<tsRequest>\n<{} name="{}" '.format(content_type, content_name).encode('utf-8'))
-                    #if show_tabs is not False:
-                    #    publish_request += bytes('showTabs="{}"'.format(str(show_tabs).lower()).encode('utf-8'))
-                    #publish_request += bytes('>\r\n'.encode('utf-8'))
-                    #if connection_username is not None and connection_password is not None:
-                    #    publish_request += bytes('<connectionCredentials name="{}" password="{}" embed="{}" />\r\n'.format(
-                    #        connection_username, connection_password, str(save_credentials).lower()).encode('utf-8'))
-                    #publish_request += bytes('<project id="{}" />\r\n'.format(project_luid).encode('utf-8'))
-                    #publish_request += bytes("</{}></tsRequest>\r\n".format(content_type).encode('utf-8'))
-
 
                     # Build publish request in ElementTree then convert at publish
                     publish_request_xml = etree.Element(u'tsRequest')
                     # could be either workbook or datasource
-                    print(content_type)
                     t1 = etree.Element(content_type)
-                    print(t1)
                     t1.set(u'name', content_name)
                     if show_tabs is not False:
                         t1.set(u'showTabs', str(show_tabs).lower())
@@ -2104,8 +2092,20 @@ class TableauRestApiConnection(TableauBase):
                         publish_request += content
 
                         publish_request += bytes("\r\n--{}--".format(boundary_string).encode('utf-8'))
-                        url = self.build_api_url(u"{}s").format(content_type) + u"?overwrite={}".format(
-                            str(overwrite).lower())
+
+                        url = self.build_api_url(u"{}s").format(content_type)
+
+                        # Allow additional parameters on the publish url
+                        if len(url_params) > 0:
+                            additional_params = u'?'
+                            i = 1
+                            for param in url_params:
+                                if i > 1:
+                                    additional_params += u"&"
+                                additional_params += u"{}={}".format(param, str(url_params[param]).lower())
+                                i += 1
+                            url += additional_params
+
                         content_file.close()
                         if temp_wb_filename is not None:
                             os.remove(temp_wb_filename)
@@ -2124,9 +2124,19 @@ class TableauRestApiConnection(TableauBase):
 
                         # Finalize the publish
                         url = self.build_api_url(u"{}s").format(content_type) + u"?uploadSessionId={}".format(
-                            upload_session_id) + u"&{}Type={}".format(content_type,
-                                                                     file_extension) + u"&overwrite={}".format(
-                            str(overwrite).lower())
+                            upload_session_id) + u"&{}Type={}".format(content_type, file_extension)
+
+                        # Allow additional parameters on the publish url
+                        if len(url_params) > 0:
+                            additional_params = u'&'
+                            i = 1
+                            for param in url_params:
+                                if i > 1:
+                                    additional_params += u"&"
+                                additional_params += u"{}={}".format(param, str(url_params[param]).lower())
+                                i += 1
+                            url += additional_params
+
                         publish_request += bytes("--".encode('utf-8'))  # Need to finish off the last boundary
                         self.log(u"Finishing the upload with a publish request")
                         content_file.close()
