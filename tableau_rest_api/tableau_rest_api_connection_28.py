@@ -67,7 +67,7 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
         try:
             new_project = self.send_add_request(url, tsr)
             self.end_log_block()
-            project_luid = new_project.findall(u'.//t:project', self.ns_map)[0].get("id")
+            project_luid = new_project.findall(u'.//t:project', self.ns_map)[0].get(u"id")
             if no_return is False:
                 proj_obj = self.get_published_project_object(project_luid, new_project)
 

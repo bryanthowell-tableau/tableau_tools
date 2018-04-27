@@ -44,7 +44,8 @@ The TableauDatasource class uses the TDEFileGenerator and/or the HyperFileGenera
 3.0.0+: tableau_rest_api library refactored and added to new tableau_tools package
 4.0.0: Big rewrite to simplify and improve. You will need to update your scripts most likely.
 4.3.0: 10.5 (API 2.8) compatibility, 100% coverage of all features in the spec, and refactoring in the code itself. README vastly updated to cover all topics.
-4.5.0: 2018.1 (API 3.0) compatibility. All requests for a given connection using a single HTTP session.
+4.4.0: A lot of improvements to the tableau_documents library and its documentation
+4.5.0: 2018.1 (API 3.0) compatibility. All requests for a given connection using a single HTTP session, and other improvements to the RestXmlRequest class.
 
 --- Table(au) of Contents ---
 0. Getting Started
@@ -190,6 +191,7 @@ TableauRestApiConnection25: 10.2
 TableauRestApiConnection26: 10.3
 TableauRestApiConnection27: 10.4
 TableauRestApiConnection28: 10.5
+TableauRestApiConnection30: 2018.1
 
 You need to intialize at least one object of this class. 
 Ex.:
