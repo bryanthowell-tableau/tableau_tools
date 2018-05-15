@@ -173,6 +173,7 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
                     url_ending += u"&{}".format(ending)
 
         api_call = self.build_api_url(url_ending, server_level)
+        self._request_obj.set_response_type(u'xml')
         self._request_obj.url = api_call
         self._request_obj.http_verb = u'get'
         self._request_obj.request_from_api()

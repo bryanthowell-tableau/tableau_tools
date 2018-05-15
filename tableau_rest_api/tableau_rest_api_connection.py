@@ -270,6 +270,7 @@ class TableauRestApiConnection(TableauBase):
         """
         self.start_log_block()
         api_call = self.build_api_url(url_ending, server_level)
+        self._request_obj.set_response_type(u'xml')
         self._request_obj.http_verb = u'get'
         self._request_obj.url = api_call
         self._request_obj.request_from_api()
@@ -322,6 +323,7 @@ class TableauRestApiConnection(TableauBase):
 
     def send_post_request(self, url):
         self.start_log_block()
+        self._request_obj.set_response_type(u'xml')
         self._request_obj.url = url
         self._request_obj.http_verb = u'post'
         self._request_obj.request_from_api(0)
@@ -338,6 +340,7 @@ class TableauRestApiConnection(TableauBase):
         """
         self.start_log_block()
 
+        self._request_obj.set_response_type(u'xml')
         self._request_obj.url = url
         self._request_obj.xml_request = request
         self._request_obj.http_verb = u'post'
@@ -352,6 +355,7 @@ class TableauRestApiConnection(TableauBase):
     def send_update_request(self, url, request):
         self.start_log_block()
 
+        self._request_obj.set_response_type(u'xml')
         self._request_obj.url = url
         self._request_obj.xml_request = request
         self._request_obj.http_verb = u'put'
@@ -363,6 +367,7 @@ class TableauRestApiConnection(TableauBase):
 
     def send_delete_request(self, url):
         self.start_log_block()
+        self._request_obj.set_response_type(u'xml')
         self._request_obj.url = url
         self._request_obj.http_verb = u'delete'
 
@@ -384,6 +389,7 @@ class TableauRestApiConnection(TableauBase):
     def send_publish_request(self, url, xml_request, content, boundary_string):
         self.start_log_block()
 
+        self._request_obj.set_response_type(u'xml')
         self._request_obj.url = url
         self._request_obj.set_publish_content(content, boundary_string)
         self._request_obj.xml_request = xml_request
@@ -399,7 +405,7 @@ class TableauRestApiConnection(TableauBase):
 
     def send_append_request(self, url, request, boundary_string):
         self.start_log_block()
-
+        self._request_obj.set_response_type(u'xml')
         self._request_obj.url = url
         self._request_obj.set_publish_content(request, boundary_string)
         self._request_obj.http_verb = u'put'
@@ -424,7 +430,7 @@ class TableauRestApiConnection(TableauBase):
 
         # Cleanup
         self._request_obj.url = None
-        self._request_obj.set_response_type(u'xml')
+
         self.end_log_block()
         return self._request_obj.get_response()
 
@@ -438,6 +444,7 @@ class TableauRestApiConnection(TableauBase):
 
     def query_datasources(self, project_name_or_luid=None):
         """
+        :type project_name_or_luid: unicode
         :rtype: etree.Element
         """
         self.start_log_block()
@@ -463,11 +470,11 @@ class TableauRestApiConnection(TableauBase):
         self.start_log_block()
         # LUID
         if self.is_luid(ds_name_or_luid):
-            ds = self.query_resource(u"datasource/{}".format(ds_name_or_luid))
+            ds = self.query_resource(u"datasources/{}".format(ds_name_or_luid))
         # Name
         else:
             ds_luid = self.query_datasource_luid(ds_name_or_luid, proj_name_or_luid)
-            ds = self.query_resource(u"datasource/{}".format(ds_luid))
+            ds = self.query_resource(u"datasources/{}".format(ds_luid))
         self.end_log_block()
         return ds
 
@@ -1097,6 +1104,7 @@ class TableauRestApiConnection(TableauBase):
                 extension = u'.tds'
             elif self._last_response_content_type.find(u'application/octet-stream') != -1:
                 extension = u'.tdsx'
+            self.log(u'Response type was {} so extension will be {}'.format(self._last_response_content_type, extension))
             if extension is None:
                 raise IOError(u'File extension could not be determined')
         except RecoverableHTTPException as e:
@@ -1145,6 +1153,8 @@ class TableauRestApiConnection(TableauBase):
                 extension = u'.twbx'
             if extension is None:
                 raise IOError(u'File extension could not be determined')
+            self.log(
+                u'Response type was {} so extension will be {}'.format(self._last_response_content_type, extension))
         except RecoverableHTTPException as e:
             self.log(u"download_workbook resulted in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
             self.end_log_block()

@@ -170,6 +170,7 @@ class RestXmlRequest(TableauBase):
             # Tableau 9.0 doesn't return real UTF-8 but escapes all unicode characters using numeric character encoding
             # initial_response = response.read()  # Leave the UTF8 decoding to lxml
             initial_response = response.content  # Leave the UTF8 decoding to lxml
+            self.log(u'Response is of type {}'.format(type(initial_response)))
 
             # self.__last_response_content_type = response.info().getheader('Content-Type')
             self.__last_response_content_type = response.headers.get(u'Content-Type')
