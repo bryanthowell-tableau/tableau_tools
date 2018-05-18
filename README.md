@@ -866,9 +866,49 @@ If a workbook references a published data source, that data source must be publi
 #### 1.5.1 Publishing a Workbook or Datasource
 The publish methods must upload directly from disk. If you are manipulating a workbook or datasource using the TableauFile / TableauDocument classes, please save the file prior to publishing. Also note that you specify a Project object rather than the LUID.
 
-`TableauRestApiConnection.publish_workbook(workbook_filename, workbook_name, project_obj, overwrite=False, connection_username=None, connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=False)`
+`TableauRestApiConnection.publish_workbook(workbook_filename, workbook_name, project_obj, overwrite=False, connection_username=None, connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=True)`
 
 `TableauRestApiConnection.publish_datasource(ds_filename, ds_name, project_obj, overwrite=False, connection_username=None, connection_password=None, save_credentials=True)`
+
+The `check_published_ds` argument for publish_workbook causes the tableau_document sub-module to be used to open up and look to see if there are any published data sources in the workbook. If there are, it changes the Site Content URL property to match the site that the workbook is being published to. The only reason to choose False for the argument is if you know you are not using any Published Data Sources or you using the more thorough process described below (where those changes would already be made)
+
+##### 1.5.1.1 Workbooks Connected to Published Data Sources 
+Tableau Server only requires unique names for Workbooks and Data Sources within a Project, rather than within the Site. This means you can have multiple workbooks or data sources with the same “visible name”. Internally, Tableau Server generates a unique “contentUrl” property using a pattern which removes spaces and other characters, and appends numbers if the pattern would result in overwriting any existing contentUrl. However, there is no guarantee that you will get the same contentUrl from Site to Site, since the publish order could result in the numbering being different.
+
+To publish a workbook connected to Published Data Sources, you need to be aware of what the Destination contentUrl property will be of any Data Source, and then substitute that value into the definition of the Published Data Source in the workbook file prior to publish (in addition to the Site Content Url, which otherwise would be handled automatically).
+
+There's a very thorough explanation of this availabe at 
+<https://tableauandbehold.com/2018/05/17/replicating-workbooks-with-published-data-sources/>. 
+
+The example code to do this process correctly is included in the template_publish_sample.py using the function `replicate_workbooks_with_published_dses`
+
+Here is an example of using that function
+
+    orig_server = u'http://'
+    orig_username = u''
+    orig_password = u''
+    orig_site = u'default'
+    
+    dest_server = u''
+    dest_username = u''
+    dest_password = u''
+    dest_site = u'publish_test'
+    
+    o = TableauRestApiConnection28(server=orig_server, username=orig_username, password=orig_password,
+                                   site_content_url=orig_site)
+    o.signin()
+    o.enable_logging(logger)
+    
+    d = TableauRestApiConnection28(server=dest_server, username=dest_username, password=dest_password,
+                                   site_content_url=dest_site)
+    d.signin()
+    d.enable_logging(logger)
+    
+    wbs_to_replicate = [u'Workbook Connected to Published DS', u'Connected to Second DS']
+    o_wb_project = u'Default'
+    d_wb_project = u'Default'
+    
+    replicate_workbooks_with_published_dses(o, d, wbs_to_replicate, o_wb_project, d_wb_project)
 
 #### 1.5.2 Workbook and Datasource Revisions (2.3+)
 Starting in API Version 2.3, revision history can be turned on for a site, allowing you to see the changes that are made to workbooks over time. Workbook and datasource revisions are identified by a number that counts up starting from 1. So if there has only ever been one publish action, there is only revision 1.
@@ -972,7 +1012,7 @@ Starting in Tableau 10.5 (API 2.8), you can put a workbook or datasource on an E
 #### 1.6.4 Putting published content on an Extract Schedule Prior to 10.5 (high risk)
 Prior to Tableau 10.5, there was no REST API method for putting a given workbook or datasource on an extract schedule.
 
-This could be accomplished by making a direct entry into the Tableau PostgreSQL Repository using the `tblwgadmin` user. You must be running your script FROM the Tableau Server machine to have access to connect to the repository (you may be able to modify firewall and other things per https://onlinehelp.tableau.com/current/server/en-us/perf_collect_server_repo.htm but it's easiest just to be on the Server itself)
+This could be accomplished by making a direct entry into the Tableau PostgreSQL Repository using the superuser. You must be running your script FROM the Tableau Server machine to have access to connect to the repository (you may be able to modify firewall and other things per https://onlinehelp.tableau.com/current/server/en-us/perf_collect_server_repo.htm but it's easiest just to be on the Server itself)
 
 The TableauRepository class has a method for accomplishing the necessary insert.
 
@@ -983,7 +1023,7 @@ The TableauRepository class has a method for accomplishing the necessary insert.
 ex. 
 
     new_wb_luid = t.publish_workbook(new_filename, u'My Awesome TWBX Workbook', default_proj, overwrite=True, save_credentials=True)
-    tab_rep = TableauRepository(u'https://tableauserver', repository_username=u'tblwgadmin', repository_password=u'')
+    tab_rep = TableauRepository(u'https://tableauserver', repository_username=u'$superUserYouBetterKnow', repository_password=u'')
     tab_rep.set_workbook_on_schedule(new_wb_luid, u'Saturday night')
 
 As mentioned, this requires have super access to the Tableau repository, including its password, which could be dangerous. If you can at all, update to Tableau 10.5+ and use the REST API methods from above.
