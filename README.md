@@ -120,7 +120,7 @@ The TableauDatasource class uses the `TDEFileGenerator` and/or the `HyperFileGen
   * [3.1 Tabcmd Class](#31-tabcmd-class)
   * [3.2 Triggering an Extract Refresh](#32-triggering-an-extract-refresh)
   * [3.3 Creating an Export](#33-creating-an-export)
-- [4. tableau_repository](#4-tableau-repository)
+- [4 tableau_repository](#4-tableau-repository)
   * [4.1 TableauRepository Class](#41-tableaurepository-class)
   * [4.2 query() Method](#42-query---method)
   * [4.3 Querying (and killing) Sessions](#43-querying--and-killing--sessions)
