@@ -1354,9 +1354,9 @@ The `tableau_document` will be a new `TableauDatasource` which has an empty data
 
 The first step is creating a "first table", which all other relations will attach to. This is the equivalent of the FROM clause in a SQL SELECT statement:
 
-`TableauDatasource.add_first_table(db_table_name, table_alias) `
+`TableauDatasource.set_first_table(db_table_name, table_alias) `
 
-`TableauDatasource.add_first_custom_sql(custom_sql, table_alias)`
+`TableauDatasource.set_first_custom_sql(custom_sql, table_alias)`
 
 Example of a single table:
 
@@ -1399,7 +1399,7 @@ You'll notice there are parameters with "alias" in both functions. The real name
 
 Example:
 
-    ds.add_first_table(u'agency_sales', u'Super Store')
+    ds.set_first_table(u'agency_sales', u'Super Store')
     join_on = ds.define_join_on_clause(u'Super Store', u'region', u'=', u'Entitled People', u'region')
     ds.join_table(u'Inner', u'superstore_entitlements', u'Entitled People', [join_on, ])
 
