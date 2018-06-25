@@ -29,6 +29,16 @@ class HyperFileGenerator(TableauBase):
                                 'date': Type.DATE
                                 }
 
+        self.python_type_map = {
+                                'float': Type.DOUBLE,
+                                'int': Type.INTEGER,
+                                'unicode': Type.UNICODE_STRING,
+                                'str': Type.UNICODE_STRING,
+                                'datetime': Type.DATETIME,
+                                'boolean': Type.BOOLEAN,
+                                'date': Type.DATE
+                                }
+
         self.table_definition = None
         self.tde_object = None
 
@@ -57,7 +67,27 @@ class HyperFileGenerator(TableauBase):
             self.table_definition.addColumn(col, self.python_type_map[column_name_type_dict[col]])
         return self.table_definition
 
-    def create_extract(self, tde_filename, append=False):
+    def create_table_definition_from_pyodbc_cursor(self, pydobc_cursor, collation=Collation.EN_US):
+        self.table_definition = TableDefinition()
+        # Assuming EN_US, should be made optional
+        self.table_definition.setDefaultCollation(collation)
+
+        # cursor.description is collection to find information about the returned columns
+        # for example, the column names and the datatypes.
+
+        for col in pydobc_cursor.description:
+            # [0] is the column name string, [1] is the python type object
+            print(col[0].decode('utf-8'))
+            self.log(u'Adding {} {}'.format(col[0], col[1].__name__))
+            # Second item is a Python Type object, to get the actual name as a string for comparison, have to use __name__ property
+            # Check against the type maps, drop the column if we don't understand the types
+            if col[1].__name__ in self.python_type_map:
+                self.table_definition.addColumn(col[0], self.python_type_map[col[1].__name__])
+            else:
+                self.log(u'Skipped column {}, {}'.format(col[0], col[1].__name__))
+        return self.table_definition
+
+    def create_extract(self, tde_filename, append=False, table_name=u'Extract', pyodbc_cursor=None):
         try:
             # Using "with" handles closing the TDE correctly
 
@@ -65,41 +95,43 @@ class HyperFileGenerator(TableauBase):
                 self.tde_object = None
                 row_count = 0
                 # Create the Extract object (or set it for updating) if there are actually results
-                if not extract.hasTable('Extract'):
+                if not extract.hasTable(table_name):
                     # Table does not exist; create it
                     self.log(u'Creating Extract with table definition')
-                    self.tde_object = extract.addTable('Extract', self.table_definition)
+                    self.tde_object = extract.addTable(table_name, self.table_definition)
                 else:
                     # Open an existing table to add more rows
                     if append is True:
-                        self.tde_object = extract.openTable('Extract')
+                        self.tde_object = extract.openTable(table_name)
                     else:
                         self.log(u"Output file '{}' already exists.".format(tde_filename))
                         self.log(u"Append mode is off, please delete file and then rerun...")
                         sys.exit()
+                # This is if you actually have data to put into the extract. Implement later
+                if pyodbc_cursor is not None:
+                    row_count = 0
+                    for db_row in pyodbc_cursor:
+                        tde_row = Row(self.table_definition)
+                        col_no = 0
+                        for field in db_row:
+                            # Possible for database to have types that do not map, we skip them
+                            if pyodbc_cursor.description[col_no][1].__name__ in self.python_type_map:
+                                if field == "" or field is None:
+                                    tde_row.setNull(col_no)
+                                else:
+                                    # From any given row from the cursor object, we can use the cursor_description collection to find information
+                                    # for example, the column names and the datatypes. [0] is the column name string, [1] is the python type object. Mirrors cursor.description on the Row level
+                                    # Second item is a Python Type object, to get the actual name as a string for comparison, have to use __name__ property
+                                    self.field_setter_map[self.python_type_map[pyodbc_cursor.description[col_no][1].__name__ ]](tde_row, col_no, field)
+                                    col_no += 1
+                        self.tde_object.insert(tde_row)
+                        row_count += 1
+                    self.log(u"Hyper creation complete, {} rows inserted".format(row_count))
+                    #if len(skipped_cols) > 0:
+                    #   self.log(u"The following columns were skipped due to datatypes that were not recognized: ")
+                    #   self.log(unicode(skipped_cols))
 
-                    # This is if you actually have data to put into the extract. Implement later
-                        #	tde_row = Row(tableDef)
-                        #	colNo = 0
-                        #	for field in db_row:
-                        # Possible for database to have types that do not map, we skip them
-                        #		if cursor.description[colNo][1].__name__ in PyTypeMap:
-                        #			if( (field == "" or field == None) ) :
-                        #				tde_row.setNull( colNo )
-                        #			else :
-                        # From any given row from the cursor object, we can use the cursor_description collection to find information
-                        # for example, the column names and the datatypes. [0] is the column name string, [1] is the python type object. Mirrors cursor.description on the Row level
-                        # Second item is a Python Type object, to get the actual name as a string for comparison, have to use __name__ property
-                        #				fieldSetterMap[PyTypeMap[ cursor.description[colNo][1].__name__ ] ](tde_row, colNo, field);
-                        #		colNo += 1
-                        #	table.insert(tde_row)
-                        #	row_count += 1
-                        # print "TDE creation complete, " + str(row_count) + " rows inserted\n"
-                        # if len(skipped_cols) > 0:
-                        #	print "The following columns were skipped due to datatypes that were not recognized:\n"
-                        #	print skipped_cols
-
-        except TableauException, e:
-            self.log(u'Tableau TDE creation error:{}'.format(e))
+        except TableauException as e:
+            self.log(u'Tableau Hyper creation error:{}'.format(e))
             raise
 

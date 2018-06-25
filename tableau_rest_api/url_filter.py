@@ -70,7 +70,7 @@ class UrlFilter23(UrlFilter):
         """
         return UrlFilter(u'ownerName', u'eq', [owner_name, ])
 
-    # Workbooks, Datasources, Views
+    # Workbooks, Datasources, Views, Jobs
     @staticmethod
     def create_created_at_filter(operator, created_at_time):
         """
@@ -325,3 +325,107 @@ class UrlFilter28(UrlFilter27):
     def __init__(self, field, operator, values):
         UrlFilter27.__init__(self, field, operator, values)
     # No changes in 2.8
+
+
+class UrlFilter30(UrlFilter28):
+    def __init__(self, field, operator, values):
+        UrlFilter28.__init__(self, field, operator, values)
+    # No changes in 3.0
+
+
+class UrlFilter31(UrlFilter30):
+    def __init__(self, field, operator, values):
+        UrlFilter30.__init__(self, field, operator, values)
+
+    # Jobs
+    @staticmethod
+    def create_started_at_filter(operator, started_at_time):
+        """
+        :param operator: Should be one of 'eq', 'gt', 'gte', 'lt', 'lte'
+        :type operator: unicode
+        :param started_at_time: ISO 8601 representation of time like 2016-01-01T00:00:00:00Z
+        :type started_at_time: unicode
+        :rtype: UrlFilter
+        """
+        comparison_operators = [u'eq', u'gt', u'gte', u'lt', u'lte']
+        if operator not in comparison_operators:
+            raise InvalidOptionException(u"operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
+        # Convert to the correct time format
+
+        return UrlFilter(u'createdAt', operator, [started_at_time, ])
+
+    # Jobs
+    @staticmethod
+    def create_ended_at_filter(operator, ended_at_time):
+        """
+        :param operator: Should be one of 'eq', 'gt', 'gte', 'lt', 'lte'
+        :type operator: unicode
+        :param ended_at_time: ISO 8601 representation of time like 2016-01-01T00:00:00:00Z
+        :type ended_at_time: unicode
+        :rtype: UrlFilter
+        """
+        comparison_operators = [u'eq', u'gt', u'gte', u'lt', u'lte']
+        if operator not in comparison_operators:
+            raise InvalidOptionException(u"operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
+        # Convert to the correct time format
+
+        return UrlFilter(u'createdAt', operator, [ended_at_time, ])
+
+    # Jobs
+    @staticmethod
+    def create_job_types_filter(job_types):
+        """
+        :type job_types: list[unicode]
+        :rtype: UrlFilter
+        """
+        return UrlFilter(u'jobType', u'in', job_types)
+
+    # Jobs
+    @staticmethod
+    def create_job_type_filter(job_type):
+        """
+        :type job_type: unicode
+        :rtype: UrlFilter
+        """
+        return UrlFilter(u'tags', u'eq', [job_type, ])
+
+    # Jobs
+    @staticmethod
+    def create_notes_filter(notes):
+        """
+        :type notes: unicode
+        :rtype: UrlFilter
+        """
+        return UrlFilter(u'notes', u'has', [notes, ])
+
+    @staticmethod
+    def create_title_equals_filter(title):
+        """
+        :type title: unicode
+        :rtype: UrlFilter
+        """
+        return UrlFilter(u'title', u'eq', [title, ])
+
+    @staticmethod
+    def create_title_has_filter(title):
+        """
+        :type title: unicode
+        :rtype: UrlFilter
+        """
+        return UrlFilter(u'title', u'has', [title, ])
+
+    @staticmethod
+    def create_subtitle_equals_filter(subtitle):
+        """
+        :type subtitle: unicode
+        :rtype: UrlFilter
+        """
+        return UrlFilter(u'subtitle', u'eq', [subtitle, ])
+
+    @staticmethod
+    def create_subtitle_has_filter(subtitle):
+        """
+        :type subtitle: unicode
+        :rtype: UrlFilter
+        """
+        return UrlFilter(u'subtitle', u'has', [subtitle, ])

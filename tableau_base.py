@@ -87,7 +87,8 @@ class TableauBase(object):
             u"2.6": server_content_roles_2_1,
             u"2.7": server_content_roles_2_1,
             u"2.8": server_content_roles_2_1,
-            u'3.0': server_content_roles_2_1
+            u'3.0': server_content_roles_2_1,
+            u'3.1': server_content_roles_2_1
         }
 
         self.server_to_rest_capability_map = {
@@ -228,7 +229,8 @@ class TableauBase(object):
             u'2.6': capabilities_2_1,
             u'2.7': capabilities_2_1,
             u'2.8': capabilities_2_8,
-            u'3.0': capabilities_2_8
+            u'3.0': capabilities_2_8,
+            u'3.1': capabilities_2_8
 
         }
 
@@ -287,7 +289,7 @@ class TableauBase(object):
         """
         # API Versioning (starting in 9.2)
         if unicode(tableau_server_version)in [u"9.2", u"9.3", u"10.0", u"10.1", u"10.2", u"10.3", u"10.4", u"10.5",
-                                              u'2018.1']:
+                                              u'2018.1', u'2018.2']:
             if unicode(tableau_server_version) == u"9.2":
                 self.api_version = u"2.1"
             elif unicode(tableau_server_version) == u"9.3":
@@ -306,6 +308,8 @@ class TableauBase(object):
                 self.api_version = u'2.8'
             elif unicode(tableau_server_version) == u'2018.1':
                 self.api_version = u'3.0'
+            elif unicode(tableau_server_version) == u'2018.2':
+                self.api_version = u'3.1'
             self.tableau_namespace = u'http://tableau.com/api'
             self.ns_map = {'t': 'http://tableau.com/api'}
             self.version = tableau_server_version

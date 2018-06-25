@@ -74,10 +74,10 @@ class TableauColumns(TableauBase):
         :rtype: TableauParameter
         """
         for c in self.columns_list:
-            if c.name == parameter_name:
-                return p
+            if c.name == column_name:
+                return c
         else:
-            raise NoMatchFoundException(u'No parameter named {}'.format(parameter_name))
+            raise NoMatchFoundException(u'No column named {}'.format(column_name))
 
 
 class TableauColumn(TableauBase):

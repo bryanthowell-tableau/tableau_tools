@@ -68,6 +68,10 @@ class TableauConnection(TableauBase):
 
     @server.setter
     def server(self, new_server):
+        """
+        :type new_server: unicode
+        :return:
+        """
         if self.xml_obj.get(u"server") is not None:
             self.xml_obj.attrib[u"server"] = new_server
         else:
@@ -79,6 +83,10 @@ class TableauConnection(TableauBase):
 
     @port.setter
     def port(self, new_port):
+        """
+        :type port: unicode
+        :return:
+        """
         if self.xml_obj.get(u"port") is not None:
             self.xml_obj.attrib[u"port"] = unicode(new_port)
         else:
@@ -134,6 +142,10 @@ class TableauConnection(TableauBase):
 
     @authentication.setter
     def authentication(self, auth_type):
+        """
+        :type auth_type: unicode
+        :return:
+        """
         if self.xml_obj.get(u"authentication") is not None:
             self.xml_obj.attrib[u"authentication"] = auth_type
         else:
@@ -145,8 +157,27 @@ class TableauConnection(TableauBase):
 
     @service.setter
     def service(self, service):
+        """
+        :type service: unicode
+        :return:
+        """
         if self.xml_obj.get(u"service") is not None:
             self.xml_obj.attrib[u"service"] = service
         else:
             self.xml_obj.set(u"service", service)
+
+    @property
+    def username(self):
+        return self.xml_obj.get(u'username')
+
+    @username.setter
+    def username(self, username):
+        """
+        :type username: unicode
+        :return:
+        """
+        if self.xml_obj.get(u'username') is not None:
+            self.xml_obj.attrib[u'username'] = username
+        else:
+            self.xml_obj.set(u'username', username)
 

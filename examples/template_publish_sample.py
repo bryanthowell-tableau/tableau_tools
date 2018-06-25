@@ -329,7 +329,7 @@ def publish_from_live_connections_to_extracts(logger_obj=None):
     t_file = TableauFile(u'SS Example.twb')
     dses = t_file.tableau_document.datasources  # type: list[TableauDatasource]
     for ds in dses:
-        #for conn in ds.connections:
+        # for conn in ds.connections:
         #    conn.dbname = u'Global SuperStore Star Schema - Staging'
         ds.add_extract(u'Extract File.tde')
         ds.add_dimension_extract_filter(u'Customer Segment', [u'Consumer'])

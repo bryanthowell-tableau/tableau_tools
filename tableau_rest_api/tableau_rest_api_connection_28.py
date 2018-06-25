@@ -205,12 +205,13 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
 
     # Do not include file extension
     def save_view_pdf(self, wb_name_or_luid, view_name_or_luid, filename_no_extension,
-                                         proj_name_or_luid=None):
+                                         proj_name_or_luid=None, view_filter_map=None):
         """
         :type wb_name_or_luid: unicode
         :type view_name_or_luid: unicode
         :type proj_name_or_luid: unicode
         :type filename_no_extension: unicode
+        :type view_filter_map: dict
         :rtype:
         """
         self.start_log_block()
@@ -226,7 +227,16 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
             if filename_no_extension.find('.pdf') == -1:
                 filename_no_extension += '.pdf'
             save_file = open(filename_no_extension, 'wb')
-            url = self.build_api_url(u"views/{}/pdf".format(view_luid))
+            if view_filter_map is not None:
+                final_filter_map = {}
+                for key in view_filter_map:
+                    new_key = u"vf_{}".format(key)
+                    final_filter_map[new_key] = view_filter_map[key]
+
+                additional_url_params = u"?" + urllib.urlencode(final_filter_map)
+            else:
+                additional_url_params = u""
+            url = self.build_api_url(u"views/{}/pdf{}".format(view_luid, additional_url_params))
             image = self.send_binary_get_request(url)
             save_file.write(image)
             save_file.close()

@@ -193,8 +193,9 @@ class TableauRestApiConnection(TableauBase):
     # Sign-in and Sign-out
     #
 
-    def signin(self):
+    def signin(self, user_luid_to_impersonate=None):
         """
+        :type user_luid_to_impersonate: unicode
         :rtype:
         """
         self.start_log_block()
@@ -207,6 +208,12 @@ class TableauRestApiConnection(TableauBase):
             s.set(u"contentUrl", self.site_content_url)
 
         c.append(s)
+
+        if user_luid_to_impersonate is not None:
+            u = etree.Element(u'user')
+            u.set(u'id', user_luid_to_impersonate)
+            c.append(u)
+
         tsr.append(c)
 
         url = self.build_api_url(u"auth/signin", server_level=True)
@@ -309,14 +316,14 @@ class TableauRestApiConnection(TableauBase):
 
     def query_single_element_luid_by_name_from_endpoint(self, element_name, name, server_level=False):
         self.start_log_block()
-        elements = self.query_resource("{}s".format(element_name), server_level=server_level)
+        elements = self.query_resource(u"{}s".format(element_name), server_level=server_level)
         if element_name == u'group':
             for e in elements:
                 self.group_name_luid_cache[e.get(u'name')] = e.get(u'id')
         element = elements.findall(u'.//t:{}[@name="{}"]'.format(element_name, name), self.ns_map)
         if len(element) == 1:
             self.end_log_block()
-            return element[0].get("id")
+            return element[0].get(u"id")
         else:
             self.end_log_block()
             raise NoMatchFoundException(u"No {} found with name {}".format(element_name, name))

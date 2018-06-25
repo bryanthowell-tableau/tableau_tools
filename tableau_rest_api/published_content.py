@@ -298,7 +298,7 @@ class PublishedContent(TableauBase):
                                                                                                          str(need_to_change)))
                     # Delete all existing permissions
                     if need_to_change is True:
-                        self.log(u"Removing exisiting permissions for luid {}".format(cur_obj.luid))
+                        self.log(u"Removing existing permissions for luid {}".format(cur_obj.luid))
                         self.delete_permissions_by_permissions_obj_list([cur_obj, ])
 
                     if need_to_change is False:

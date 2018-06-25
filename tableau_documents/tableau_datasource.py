@@ -266,7 +266,7 @@ class TableauDatasource(TableauDocument):
             connection.set(u'one-time-sql', initial_sql)
         return c
 
-    def add_new_connection(self, ds_type, server, db_or_schema_name, authentication=None, initial_sql=None):
+    def add_new_connection(self, ds_type, server=None, db_or_schema_name=None, authentication=None, initial_sql=None):
         self.start_log_block()
         self.ds_generator = True
         conn = self.create_new_connection_xml(self.ds_version_type, ds_type, server, db_or_schema_name, authentication, initial_sql)
@@ -560,12 +560,13 @@ class TableauDatasource(TableauDocument):
     #
     # For creating new table relations
     #
-    def set_first_table(self, db_table_name, table_alias, connection=None):
+    def set_first_table(self, db_table_name, table_alias, connection=None, extract=False):
         self.ds_generator = True
         # Grab the original connection name
         if self.main_table_relation is not None and connection is None:
             connection = self.main_table_relation.get(u'connection')
-        self.main_table_relation = self.create_table_relation(db_table_name, table_alias, connection=connection)
+        self.main_table_relation = self.create_table_relation(db_table_name, table_alias, connection=connection,
+                                                              extract=extract)
 
     def set_first_custom_sql(self, custom_sql, table_alias, connection=None):
         self.ds_generator = True
@@ -651,10 +652,13 @@ class TableauDatasource(TableauDocument):
         return u'Calculation_{}'.format(unicode(random_digits))
 
     @staticmethod
-    def create_table_relation(db_table_name, table_alias, connection=None):
+    def create_table_relation(db_table_name, table_alias, connection=None, extract=False):
         r = etree.Element(u"relation")
         r.set(u'name', table_alias)
-        r.set(u"table", u"[{}]".format(db_table_name))
+        if extract is True:
+            r.set(u"table", u"[Extract].[{}]".format(db_table_name))
+        else:
+            r.set(u"table", u"[{}]".format(db_table_name))
         r.set(u"type", u"table")
         if connection is not None:
             r.set(u'connection', connection)
