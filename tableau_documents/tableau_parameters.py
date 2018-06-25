@@ -42,7 +42,7 @@ class TableauParameters(TableauDocument):
                 internal_name = column.get(u'name')  # type: unicode
                 # Parameters are all given internal name [Parameter #], unless they are copies where they
                 # end with (copy) h/t Jeff James for discovering
-                if internal_name.find(u'(copy)') == -1:
+                if internal_name.find(u'Parameter') != -1 and internal_name.find(u'(copy)') == -1:
                     param_num = int(internal_name.split(u" ")[1][0])
                     # Move up the highest_param_num counter for when you add new ones
                     if param_num > self._highest_param_num:
