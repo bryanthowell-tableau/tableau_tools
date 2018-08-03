@@ -48,6 +48,7 @@ class TableauDatasource(TableauDocument):
         self.column_instances = []
         self.main_table_relation = None
         self.main_table_name = None
+        self.table_relations = None
         self._connection_root = None
         self._stored_proc_parameters_xml = None
 
@@ -223,6 +224,19 @@ class TableauDatasource(TableauDocument):
         else:
             self.repository_location.attrib[u'id'] = new_content_url
             self.connections[0].dbname = new_content_url
+
+    # It seems some databases like Oracle and Teradata need this as well to swap a database
+    def update_tables_with_new_database_or_schema(self, original_db_or_schema, new_db_or_schema):
+        """
+        :type original_db_or_schema: unicode
+        :type new_db_or_schema: unicode
+        :return:
+        """
+        for relation in self.table_relations:
+            if relation.get(u'type') == u"table":
+                relation.set(u'table', relation.get(u'table').replace(u"[{}]".format(original_db_or_schema),
+                                                                      u"[{}]".format(new_db_or_schema)))
+
 
     @staticmethod
     def create_new_datasource_xml(version):
@@ -542,6 +556,7 @@ class TableauDatasource(TableauDocument):
         relation_type = self.relation_xml_obj.get(u'type')
         if relation_type != u'join':
                 self.main_table_relation = self.relation_xml_obj
+                self.table_relations = [self.relation_xml_obj, ]
 
         else:
             table_relations = self.relation_xml_obj.findall(u'.//relation', self.ns_map)
@@ -552,6 +567,7 @@ class TableauDatasource(TableauDocument):
                 if t.get(u'type') != u'join':
                     final_table_relations.append(t)
             self.main_table_relation = final_table_relations[0]
+            self.table_relations = final_table_relations
 
         # Read any parameters that a stored-proc might have
         if self.main_table_relation.get(u'type') == u'stored-proc':

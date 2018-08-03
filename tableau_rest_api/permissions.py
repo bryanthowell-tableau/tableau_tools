@@ -210,10 +210,10 @@ class Permissions(TableauBase):
         self.log_debug(u"Setting to role {} with capabilities {}".format(role, unicode(role_capabilities)))
         if u"all" in role_capabilities:
             if role_capabilities[u"all"] == u'Allow':
-                self.log_debug(u"Setting all capabilites to Allow")
+                self.log_debug(u"Setting all capabilities to Allow")
                 self.set_all_to_allow()
             elif role_capabilities[u"all"] == u'Deny':
-                self.log_debug(u"Setting all capabilites to Deny")
+                self.log_debug(u"Setting all capabilities to Deny")
                 self.set_all_to_deny()
         for cap in role_capabilities:
             # Skip the all command, we handled it at the beginning

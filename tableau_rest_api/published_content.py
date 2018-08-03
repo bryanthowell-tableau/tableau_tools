@@ -185,8 +185,8 @@ class PublishedContent(TableauBase):
         if new_obj_dict.viewkeys() == dest_obj_dict.viewkeys():
             for k in new_obj_dict:
                 if new_obj_dict[k] != dest_obj_dict[k]:
-                    return True
-            return False
+                    return False
+            return True
         else:
             return False
 
@@ -304,7 +304,7 @@ class PublishedContent(TableauBase):
                     if need_to_change is False:
                         self.log(u'No changes necessary, skipping update for quicker performance')
                         self.end_log_block()
-                        return True
+                        continue
             # Check if all capabilities are set to Unspecified, and ignore
             specified_cap_count = 0
             caps = new_permissions_obj.get_capabilities_dict()

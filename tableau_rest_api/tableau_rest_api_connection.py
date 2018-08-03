@@ -146,7 +146,7 @@ class TableauRestApiConnection(TableauBase):
         return tsr
 
     #
-    # Factory methods for PublishedContent and GranteeCapabilities objects
+    # Factory methods for PublishedContent and Permissions objects
     #
     def get_published_project_object(self, project_name_or_luid, project_xml_obj=None):
         """
@@ -170,7 +170,7 @@ class TableauRestApiConnection(TableauBase):
         if self.is_luid(workbook_name_or_luid):
             luid = workbook_name_or_luid
         else:
-            luid = self.query_datasource_luid(workbook_name_or_luid, project_name_or_luid)
+            luid = self.query_workbook_luid(workbook_name_or_luid, project_name_or_luid)
         wb_obj = Workbook(luid, self, tableau_server_version=self.version, default=False, logger_obj=self.logger)
         return wb_obj
 
@@ -637,7 +637,7 @@ class TableauRestApiConnection(TableauBase):
             luid = project_name_or_luid
         else:
             luid = self.query_project_luid(project_name_or_luid)
-        proj = self.get_published_project_object(luid, self.query_single_element_from_endpoint(u'project', project_name_or_luid))
+        proj = self.get_published_project_object(luid, self.query_single_element_from_endpoint(u'project', luid))
 
         self.end_log_block()
         return proj
