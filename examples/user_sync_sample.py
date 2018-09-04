@@ -12,8 +12,10 @@ logger = Logger('')
 username = u''
 password = u''
 server = u'http://'
+#server version support (9.0,9.1,9.2,9.3,10.0,10.1,10.2,10.3,10.4,10.5, 2018.1,2018.2)
+version = u'10.3'
 
-t = TableauRestApiConnection(server, username, password, site_content_url='')
+t = TableauRestApiConnection(server, username, password, site_content_url='', version='')
 t.enable_logging(logger)
 t.signin()
 
