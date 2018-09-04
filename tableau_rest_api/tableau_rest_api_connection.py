@@ -14,7 +14,7 @@ import urllib
 
 class TableauRestApiConnection(TableauBase):
     # Defines a class that represents a RESTful connection to Tableau Server. Use full URL (http:// or https://)
-    def __init__(self, server, username, password, site_content_url=""):
+    def __init__(self, server, username, password, site_content_url="", version=""):
         """
         :type server: unicode
         :type username: unicode
@@ -22,6 +22,7 @@ class TableauRestApiConnection(TableauBase):
         :type site_content_url: unicode
         """
         TableauBase.__init__(self)
+        TableauBase.set_tableau_server_version(self, version)
         if server.find(u'http') == -1:
             raise InvalidOptionException(u'Server URL must include http:// or https://')
 
