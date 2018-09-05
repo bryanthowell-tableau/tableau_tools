@@ -835,7 +835,7 @@ class TableauRestApiConnection(TableauBase):
                 raise MultipleMatchesFoundException(u'More than one workbook found by name {} without a project specified').format(wb_name_or_luid)
         else:
             if self.is_luid(p_name_or_luid):
-                wb_in_proj = workbooks.findall(u'.//t:workbook[@name="{}"]/:project[@id="{}"]/..'.format(wb_name_or_luid, p_name_or_luid), self.ns_map)
+                wb_in_proj = workbooks.findall(u'.//t:workbook[@name="{}"]/t:project[@id="{}"]/..'.format(wb_name_or_luid, p_name_or_luid), self.ns_map)
             else:
                 wb_in_proj = workbooks.findall(u'.//t:workbook[@name="{}"]/t:project[@name="{}"]/..'.format(wb_name_or_luid, p_name_or_luid), self.ns_map)
             if len(wb_in_proj) == 0:
