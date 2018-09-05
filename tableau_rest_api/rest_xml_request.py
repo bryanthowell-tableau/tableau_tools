@@ -98,7 +98,7 @@ class RestXmlRequest(TableauBase):
 
     # Must set a boundary string when publishing
     def set_publish_content(self, content, boundary_string):
-        self.__publish = True
+        self.__publish = (content is not None)
         self.__boundary_string = boundary_string
         self.__publish_content = content
 
