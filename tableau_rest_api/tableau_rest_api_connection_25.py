@@ -274,20 +274,21 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
 
         # If there is a project filter
         if project_name_or_luid is not None:
-            datasources = self.query_resource(u"datasources")
-
             if self.is_luid(project_name_or_luid):
                 project_luid = project_name_or_luid
             else:
                 project_luid = self.query_project_luid(project_name_or_luid)
-            ds = datasources.findall(u'.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
+            dses_in_project = datasources.findall(u'.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
+            dses = etree.Element(self.ns_prefix + 'datasources')
+            for ds in dses_in_project:
+                dses.append(ds)
         else:
-            ds = datasources
+            dses = datasources
 
         self.end_log_block()
-        return ds
+        return dses
 
-    def query_workbooks(self, username_or_luid=None, all_fields=True, created_at_filter=None, updated_at_filter=None,
+    def query_workbooks(self, username_or_luid=None, project_name_or_luid=None, all_fields=True, created_at_filter=None, updated_at_filter=None,
                         owner_name_filter=None, tags_filter=None, sorts=None, fields=None):
         """
         :type username_or_luid: unicode
@@ -320,6 +321,16 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
             wbs = self.query_resource(u"users/{}/workbooks".format(user_luid))
         else:
             wbs = self.query_resource(u"workbooks".format(user_luid), sorts=sorts, filters=filters, fields=fields)
+
+        if project_name_or_luid is not None:
+            if self.is_luid(project_name_or_luid):
+                project_luid = project_name_or_luid
+            else:
+                project_luid = self.query_project_luid(project_name_or_luid)
+            wbs_in_project = wbs.findall(u'.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
+            wbs = etree.Element(self.ns_prefix + 'workbooks')
+            for wb in wbs_in_project:
+                wbs.append(wb)
         self.end_log_block()
         return wbs
 

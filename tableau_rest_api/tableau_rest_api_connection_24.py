@@ -72,8 +72,20 @@ class TableauRestApiConnection24(TableauRestApiConnection23):
                          u'type': datasource_type_filter}
         filters = self._check_filter_objects(filter_checks)
 
-        ds = self.query_resource(u'datasources', filters=filters, sorts=sorts)
+        datasources = self.query_resource(u'datasources', filters=filters, sorts=sorts)
+        if project_name_or_luid is not None:
+            if self.is_luid(project_name_or_luid):
+                project_luid = project_name_or_luid
+            else:
+                project_luid = self.query_project_luid(project_name_or_luid)
+            dses_in_project = datasources.findall(u'.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
+            dses = etree.Element(self.ns_prefix + 'datasources')
+            for ds in dses_in_project:
+                dses.append(ds)
+        else:
+            dses = datasources
+
         self.end_log_block()
-        return ds
+        return dses
 
     # query_datasource and query_datasource_luid can't be improved because filtering doesn't take a Project Name/LUID

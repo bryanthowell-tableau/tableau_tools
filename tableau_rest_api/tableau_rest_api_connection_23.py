@@ -222,7 +222,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
 
     # Filtering implemented for workbooks in 2.2
     # This uses the logged in username for convenience by default
-    def query_workbooks(self, username_or_luid=None, created_at_filter=None, updated_at_filter=None,
+    def query_workbooks(self, username_or_luid=None, project_name_or_luid=None, created_at_filter=None, updated_at_filter=None,
                         owner_name_filter=None, tags_filter=None, sorts=None):
         """
         :type username_or_luid: unicode
@@ -249,6 +249,16 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
             wbs = self.query_resource(u"users/{}/workbooks".format(user_luid))
         else:
             wbs = self.query_resource(u"workbooks".format(user_luid), sorts=sorts, filters=filters)
+        if project_name_or_luid is not None:
+            if self.is_luid(project_name_or_luid):
+                project_luid = project_name_or_luid
+            else:
+                project_luid = self.query_project_luid(project_name_or_luid)
+            wbs_in_project = wbs.findall(u'.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
+            wbs = etree.Element(self.ns_prefix + 'workbooks')
+            for wb in wbs_in_project:
+                wbs.append(wb)
+
         self.end_log_block()
         return wbs
 
@@ -264,6 +274,58 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
 
     # Filtering implemented in 2.2
     # query_workbook and query_workbook_luid can't be improved because filtering doesn't take a Project Name/LUID
+
+    # Datasources in different projects can have the same 'pretty name'.
+    def query_datasource_luid(self, datasource_name, project_name_or_luid=None, content_url=None):
+        """
+        :type datasource_name: unicode
+        :type project_name_or_luid: unicode
+        :type content_url: unicode
+        :rtype: unicode
+        """
+        self.start_log_block()
+        # This quick filters down to just those with the name
+        datasources_with_name = self.query_elements_from_endpoint_with_filter(u'datasource', datasource_name)
+
+        # Throw exception if nothing found
+        if len(datasources_with_name) == 0:
+            self.end_log_block()
+            raise NoMatchFoundException(u"No datasource found with name {} in any project".format(datasource_name))
+
+        # Search for ContentUrl which should be unique, return
+        if content_url is not None:
+            datasources_with_content_url = datasources_with_name.findall(u'.//t:datasource[@contentUrl="{}"]'.format(content_url), self.ns_map)
+            self.end_log_block()
+            if len(datasources_with_name == 1):
+                return datasources_with_content_url[0].get(u"id")
+            else:
+                raise NoMatchFoundException(u"No datasource found with ContentUrl {}".format(content_url))
+        # If no ContentUrl search, find any with the name
+        else:
+            # If no match, exception
+
+            # If no Project Name is specified, but only one match, return, otherwise throw MultipleMatchesException
+            if project_name_or_luid is None:
+                if len(datasources_with_name) == 1:
+                    self.end_log_block()
+                    return datasources_with_name[0].get(u"id")
+                # If no project is declared, and more than one match
+                else:
+                    raise MultipleMatchesFoundException(u'More than one datasource found by name {} without a project specified'.format(datasource_name))
+            # If Project_name is specified was filtered above, so find the name
+            else:
+                if self.is_luid(project_name_or_luid):
+                    ds_in_proj = datasources_with_name.findall(u'.//t:project[@id="{}"]/..'.format(project_name_or_luid),
+                                                               self.ns_map)
+                else:
+                    ds_in_proj = datasources_with_name.findall(u'.//t:project[@name="{}"]/..'.format(project_name_or_luid),
+                                                               self.ns_map)
+                if len(ds_in_proj) == 1:
+                    self.end_log_block()
+                    return ds_in_proj[0].get(u"id")
+                else:
+                    self.end_log_block()
+                    raise NoMatchFoundException(u"No datasource found with name {} in project {}".format(datasource_name, project_name_or_luid))
 
 
     #
