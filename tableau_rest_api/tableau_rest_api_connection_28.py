@@ -222,7 +222,7 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
             if wb_name_or_luid is None:
                 raise InvalidOptionException(u'If looking up view by name, must include workbook')
             view_luid = self.query_workbook_view_luid(wb_name_or_luid, view_name=view_name_or_luid,
-                                                      p_name_or_luid=proj_name_or_luid)
+                                                      proj_name_or_luid=proj_name_or_luid)
         try:
             if filename_no_extension.find(u'.pdf') == -1:
                 filename_no_extension += u'.pdf'
@@ -270,7 +270,7 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
             if wb_name_or_luid is None:
                 raise InvalidOptionException(u'If looking up view by name, must include workbook')
             view_luid = self.query_workbook_view_luid(wb_name_or_luid, view_name=view_name_or_luid,
-                                                      p_name_or_luid=proj_name_or_luid)
+                                                      proj_name_or_luid=proj_name_or_luid)
         try:
             if view_filter_map is not None:
                 final_filter_map = {}
@@ -334,7 +334,7 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
         """
         self.start_log_block()
         if self.is_luid(wb_name_or_luid) is False:
-            wb_luid = self.query_workbook_luid(wb_name_or_luid, p_name_or_luid=project_name_or_luid)
+            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid=project_name_or_luid)
         else:
             wb_luid = wb_name_or_luid
 

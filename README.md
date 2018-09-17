@@ -1154,7 +1154,7 @@ ex.
     dses = twb.tableau_document.datasources
     for ds in dses:
         if ds.published is not True:  # See next section on why you should check for published datasources
-            ds.update_tables_with_new_database_or_schema(u'test_db, u'production_db')  # For systems where db/schema is referenced in the table identifier
+            ds.update_tables_with_new_database_or_schema(u'test_db', u'production_db')  # For systems where db/schema is referenced in the table identifier
             for conn in ds.connections:
                 if conn.dbname == u'test_db':
                     conn.dbname = u'production_db'

@@ -312,7 +312,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
                     if wb_name_or_luid is None:
                         raise InvalidOptionException(u'Must include wb_name_or_luid for a View name lookup')
                     content_luid = self.query_workbook_view_luid(wb_name_or_luid, content_name_or_luid,
-                                                                 p_name_or_luid=project_name_or_luid)
+                                                                 proj_name_or_luid=project_name_or_luid)
                 elif view_or_workbook == u'Workbook':
                     content_luid = self.query_workbook_luid(content_name_or_luid, project_name_or_luid)
                 filters_dict[u'content_luid'] = u'content[@id="{}"'.format(content_luid)
@@ -361,7 +361,7 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
                 if wb_name_or_luid is None:
                     raise InvalidOptionException(u'Must include wb_name_or_luid for a View name lookup')
                 content_luid = self.query_workbook_view_luid(wb_name_or_luid, content_name_or_luid,
-                                                             p_name_or_luid=project_name_or_luid, username_or_luid=user_luid)
+                                                             proj_name_or_luid=project_name_or_luid, username_or_luid=user_luid)
             elif view_or_workbook == u'Workbook':
                 content_luid = self.query_workbook_luid(content_name_or_luid, project_name_or_luid, user_luid)
             else:

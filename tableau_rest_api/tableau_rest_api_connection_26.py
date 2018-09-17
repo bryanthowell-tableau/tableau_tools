@@ -156,7 +156,7 @@ class TableauRestApiConnection26(TableauRestApiConnection25):
             ds_luid = self.query_datasource_luid(ds_name_or_luid, proj_name_or_luid)
         deleted_count = 0
         for tag in tags:
-            url = self.build_api_url(u"views/{}/tags/{}".format(ds_luid, tag))
+            url = self.build_api_url(u"datasources/{}/tags/{}".format(ds_luid, tag))
             deleted_count += self.send_delete_request(url)
         self.end_log_block()
         return deleted_count
