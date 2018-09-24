@@ -1,8 +1,8 @@
-from tableau_rest_api_connection_26 import *
+from .tableau_rest_api_connection_26 import *
 
 
 class TableauRestApiConnection27(TableauRestApiConnection26):
-    def __init__(self, server, username, password, site_content_url=u""):
+    def __init__(self, server, username, password, site_content_url=""):
         """
         :type server: unicode
         :type username: unicode
@@ -10,7 +10,7 @@ class TableauRestApiConnection27(TableauRestApiConnection26):
         :type site_content_url: unicode
         """
         TableauRestApiConnection26.__init__(self, server, username, password, site_content_url)
-        self.set_tableau_server_version(u"10.4")
+        self.set_tableau_server_version("10.4")
 
     def update_datasource(self, datasource_name_or_luid, datasource_project_name_or_luid=None,
                           new_datasource_name=None, new_project_luid=None, new_owner_luid=None,
@@ -27,33 +27,33 @@ class TableauRestApiConnection27(TableauRestApiConnection26):
         """
         self.start_log_block()
         if certification_status not in [None, False, True]:
-            raise InvalidOptionException(u'certification_status must be None, False, or True')
+            raise InvalidOptionException('certification_status must be None, False, or True')
 
         if self.is_luid(datasource_name_or_luid):
             datasource_luid = datasource_name_or_luid
         else:
             datasource_luid = self.query_datasource_luid(datasource_name_or_luid, datasource_project_name_or_luid)
 
-        tsr = etree.Element(u"tsRequest")
-        d = etree.Element(u"datasource")
+        tsr = etree.Element("tsRequest")
+        d = etree.Element("datasource")
         if new_datasource_name is not None:
-            d.set(u'name', new_datasource_name)
+            d.set('name', new_datasource_name)
         if certification_status is not None:
-            d.set(u'isCertified', u'{}'.format(unicode(certification_status).lower()))
+            d.set('isCertified', '{}'.format(str(certification_status).lower()))
         if certification_note is not None:
-            d.set(u'certificationNote', certification_note)
+            d.set('certificationNote', certification_note)
         if new_project_luid is not None:
-            p = etree.Element(u'project')
-            p.set(u'id', new_project_luid)
+            p = etree.Element('project')
+            p.set('id', new_project_luid)
             d.append(p)
         if new_owner_luid is not None:
-            o = etree.Element(u'owner')
-            o.set(u'id', new_owner_luid)
+            o = etree.Element('owner')
+            o.set('id', new_owner_luid)
             d.append(o)
 
         tsr.append(d)
 
-        url = self.build_api_url(u"datasources/{}".format(datasource_luid))
+        url = self.build_api_url("datasources/{}".format(datasource_luid))
         response = self.send_update_request(url, tsr)
         self.end_log_block()
         return response
@@ -74,18 +74,18 @@ class TableauRestApiConnection27(TableauRestApiConnection26):
         :type sorts: list[Sort]
         :rtype: etree.Element
         """
-        filter_checks = {u'name': name_filter, u'domainName': domain_name_filter,
-                         u'domainNickname': domain_nickname_filter, u'isLocal': is_local_filter,
-                         u'userCount': user_count_filter, u'minimumSiteRole': minimum_site_role_filter}
+        filter_checks = {'name': name_filter, 'domainName': domain_name_filter,
+                         'domainNickname': domain_nickname_filter, 'isLocal': is_local_filter,
+                         'userCount': user_count_filter, 'minimumSiteRole': minimum_site_role_filter}
 
         filters = self._check_filter_objects(filter_checks)
 
         self.start_log_block()
-        groups = self.query_resource(u"groups", filters=filters, sorts=sorts)
+        groups = self.query_resource("groups", filters=filters, sorts=sorts)
         for group in groups:
             # Add to group-name : luid cache
-            group_luid = group.get(u"id")
-            group_name = group.get(u'name')
+            group_luid = group.get("id")
+            group_name = group.get('name')
             self.group_name_luid_cache[group_name] = group_luid
         self.end_log_block()
         return groups
@@ -98,10 +98,10 @@ class TableauRestApiConnection27(TableauRestApiConnection26):
         :rtype: etree.Element
         """
         self.start_log_block()
-        group = self.query_single_element_from_endpoint_with_filter(u'group', group_name_or_luid)
+        group = self.query_single_element_from_endpoint_with_filter('group', group_name_or_luid)
         # Add to group_name : luid cache
-        group_luid = group.get(u"id")
-        group_name = group.get(u'name')
+        group_luid = group.get("id")
+        group_name = group.get('name')
         self.group_name_luid_cache[group_name] = group_luid
 
         self.end_log_block()
@@ -117,9 +117,9 @@ class TableauRestApiConnection27(TableauRestApiConnection26):
         self.start_log_block()
         if group_name in self.group_name_luid_cache:
             group_luid = self.group_name_luid_cache[group_name]
-            self.log(u'Found group name {} in cache with luid {}'.format(group_name, group_luid))
+            self.log('Found group name {} in cache with luid {}'.format(group_name, group_luid))
         else:
-            group_luid = self.query_single_element_luid_from_endpoint_with_filter(u'group', group_name)
+            group_luid = self.query_single_element_luid_from_endpoint_with_filter('group', group_name)
             self.group_name_luid_cache[group_name] = group_luid
         self.end_log_block()
         return group_luid
@@ -144,14 +144,14 @@ class TableauRestApiConnection27(TableauRestApiConnection26):
         :type sorts: list[Sort]
         :rtype: etree.Element
         """
-        filter_checks = {u'name': name_filter, u'ownerName': owner_name_filter,
-                         u'updatedAt': updated_at_filter, u'createdAt': created_at_filter,
-                         u'ownerDomain': owner_domain_filter, u'ownerEmail': owner_email_filter}
+        filter_checks = {'name': name_filter, 'ownerName': owner_name_filter,
+                         'updatedAt': updated_at_filter, 'createdAt': created_at_filter,
+                         'ownerDomain': owner_domain_filter, 'ownerEmail': owner_email_filter}
 
         filters = self._check_filter_objects(filter_checks)
 
         self.start_log_block()
-        projects = self.query_resource(u"projects", filters=filters, sorts=sorts)
+        projects = self.query_resource("projects", filters=filters, sorts=sorts)
         self.end_log_block()
         return projects
 
@@ -161,7 +161,7 @@ class TableauRestApiConnection27(TableauRestApiConnection26):
         :rtype: unicode
         """
         self.start_log_block()
-        project_luid = self.query_single_element_luid_from_endpoint_with_filter(u'project', project_name)
+        project_luid = self.query_single_element_luid_from_endpoint_with_filter('project', project_name)
         self.end_log_block()
         return project_luid
 
@@ -175,7 +175,7 @@ class TableauRestApiConnection27(TableauRestApiConnection26):
             luid = project_name_or_luid
         else:
             luid = self.query_project_luid(project_name_or_luid)
-        proj = self.get_published_project_object(luid, self.query_single_element_from_endpoint_with_filter(u'project',
+        proj = self.get_published_project_object(luid, self.query_single_element_from_endpoint_with_filter('project',
                                                                                                project_name_or_luid))
 
         self.end_log_block()

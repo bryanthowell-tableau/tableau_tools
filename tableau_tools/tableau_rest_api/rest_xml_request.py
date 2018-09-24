@@ -26,8 +26,8 @@ class RestXmlRequest(TableauBase):
         # requests Session created to minimize connections
         self.session = requests.Session()
 
-        self.__defined_response_types = (u'xml', u'png', u'binary')
-        self.__defined_http_verbs = (u'post', u'get', u'put', u'delete')
+        self.__defined_response_types = ('xml', 'png', 'binary')
+        self.__defined_http_verbs = ('post', 'get', 'put', 'delete')
         self.url = url
         self._xml_request = None
         self._token = token
@@ -39,7 +39,7 @@ class RestXmlRequest(TableauBase):
         self.ns_map = {'t': ns_map_url}
         etree.register_namespace('t', ns_map_url)
         self.logger = logger
-        self.log(u'RestXmlRequest intialized')
+        self.log('RestXmlRequest intialized')
         self.__publish = None
         self.__boundary_string = None
         self.__publish_content = None
@@ -87,14 +87,14 @@ class RestXmlRequest(TableauBase):
         if verb in self.__defined_http_verbs:
             self._http_verb = verb
         else:
-            raise InvalidOptionException(u"HTTP Verb '{}' is not defined for this library".format(verb))
+            raise InvalidOptionException("HTTP Verb '{}' is not defined for this library".format(verb))
 
     def set_response_type(self, response_type):
         response_type = response_type.lower()
         if response_type in self.__defined_response_types:
             self.__response_type = response_type
         else:
-            raise InvalidOptionException(u"Response type '{}' is not defined in this library".format(response_type))
+            raise InvalidOptionException("Response type '{}' is not defined in this library".format(response_type))
 
     # Must set a boundary string when publishing
     def set_publish_content(self, content, boundary_string):
@@ -119,7 +119,7 @@ class RestXmlRequest(TableauBase):
 
     def get_response(self):
         if self.__response_type == 'xml' and self.__xml_object is not None:
-            self.log_debug(u"XML Object Response: {}".format(etree.tostring(self.__xml_object, encoding='utf-8').decode('utf-8')))
+            self.log_debug("XML Object Response: {}".format(etree.tostring(self.__xml_object, encoding='utf-8').decode('utf-8')))
             return self.__xml_object
         else:
             return self.__raw_response
@@ -142,12 +142,12 @@ class RestXmlRequest(TableauBase):
             request_headers['Content-Type'] = 'multipart/mixed; boundary={}'.format(self.__boundary_string)
 
         # Need to handle binary return for image somehow
-        self.log(u"Request {}  {}".format(self._http_verb.upper(), url))
+        self.log("Request {}  {}".format(self._http_verb.upper(), url))
 
         # Log the XML request being sent
-        encoded_request = u""
+        encoded_request = ""
         if self.xml_request is not None:
-            self.log(u"Request XML: {}".format(etree.tostring(self.xml_request, encoding='utf-8').decode('utf-8')))
+            self.log("Request XML: {}".format(etree.tostring(self.xml_request, encoding='utf-8').decode('utf-8')))
             if isinstance(self.xml_request, str):
                 encoded_request = self.xml_request.encode('utf-8')
             else:
@@ -155,33 +155,33 @@ class RestXmlRequest(TableauBase):
         if self.__publish_content is not None:
             encoded_request = self.__publish_content
         try:
-            if self.http_verb == u'get':
+            if self.http_verb == 'get':
                 response = self.session.get(url, headers=request_headers, verify=self.__verify_ssl_cert)
-            elif self.http_verb == u'delete':
+            elif self.http_verb == 'delete':
                 response = self.session.delete(url, headers=request_headers, verify=self.__verify_ssl_cert)
-            elif self.http_verb == u'post':
+            elif self.http_verb == 'post':
                 response = self.session.post(url, data=encoded_request, headers=request_headers,
                                              verify=self.__verify_ssl_cert)
-            elif self.http_verb == u'put':
+            elif self.http_verb == 'put':
                 response = self.session.put(url, data=encoded_request, headers=request_headers,
                                             verify=self.__verify_ssl_cert)
             else:
-                raise InvalidOptionException(u'Must use one of the http verbs: get, post, put or delete')
+                raise InvalidOptionException('Must use one of the http verbs: get, post, put or delete')
             # To match previous exception handling pattern with urllib2
             response.raise_for_status()
 
             # Tableau 9.0 doesn't return real UTF-8 but escapes all unicode characters using numeric character encoding
             # initial_response = response.read()  # Leave the UTF8 decoding to lxml
             initial_response = response.content  # Leave the UTF8 decoding to lxml
-            self.log(u'Response is of type {}'.format(type(initial_response)))
+            self.log('Response is of type {}'.format(type(initial_response)))
 
             # self.__last_response_content_type = response.info().getheader('Content-Type')
-            self.__last_response_content_type = response.headers.get(u'Content-Type')
+            self.__last_response_content_type = response.headers.get('Content-Type')
 
-            self.log_debug(u"Content type from headers: {}".format(self.__last_response_content_type))
+            self.log_debug("Content type from headers: {}".format(self.__last_response_content_type))
 
             # Don't bother with any extra work if the response is expected to be binary
-            if self.__response_type == u'binary':
+            if self.__response_type == 'binary':
                 self.__raw_response = initial_response
                 return initial_response
 
@@ -204,39 +204,39 @@ class RestXmlRequest(TableauBase):
             raise e
         # REST API returns 400 type errors that can be recovered from, so handle them
         raw_error_response = response.content
-        self.log(u"Received a {} error, here was response:".format(unicode(status_code)))
+        self.log("Received a {} error, here was response:".format(str(status_code)))
         self.log(raw_error_response.decode('utf8'))
 
         utf8_parser = etree.XMLParser(encoding='utf-8')
         xml = etree.parse(BytesIO(raw_error_response), parser=utf8_parser)
         try:
-            tableau_error = xml.findall(u'.//t:error', namespaces=self.ns_map)
+            tableau_error = xml.findall('.//t:error', namespaces=self.ns_map)
             error_code = tableau_error[0].get('code')
-            tableau_detail = xml.findall(u'.//t:detail', namespaces=self.ns_map)
+            tableau_detail = xml.findall('.//t:detail', namespaces=self.ns_map)
             detail_text = tableau_detail[0].text
         # This is to capture an error from the old API version when doing tests
         except IndexError:
             old_ns_map = {'t': 'http://tableausoftware.com/api'}
-            tableau_error = xml.findall(u'.//t:error', namespaces=old_ns_map)
+            tableau_error = xml.findall('.//t:error', namespaces=old_ns_map)
             error_code = tableau_error[0].get('code')
-            tableau_detail = xml.findall(u'.//t:detail', namespaces=old_ns_map)
+            tableau_detail = xml.findall('.//t:detail', namespaces=old_ns_map)
             detail_text = tableau_detail[0].text
         detail_luid_match_obj = re.search(self.__luid_pattern, detail_text)
         if detail_luid_match_obj:
             detail_luid = detail_luid_match_obj.group(0)
         else:
             detail_luid = False
-        self.log(u'Tableau REST API error code is: {}'.format(error_code))
+        self.log('Tableau REST API error code is: {}'.format(error_code))
         # If you are not signed in
-        if error_code == u'401000':
-            raise NotSignedInException(u'You must sign in first')
+        if error_code == '401000':
+            raise NotSignedInException('You must sign in first')
         # Everything that is not 400 can potentially be recovered from
         if status_code in [401, 402, 403, 404, 405, 409]:
             # If 'not exists' for a delete, recover and log
             if self._http_verb == 'delete':
-                self.log(u'Delete action attempted on non-exists, keep going')
+                self.log('Delete action attempted on non-exists, keep going')
             if status_code == 409:
-                self.log(u'HTTP 409 error, most likely an already exists')
+                self.log('HTTP 409 error, most likely an already exists')
             raise RecoverableHTTPException(status_code, error_code, detail_luid)
         else:
             raise e
@@ -254,7 +254,7 @@ class RestXmlRequest(TableauBase):
             unicode_raw_response = unicode_raw_response.decode('utf-8')
 
         if self.__response_type == 'xml':
-            self.log_debug(u"Raw Response: {}".format(unicode_raw_response))
+            self.log_debug("Raw Response: {}".format(unicode_raw_response))
 
     def request_from_api(self, page_number=1):
         try:
@@ -270,7 +270,7 @@ class RestXmlRequest(TableauBase):
             # Set the XML object to the first returned. Will be replaced if there is pagination
             self.__xml_object = xml.getroot()
 
-            for pagination in xml.findall(u'.//t:pagination', namespaces=self.ns_map):
+            for pagination in xml.findall('.//t:pagination', namespaces=self.ns_map):
 
                 # page_number = int(pagination.get('pageNumber'))
                 page_size = int(pagination.get('pageSize'))
@@ -284,7 +284,7 @@ class RestXmlRequest(TableauBase):
                 combined_xml_obj = copy.deepcopy(full_xml_obj)
 
                 if total_pages > 1:
-                    for i in xrange(2, total_pages + 1):
+                    for i in range(2, total_pages + 1):
 
                         self.__make_request(i)  # Get next page
                         utf8_parser2 = etree.XMLParser(encoding='utf-8')
@@ -297,10 +297,10 @@ class RestXmlRequest(TableauBase):
                             combined_xml_obj.append(e)
 
                 self.__xml_object = combined_xml_obj
-                self.log_debug(u"Logging the combined xml object")
+                self.log_debug("Logging the combined xml object")
                 self.log_debug(etree.tostring(self.__xml_object, encoding='utf-8').decode('utf-8'))
-                self.log(u"Request succeeded")
+                self.log("Request succeeded")
                 return True
         elif self.__response_type in ['binary', 'png', 'csv']:
-            self.log(u'Non XML response')
+            self.log('Non XML response')
             return True

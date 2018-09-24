@@ -30,7 +30,7 @@ class ContentDeployer:
                 self._current_site_index = i
             i += 1
 
-    def next(self):
+    def __next__(self):
         if self._current_site_index < len(self.sites):
             self._current_site_index += 1
         else:

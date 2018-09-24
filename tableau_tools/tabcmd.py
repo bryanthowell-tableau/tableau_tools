@@ -1,8 +1,8 @@
 import json
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import xml.etree.ElementTree as ET
 
-from tableau_rest_api.tableau_rest_api_connection import *
+from .tableau_rest_api.tableau_rest_api_connection import *
 from tableau_tools.tableau_repository import *
 from tableau_tools.tableau_http import *
 from tableau_tools.tableau_base import TableauBase
@@ -66,7 +66,7 @@ class Tabcmd(TableauBase):
             raise Exception(msg='Should be pdf fullpdf csv or png')
         additional_url_params = ""
         if view_filter_map is not None:
-            additional_url_params = "?" + urllib.urlencode(view_filter_map)
+            additional_url_params = "?" + urllib.parse.urlencode(view_filter_map)
             if refresh is True:
                 additional_url_params += "&:refresh"
         elif view_filter_map is None:
@@ -85,7 +85,7 @@ class Tabcmd(TableauBase):
     def build_refreshextracts_cmd(project, workbook_or_datasource, content_pretty_name,
                                 incremental=False, workbook_url_name=None):
         project_cmd = '--project "{}"'.format(project)
-        if project.lower() == u'default':
+        if project.lower() == 'default':
             project_cmd = ''
 
         inc_cmd = ''

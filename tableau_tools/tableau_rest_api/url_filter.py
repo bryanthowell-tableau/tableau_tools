@@ -12,13 +12,13 @@ class UrlFilter:
         :rtype: unicode
         """
         if len(self.values) == 0:
-            raise InvalidOptionException(u'Must pass in at least one value for the filter')
+            raise InvalidOptionException('Must pass in at least one value for the filter')
         elif len(self.values) == 1:
             value_string = self.values[0]
         else:
-            value_string = u",".join(self.values)
-            value_string = u"[{}]".format(value_string)
-        url = u"{}:{}:{}".format(self.field, self.operator, value_string)
+            value_string = ",".join(self.values)
+            value_string = "[{}]".format(value_string)
+        url = "{}:{}:{}".format(self.field, self.operator, value_string)
         return url
 
 
@@ -33,7 +33,7 @@ class UrlFilter23(UrlFilter):
         :type name: unicode
         :rtype: UrlFilter
         """
-        return UrlFilter(u'name', u'eq', [name, ])
+        return UrlFilter('name', 'eq', [name, ])
 
     # Users
     @staticmethod
@@ -45,12 +45,12 @@ class UrlFilter23(UrlFilter):
         :type last_login_time: unicode
         :rtype: UrlFilter
         """
-        comparison_operators = [u'eq', u'gt', u'gte', u'lt', u'lte']
+        comparison_operators = ['eq', 'gt', 'gte', 'lt', 'lte']
         if operator not in comparison_operators:
-            raise InvalidOptionException(u"operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
+            raise InvalidOptionException("operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
         # Convert to the correct time format
 
-        return UrlFilter(u'lastLogin', operator, [last_login_time, ])
+        return UrlFilter('lastLogin', operator, [last_login_time, ])
 
     # Users
     @staticmethod
@@ -59,7 +59,7 @@ class UrlFilter23(UrlFilter):
         :type site_role: unicode
         :rtype: UrlFilter
         """
-        return UrlFilter(u'siteRole', u'eq', [site_role, ])
+        return UrlFilter('siteRole', 'eq', [site_role, ])
 
     # Workbooks
     @staticmethod
@@ -68,7 +68,7 @@ class UrlFilter23(UrlFilter):
         :type owner_name: unicode
         :rtype: UrlFilter
         """
-        return UrlFilter(u'ownerName', u'eq', [owner_name, ])
+        return UrlFilter('ownerName', 'eq', [owner_name, ])
 
     # Workbooks, Datasources, Views, Jobs
     @staticmethod
@@ -80,12 +80,12 @@ class UrlFilter23(UrlFilter):
         :type created_at_time: unicode
         :rtype: UrlFilter
         """
-        comparison_operators = [u'eq', u'gt', u'gte', u'lt', u'lte']
+        comparison_operators = ['eq', 'gt', 'gte', 'lt', 'lte']
         if operator not in comparison_operators:
-            raise InvalidOptionException(u"operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
+            raise InvalidOptionException("operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
         # Convert to the correct time format
 
-        return UrlFilter(u'createdAt', operator, [created_at_time, ])
+        return UrlFilter('createdAt', operator, [created_at_time, ])
 
     # Workbooks, Datasources, Views
     @staticmethod
@@ -97,12 +97,12 @@ class UrlFilter23(UrlFilter):
         :type updated_at_time: unicode
         :rtype: UrlFilter
         """
-        comparison_operators = [u'eq', u'gt', u'gte', u'lt', u'lte']
+        comparison_operators = ['eq', 'gt', 'gte', 'lt', 'lte']
         if operator not in comparison_operators:
-            raise InvalidOptionException(u"operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
+            raise InvalidOptionException("operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
         # Convert to the correct time format
 
-        return UrlFilter(u'updatedAt', operator, [updated_at_time, ])
+        return UrlFilter('updatedAt', operator, [updated_at_time, ])
 
     # Workbooks, Datasources, Views
     @staticmethod
@@ -111,7 +111,7 @@ class UrlFilter23(UrlFilter):
         :type tags: list[unicode]
         :rtype: UrlFilter
         """
-        return UrlFilter(u'tags', u'in', tags)
+        return UrlFilter('tags', 'in', tags)
 
     # Workbooks, Datasources, Views
     @staticmethod
@@ -120,7 +120,7 @@ class UrlFilter23(UrlFilter):
         :type tag: unicode
         :rtype: UrlFilter
         """
-        return UrlFilter(u'tags', u'eq', [tag, ])
+        return UrlFilter('tags', 'eq', [tag, ])
 
 
 class UrlFilter24(UrlFilter23):
@@ -135,7 +135,7 @@ class UrlFilter24(UrlFilter23):
         :type ds_type: unicode
         :rtype: UrlFilter
         """
-        return UrlFilter(u'type', u'eq', [ds_type, ])
+        return UrlFilter('type', 'eq', [ds_type, ])
 
 
 class UrlFilter25(UrlFilter24):
@@ -162,7 +162,7 @@ class UrlFilter27(UrlFilter26):
         :type names: list[unicode]
         :rtype: UrlFilter
         """
-        return UrlFilter(u'name', u'in', names)
+        return UrlFilter('name', 'in', names)
 
     # Users
     @staticmethod
@@ -171,7 +171,7 @@ class UrlFilter27(UrlFilter26):
         :type site_roles: list[unicode]
         :rtype: UrlFilter
         """
-        return UrlFilter(u'siteRole', u'in', site_roles)
+        return UrlFilter('siteRole', 'in', site_roles)
 
     # Workbooks, Projects
     @staticmethod
@@ -180,7 +180,7 @@ class UrlFilter27(UrlFilter26):
         :type owner_names: list[unicode]
         :rtype: UrlFilter
         """
-        return UrlFilter(u'ownerName', u'in', owner_names)
+        return UrlFilter('ownerName', 'in', owner_names)
 
     # Workbooks. Datasources, Views
     # create_owner_name_filter (singular) allowed for all of them
@@ -193,7 +193,7 @@ class UrlFilter27(UrlFilter26):
         :rtype: UrlFilter
         """
 
-        return UrlFilter(u'domainName', u'in', domain_names)
+        return UrlFilter('domainName', 'in', domain_names)
 
     # Groups
     @staticmethod
@@ -202,7 +202,7 @@ class UrlFilter27(UrlFilter26):
         :type domain_nicknames: list[unicode]
         :rtype: UrlFilter
         """
-        return UrlFilter(u'domainNickname', u'in', domain_nicknames)
+        return UrlFilter('domainNickname', 'in', domain_nicknames)
 
     # Groups
     @staticmethod
@@ -212,7 +212,7 @@ class UrlFilter27(UrlFilter26):
         :rtype: UrlFilter
         """
 
-        return UrlFilter(u'domainName', u'eq', [domain_name, ])
+        return UrlFilter('domainName', 'eq', [domain_name, ])
 
     # Groups
     @staticmethod
@@ -221,7 +221,7 @@ class UrlFilter27(UrlFilter26):
         :type domain_nickname: unicode
         :rtype: UrlFilter
         """
-        return UrlFilter(u'domainNickname', u'eq', [domain_nickname, ])
+        return UrlFilter('domainNickname', 'eq', [domain_nickname, ])
 
     # Groups
     @staticmethod
@@ -230,7 +230,7 @@ class UrlFilter27(UrlFilter26):
         :type minimum_site_roles: list[unicode]
         :rtype: UrlFilter
         """
-        return UrlFilter(u'minimumSiteRole', u'in', minimum_site_roles)
+        return UrlFilter('minimumSiteRole', 'in', minimum_site_roles)
 
     # Groups
     @staticmethod
@@ -239,7 +239,7 @@ class UrlFilter27(UrlFilter26):
         :type minimum_site_role: unicode
         :rtype: UrlFilter
         """
-        return UrlFilter(u'minimumSiteRole', u'eq', [minimum_site_role, ])
+        return UrlFilter('minimumSiteRole', 'eq', [minimum_site_role, ])
 
     # Groups
     @staticmethod
@@ -249,8 +249,8 @@ class UrlFilter27(UrlFilter26):
         :return: bool
         """
         if is_local not in [True, False]:
-            raise InvalidOptionException(u'is_local must be True or False')
-        return UrlFilter(u'isLocal', u'eq', unicode(is_local).lower())
+            raise InvalidOptionException('is_local must be True or False')
+        return UrlFilter('isLocal', 'eq', str(is_local).lower())
 
     # Groups
     @staticmethod
@@ -261,12 +261,12 @@ class UrlFilter27(UrlFilter26):
         :type user_count: int
         :rtype: UrlFilter
         """
-        comparison_operators = [u'eq', u'gt', u'gte', u'lt', u'lte']
+        comparison_operators = ['eq', 'gt', 'gte', 'lt', 'lte']
         if operator not in comparison_operators:
-            raise InvalidOptionException(u"operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
+            raise InvalidOptionException("operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
         # Convert to the correct time format
 
-        return UrlFilter(u'userCount', operator, [user_count, ])
+        return UrlFilter('userCount', operator, [user_count, ])
 
     # Projects
     @staticmethod
@@ -275,7 +275,7 @@ class UrlFilter27(UrlFilter26):
         :param owner_domains: list[unicode]
         :rtype: UrlFilter
         """
-        return UrlFilter(u'ownerDomain', u'in', owner_domains)
+        return UrlFilter('ownerDomain', 'in', owner_domains)
 
     # Projects
     @staticmethod
@@ -284,7 +284,7 @@ class UrlFilter27(UrlFilter26):
         :param owner_domain: unicode
         :rtype: UrlFilter
         """
-        return UrlFilter(u'ownerDomain', u'in', [owner_domain, ])
+        return UrlFilter('ownerDomain', 'in', [owner_domain, ])
 
     # Projects
     @staticmethod
@@ -293,7 +293,7 @@ class UrlFilter27(UrlFilter26):
         :param owner_emails: list[unicode]
         :rtype: UrlFilter
         """
-        return UrlFilter(u'ownerEmail', u'in', owner_emails)
+        return UrlFilter('ownerEmail', 'in', owner_emails)
 
     # Projects
     @staticmethod
@@ -302,7 +302,7 @@ class UrlFilter27(UrlFilter26):
         :param owner_email: unicode
         :rtype: UrlFilter
         """
-        return UrlFilter(u'ownerEmail', u'in', [owner_email, ])
+        return UrlFilter('ownerEmail', 'in', [owner_email, ])
 
     # Views
     @staticmethod
@@ -313,12 +313,12 @@ class UrlFilter27(UrlFilter26):
         :type hits_total: int
         :rtype: UrlFilter
         """
-        comparison_operators = [u'eq', u'gt', u'gte', u'lt', u'lte']
+        comparison_operators = ['eq', 'gt', 'gte', 'lt', 'lte']
         if operator not in comparison_operators:
-            raise InvalidOptionException(u"operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
+            raise InvalidOptionException("operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
         # Convert to the correct time format
 
-        return UrlFilter(u'hitsTotal', operator, [hits_total, ])
+        return UrlFilter('hitsTotal', operator, [hits_total, ])
 
 
 class UrlFilter28(UrlFilter27):
@@ -347,12 +347,12 @@ class UrlFilter31(UrlFilter30):
         :type started_at_time: unicode
         :rtype: UrlFilter
         """
-        comparison_operators = [u'eq', u'gt', u'gte', u'lt', u'lte']
+        comparison_operators = ['eq', 'gt', 'gte', 'lt', 'lte']
         if operator not in comparison_operators:
-            raise InvalidOptionException(u"operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
+            raise InvalidOptionException("operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
         # Convert to the correct time format
 
-        return UrlFilter(u'createdAt', operator, [started_at_time, ])
+        return UrlFilter('createdAt', operator, [started_at_time, ])
 
     # Jobs
     @staticmethod
@@ -364,12 +364,12 @@ class UrlFilter31(UrlFilter30):
         :type ended_at_time: unicode
         :rtype: UrlFilter
         """
-        comparison_operators = [u'eq', u'gt', u'gte', u'lt', u'lte']
+        comparison_operators = ['eq', 'gt', 'gte', 'lt', 'lte']
         if operator not in comparison_operators:
-            raise InvalidOptionException(u"operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
+            raise InvalidOptionException("operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
         # Convert to the correct time format
 
-        return UrlFilter(u'createdAt', operator, [ended_at_time, ])
+        return UrlFilter('createdAt', operator, [ended_at_time, ])
 
     # Jobs
     @staticmethod
@@ -378,7 +378,7 @@ class UrlFilter31(UrlFilter30):
         :type job_types: list[unicode]
         :rtype: UrlFilter
         """
-        return UrlFilter(u'jobType', u'in', job_types)
+        return UrlFilter('jobType', 'in', job_types)
 
     # Jobs
     @staticmethod
@@ -387,7 +387,7 @@ class UrlFilter31(UrlFilter30):
         :type job_type: unicode
         :rtype: UrlFilter
         """
-        return UrlFilter(u'tags', u'eq', [job_type, ])
+        return UrlFilter('tags', 'eq', [job_type, ])
 
     # Jobs
     @staticmethod
@@ -396,7 +396,7 @@ class UrlFilter31(UrlFilter30):
         :type notes: unicode
         :rtype: UrlFilter
         """
-        return UrlFilter(u'notes', u'has', [notes, ])
+        return UrlFilter('notes', 'has', [notes, ])
 
     @staticmethod
     def create_title_equals_filter(title):
@@ -404,7 +404,7 @@ class UrlFilter31(UrlFilter30):
         :type title: unicode
         :rtype: UrlFilter
         """
-        return UrlFilter(u'title', u'eq', [title, ])
+        return UrlFilter('title', 'eq', [title, ])
 
     @staticmethod
     def create_title_has_filter(title):
@@ -412,7 +412,7 @@ class UrlFilter31(UrlFilter30):
         :type title: unicode
         :rtype: UrlFilter
         """
-        return UrlFilter(u'title', u'has', [title, ])
+        return UrlFilter('title', 'has', [title, ])
 
     @staticmethod
     def create_subtitle_equals_filter(subtitle):
@@ -420,7 +420,7 @@ class UrlFilter31(UrlFilter30):
         :type subtitle: unicode
         :rtype: UrlFilter
         """
-        return UrlFilter(u'subtitle', u'eq', [subtitle, ])
+        return UrlFilter('subtitle', 'eq', [subtitle, ])
 
     @staticmethod
     def create_subtitle_has_filter(subtitle):
@@ -428,4 +428,4 @@ class UrlFilter31(UrlFilter30):
         :type subtitle: unicode
         :rtype: UrlFilter
         """
-        return UrlFilter(u'subtitle', u'has', [subtitle, ])
+        return UrlFilter('subtitle', 'has', [subtitle, ])

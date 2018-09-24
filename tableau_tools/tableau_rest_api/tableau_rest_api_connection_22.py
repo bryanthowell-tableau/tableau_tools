@@ -1,8 +1,8 @@
-from tableau_rest_api_connection_21 import *
+from .tableau_rest_api_connection_21 import *
 
 
 class TableauRestApiConnection22(TableauRestApiConnection21):
-    def __init__(self, server, username, password, site_content_url=u""):
+    def __init__(self, server, username, password, site_content_url=""):
         """
         :type server: unicode
         :type username: unicode
@@ -10,7 +10,7 @@ class TableauRestApiConnection22(TableauRestApiConnection21):
         :type site_content_url: unicode
         """
         TableauRestApiConnection21.__init__(self, server, username, password, site_content_url)
-        self.set_tableau_server_version(u"9.3")
+        self.set_tableau_server_version("9.3")
 
     # Begin scheduler querying methods
     #
@@ -20,7 +20,7 @@ class TableauRestApiConnection22(TableauRestApiConnection21):
         :rtype: etree.Element
         """
         self.start_log_block()
-        schedules = self.query_resource(u"schedules", server_level=True)
+        schedules = self.query_resource("schedules", server_level=True)
         self.end_log_block()
         return schedules
 
@@ -30,7 +30,7 @@ class TableauRestApiConnection22(TableauRestApiConnection21):
         """
         self.start_log_block()
         schedules = self.query_schedules()
-        extract_schedules = schedules.findall(u'.//t:schedule[@type="Extract"]', self.ns_map)
+        extract_schedules = schedules.findall('.//t:schedule[@type="Extract"]', self.ns_map)
         self.end_log_block()
         return extract_schedules
 
@@ -40,7 +40,7 @@ class TableauRestApiConnection22(TableauRestApiConnection21):
         """
         self.start_log_block()
         schedules = self.query_schedules()
-        subscription_schedules = schedules.findall(u'.//t:schedule[@type="Subscription"]', self.ns_map)
+        subscription_schedules = schedules.findall('.//t:schedule[@type="Subscription"]', self.ns_map)
         self.end_log_block()
         return subscription_schedules
 
@@ -50,7 +50,7 @@ class TableauRestApiConnection22(TableauRestApiConnection21):
         :rtype: unicode
         """
         self.start_log_block()
-        luid = self.query_single_element_luid_by_name_from_endpoint(u'schedule', schedule_name, server_level=True)
+        luid = self.query_single_element_luid_by_name_from_endpoint('schedule', schedule_name, server_level=True)
         self.end_log_block()
         return luid
 
@@ -60,7 +60,7 @@ class TableauRestApiConnection22(TableauRestApiConnection21):
         :rtype: unicode
         """
         self.start_log_block()
-        luid = self.query_single_element_from_endpoint(u'schedule', schedule_name_or_luid, server_level=True)
+        luid = self.query_single_element_from_endpoint('schedule', schedule_name_or_luid, server_level=True)
         self.end_log_block()
         return luid
 
@@ -74,7 +74,7 @@ class TableauRestApiConnection22(TableauRestApiConnection21):
             luid = schedule_name_or_luid
         else:
             luid = self.query_schedule_luid(schedule_name_or_luid)
-        tasks = self.query_resource(u"schedules/{}/extracts".format(luid))
+        tasks = self.query_resource("schedules/{}/extracts".format(luid))
         self.end_log_block()
         return tasks
 
@@ -91,8 +91,8 @@ class TableauRestApiConnection22(TableauRestApiConnection21):
         """
         self.start_log_block()
         if usage not in [True, False]:
-            raise InvalidOptionException(u'Usage can only be set to True or False')
-        vws = self.query_resource(u"views?includeUsageStatistics={}".format(str(usage).lower()))
+            raise InvalidOptionException('Usage can only be set to True or False')
+        vws = self.query_resource("views?includeUsageStatistics={}".format(str(usage).lower()))
         self.end_log_block()
         return vws
 

@@ -33,7 +33,7 @@ class RecoverableHTTPException(Exception):
 
 class MultipleMatchesFoundException(Exception):
     def __init__(self, count):
-        self.msg = u'Found {} matches for the request, something has the same name'.format(unicode(count))
+        self.msg = 'Found {} matches for the request, something has the same name'.format(str(count))
 
 
 class NoResultsException(Exception):

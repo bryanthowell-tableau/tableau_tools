@@ -1,8 +1,8 @@
-from tableau_rest_api_connection import *
+from .tableau_rest_api_connection import *
 
 
 class TableauRestApiConnection21(TableauRestApiConnection):
-    def __init__(self, server, username, password, site_content_url=u""):
+    def __init__(self, server, username, password, site_content_url=""):
         """
         :type server: unicode
         :type username: unicode
@@ -10,7 +10,7 @@ class TableauRestApiConnection21(TableauRestApiConnection):
         :type site_content_url: unicode
         """
         TableauRestApiConnection.__init__(self, server, username, password, site_content_url)
-        self.set_tableau_server_version(u"9.2")
+        self.set_tableau_server_version("9.2")
 
     def get_published_project_object(self, project_name_or_luid, project_xml_obj=None):
         """
@@ -35,7 +35,7 @@ class TableauRestApiConnection21(TableauRestApiConnection):
             luid = project_name_or_luid
         else:
             luid = self.query_project_luid(project_name_or_luid)
-        proj = self.get_published_project_object(luid, self.query_single_element_from_endpoint(u'project', project_name_or_luid))
+        proj = self.get_published_project_object(luid, self.query_single_element_from_endpoint('project', project_name_or_luid))
 
         self.end_log_block()
         return proj
@@ -50,26 +50,26 @@ class TableauRestApiConnection21(TableauRestApiConnection):
         """
         self.start_log_block()
 
-        tsr = etree.Element(u"tsRequest")
-        p = etree.Element(u"project")
-        p.set(u"name", project_name)
+        tsr = etree.Element("tsRequest")
+        p = etree.Element("project")
+        p.set("name", project_name)
 
         if project_desc is not None:
-            p.set(u'description', project_desc)
+            p.set('description', project_desc)
         if locked_permissions is not False:
-            p.set(u'contentPermissions', u"LockedToProject")
+            p.set('contentPermissions', "LockedToProject")
         tsr.append(p)
 
-        url = self.build_api_url(u"projects")
+        url = self.build_api_url("projects")
         try:
             new_project = self.send_add_request(url, tsr)
             self.end_log_block()
-            project_luid = new_project.findall(u'.//t:project', self.ns_map)[0].get("id")
+            project_luid = new_project.findall('.//t:project', self.ns_map)[0].get("id")
             if no_return is False:
                 return self.get_published_project_object(project_luid, new_project)
         except RecoverableHTTPException as e:
             if e.http_code == 409:
-                self.log(u'Project named {} already exists, finding and returning the Published Project Object'.format(project_name))
+                self.log('Project named {} already exists, finding and returning the Published Project Object'.format(project_name))
                 self.end_log_block()
                 if no_return is False:
                     return self.query_project(project_name)
@@ -89,20 +89,20 @@ class TableauRestApiConnection21(TableauRestApiConnection):
         else:
             project_luid = self.query_project_luid(name_or_luid)
 
-        tsr = etree.Element(u"tsRequest")
-        p = etree.Element(u"project")
+        tsr = etree.Element("tsRequest")
+        p = etree.Element("project")
         if new_project_name is not None:
-            p.set(u'name', new_project_name)
+            p.set('name', new_project_name)
         if new_project_description is not None:
-            p.set(u'description', new_project_description)
+            p.set('description', new_project_description)
         if locked_permissions is True:
-            p.set(u'contentPermissions', u"LockedToProject")
+            p.set('contentPermissions', "LockedToProject")
         elif locked_permissions is False:
-            p.set(u'contentPermissions', u"ManagedByOwner")
+            p.set('contentPermissions', "ManagedByOwner")
 
         tsr.append(p)
 
-        url = self.build_api_url(u"projects/{}".format(project_luid))
+        url = self.build_api_url("projects/{}".format(project_luid))
         response = self.send_update_request(url, tsr)
         self.end_log_block()
         return self.get_published_project_object(project_luid, response)
@@ -115,18 +115,18 @@ class TableauRestApiConnection21(TableauRestApiConnection):
         self.start_log_block()
         groups = self.to_list(group_name_or_luid_s)
         for group_name_or_luid in groups:
-            if group_name_or_luid == u'All Users':
-                self.log(u'Cannot delete All Users group, skipping')
+            if group_name_or_luid == 'All Users':
+                self.log('Cannot delete All Users group, skipping')
                 continue
             if self.is_luid(group_name_or_luid):
                 group_luid = group_name_or_luid
             else:
                 group_luid = self.query_group_luid(group_name_or_luid)
-            url = self.build_api_url(u"groups/{}".format(group_luid))
+            url = self.build_api_url("groups/{}".format(group_luid))
             self.send_delete_request(url)
         self.end_log_block()
 
-    def add_user_by_username(self, username, site_role=u'Unlicensed', auth_setting=None, update_if_exists=False):
+    def add_user_by_username(self, username, site_role='Unlicensed', auth_setting=None, update_if_exists=False):
         """
         :type username: unicode
         :type site_role: unicode
@@ -137,45 +137,45 @@ class TableauRestApiConnection21(TableauRestApiConnection):
         self.start_log_block()
         # Check to make sure role that is passed is a valid role in the API
         if site_role not in self.site_roles:
-            raise InvalidOptionException(u"{} is not a valid site role in Tableau Server".format(site_role))
+            raise InvalidOptionException("{} is not a valid site role in Tableau Server".format(site_role))
 
         if auth_setting is not None:
-            if auth_setting not in [u'SAML', u'ServerDefault']:
-                raise InvalidOptionException(u'auth_setting must be either "SAML" or "ServerDefault"')
-        self.log(u"Adding {}".format(username))
-        tsr = etree.Element(u"tsRequest")
-        u = etree.Element(u"user")
-        u.set(u"name", username)
-        u.set(u"siteRole", site_role)
+            if auth_setting not in ['SAML', 'ServerDefault']:
+                raise InvalidOptionException('auth_setting must be either "SAML" or "ServerDefault"')
+        self.log("Adding {}".format(username))
+        tsr = etree.Element("tsRequest")
+        u = etree.Element("user")
+        u.set("name", username)
+        u.set("siteRole", site_role)
         if auth_setting is not None:
-            u.set(u'authSetting', auth_setting)
+            u.set('authSetting', auth_setting)
         tsr.append(u)
 
-        url = self.build_api_url(u'users')
+        url = self.build_api_url('users')
         try:
             new_user = self.send_add_request(url, tsr)
-            new_user_luid = new_user.findall(u'.//t:user', self.ns_map)[0].get("id")
+            new_user_luid = new_user.findall('.//t:user', self.ns_map)[0].get("id")
             self.end_log_block()
             return new_user_luid
         # If already exists, update site role unless overridden.
         except RecoverableHTTPException as e:
             if e.http_code == 409:
-                self.log(u"Username '{}' already exists on the server".format(username))
+                self.log("Username '{}' already exists on the server".format(username))
                 if update_if_exists is True:
-                    self.log(u'Updating {} to site role {}'.format(username, site_role))
+                    self.log('Updating {} to site role {}'.format(username, site_role))
                     self.update_user(username, site_role=site_role)
                     self.end_log_block()
                     return self.query_user_luid(username)
                 else:
                     self.end_log_block()
-                    raise AlreadyExistsException(u'Username already exists ', self.query_user_luid(username))
+                    raise AlreadyExistsException('Username already exists ', self.query_user_luid(username))
         except:
             self.end_log_block()
             raise
 
     # This is "Add User to Site", since you must be logged into a site.
     # Set "update_if_exists" to True if you want the equivalent of an 'upsert', ignoring the exceptions
-    def add_user(self, username, fullname, site_role=u'Unlicensed', password=None, email=None, auth_setting=None,
+    def add_user(self, username, fullname, site_role='Unlicensed', password=None, email=None, auth_setting=None,
                  update_if_exists=False):
         """
         :type username: unicode
@@ -196,6 +196,6 @@ class TableauRestApiConnection21(TableauRestApiConnection):
             self.end_log_block()
             return new_user_luid
         except AlreadyExistsException as e:
-            self.log(u"Username '{}' already exists on the server; no updates performed".format(username))
+            self.log("Username '{}' already exists on the server; no updates performed".format(username))
             self.end_log_block()
             return e.existing_luid

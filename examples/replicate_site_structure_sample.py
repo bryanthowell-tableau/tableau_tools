@@ -2,28 +2,28 @@
 
 from tableau_tools.tableau_rest_api import *
 from tableau_tools import *
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import time
 
-server = u'http://127.0.0.1'
-username = u''
-password = u''
+server = 'http://127.0.0.1'
+username = ''
+password = ''
 
-original_content_url = u'test_site'
-new_site_name = u'Test Site Replica'
-new_site_content_url = u'test_site_replica'
+original_content_url = 'test_site'
+new_site_name = 'Test Site Replica'
+new_site_content_url = 'test_site_replica'
 
 o = TableauRestApiConnection25(server, username, password, original_content_url)
 o.signin()
-logger = Logger(u'replicate_site_sample.log')
+logger = Logger('replicate_site_sample.log')
 # Enable logging after sign-in to hide credentials
 o.enable_logging(logger)
 
 try:
     o.create_site(new_site_name, new_site_content_url)
 except AlreadyExistsException:
-    print e.msg
-    print u"Cannot create new site, it already exists"
+    print(e.msg)
+    print("Cannot create new site, it already exists")
     exit()
 
 n = TableauRestApiConnection25(server, username, password, new_site_content_url)
@@ -35,7 +35,7 @@ groups = o.query_groups()
 groups_dict = o.convert_xml_list_to_name_id_dict(groups)
 for group in groups_dict:
     # Can't add All Users because it is generated
-    if group == u'All Users':
+    if group == 'All Users':
         continue
     n.create_group(group)
 
@@ -44,19 +44,19 @@ users = o.query_users()
 # Loop through the Element objects themselves because of more details to add
 for user in users:
     # Can't add the Guest user
-    if user.get(u'name') == u'guest':
+    if user.get('name') == 'guest':
         continue
     # Can't add a server Admin
-    if user.get(u'siteRole') == u'ServerAdministrator':
+    if user.get('siteRole') == 'ServerAdministrator':
         continue
-    n.add_user(user.get(u'name'), user.get(u'fullName'), user.get(u'siteRole'))
+    n.add_user(user.get('name'), user.get('fullName'), user.get('siteRole'))
 
 # Sleep a bit to let them all get added in
 time.sleep(4)
 
 # Put users in groups
 for group in groups_dict:
-    if group == u'All Users':
+    if group == 'All Users':
         continue
     group_users = o.query_users_in_group(group)
     group_users_dict = o.convert_xml_list_to_name_id_dict(group_users)
@@ -66,7 +66,7 @@ for group in groups_dict:
 projects = o.query_projects()
 proj_dict = o.convert_xml_list_to_name_id_dict(projects)
 for proj in proj_dict:
-    if proj == u'Default':
+    if proj == 'Default':
         continue
     # This assumes locked permissions and no description. Can iterate over objects if you need some of that
     n.create_project(proj, no_return=True)
