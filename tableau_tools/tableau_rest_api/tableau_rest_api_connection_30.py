@@ -1,8 +1,8 @@
-from .tableau_rest_api_connection_28 import *
+from tableau_rest_api_connection_28 import *
 
 
 class TableauRestApiConnection30(TableauRestApiConnection28):
-    def __init__(self, server, username, password, site_content_url=""):
+    def __init__(self, server, username, password, site_content_url=u""):
         """
         :type server: unicode
         :type username: unicode
@@ -10,7 +10,7 @@ class TableauRestApiConnection30(TableauRestApiConnection28):
         :type site_content_url: unicode
         """
         TableauRestApiConnection28.__init__(self, server, username, password, site_content_url)
-        self.set_tableau_server_version("2018.1")
+        self.set_tableau_server_version(u"2018.1")
 
     @staticmethod
     def build_site_request_xml(site_name=None, content_url=None, admin_mode=None, tier_creator_capacity=None,
@@ -28,27 +28,27 @@ class TableauRestApiConnection30(TableauRestApiConnection28):
         :type state: unicode
         :rtype: unicode
         """
-        tsr = etree.Element("tsRequest")
-        s = etree.Element('site')
+        tsr = etree.Element(u"tsRequest")
+        s = etree.Element(u'site')
 
         if site_name is not None:
-            s.set('name', site_name)
+            s.set(u'name', site_name)
         if content_url is not None:
-            s.set('contentUrl', content_url)
+            s.set(u'contentUrl', content_url)
         if admin_mode is not None:
-            s.set('adminMode', admin_mode)
+            s.set(u'adminMode', admin_mode)
         if tier_creator_capacity is not None:
-            s.set('tierCreatorCapacity', str(tier_creator_capacity))
+            s.set(u'tierCreatorCapacity', unicode(tier_creator_capacity))
         if tier_explorer_capacity is not None:
-            s.set('tierExplorerCapacity', str(tier_explorer_capacity))
+            s.set(u'tierExplorerCapacity', unicode(tier_explorer_capacity))
         if tier_viewer_capacity is not None:
-            s.set('tierViewerCapacity', str(tier_viewer_capacity))
+            s.set(u'tierViewerCapacity', unicode(tier_viewer_capacity))
         if state is not None:
-            s.set('state', state)
+            s.set(u'state', state)
         if storage_quota is not None:
-            s.set('storageQuota', str(storage_quota))
+            s.set(u'storageQuota', unicode(storage_quota))
         if disable_subscriptions is not None:
-            s.set('disableSubscriptions', str(disable_subscriptions).lower())
+            s.set(u'disableSubscriptions', unicode(disable_subscriptions).lower())
 
         tsr.append(s)
         return tsr
@@ -72,16 +72,16 @@ class TableauRestApiConnection30(TableauRestApiConnection28):
         add_request = self.build_site_request_xml(new_site_name, new_content_url, admin_mode, tier_creator_capacity,
                                                   tier_explorer_capacity, tier_viewer_capacity, storage_quota,
                                                   disable_subscriptions)
-        url = self.build_api_url("sites/",
+        url = self.build_api_url(u"sites/",
                                  server_level=True)  # Site actions drop back out of the site ID hierarchy like login
         try:
             new_site = self.send_add_request(url, add_request)
-            return new_site.findall('.//t:site', self.ns_map)[0].get("id")
+            return new_site.findall(u'.//t:site', self.ns_map)[0].get("id")
         except RecoverableHTTPException as e:
             if e.http_code == 409:
-                self.log("Site with content_url {} already exists".format(new_content_url))
+                self.log(u"Site with content_url {} already exists".format(new_content_url))
                 self.end_log_block()
-                raise AlreadyExistsException("Site with content_url {} already exists".format(new_content_url),
+                raise AlreadyExistsException(u"Site with content_url {} already exists".format(new_content_url),
                                              new_content_url)
 
     # Can only update the site you are signed into, so take site_luid from the object
@@ -106,7 +106,7 @@ class TableauRestApiConnection30(TableauRestApiConnection28):
         tsr = self.build_site_request_xml(site_name, content_url, admin_mode, tier_creator_capacity,
                                           tier_explorer_capacity, tier_viewer_capacity, storage_quota,
                                           disable_subscriptions, state)
-        url = self.build_api_url("")
+        url = self.build_api_url(u"")
         response = self.send_update_request(url, tsr)
         self.end_log_block()
         return response
@@ -128,13 +128,13 @@ class TableauRestApiConnection30(TableauRestApiConnection28):
         """
 
         project_luid = project_obj.luid
-        xml = self.publish_content('workbook', workbook_filename, workbook_name, project_luid,
-                                   {"overwrite": overwrite, "asJob": async_publish}, connection_username,
+        xml = self.publish_content(u'workbook', workbook_filename, workbook_name, project_luid,
+                                   {u"overwrite": overwrite, u"asJob": async_publish}, connection_username,
                                    connection_password, save_credentials, show_tabs=show_tabs,
                                    check_published_ds=check_published_ds)
         if async_publish is True:
-            job = xml.findall('.//t:job', self.ns_map)
-            return job[0].get('id')
+            job = xml.findall(u'.//t:job', self.ns_map)
+            return job[0].get(u'id')
         else:
-            workbook = xml.findall('.//t:workbook', self.ns_map)
-            return workbook[0].get('id')
+            workbook = xml.findall(u'.//t:workbook', self.ns_map)
+            return workbook[0].get(u'id')

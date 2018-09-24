@@ -1,9 +1,9 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
     name='tableau_tools',
     version='4.6.0',
-    packages=find_packages(),
+    packages=['tableau_tools', 'tableau_tools.tableau_rest_api', 'tableau_tools.tableau_documents', 'tableau_tools.examples'],
     url='https://github.com/bryantbhowell/tableau_tools',
     license='',
     author='Bryant Howell',

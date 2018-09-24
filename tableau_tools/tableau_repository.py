@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from .tableau_exceptions import *
-from .tableau_base import TableauBase
+from tableau_exceptions import *
+from tableau_base import TableauBase
 import psycopg2
 import psycopg2.extensions
 psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
@@ -270,7 +270,7 @@ FROM _sites
 
     def set_workbook_on_schedule(self, workbook_luid, schedule_name):
         if TableauBase.is_luid(workbook_luid) is False:
-            raise InvalidOptionException('Workbook luid must be a luid. You passed in {}'.format(workbook_luid))
+            raise InvalidOptionException(u'Workbook luid must be a luid. You passed in {}'.format(workbook_luid))
         wb_id = self.query_workbook_id_from_luid(workbook_luid)
         site_id = self.query_site_id_from_workbook_luid(workbook_luid)
         schedule_id = self.get_extract_schedule_id_by_name(schedule_name)
@@ -295,7 +295,7 @@ FROM _sites
 
     def set_datasource_on_schedule(self, datasource_luid, schedule_name):
         if TableauBase.is_luid(datasource_luid) is False:
-            raise InvalidOptionException('Workbook luid must be a luid. You passed in {}'.format(datasource_luid))
+            raise InvalidOptionException(u'Workbook luid must be a luid. You passed in {}'.format(datasource_luid))
         ds_id = self.query_datasource_id_from_luid(datasource_luid)
         site_id = self.query_site_id_from_datasource_luid(datasource_luid)
         schedule_id = self.get_extract_schedule_id_by_name(schedule_name)

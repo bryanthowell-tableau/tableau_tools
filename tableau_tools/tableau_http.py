@@ -1,5 +1,5 @@
-import urllib.request, urllib.error, urllib.parse
-from .tableau_exceptions import *
+import urllib2
+from tableau_exceptions import *
 
 
 # Class for direct requests to the Tableau Sever only over HTTP
@@ -9,11 +9,11 @@ class TableauHTTP:
 
     def get_trusted_ticket_for_user(self, username, site='default', ip=None):
         trusted_url = self.tableau_server_url + "/trusted"
-        opener = urllib.request.build_opener(urllib.request.HTTPHandler)
-        request = urllib.request.Request(trusted_url)
-        post_data = "username={}".format(username)
+        opener = urllib2.build_opener(urllib2.HTTPHandler)
+        request = urllib2.Request(trusted_url)
+        post_data = u"username={}".format(username)
         if site.lower() != 'default':
-            post_data += "&target_site={}".format(site)
+            post_data += u"&target_site={}".format(site)
         request.add_data(post_data)
         trusted_ticket_response = opener.open(request)
         try:
@@ -22,7 +22,7 @@ class TableauHTTP:
                 raise NoResultsException('Ticket generation was not complete.')
             else:
                 return ticket
-        except urllib.error.HTTPError as e:
+        except urllib2.HTTPError as e:
             if e.code >= 500:
                 raise
             raw_error_response = e.fp.read()
@@ -37,11 +37,11 @@ class TableauHTTP:
         else:
             trusted_view_url += "/views/{}".format(view_to_redeem)
 
-        opener = urllib.request.build_opener(urllib.request.HTTPHandler)
-        request = urllib.request.Request(trusted_view_url)
+        opener = urllib2.build_opener(urllib2.HTTPHandler)
+        request = urllib2.Request(trusted_view_url)
         try:
             response = opener.open(request)
-        except urllib.error.HTTPError as e:
+        except urllib2.HTTPError as e:
             if e.code >= 500:
                 raise
             raw_error_response = e.fp.read()

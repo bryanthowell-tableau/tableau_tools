@@ -10,9 +10,9 @@ class TableauConnection(TableauBase):
         self.logger = logger_obj
         self.connection_name = None
         # Differentiate between named-connection and connection itself
-        if connection_xml_obj.tag == 'named-connection':
-            self.connection_name = connection_xml_obj.get('name')
-            self.xml_obj = connection_xml_obj.find('connection')
+        if connection_xml_obj.tag == u'named-connection':
+            self.connection_name = connection_xml_obj.get(u'name')
+            self.xml_obj = connection_xml_obj.find(u'connection')
         else:
             self.xml_obj = connection_xml_obj
 
@@ -21,15 +21,15 @@ class TableauConnection(TableauBase):
         """
         :rtype: etree.Element
         """
-        return self.xml_obj.find('cols')
+        return self.xml_obj.find(u'cols')
 
     @property
     def dbname(self):
         # Looks for schema tag as well in case it's an Oracle system
-        if self.xml_obj.get('dbname'):
-            return self.xml_obj.get('dbname')
-        elif self.xml_obj.get('schema'):
-            return self.xml_obj.get('schema')
+        if self.xml_obj.get(u'dbname'):
+            return self.xml_obj.get(u'dbname')
+        elif self.xml_obj.get(u'schema'):
+            return self.xml_obj.get(u'schema')
         else:
             return None
 
@@ -39,15 +39,15 @@ class TableauConnection(TableauBase):
         :type new_db_name: unicode
         :return:
         """
-        if self.xml_obj.get("dbname") is not None:
-            self.xml_obj.attrib["dbname"] = new_db_name
-        elif self.xml_obj.get('schema') is not None:
-            self.xml_obj.attrib['schema'] = new_db_name
+        if self.xml_obj.get(u"dbname") is not None:
+            self.xml_obj.attrib[u"dbname"] = new_db_name
+        elif self.xml_obj.get(u'schema') is not None:
+            self.xml_obj.attrib[u'schema'] = new_db_name
         else:
-            if self.connection_type == 'oracle':
-                self.xml_obj.set('schema', new_db_name)
+            if self.connection_type == u'oracle':
+                self.xml_obj.set(u'schema', new_db_name)
             else:
-                self.xml_obj.set('dbname', new_db_name)
+                self.xml_obj.set(u'dbname', new_db_name)
 
     @property
     def schema(self):
@@ -64,7 +64,7 @@ class TableauConnection(TableauBase):
 
     @property
     def server(self):
-        return self.xml_obj.get("server")
+        return self.xml_obj.get(u"server")
 
     @server.setter
     def server(self, new_server):
@@ -72,14 +72,14 @@ class TableauConnection(TableauBase):
         :type new_server: unicode
         :return:
         """
-        if self.xml_obj.get("server") is not None:
-            self.xml_obj.attrib["server"] = new_server
+        if self.xml_obj.get(u"server") is not None:
+            self.xml_obj.attrib[u"server"] = new_server
         else:
-            self.xml_obj.set('server', new_server)
+            self.xml_obj.set(u'server', new_server)
 
     @property
     def port(self):
-        return self.xml_obj.get("port")
+        return self.xml_obj.get(u"port")
 
     @port.setter
     def port(self, new_port):
@@ -87,58 +87,58 @@ class TableauConnection(TableauBase):
         :type port: unicode
         :return:
         """
-        if self.xml_obj.get("port") is not None:
-            self.xml_obj.attrib["port"] = str(new_port)
+        if self.xml_obj.get(u"port") is not None:
+            self.xml_obj.attrib[u"port"] = unicode(new_port)
         else:
-            self.xml_obj.set('port', str(new_port))
+            self.xml_obj.set(u'port', unicode(new_port))
 
     @property
     def connection_type(self):
-        return self.xml_obj.get('class')
+        return self.xml_obj.get(u'class')
 
     @connection_type.setter
     def connection_type(self, new_type):
-        if self.xml_obj.get("class") is not None:
-            self.xml_obj.attrib["class"] = new_type
+        if self.xml_obj.get(u"class") is not None:
+            self.xml_obj.attrib[u"class"] = new_type
         else:
-            self.xml_obj.set('class', new_type)
+            self.xml_obj.set(u'class', new_type)
 
     def is_windows_auth(self):
-        if self.xml_obj.get("authentication") is not None:
-            if self.xml_obj.get("authentication") == 'sspi':
+        if self.xml_obj.get(u"authentication") is not None:
+            if self.xml_obj.get(u"authentication") == u'sspi':
                 return True
             else:
                 return False
 
     @property
     def filename(self):
-        if self.xml_obj.get('filename') is None:
-            raise NoResultsException('Connection type {} does not have filename attribute'.format(
+        if self.xml_obj.get(u'filename') is None:
+            raise NoResultsException(u'Connection type {} does not have filename attribute'.format(
                 self.connection_type))
         else:
-            return self.xml_obj.get('filename')
+            return self.xml_obj.get(u'filename')
 
     @filename.setter
     def filename(self, filename):
-        if self.xml_obj.get('filename') is not None:
-            self.xml_obj.attrib['filename'] = filename
+        if self.xml_obj.get(u'filename') is not None:
+            self.xml_obj.attrib[u'filename'] = filename
         else:
-            self.xml_obj.set('filename', filename)
+            self.xml_obj.set(u'filename', filename)
 
     @property
     def sslmode(self):
-        return self.xml_obj.get('sslmode')
+        return self.xml_obj.get(u'sslmode')
 
     @sslmode.setter
-    def sslmode(self, value='require'):
-        if self.xml_obj.get('sslmode') is not None:
-            self.xml_obj.attrib["sslmode"] = value
+    def sslmode(self, value=u'require'):
+        if self.xml_obj.get(u'sslmode') is not None:
+            self.xml_obj.attrib[u"sslmode"] = value
         else:
-            self.xml_obj.set('sslmode', value)
+            self.xml_obj.set(u'sslmode', value)
 
     @property
     def authentication(self):
-        return self.xml_obj.get('authentication')
+        return self.xml_obj.get(u'authentication')
 
     @authentication.setter
     def authentication(self, auth_type):
@@ -146,14 +146,14 @@ class TableauConnection(TableauBase):
         :type auth_type: unicode
         :return:
         """
-        if self.xml_obj.get("authentication") is not None:
-            self.xml_obj.attrib["authentication"] = auth_type
+        if self.xml_obj.get(u"authentication") is not None:
+            self.xml_obj.attrib[u"authentication"] = auth_type
         else:
-            self.xml_obj.set("authentication", auth_type)
+            self.xml_obj.set(u"authentication", auth_type)
 
     @property
     def service(self):
-        return self.xml_obj.get('service')
+        return self.xml_obj.get(u'service')
 
     @service.setter
     def service(self, service):
@@ -161,14 +161,14 @@ class TableauConnection(TableauBase):
         :type service: unicode
         :return:
         """
-        if self.xml_obj.get("service") is not None:
-            self.xml_obj.attrib["service"] = service
+        if self.xml_obj.get(u"service") is not None:
+            self.xml_obj.attrib[u"service"] = service
         else:
-            self.xml_obj.set("service", service)
+            self.xml_obj.set(u"service", service)
 
     @property
     def username(self):
-        return self.xml_obj.get('username')
+        return self.xml_obj.get(u'username')
 
     @username.setter
     def username(self, username):
@@ -176,8 +176,8 @@ class TableauConnection(TableauBase):
         :type username: unicode
         :return:
         """
-        if self.xml_obj.get('username') is not None:
-            self.xml_obj.attrib['username'] = username
+        if self.xml_obj.get(u'username') is not None:
+            self.xml_obj.attrib[u'username'] = username
         else:
-            self.xml_obj.set('username', username)
+            self.xml_obj.set(u'username', username)
 

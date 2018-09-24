@@ -1,8 +1,8 @@
-from .tableau_rest_api_connection_25 import *
+from tableau_rest_api_connection_25 import *
 
 
 class TableauRestApiConnection26(TableauRestApiConnection25):
-    def __init__(self, server, username, password, site_content_url=""):
+    def __init__(self, server, username, password, site_content_url=u""):
         """
         :type server: unicode
         :type username: unicode
@@ -10,14 +10,14 @@ class TableauRestApiConnection26(TableauRestApiConnection25):
         :type site_content_url: unicode
         """
         TableauRestApiConnection25.__init__(self, server, username, password, site_content_url)
-        self.set_tableau_server_version("10.3")
+        self.set_tableau_server_version(u"10.3")
 
     def get_extract_refresh_tasks(self):
         """
         :rtype: etree.Element
         """
         self.start_log_block()
-        extract_tasks = self.query_resource('tasks/extractRefreshes')
+        extract_tasks = self.query_resource(u'tasks/extractRefreshes')
         self.end_log_block()
         return extract_tasks
 
@@ -27,7 +27,7 @@ class TableauRestApiConnection26(TableauRestApiConnection25):
         :rtype: etree.Element
         """
         self.start_log_block()
-        extract_task = self.query_resource('tasks/extractRefreshes/{}'.format(task_luid))
+        extract_task = self.query_resource(u'tasks/extractRefreshes/{}'.format(task_luid))
         self.start_log_block()
         return extract_task
 
@@ -42,11 +42,11 @@ class TableauRestApiConnection26(TableauRestApiConnection25):
         else:
             schedule_luid = self.query_schedule_luid(schedule_name_or_luid)
         tasks = self.get_extract_refresh_tasks()
-        tasks_on_sched = tasks.findall('.//t:schedule[@id="{}"]/..'.format(schedule_luid), self.ns_map)
+        tasks_on_sched = tasks.findall(u'.//t:schedule[@id="{}"]/..'.format(schedule_luid), self.ns_map)
         if len(tasks_on_sched) == 0:
             self.end_log_block()
             raise NoMatchFoundException(
-                "No extract refresh tasks found on schedule {}".format(schedule_name_or_luid))
+                u"No extract refresh tasks found on schedule {}".format(schedule_name_or_luid))
         self.end_log_block()
 
     def run_extract_refresh_task(self, task_luid):
@@ -55,12 +55,12 @@ class TableauRestApiConnection26(TableauRestApiConnection25):
         :rtype: unicode
         """
         self.start_log_block()
-        tsr = etree.Element('tsRequest')
+        tsr = etree.Element(u'tsRequest')
 
-        url = self.build_api_url('tasks/extractRefreshes/{}/runNow'.format(task_luid))
+        url = self.build_api_url(u'tasks/extractRefreshes/{}/runNow'.format(task_luid))
         response = self.send_add_request(url, tsr)
         self.end_log_block()
-        return response.findall('.//t:job', self.ns_map)[0].get("id")
+        return response.findall(u'.//t:job', self.ns_map)[0].get(u"id")
 
     def run_all_extract_refreshes_for_schedule(self, schedule_name_or_luid):
         """
@@ -70,7 +70,7 @@ class TableauRestApiConnection26(TableauRestApiConnection25):
         self.start_log_block()
         extracts = self.query_extract_refresh_tasks_by_schedule(schedule_name_or_luid)
         for extract in extracts:
-            self.run_extract_refresh_task(extract.get('id'))
+            self.run_extract_refresh_task(extract.get(u'id'))
         self.end_log_block()
 
     def run_extract_refresh_for_workbook(self, wb_name_or_luid, proj_name_or_luid=None, username_or_luid=None):
@@ -87,10 +87,10 @@ class TableauRestApiConnection26(TableauRestApiConnection25):
             wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
         tasks = self.get_extract_refresh_tasks()
 
-        extracts_for_wb = tasks.findall('.//t:extract/workbook[@id="{}"]..'.format(wb_luid), self.ns_map)
+        extracts_for_wb = tasks.findall(u'.//t:extract/workbook[@id="{}"]..'.format(wb_luid), self.ns_map)
 
         for extract in extracts_for_wb:
-            self.run_extract_refresh_task(extract.get('id'))
+            self.run_extract_refresh_task(extract.get(u'id'))
         self.end_log_block()
 
     # Check if this actually works
@@ -107,11 +107,11 @@ class TableauRestApiConnection26(TableauRestApiConnection25):
         else:
             ds_luid = self.query_datasource_luid(ds_name_or_luid, proj_name_or_luid)
         tasks = self.get_extract_refresh_tasks()
-        print(tasks)
-        extracts_for_ds = tasks.findall('.//t:extract/datasource[@id="{}"]..'.format(ds_luid), self.ns_map)
+        print tasks
+        extracts_for_ds = tasks.findall(u'.//t:extract/datasource[@id="{}"]..'.format(ds_luid), self.ns_map)
         # print extracts_for_wb
         for extract in extracts_for_ds:
-            self.run_extract_refresh_task(extract.get('id'))
+            self.run_extract_refresh_task(extract.get(u'id'))
         self.end_log_block()
 
     # Tags can be scalar string or list
@@ -127,14 +127,14 @@ class TableauRestApiConnection26(TableauRestApiConnection25):
             ds_luid = ds_name_or_luid
         else:
             ds_luid = self.query_workbook_luid(ds_name_or_luid, proj_name_or_luid)
-        url = self.build_api_url("datasources/{}/tags".format(ds_luid))
+        url = self.build_api_url(u"datasources/{}/tags".format(ds_luid))
 
-        tsr = etree.Element("tsRequest")
-        ts = etree.Element("tags")
+        tsr = etree.Element(u"tsRequest")
+        ts = etree.Element(u"tags")
         tags = self.to_list(tag_s)
         for tag in tags:
-            t = etree.Element("tag")
-            t.set("label", tag)
+            t = etree.Element(u"tag")
+            t.set(u"label", tag)
             ts.append(t)
         tsr.append(ts)
 
@@ -156,7 +156,7 @@ class TableauRestApiConnection26(TableauRestApiConnection25):
             ds_luid = self.query_datasource_luid(ds_name_or_luid, proj_name_or_luid)
         deleted_count = 0
         for tag in tags:
-            url = self.build_api_url("datasources/{}/tags/{}".format(ds_luid, tag))
+            url = self.build_api_url(u"datasources/{}/tags/{}".format(ds_luid, tag))
             deleted_count += self.send_delete_request(url)
         self.end_log_block()
         return deleted_count
@@ -176,14 +176,14 @@ class TableauRestApiConnection26(TableauRestApiConnection25):
             vw_luid = view_name_or_luid
         else:
             vw_luid = self.query_workbook_view_luid(workbook_name_or_luid, view_name_or_luid, proj_name_or_luid)
-        url = self.build_api_url("views/{}/tags".format(vw_luid))
+        url = self.build_api_url(u"views/{}/tags".format(vw_luid))
 
-        tsr = etree.Element("tsRequest")
-        ts = etree.Element("tags")
+        tsr = etree.Element(u"tsRequest")
+        ts = etree.Element(u"tags")
         tags = self.to_list(tag_s)
         for tag in tags:
-            t = etree.Element("tag")
-            t.set("label", tag)
+            t = etree.Element(u"tag")
+            t.set(u"label", tag)
             ts.append(t)
         tsr.append(ts)
 
@@ -207,7 +207,7 @@ class TableauRestApiConnection26(TableauRestApiConnection25):
             vw_luid = self.query_workbook_view_luid(view_name_or_luid, workbook_name_or_luid, proj_name_or_luid)
         deleted_count = 0
         for tag in tags:
-            url = self.build_api_url("views/{}/tags/{}".format(vw_luid, tag))
+            url = self.build_api_url(u"views/{}/tags/{}".format(vw_luid, tag))
             deleted_count += self.send_delete_request(url)
         self.end_log_block()
         return deleted_count

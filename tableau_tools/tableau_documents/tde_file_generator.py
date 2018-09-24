@@ -67,15 +67,15 @@ class TDEFileGenerator(TableauBase):
                 # Create the Extract object (or set it for updating) if there are actually results
                 if not extract.hasTable('Extract'):
                     # Table does not exist; create it
-                    self.log('Creating Extract with table definition')
+                    self.log(u'Creating Extract with table definition')
                     self.tde_object = extract.addTable('Extract', self.table_definition)
                 else:
                     # Open an existing table to add more rows
                     if append is True:
                         self.tde_object = extract.openTable('Extract')
                     else:
-                        self.log("Output file '{}' already exists.".format(tde_filename))
-                        self.log("Append mode is off, please delete file and then rerun...")
+                        self.log(u"Output file '{}' already exists.".format(tde_filename))
+                        self.log(u"Append mode is off, please delete file and then rerun...")
                         sys.exit()
 
                     # This is if you actually have data to put into the extract. Implement later
@@ -99,7 +99,7 @@ class TDEFileGenerator(TableauBase):
                         #	print "The following columns were skipped due to datatypes that were not recognized:\n"
                         #	print skipped_cols
 
-        except TableauException as e:
-            self.log('Tableau TDE creation error:{}'.format(e))
+        except TableauException, e:
+            self.log(u'Tableau TDE creation error:{}'.format(e))
             raise
 
