@@ -63,4 +63,4 @@ class Logger(object):
         if isinstance(xml, basestring):
             self.log(u'Sending {} request with XML: \n{}'.format(verb, xml))
         else:
-            self.log(u'Sending {} request with XML: \n{}'.format(verb, etree.tostring(xml)))
+            self.log(u'Sending {} request with XML: \n{}'.format(verb, etree.tostring(xml, encoding='unicode')))

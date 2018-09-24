@@ -2,7 +2,7 @@ from ..tableau_base import *
 from tableau_connection import TableauConnection
 from tableau_document import TableauColumns, TableauDocument
 
-import xml.etree.cElementTree as etree
+import xml.etree.ElementTree as etree
 from ..tableau_exceptions import *
 import zipfile
 import os
@@ -358,7 +358,7 @@ class TableauDatasource(TableauDocument):
             new_xml.append(new_l)
             new_xml.append(new_sv)
 
-        xmlstring = etree.tostring(new_xml)
+        xmlstring = etree.tostring(new_xml, encoding='unicode')
         self.end_log_block()
         return xmlstring
 
