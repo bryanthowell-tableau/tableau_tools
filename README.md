@@ -1599,8 +1599,7 @@ Ex.
     t_rep = TableauRepository(server, repository_password=rep_pw)
     sessions_for_username = t_rep.query_sessions(username=u'some_username')
     for row in sessions_for_username:
-        t.token = row[0]
-        t.signout()
+        t.signout(row[0])
 
 ### 4.4 Setting Datasources and Workbooks on Extract Refresh Schedules (pre 10.5)
 This is extra extra not supported and should only be used in an emergency with a clean backup and great recovery plan in place. If you can update to 10.5 to use the appropriate REST API commands, you should. But if for some reason you can't, if you have logged in via the tblwgadmin user, you can put a workbook or datasource on an extract refresh schedule:

@@ -680,7 +680,7 @@ class TableauRestApiConnection(TableauBase):
         :rtype: etree.Element
         """
         self.start_log_block()
-        sites = self.query_resource(u"sites/", server_level=True)
+        sites = self.query_resource(u"sites", server_level=True)
         self.end_log_block()
         return sites
 
