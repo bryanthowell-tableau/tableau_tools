@@ -668,11 +668,12 @@ The most efficient algorithm for sending an update is thus:
 
 `tableau_rest_api` handles this through two concepts -- the `Permissions` object that represents the permissions / capabilities, and the `PublishedContent` classes, which represent the objects on the server that have permissions.
 
-#### 1.4.1 PublishedContent Classes (Project20/Project21, Workbook, Datasource)
+#### 1.4.1 PublishedContent Classes (Project20/Project21, Workbook, Datasource, View)
 There are three classes that represent the state of published content to a server; they all descend from the PublishedContent class, but there is no reason to ever access `PublishedContent` directly. Each of these require passing in an active and signed-in `TableauRestApiConnection` object so that they can perform actions against the Tableau Server.
 
-Project obviously represents a project. In API Verison 2.1, a Project also contains a child `Workbook` and `Datasource` object that represent the Default Permissions that can be set for that project. In API Version 2.0, the project simply has a full set of capabilities that include those that apply to a workbook or a datasource. This reflects the difference in Tableau Server itself. If you are still on 9.1 or before, make sure to set your `tableau_server_version` argument so that the `Project` class behaves correctly.
+Project obviously represents a project. In API Version 2.1, a Project also contains a child `Workbook` and `Datasource` object that represent the Default Permissions that can be set for that project. In API Version 2.0, the project simply has a full set of capabilities that include those that apply to a workbook or a datasource. This reflects the difference in Tableau Server itself. If you are still on 9.1 or before, make sure to set your `tableau_server_version` argument so that the `Project` class behaves correctly.
 
+Starting in API 3.2 (2018.3+), there is a View object which represents published Views that were not published as Tabs. Since views have the same permissions as workbooks, use the WorkbookPermissions objects just like with the Workbook object.
 `TableauRestApiConnection.get_published_datasource_object(datasource_name_or_luid, project_name_or_luid)`
 
 `TableauRestApiConnection.get_published_workbook_object(workbook_name_or_luid, project_name_or_luid)`
@@ -1028,6 +1029,8 @@ ex.
 
 As mentioned, this requires have super access to the Tableau repository, including its password, which could be dangerous. If you can at all, update to Tableau 10.5+ and use the REST API methods from above.
 
+### 1.7 Data Driven Alerts (2018.3+)
+Starting in API 3.2 (2018.3+), you can manage Data Driven Alerts via the APIs. The methods for this functionality follows the exact naming pattern of the REST API Reference.
     
 ## 2 tableau_documents: Modifying Tableau Documents (for Template Publishing)
 tableau_documents implements some features that go beyond the Tableau REST API, but are extremely useful when dealing with a large number of workbooks or datasources, particularly for multi-tenented Sites. These methods actually allow unsupported changes to the Tableau workbook or datasource XML. If something breaks with them, blame the author of the library and not Tableau Support, who won't help you with them.
@@ -1544,7 +1547,7 @@ The tableau_repository.py file in the main section of the tableau_tools library 
 ### 4.1 TableauRepository Class
 You initiate a `TableauRepository` object using:
 
-`TableauRepostiory(tableau_server_url, repository_password, repository_username='readonly')`
+`TableauRepository(tableau_server_url, repository_password, repository_username='readonly')`
 
 `"repository_username"` can also be "tableau" (although "readonly" has higher access) or `"tblwgadmin"` if you need to make updates or have access to hidden tables. It is highly suggested you only ever sign-in with tblwgadmin for the minimal amount of commands you need to send from that privledged user, then close that connection and reconnect as readonly.
 

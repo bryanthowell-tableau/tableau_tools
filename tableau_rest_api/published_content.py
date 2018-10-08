@@ -959,3 +959,53 @@ class Datasource(PublishedContent):
             self.log(u'Permissions object list has {} items'.format(unicode(len(obj_list))))
             self.end_log_block()
             return obj_list
+
+
+class View(PublishedContent):
+    def __init__(self, luid, tableau_rest_api_obj, tableau_server_version, default=False, logger_obj=None,
+                 content_xml_obj=None):
+        PublishedContent.__init__(self, luid, u"view", tableau_rest_api_obj, tableau_server_version,
+                                  default=default, logger_obj=logger_obj, content_xml_obj=content_xml_obj)
+        self.__available_capabilities = self.available_capabilities[self.api_version][u"workbook"]
+        self.log(u"View object initiating")
+
+    @property
+    def luid(self):
+        return self._luid
+
+    @luid.setter
+    def luid(self, luid):
+        # Maybe implement a search at some point
+        self._luid = luid
+
+    def convert_capabilities_xml_into_obj_list(self, xml_obj):
+        """
+        :type xml_obj: etree.Element
+        :rtype: list[WorkbookPermissions21]
+        """
+        self.start_log_block()
+        obj_list = []
+        xml = xml_obj.findall(u'.//t:granteeCapabilities', self.ns_map)
+        if len(xml) == 0:
+            self.end_log_block()
+            return []
+        else:
+            for gcaps in xml:
+                for tags in gcaps:
+                    # Namespace fun
+                    if tags.tag == u'{}group'.format(self.ns_prefix):
+                        luid = tags.get(u'id')
+                        perms_obj = WorkbookPermissions21(u'group', luid)
+                        self.log_debug(u'group {}'.format(luid))
+                    elif tags.tag == u'{}user'.format(self.ns_prefix):
+                        luid = tags.get(u'id')
+                        perms_obj = WorkbookPermissions21(u'user', luid)
+                        self.log_debug(u'user {}'.format(luid))
+                    elif tags.tag == u'{}capabilities'.format(self.ns_prefix):
+                        for caps in tags:
+                            self.log_debug(caps.get(u'name') + ' : ' + caps.get(u'mode'))
+                            perms_obj.set_capability(caps.get(u'name'), caps.get(u'mode'))
+                obj_list.append(perms_obj)
+            self.log(u'Permissions object list has {} items'.format(unicode(len(obj_list))))
+            self.end_log_block()
+            return obj_list
