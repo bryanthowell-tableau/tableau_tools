@@ -1136,13 +1136,13 @@ The primary use case for adjusting column tags is to change the aliases for tran
 
 The dictionary should be a simple mapping of the caption from the template to the caption you want in the final translated version. Some customers have tokenized the captions to make it obvious which is the template:
 
-    english_dict: { '{token1}: 'category', '{token2}: 'sub-category'}
-    german_dict : { '{token1}: 'Kategorie', '{token2}: 'Unterkategorie'}
+    english_dict = { '{token1}': 'category', '{token2}': 'sub-category'}
+    german_dict = { '{token1}': 'Kategorie', '{token2}': 'Unterkategorie'}
     tab_file = TableauFile('template_file.tds')
     dses = tab_file.tableau_document.datasources  #type: list[TableauDatasource]
     for ds in dses:
         ds.columns.translate_captions(english_dict)
-    new_eng_filename = tab_file.save_new_file(u'English Verison')
+    new_eng_filename = tab_file.save_new_file(u'English Version')
     # Reload template again
     tab_file = TableauFile('template_file.tds')
     dses = tab_file.tableau_document.datasources  #type: list[TableauDatasource]
