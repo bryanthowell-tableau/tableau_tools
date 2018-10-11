@@ -1123,6 +1123,32 @@ ex.
     
     ds_version takes either u'9' or u'10, because it is more on basic structure and the individual point numbers don't matter.
 
+#### 2.5.6 TableauColumns Class
+A TableauDatasource will have a set of column tags, which define the visible aliases that the end user sees and how those map to the actual columns in the overall datasource. Calculations are also defined as a column, with an additional calculation tag within. These tags to do not have any sort of columns tag that contains them; they are simply appended near the end of the datasources node, after all the connections node section.
+
+The TableauColumns class encapsulates the column tags as if they were contained in a collection. The TableauDatasource object automatically creates a TableauColumns object at instantiation, which can be accessed through the `TableauDatasource.columns` property. 
+
+Columns can have an alias, which is conveniently represented by the `caption` attribute. They also have a `name` attribute which maps to the actual name of the column in the datasource itself. For this reason, the methods that deal with "Column Names" tend to search through both the name and the caption attributes.
+
+The primary use case for adjusting column tags is to change the aliases for translation. To achieve this, there is a method designed to take in a dictionary of names to search and replace: 
+
+`TableauColumns.translate_captions(translation_dict)`
+
+The dictionary should be a simple mapping of the caption from the template to the caption you want in the final translated version. Some customers have tokenized the captions to make it obvious which is the template:
+
+    english_dict: { '{token1}: 'category', '{token2}: 'sub-category'}
+    german_dict : { '{token1}: 'Kategorie', '{token2}: 'Unterkategorie'}
+    tab_file = TableauFile('template_file.tds')
+    dses = tab_file.tableau_document.datasources  #type: list[TableauDatasource]
+    for ds in dses:
+        ds.columns.translate_captions(english_dict)
+    new_eng_filename = tab_file.save_new_file(u'English Verison')
+    # Reload template again
+    tab_file = TableauFile('template_file.tds')
+    dses = tab_file.tableau_document.datasources  #type: list[TableauDatasource]
+    for ds in dses:
+        ds.columns.translate_captions(german_dict)
+    new_ger_filename = tab_file.save_new_file(u'German Version')
 
 ### 2.6 TableauConnection Class
 In a u'9' version `TableauDatasource`, there is only `connections[0]` because there was only one connection. A u'10' version can have any number of federated connections in this array. If you are creating connections from scratch, I highly recommend doing single connections. There hasn't been any work to make sure federated connections work correctly with modifications.
