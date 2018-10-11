@@ -1,7 +1,7 @@
 from tableau_rest_api_connection_31 import *
 
 
-class TableauRestApiConnection32(TableauRestApiConnection30):
+class TableauRestApiConnection32(TableauRestApiConnection31):
     def __init__(self, server, username, password, site_content_url=u""):
         """
         :type server: unicode
