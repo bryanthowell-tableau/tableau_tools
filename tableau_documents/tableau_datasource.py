@@ -1,6 +1,7 @@
 from ..tableau_base import *
 from tableau_connection import TableauConnection
-from tableau_document import TableauColumns, TableauDocument
+from tableau_document import TableauDocument
+from tableau_columns import TableauColumns
 
 import xml.etree.cElementTree as etree
 from ..tableau_exceptions import *

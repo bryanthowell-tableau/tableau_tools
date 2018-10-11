@@ -17,15 +17,15 @@ class TableauColumns(TableauBase):
         """
         self.start_log_block()
         for column in self.columns_list:
-            if column.getroot().get('caption') is None:
-                trans = translation_dict.get(column.getroot().get('name'))
+            if column.get('caption') is None:
+                trans = translation_dict.get(column.get('name'))
             else:
                 # Try to match caption first, if not move to name
-                trans = translation_dict.get(column.getroot().get('caption'))
+                trans = translation_dict.get(column.get('caption'))
                 if trans is None:
-                    trans = translation_dict.get(translation_dict, column.getroot().get('name'))
+                    trans = translation_dict.get(column.get('name'))
             if trans is not None:
-                column.getroot().set('caption', trans)
+                column.set('caption', trans)
         self.end_log_block()
 
     def get_column_by_name(self, column_name):
