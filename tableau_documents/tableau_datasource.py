@@ -788,8 +788,7 @@ class TableauDatasource(TableauDocument):
                 prev_relation = r
 
                 rel_xml_obj.append(prev_relation)
-
-                return rel_xml_obj
+        return rel_xml_obj
 
     def add_table_column(self, table_alias, table_field_name, tableau_field_alias):
         # Check to make sure the alias has been added
