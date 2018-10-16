@@ -386,7 +386,12 @@ class TableauDatasource(TableauDocument):
             # Write the XML header line
             lh.write(u"<?xml version='1.0' encoding='utf-8' ?>\n\n")
             # Write the datasource XML itself
-            lh.write(self.get_datasource_xml())
+            ds_string = self.get_datasource_xml()
+            if type(ds_string, u'bytes'):
+                final_string = ds_string.decode(u'utf-8')
+            else:
+                final_string = ds_string
+            lh.write(final_string)
             lh.close()
 
             # Handle all of this in the TableauFile object now
