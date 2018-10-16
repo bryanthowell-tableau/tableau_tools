@@ -398,3 +398,218 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
             self.username_luid_cache[username] = user_luid
         self.end_log_block()
         return user_luid
+
+    # Do not include file extension. Without filename, only returns the response
+    def download_datasource(self, ds_name_or_luid, filename_no_extension, proj_name_or_luid=None,
+                            download_extract=True):
+        """"
+        :type ds_name_or_luid: unicode
+        :type filename_no_extension: unicode
+        :type proj_name_or_luid: unicode
+        :type download_extract: bool
+        :return Filename of the saved file
+        :rtype: unicode
+        """
+        self.start_log_block()
+        if self.is_luid(ds_name_or_luid):
+            ds_luid = ds_name_or_luid
+        else:
+            ds_luid = self.query_datasource_luid(ds_name_or_luid, project_name_or_luid=proj_name_or_luid)
+        try:
+            if download_extract is False:
+                url = self.build_api_url(u"datasources/{}/content?includeExtract=False".format(ds_luid))
+            else:
+                url = self.build_api_url(u"datasources/{}/content".format(ds_luid))
+            ds = self.send_binary_get_request(url)
+            extension = None
+            if self._last_response_content_type.find(u'application/xml') != -1:
+                extension = u'.tds'
+            elif self._last_response_content_type.find(u'application/octet-stream') != -1:
+                extension = u'.tdsx'
+            self.log(u'Response type was {} so extension will be {}'.format(self._last_response_content_type, extension))
+            if extension is None:
+                raise IOError(u'File extension could not be determined')
+        except RecoverableHTTPException as e:
+            self.log(u"download_datasource resulted in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
+            self.end_log_block()
+            raise
+        except:
+            self.end_log_block()
+            raise
+        try:
+
+            save_filename = filename_no_extension + extension
+            save_file = open(save_filename, 'wb')
+            save_file.write(ds)
+            save_file.close()
+
+        except IOError:
+            self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
+            raise
+
+        self.end_log_block()
+        return save_filename
+
+    # Do not include file extension, added automatically. Without filename, only returns the response
+    # Use no_obj_return for save without opening and processing
+    def download_workbook(self, wb_name_or_luid, filename_no_extension, proj_name_or_luid=None, include_extract=True):
+        """
+        :type wb_name_or_luid: unicode
+        :type filename_no_extension: unicode
+        :type proj_name_or_luid: unicode
+        :type include_extract: bool
+        :return Filename of the save workbook
+        :rtype: unicode
+        """
+        self.start_log_block()
+        if self.is_luid(wb_name_or_luid):
+            wb_luid = wb_name_or_luid
+        else:
+            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
+        try:
+            if include_extract is False:
+                url = self.build_api_url(u"workbooks/{}/content?includeExtract=False".format(wb_luid))
+            else:
+                url = self.build_api_url(u"workbooks/{}/content".format(wb_luid))
+            wb = self.send_binary_get_request(url)
+            extension = None
+            if self._last_response_content_type.find(u'application/xml') != -1:
+                extension = u'.twb'
+            elif self._last_response_content_type.find(u'application/octet-stream') != -1:
+                extension = u'.twbx'
+            if extension is None:
+                raise IOError(u'File extension could not be determined')
+            self.log(
+                u'Response type was {} so extension will be {}'.format(self._last_response_content_type, extension))
+        except RecoverableHTTPException as e:
+            self.log(u"download_workbook resulted in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
+            self.end_log_block()
+            raise
+        except:
+            self.end_log_block()
+            raise
+        try:
+
+            save_filename = filename_no_extension + extension
+
+            save_file = open(save_filename, 'wb')
+            save_file.write(wb)
+            save_file.close()
+
+        except IOError:
+            self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
+            raise
+
+        self.end_log_block()
+        return save_filename
+
+    # Do not include file extension. Without filename, only returns the response
+    def download_datasource_revision(self, ds_name_or_luid, revision_number, filename_no_extension,
+                                     proj_name_or_luid=None, include_extract=True):
+        """
+        :type ds_name_or_luid: unicode
+        :type revision_number: int
+        :type filename_no_extension: unicode
+        :type proj_name_or_luid: unicode
+        :type include_extract: bool
+        :rtype: unicode
+        """
+        self.start_log_block()
+        if self.is_luid(ds_name_or_luid):
+            ds_luid = ds_name_or_luid
+        else:
+            ds_luid = self.query_datasource_luid(ds_name_or_luid, proj_name_or_luid)
+        try:
+
+            if include_extract is False:
+                url = self.build_api_url(u"datasources/{}/revisions/{}/content?includeExtract=False".format(ds_luid,
+                                                                                                            unicode(revision_number)))
+            else:
+                url = self.build_api_url(
+                    u"datasources/{}/revisions/{}/content".format(ds_luid, unicode(revision_number)))
+            ds = self.send_binary_get_request(url)
+            extension = None
+            if self._last_response_content_type.find(u'application/xml') != -1:
+                extension = u'.tds'
+            elif self._last_response_content_type.find(u'application/octet-stream') != -1:
+                extension = u'.tdsx'
+            if extension is None:
+                raise IOError(u'File extension could not be determined')
+        except RecoverableHTTPException as e:
+            self.log(u"download_datasource resulted in HTTP error {}, Tableau Code {}".format(e.http_code,
+                                                                                              e.tableau_error_code))
+            self.end_log_block()
+            raise
+        except:
+            self.end_log_block()
+            raise
+        try:
+            if filename_no_extension is None:
+                save_filename = 'temp_ds' + extension
+            else:
+                save_filename = filename_no_extension + extension
+            save_file = open(save_filename, 'wb')
+            save_file.write(ds)
+            save_file.close()
+            self.end_log_block()
+            return save_filename
+        except IOError:
+            self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
+            self.end_log_block()
+            raise
+
+    # Do not include file extension, added automatically. Without filename, only returns the response
+    # Use no_obj_return for save without opening and processing
+    def download_workbook_revision(self, wb_name_or_luid, revision_number, filename_no_extension,
+                                   proj_name_or_luid=None, include_extract=True):
+        """
+        :type wb_name_or_luid: unicode
+        :type revision_number: int
+        :type filename_no_extension: unicode
+        :type proj_name_or_luid: unicode
+        :type include_extract: bool
+        :rtype: unicode
+        """
+        self.start_log_block()
+        if self.is_luid(wb_name_or_luid):
+            wb_luid = wb_name_or_luid
+        else:
+            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
+        try:
+            if include_extract is False:
+                url = self.build_api_url(u"workbooks/{}/revisions/{}/content?includeExtract=False".format(wb_luid,
+                                                                                                          unicode(revision_number)))
+            else:
+                url = self.build_api_url(u"workbooks/{}/revisions/{}/content".format(wb_luid, unicode(revision_number)))
+            wb = self.send_binary_get_request(url)
+            extension = None
+            if self._last_response_content_type.find(u'application/xml') != -1:
+                extension = u'.twb'
+            elif self._last_response_content_type.find(u'application/octet-stream') != -1:
+                extension = u'.twbx'
+            if extension is None:
+                raise IOError(u'File extension could not be determined')
+        except RecoverableHTTPException as e:
+            self.log(u"download_workbook resulted in HTTP error {}, Tableau Code {}".format(e.http_code,
+                                                                                            e.tableau_error_code))
+            self.end_log_block()
+            raise
+        except:
+            self.end_log_block()
+            raise
+        try:
+            if filename_no_extension is None:
+                save_filename = 'temp_wb' + extension
+            else:
+                save_filename = filename_no_extension + extension
+
+            save_file = open(save_filename, 'wb')
+            save_file.write(wb)
+            save_file.close()
+            self.end_log_block()
+            return save_filename
+
+        except IOError:
+            self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
+            self.end_log_block()
+            raise

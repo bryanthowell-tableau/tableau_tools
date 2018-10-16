@@ -1113,12 +1113,14 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
             save_file = open(save_filename, 'wb')
             save_file.write(ds)
             save_file.close()
+            self.end_log_block()
             return save_filename
         except IOError:
             self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
+            self.end_log_block()
             raise
 
-        self.end_log_block()
+
 
     # Do not include file extension, added automatically. Without filename, only returns the response
     # Use no_obj_return for save without opening and processing
@@ -1162,12 +1164,14 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
             save_file = open(save_filename, 'wb')
             save_file.write(wb)
             save_file.close()
+            self.end_log_block()
             return save_filename
 
         except IOError:
             self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
+            self.end_log_block()
             raise
-        self.end_log_block()
+
 
     #
     # End Revision Methods
