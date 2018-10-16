@@ -2005,7 +2005,8 @@ class TableauRestApiConnection(TableauBase):
     '''
 
     def publish_workbook(self, workbook_filename, workbook_name, project_obj, overwrite=False, connection_username=None,
-                         connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=True):
+                         connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=True,
+                         oauth_flag=False):
         """
         :type workbook_filename: unicode
         :type workbook_name: unicode
@@ -2017,18 +2018,20 @@ class TableauRestApiConnection(TableauBase):
         :type show_tabs: bool
         :param check_published_ds: Set to False to improve publish speed if you KNOW there are no published data sources
         :type check_published_ds: bool
+        :type oauth_flag: bool
         :rtype: unicode
         """
 
         project_luid = project_obj.luid
         xml = self.publish_content(u'workbook', workbook_filename, workbook_name, project_luid,
                                    {u"overwrite": overwrite}, connection_username, connection_password,
-                                   save_credentials, show_tabs=show_tabs, check_published_ds=check_published_ds)
+                                   save_credentials, show_tabs=show_tabs, check_published_ds=check_published_ds,
+                                   oauth_flag=oauth_flag)
         workbook = xml.findall(u'.//t:workbook', self.ns_map)
         return workbook[0].get('id')
 
     def publish_datasource(self, ds_filename, ds_name, project_obj, overwrite=False, connection_username=None,
-                           connection_password=None, save_credentials=True):
+                           connection_password=None, save_credentials=True, oauth_flag=False):
         """
         :type ds_filename: unicode
         :type ds_name: unicode
@@ -2037,11 +2040,12 @@ class TableauRestApiConnection(TableauBase):
         :type connection_username: unicode
         :type connection_password: unicode
         :type save_credentials: bool
+        :type oauth_flag: bool
         :rtype: unicode
         """
         project_luid = project_obj.luid
         xml = self.publish_content(u'datasource', ds_filename, ds_name, project_luid, {u"overwrite": overwrite},
-                                   connection_username, connection_password, save_credentials)
+                                   connection_username, connection_password, save_credentials, oauth_flag=oauth_flag)
         datasource = xml.findall(u'.//t:datasource', self.ns_map)
         return datasource[0].get('id')
 
@@ -2049,7 +2053,7 @@ class TableauRestApiConnection(TableauBase):
     # If a TableauDatasource or TableauWorkbook is passed, will upload from its content
     def publish_content(self, content_type, content_filename, content_name, project_luid, url_params=None,
                         connection_username=None, connection_password=None, save_credentials=True, show_tabs=False,
-                        check_published_ds=True):
+                        check_published_ds=True, oauth_flag=False):
         # Single upload limit in MB
         single_upload_limit = 20
 
@@ -2106,10 +2110,13 @@ class TableauRestApiConnection(TableauBase):
                     if show_tabs is not False:
                         t1.set(u'showTabs', str(show_tabs).lower())
 
-                    if connection_username is not None and connection_password is not None:
+                    if connection_username is not None:
                         cc = etree.Element(u'connectionCredentials')
                         cc.set(u'name', connection_username)
-                        cc.set(u'password', connection_password)
+                        if oauth_flag is True:
+                            cc.set(u'oAuth', u"True")
+                        if connection_password is not None:
+                            cc.set(u'password', connection_password)
                         cc.set(u'embed', str(save_credentials).lower())
                         t1.append(cc)
 

@@ -781,7 +781,7 @@ class TableauDatasource(TableauDocument):
                 if join_desc[u"custom_sql"] is None:
                     new_table_rel = self.create_table_relation(join_desc[u"db_table_name"],
                                                                join_desc[u"table_alias"])
-                elif join_desc[u"custom_sql"] is not None:
+                else:
                     new_table_rel = self.create_custom_sql_relation(join_desc[u'custom_sql'],
                                                                     join_desc[u'table_alias'])
                 r.append(new_table_rel)
