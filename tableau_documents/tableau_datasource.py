@@ -387,7 +387,7 @@ class TableauDatasource(TableauDocument):
             lh.write(u"<?xml version='1.0' encoding='utf-8' ?>\n\n")
             # Write the datasource XML itself
             ds_string = self.get_datasource_xml()
-            if type(ds_string, u'bytes'):
+            if isinstance(ds_string, bytes):
                 final_string = ds_string.decode(u'utf-8')
             else:
                 final_string = ds_string
