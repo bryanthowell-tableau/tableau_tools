@@ -82,7 +82,9 @@ class TableauDatasource(TableauDocument):
                 self.ds_version_type = u'9'
             else:
                 version_split = xml_version.split(u'.')
-                if int(version_split[1]) < 5:
+                if int(version_split[0]) >= 18:
+                    self.ds_version_type = u'10.5'
+                elif int(version_split[1]) < 5:
                     self.ds_version_type = u'10'
                 else:
                     self.ds_version_type = u'10.5'
@@ -456,7 +458,8 @@ class TableauDatasource(TableauDocument):
             else:
                 from tde_file_generator import TDEFileGenerator
         except Exception as ex:
-            print u"Must install the Tableau Extract SDK to add extracts"
+            print(u"Must have correct install of Tableau Extract SDK to add extracts")
+            print(u'Exception arising from the Tableau Extract SDK itself')
             raise
         e = etree.Element(u'extract')
         e.set(u'count', u'-1')
