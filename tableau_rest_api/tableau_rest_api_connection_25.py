@@ -348,11 +348,13 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
                                 site_role_filter=site_role_filter, sorts=sorts, fields=fields)
 
     # New methods with Filtering
-    def query_users(self, all_fields=True, last_login_filter=None, site_role_filter=None, sorts=None, fields=None):
+    def query_users(self, all_fields=True, last_login_filter=None, site_role_filter=None, sorts=None, fields=None,
+                    username_filter=None):
         """
         :type all_fields: bool
         :type last_login_filter: UrlFilter
         :type site_role_filter: UrlFilter
+        :type username_filter: UrlFilter
         :type sorts: list[Sort]
         :type fields: list[unicode]
         :rtype: etree.Element
@@ -362,7 +364,7 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
             if all_fields is True:
                 fields = [u'_all_']
 
-        filter_checks = {u'lastLogin': last_login_filter, u'siteRole': site_role_filter}
+        filter_checks = {u'lastLogin': last_login_filter, u'siteRole': site_role_filter, u'name': username_filter}
         filters = self._check_filter_objects(filter_checks)
 
         users = self.query_resource(u"users", filters=filters, sorts=sorts, fields=fields)
