@@ -181,6 +181,19 @@ class TableauRestApiConnection27(TableauRestApiConnection26):
         self.end_log_block()
         return proj
 
+    def query_project_xml_object(self, project_name_or_luid):
+        """
+        :param project_name_or_luid: unicode
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if self.is_luid(project_name_or_luid):
+            luid = project_name_or_luid
+        else:
+            luid = self.query_project_luid(project_name_or_luid)
+        proj_xml = self.query_single_element_from_endpoint_with_filter(u'project', luid)
+        self.end_log_block()
+        return proj_xml
     #
     # End Project Querying Methods
     #

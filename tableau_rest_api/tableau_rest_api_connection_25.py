@@ -27,27 +27,30 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         self.end_log_block()
         return favorites
 
-    def create_project(self, project_name, project_desc=None, locked_permissions=True, publish_samples=False,
-                       no_return=False):
+    def create_project(self, project_name=None, project_desc=None, locked_permissions=True, publish_samples=False,
+                       no_return=False, direct_xml_request=None):
         """
         :type project_name: unicode
         :type project_desc: unicode
         :type locked_permissions: bool
         :type publish_samples: bool
         :type no_return: bool
+        :type direct_xml_request: etree.Element
         :rtype: Project21
         """
         self.start_log_block()
+        if direct_xml_request is not None:
+            tsr = direct_xml_request
+        else:
+            tsr = etree.Element(u"tsRequest")
+            p = etree.Element(u"project")
+            p.set(u"name", project_name)
 
-        tsr = etree.Element(u"tsRequest")
-        p = etree.Element(u"project")
-        p.set(u"name", project_name)
-
-        if project_desc is not None:
-            p.set(u'description', project_desc)
-        if locked_permissions is not False:
-            p.set(u'contentPermissions', u"LockedToProject")
-        tsr.append(p)
+            if project_desc is not None:
+                p.set(u'description', project_desc)
+            if locked_permissions is not False:
+                p.set(u'contentPermissions', u"LockedToProject")
+            tsr.append(p)
 
         url = self.build_api_url(u"projects")
         if publish_samples is True:

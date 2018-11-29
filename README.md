@@ -49,7 +49,7 @@ The TableauDatasource class uses the `TDEFileGenerator` and/or the `HyperFileGen
 *  README vastly updated to cover all topics.
 * 4.4.0: A lot of improvements to the tableau_documents library and its documentation
 * 4.5.0: 2018.1 (API 3.0) compatibility. All requests for a given connection using a single HTTP session, and other improvements to the RestXmlRequest class.
-
+* 4.7.0: Dropping API 2.0 (Tableau 9.0) compatibility. Any method that is overwritten in a later version will not be updated in the TableauRestApiConnection class going forward. Also implemented a direct_xml_request parameter for Add and Update methods, allowing direct submission of an ElementTree.Element request to the endpoints, particularly for replication.
 ## --- Table(au) of Contents ---
 ------
 

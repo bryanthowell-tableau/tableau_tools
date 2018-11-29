@@ -31,8 +31,8 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
                              parent_project_luid=parent_project_luid)
         return proj_obj
 
-    def create_project(self, project_name, parent_project_name_or_luid=None, project_desc=None, locked_permissions=True,
-                       publish_samples=False, no_return=False):
+    def create_project(self, project_name=None, parent_project_name_or_luid=None, project_desc=None, locked_permissions=True,
+                       publish_samples=False, no_return=False, direct_xml_request=None):
         """
         :type project_name: unicode
         :type project_desc: unicode
@@ -40,26 +40,29 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
         :type publish_samples: bool
         :type no_return: bool
         :type parent_project_name_or_luid: unicode
+        :type direct_xml_request: etree.Element
         :rtype: Project21
         """
         self.start_log_block()
+        if direct_xml_request is not None:
+            tsr = direct_xml_request
+        else:
+            tsr = etree.Element(u"tsRequest")
+            p = etree.Element(u"project")
+            p.set(u"name", project_name)
 
-        tsr = etree.Element(u"tsRequest")
-        p = etree.Element(u"project")
-        p.set(u"name", project_name)
+            if project_desc is not None:
+                p.set(u'description', project_desc)
+            if locked_permissions is not False:
+                p.set(u'contentPermissions', u"LockedToProject")
 
-        if project_desc is not None:
-            p.set(u'description', project_desc)
-        if locked_permissions is not False:
-            p.set(u'contentPermissions', u"LockedToProject")
-
-        if parent_project_name_or_luid is not None:
-            if self.is_luid(parent_project_name_or_luid):
-                parent_project_luid = parent_project_name_or_luid
-            else:
-                parent_project_luid = self.query_project_luid(parent_project_name_or_luid)
-            p.set(u'parentProjectId', parent_project_luid)
-        tsr.append(p)
+            if parent_project_name_or_luid is not None:
+                if self.is_luid(parent_project_name_or_luid):
+                    parent_project_luid = parent_project_name_or_luid
+                else:
+                    parent_project_luid = self.query_project_luid(parent_project_name_or_luid)
+                p.set(u'parentProjectId', parent_project_luid)
+            tsr.append(p)
 
         url = self.build_api_url(u"projects")
         if publish_samples is True:

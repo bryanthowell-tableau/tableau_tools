@@ -9,7 +9,7 @@ from ..tableau_documents.tableau_datasource import TableauDatasource
 from ..tableau_exceptions import *
 from rest_xml_request import RestXmlRequest
 from published_content import Project20, Project21, Project28, Workbook, Datasource
-import urllib
+import copy
 
 
 class TableauRestApiConnection(TableauBase):
@@ -51,7 +51,6 @@ class TableauRestApiConnection(TableauBase):
 
         # For working around SSL issues
         self.verify_ssl_cert = True
-
 
     def enable_logging(self, logger_obj):
         """
@@ -119,6 +118,26 @@ class TableauRestApiConnection(TableauBase):
             s.set(u'disableSubscriptions', unicode(disable_subscriptions).lower())
 
         tsr.append(s)
+        return tsr
+
+    # This is specifically for replication from one site to another
+    def build_request_from_response(self, request):
+        """
+        :type request: etree.Element
+        :rtype: etree.Element
+        :return response
+        """
+
+        tsr = etree.Element(u'tsRequest')
+        request_copy = copy.deepcopy(request)
+
+        # Try to remove any namespaces
+        for e in request_copy.iter():
+            e.tag = e.tag.replace(u"{{{}}}".format(self.ns_map[u't']), u"")
+        if request_copy.get(u'id') is not False:
+            del(request_copy.attrib[u'id'])
+
+        tsr.append(request_copy)
         return tsr
 
     @staticmethod
@@ -665,6 +684,20 @@ class TableauRestApiConnection(TableauBase):
         project_luid = self.query_single_element_luid_by_name_from_endpoint(u'project', project_name)
         self.end_log_block()
         return project_luid
+
+    def query_project_xml_object(self, project_name_or_luid):
+        """
+        :param project_name_or_luid: unicode
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if self.is_luid(project_name_or_luid):
+            luid = project_name_or_luid
+        else:
+            luid = self.query_project_luid(project_name_or_luid)
+        proj_xml = self.query_single_element_from_endpoint(u'project', luid)
+        self.end_log_block()
+        return proj_xml
 
     #
     # End Project Querying Methods
@@ -1222,11 +1255,13 @@ class TableauRestApiConnection(TableauBase):
     # Create / Add Methods
     #
 
-    def add_user_by_username(self, username, site_role=u'Unlicensed', update_if_exists=False):
+    def add_user_by_username(self, username=None, site_role=u'Unlicensed', update_if_exists=False,
+                             direct_xml_request=None):
         """
         :type username: unicode
         :type site_role: unicode
         :type update_if_exists: bool
+        :type direct_xml_request: etree.Element
         :rtype: unicode
         """
         self.start_log_block()
@@ -1235,11 +1270,14 @@ class TableauRestApiConnection(TableauBase):
             raise InvalidOptionException(u"{} is not a valid site role in Tableau Server".format(site_role))
 
         self.log(u"Adding {}".format(username))
-        tsr = etree.Element(u"tsRequest")
-        u = etree.Element(u"user")
-        u.set(u"name", username)
-        u.set(u"siteRole", site_role)
-        tsr.append(u)
+        if direct_xml_request is not None:
+            tsr = direct_xml_request
+        else:
+            tsr = etree.Element(u"tsRequest")
+            u = etree.Element(u"user")
+            u.set(u"name", username)
+            u.set(u"siteRole", site_role)
+            tsr.append(u)
 
         url = self.build_api_url(u'users')
         try:
@@ -1265,7 +1303,8 @@ class TableauRestApiConnection(TableauBase):
 
     # This is "Add User to Site", since you must be logged into a site.
     # Set "update_if_exists" to True if you want the equivalent of an 'upsert', ignoring the exceptions
-    def add_user(self, username, fullname, site_role=u'Unlicensed', password=None, email=None, update_if_exists=False):
+    def add_user(self, username=None, fullname=None, site_role=u'Unlicensed', password=None, email=None,
+                 update_if_exists=False, direct_xml_request=None):
         """
         :type username: unicode
         :type fullname: unicode
@@ -1277,10 +1316,49 @@ class TableauRestApiConnection(TableauBase):
         :rtype: unicode
         """
         self.start_log_block()
+        # Add User requires two commands, so have to split into the add and the update XML if replicating
+
+        if direct_xml_request is not None:
+            # Parse to second level, should be
+            new_user_tsr = etree.Element(u'tsRequest')
+            new_user_u = etree.Element(u'user')
+            for t in direct_xml_request:
+                if t.tag != u'user':
+                    raise InvalidOptionException(u'Must submit a tsRequest with a user element')
+                for a in t.attrib:
+                    if a in [u'name', u'siteRole', u'authSetting']:
+                        new_user_u.set(a, t.attrib[a])
+            new_user_tsr.append(new_user_u)
+            print(etree.tostring(new_user_tsr))
+            return
+
         try:
             # Add username first, then update with full name
-            new_user_luid = self.add_user_by_username(username, site_role=site_role, update_if_exists=update_if_exists)
-            self.update_user(new_user_luid, fullname, site_role, password, email)
+            if direct_xml_request is not None:
+                # Parse to second level, should be
+                new_user_tsr = etree.Element(u'tsRequest')
+                new_user_u = etree.Element(u'user')
+                for t in direct_xml_request:
+                    if t.tag != u'user':
+                        raise InvalidOptionException(u'Must submit a tsRequest with a user element')
+                    for a in t.attrib:
+                        if a in [u'name', u'siteRole', u'authSetting']:
+                            new_user_u.set(a, t.attrib[a])
+                new_user_tsr.append(new_user_u)
+                new_user_luid = self.add_user_by_username(direct_xml_request=new_user_tsr)
+
+                update_tsr = etree.Element(u'tsRequest')
+                update_u = etree.Element(u'user')
+                for t in direct_xml_request:
+                    for a in t.attrib:
+                        if a in [u'fullName', u'email', u'password', u'siteRole', u'authSetting']:
+                            update_u.set(a, t.attrib[a])
+                update_tsr.append(update_u)
+                self.update_user(username_or_luid=new_user_luid, direct_xml_request=update_tsr)
+            else:
+                # Add username first, then update with full name
+                new_user_luid = self.add_user_by_username(username, site_role=site_role, update_if_exists=update_if_exists)
+                self.update_user(new_user_luid, fullname, site_role, password, email)
             self.end_log_block()
             return new_user_luid
         except AlreadyExistsException as e:
@@ -1289,17 +1367,21 @@ class TableauRestApiConnection(TableauBase):
             return e.existing_luid
 
     # Returns the LUID of an existing group if one already exists
-    def create_group(self, group_name):
+    def create_group(self, group_name, direct_xml_request=None):
         """
         :type group_name: unicode
+        :type direct_xml_request: etree.Element
         :rtype: unicode
         """
         self.start_log_block()
 
-        tsr = etree.Element(u"tsRequest")
-        g = etree.Element(u"group")
-        g.set(u"name", group_name)
-        tsr.append(g)
+        if direct_xml_request is not None:
+            tsr = direct_xml_request
+        else:
+            tsr = etree.Element(u"tsRequest")
+            g = etree.Element(u"group")
+            g.set(u"name", group_name)
+            tsr.append(g)
 
         url = self.build_api_url(u"groups")
         try:
@@ -1351,22 +1433,26 @@ class TableauRestApiConnection(TableauBase):
             group = response.findall(u'.//t:group', self.ns_map)
             return group[0].get('id')
 
-    def create_project(self, project_name, project_desc=None, no_return=False):
+    def create_project(self, project_name=None, project_desc=None, no_return=False, direct_xml_request=None):
         """
         :type project_name: unicode
         :type project_desc: unicode
         :type no_return: bool
+        :type direct_xml_request: etree.Element
         :rtype: Project20
         """
         self.start_log_block()
 
-        tsr = etree.Element(u"tsRequest")
-        p = etree.Element(u"project")
-        p.set(u"name", project_name)
+        if direct_xml_request is not None:
+            tsr = direct_xml_request
+        else:
+            tsr = etree.Element(u"tsRequest")
+            p = etree.Element(u"project")
+            p.set(u"name", project_name)
 
-        if project_desc is not None:
-            p.set(u'description', project_desc)
-        tsr.append(p)
+            if project_desc is not None:
+                p.set(u'description', project_desc)
+            tsr.append(p)
 
         url = self.build_api_url(u"projects")
         try:
@@ -1385,7 +1471,7 @@ class TableauRestApiConnection(TableauBase):
 
     # Both SiteName and ContentUrl must be unique to add a site
     def create_site(self, new_site_name, new_content_url, admin_mode=None, user_quota=None, storage_quota=None,
-                    disable_subscriptions=None):
+                    disable_subscriptions=None, direct_xml_request=None):
         """
         :type new_site_name: unicode
         :type new_content_url: unicode
@@ -1393,11 +1479,14 @@ class TableauRestApiConnection(TableauBase):
         :type user_quota: unicode
         :type storage_quota: unicode
         :type disable_subscriptions: bool
+        :type direct_xml_request: etree.Element
         :rtype: unicode
         """
-
-        add_request = self.build_site_request_xml(new_site_name, new_content_url, admin_mode, user_quota,
-                                                  storage_quota, disable_subscriptions)
+        if direct_xml_request is not None:
+            add_request = direct_xml_request
+        else:
+            add_request = self.build_site_request_xml(new_site_name, new_content_url, admin_mode, user_quota,
+                                                      storage_quota, disable_subscriptions)
         url = self.build_api_url(u"sites/",
                                  server_level=True)  # Site actions drop back out of the site ID hierarchy like login
         try:
@@ -1554,13 +1643,14 @@ class TableauRestApiConnection(TableauBase):
     #
 
     def update_user(self, username_or_luid, full_name=None, site_role=None, password=None,
-                    email=None):
+                    email=None, direct_xml_request=None):
         """
         :type username_or_luid: unicode
         :type full_name: unicode
         :type site_role: unicode
         :type password: unicode
         :type email: unicode
+        :type direct_xml_request: etree.Element
         :rtype: etree.Element
         """
         self.start_log_block()
@@ -1569,17 +1659,20 @@ class TableauRestApiConnection(TableauBase):
         else:
             user_luid = self.query_user_luid(username_or_luid)
 
-        tsr = etree.Element(u"tsRequest")
-        u = etree.Element(u"user")
-        if full_name is not None:
-            u.set(u'fullName', full_name)
-        if site_role is not None:
-            u.set(u'siteRole', site_role)
-        if email is not None:
-            u.set(u'email', email)
-        if password is not None:
-            u.set(u'password', password)
-        tsr.append(u)
+        if direct_xml_request is not None:
+            tsr = direct_xml_request
+        else:
+            tsr = etree.Element(u"tsRequest")
+            u = etree.Element(u"user")
+            if full_name is not None:
+                u.set(u'fullName', full_name)
+            if site_role is not None:
+                u.set(u'siteRole', site_role)
+            if email is not None:
+                u.set(u'email', email)
+            if password is not None:
+                u.set(u'password', password)
+            tsr.append(u)
 
         url = self.build_api_url(u"users/{}".format(user_luid))
         response = self.send_update_request(url, tsr)
