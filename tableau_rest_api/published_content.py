@@ -130,6 +130,77 @@ class PublishedContent(TableauBase):
             final_perms_obj_list.append(copy.deepcopy(perms_obj))
         return final_perms_obj_list
 
+    # Runs through the gcap object list, and tries to do a conversion all principals to matching LUIDs on current site
+    # Use case is replicating settings from one site to another
+    # Orig_site must be TableauRestApiConnection
+    # Not Finished
+    def convert_permissions_xml_object_from_orig_site_to_current_site(self, permissions_xml_request, orig_site,
+                                                                      username_map=None):
+        """
+        :type permissions_xml_request: etree.Element
+        :type orig_site: TableauRestApiConnection
+        :type username_map: dict[unicode, unicode]
+        :rtype: etree.Element
+        """
+        # If the site is the same, skip the whole thing and just return the original
+        if self.t_rest_api.site_content_url == orig_site.site_content_url \
+                and self.t_rest_api.server == orig_site.server:
+            return permissions_xml_request
+
+        # new_perms_obj_list = permissions_xml_request
+        final_perms_obj_list = []
+        # Make this more efficient -- should only look up those users it needs to. Question on algorithm for speed
+
+        # Must loop two levels deep
+        for permissions_element in permissions_xml_request:
+            for grantee_capabilities in permissions_element:
+                # Handle groups first
+                for group in grantee_capabilities.iter(u'group'):
+
+                    orig_luid = group.get(u'id')
+                    # Find the name that matches the LUID
+                    try:
+                        orig_name = orig_site.query_group_name(orig_luid)
+                        self.log(u'Found orig luid {} for name {}'.format(orig_luid, orig_name ))
+                        n_luid = self.t_rest_api.query_group_luid(orig_name)
+                        self.log(u'Found new luid {} for name {}'.format(n_luid, orig_name ))
+                        # Update the attribute for the new site
+                        group.set(u'id', n_luid)
+                    except StopIteration:
+                        self.log(u"No matching name for luid {} found on the original site, dropping from list".format(
+                            orig_luid))
+                        # Here, do we remove a group that doesn't exist on the new site? Or just raise that exception?
+                        # Going with remove for now, to make things more smooth
+                        permissions_element.remove(grantee_capabilities)
+
+                # This works if you anticipate that users will have the same name. Should add an optional dictionary for
+                # translating
+                for user in grantee_capabilities.iter(u'user'):
+                    orig_luid = user.get(u'id')
+                    # Find the name that matches the LUID
+                    try:
+                        # Individual searches here. Efficient in versions with lookup
+                        orig_user = orig_site.query_user(orig_luid)
+                        orig_username = orig_user.get(u'name')
+                        final_username = orig_username
+                        if username_map is not None:
+                            if orig_username in username_map:
+                                final_username = username_map[orig_username]
+                            else:
+                                self.log(u"No matching name in the username_map found for original_name '{}' found , dropping from list".format(
+                                        orig_username))
+                                permissions_element.remove(grantee_capabilities)
+                        else:
+                            final_username = orig_username
+                        n_luid = self.t_rest_api.query_user_luid(final_username)
+                        user.set(u'id', n_luid)
+                    except NoMatchFoundException:
+                        self.log(u"No matching name for luid {} found on the original site, dropping from list".format(
+                            orig_luid))
+                        permissions_element.remove(grantee_capabilities)
+        return permissions_xml_request
+
+
     def replicate_permissions(self, orig_content):
         self.start_log_block()
         self.clear_all_permissions()
@@ -139,6 +210,48 @@ class PublishedContent(TableauBase):
         n_perms_obj_list = self.convert_permissions_obj_list_from_orig_site_to_current_site(o_perms_obj_list,
                                                                                             orig_content.t_rest_api)
         self.set_permissions_by_permissions_obj_list(n_perms_obj_list)
+        self.end_log_block()
+
+    @staticmethod
+    def _fix_permissions_request_for_replication(tsr):
+        """
+        :type tsr: etree.Element
+        :rtype: etree.Element
+        """
+        # Remove the project tag from the original response
+        proj_element = None
+        for t in tsr.iter():
+
+            if t.tag == u'project':
+                proj_element = t
+        if proj_element is not None:
+            # You have to remove from the immediate parent apparently, which needs to be the permissions tag
+            for p in tsr:
+                p.remove(proj_element)
+        return tsr
+
+    def replicate_permissions_direct_xml(self, orig_content, username_map=None):
+        """
+        :type orig_content: PublishedContent
+        :type username_map: dict[unicode, unicode]
+        :return:
+        """
+        self.start_log_block()
+
+        self.clear_all_permissions()
+
+        # This is for the project Permissions. Handle defaults down below
+
+        perms_tsr = self.t_rest_api.build_request_from_response(orig_content.obj_perms_xml)
+        # Remove the project tag from the original response
+        perms_tsr = self._fix_permissions_request_for_replication(perms_tsr)
+
+        # Now convert over all groups and users
+        self.convert_permissions_xml_object_from_orig_site_to_current_site(perms_tsr, orig_content.t_rest_api,
+                                                                           username_map=username_map)
+        self.set_permissions_by_permissions_direct_xml(perms_tsr)
+
+
         self.end_log_block()
 
     # Determine if capabilities are already set identically (or identically enough) to skip
@@ -278,6 +391,26 @@ class PublishedContent(TableauBase):
         :rtype: list[Permissions]
         """
         return self.current_perms_obj_list
+
+    # This one doesn't do any of the checking or determining if there is a need to change. Only for pure replication
+    def set_permissions_by_permissions_direct_xml(self, direct_xml_request):
+        """
+        :type direct_xml_request: etree.Element
+        :return:
+        """
+        self.start_log_block()
+        url = None
+        if self.default is False:
+            url = self.t_rest_api.build_api_url(u"{}s/{}/permissions".format(self.obj_type, self.luid))
+        if self.default is True:
+            url = self.t_rest_api.build_api_url(
+                u"projects/{}/default-permissions/{}s".format(self.luid, self.obj_type))
+        new_perms_xml = self.t_rest_api.send_update_request(url, direct_xml_request)
+
+        # Update the internal representation from the newly returned permissions XML
+        self.get_permissions_from_server(new_perms_xml)
+
+        self.end_log_block()
 
     def set_permissions_by_permissions_obj_list(self, new_permissions_obj_list):
         """
@@ -555,6 +688,10 @@ class Project21(Project20):
             return obj_list
 
     def replicate_permissions(self, orig_content):
+        """
+        :type orig_content: Project21
+        :return:
+        """
         self.start_log_block()
 
         self.clear_all_permissions()
@@ -578,6 +715,50 @@ class Project21(Project20):
         self.datasource_defaults.set_permissions_by_permissions_obj_list(n_perms_obj_list)
 
         self.end_log_block()
+
+    def replicate_permissions_direct_xml(self, orig_content, username_map=None):
+        """
+        :type orig_content: Project21
+        :type username_map: dict[unicode, unicode]
+        :return:
+        """
+        self.start_log_block()
+
+        self.clear_all_permissions()
+
+        # This is for the project Permissions. Handle defaults down below
+
+        perms_tsr = self.t_rest_api.build_request_from_response(orig_content.obj_perms_xml)
+        # Remove the project tag from the original response
+        perms_tsr = self._fix_permissions_request_for_replication(perms_tsr)
+
+        # Now convert over all groups and users
+        self.convert_permissions_xml_object_from_orig_site_to_current_site(perms_tsr, orig_content.t_rest_api,
+                                                                           username_map=username_map)
+        self.set_permissions_by_permissions_direct_xml(perms_tsr)
+
+        # Workbook Defaults
+        perms_tsr = self.t_rest_api.build_request_from_response(orig_content.workbook_defaults.obj_perms_xml)
+        # Remove the project tag from the original response
+        perms_tsr = self._fix_permissions_request_for_replication(perms_tsr)
+
+        # Now convert over all groups and users
+        self.convert_permissions_xml_object_from_orig_site_to_current_site(perms_tsr, orig_content.t_rest_api,
+                                                                           username_map=username_map)
+        self.workbook_defaults.set_permissions_by_permissions_direct_xml(perms_tsr)
+
+        # Datasource Defaults
+        perms_tsr = self.t_rest_api.build_request_from_response(orig_content.datasource_defaults.obj_perms_xml)
+        # Remove the project tag from the original response
+        perms_tsr = self._fix_permissions_request_for_replication(perms_tsr)
+
+        # Now convert over all groups and users
+        self.convert_permissions_xml_object_from_orig_site_to_current_site(perms_tsr, orig_content.t_rest_api,
+                                                                           username_map=username_map)
+        self.datasource_defaults.set_permissions_by_permissions_direct_xml(perms_tsr)
+
+        self.end_log_block()
+
 
     def _get_permissions_object(self, group_or_user, name_or_luid, obj_type, role=None):
 

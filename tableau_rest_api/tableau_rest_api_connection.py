@@ -130,11 +130,15 @@ class TableauRestApiConnection(TableauBase):
 
         tsr = etree.Element(u'tsRequest')
         request_copy = copy.deepcopy(request)
+        # If the object happens to include the tsResponse root tag, strip it out
+        if request_copy.tag.find(u"tsResponse") != -1:
+            for r in request_copy:
+                request_copy = copy.deepcopy(r)
 
         # Try to remove any namespaces
         for e in request_copy.iter():
             e.tag = e.tag.replace(u"{{{}}}".format(self.ns_map[u't']), u"")
-        if request_copy.get(u'id') is not False:
+        if request_copy.get(u'id') is not None:
             del(request_copy.attrib[u'id'])
 
         tsr.append(request_copy)
@@ -1367,7 +1371,7 @@ class TableauRestApiConnection(TableauBase):
             return e.existing_luid
 
     # Returns the LUID of an existing group if one already exists
-    def create_group(self, group_name, direct_xml_request=None):
+    def create_group(self, group_name=None, direct_xml_request=None):
         """
         :type group_name: unicode
         :type direct_xml_request: etree.Element
