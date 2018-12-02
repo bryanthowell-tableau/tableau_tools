@@ -142,7 +142,7 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
         self.end_log_block()
         return proj
 
-    def add_workbook_to_schedule(self, wb_name_or_luid, schedule_name_or_luid, proj_name_or_luid):
+    def add_workbook_to_schedule(self, wb_name_or_luid, schedule_name_or_luid, proj_name_or_luid=None):
         """
         :type wb_name_or_luid: unicode
         :type schedule_name_or_luid: unicode
@@ -174,7 +174,7 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
 
         self.end_log_block()
 
-    def add_datasource_to_schedule(self, ds_name_or_luid, schedule_name_or_luid, proj_name_or_luid):
+    def add_datasource_to_schedule(self, ds_name_or_luid, schedule_name_or_luid, proj_name_or_luid=None):
         """
         :type ds_name_or_luid: unicode
         :type schedule_name_or_luid: unicode

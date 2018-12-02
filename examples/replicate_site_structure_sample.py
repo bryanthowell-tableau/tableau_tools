@@ -23,6 +23,7 @@ o = TableauRestApiConnection31(server=o_server, username=o_username,
                                password=o_password, site_content_url=original_content_url)
 o.signin()
 logger = Logger(u'replicate_site_sample.log')
+logger.enable_debug_level()
 # Enable logging after sign-in to hide credentials
 o.enable_logging(logger)
 
@@ -223,13 +224,37 @@ existing_schedules_new_server = n.query_schedules()
 existing_schedules_dict = n.convert_xml_list_to_name_id_dict(existing_schedules_new_server)
 
 schedules = o.query_schedules()
+
+# element_luid : new_schedule_luid
+wb_extract_tasks = {}
+ds_extract_tasks = {}
+
 for sched in schedules:
     # Check if a Schedule with this name already exists
     if sched.get(u'name') in existing_schedules_dict:
         print(u'Skipping Schedule {}, a schedule with this name already exists on server'.format(sched.get(u'name')))
-        continue
-    sched_request = n.build_request_from_response(sched)
-    n.create_schedule(direct_xml_request=sched_request)
+        final_sched_luid = existing_schedules_dict[sched.get(u'name')]
+
+    else:
+        sched_request = n.build_request_from_response(sched)
+        final_sched_luid = n.create_schedule(direct_xml_request=sched_request)
+
+    # Now pull all of the Extract Refresh tasks for each schedule, so that you can assign them to the newly published
+    # workbooks and datasources when you do that
+    if sched.get(u'type') == u'Extract':
+        extracts_for_o_schedule = o.query_extract_refresh_tasks_by_schedule(sched.get(u'id'))
+        for extract_task in extracts_for_o_schedule:
+            # this will be either workbook or datasource tag
+            for element in extract_task:
+                if element.tag.find(u'datasource') != -1:
+                    ds_extract_tasks[element.get(u'id')] = final_sched_luid
+                elif element.tag.find(u'workbook') != -1:
+                    wb_extract_tasks[element.get(u'id')] = final_sched_luid
+
+print(u'WB Refresh tasks found:')
+print(wb_extract_tasks)
+print(u'DS Refresh Tasks found:')
+print(ds_extract_tasks)
 print(u'Finished schedules, sleeping for a few moments')
 
 time.sleep(4)
@@ -348,6 +373,11 @@ for proj in o_proj_dict:
                                                                 proj_obj, overwrite=True)
         print(u'Published data source, resulting in new luid {}'.format(orig_ds_content_url[ds].new_luid))
 
+        # Add to an Extract Schedule if one was scheduled
+        if orig_ds_content_url[ds].orig_luid in ds_extract_tasks:
+            n.add_datasource_to_schedule(ds_name_or_luid=orig_ds_content_url[ds].new_luid,
+                                         schedule_name_or_luid=ds_extract_tasks[orig_ds_content_url[ds].orig_luid])
+
         # Add to the list that don't need to be republished
         replicated_datasources_luid_list.append(orig_ds_content_url[ds].orig_luid)
 
@@ -396,6 +426,14 @@ for proj in o_proj_dict:
                                                overwrite=True, check_published_ds=False)
         print(u'Published new workbook {}'.format(new_workbook_luid))
         os.remove(temp_wb_file)
+
+        # Add to an Extract Schedule if one was scheduled
+        o_wb_luid = workbook_name_or_luids[wb]
+        if o_wb_luid in wb_extract_tasks:
+            print(u'Adding to Extract Refresh Schedule')
+            n.add_workbook_to_schedule(wb_name_or_luid=new_workbook_luid,
+                                       schedule_name_or_luid=wb_extract_tasks[o_wb_luid])
+
     print(u'Finished workbooks for project {}'.format(proj))
 print(u'Finished publishing all workbooks')
 
@@ -404,26 +442,79 @@ print(u'Finished publishing all workbooks')
 # Note -- data sources with embedded data credentials must have them supplied again at this publish time
 # Must publish Data Sources
 
+# Look up all the data sources, go project by project to avoid naming issues
+o_projects = o.query_projects()
+proj_dict = o.convert_xml_list_to_name_id_dict(o_projects)
+for proj in proj_dict:
 
+    all_dses_in_proj = o.query_datasources(project_name_or_luid=proj_dict[proj])
+    all_dses_in_proj_dict = o.convert_xml_list_to_name_id_dict(all_dses_in_proj)
+    for ds_name in all_dses_in_proj_dict:
+        o_ds_luid = all_dses_in_proj_dict[ds_name]
+        # Only publish data sources that had not been moved over (unused data sources)
+        if o_ds_luid not in replicated_datasources_luid_list:
+            # Download data source and republish
+            ds_filename = o.download_datasource(o_ds_luid, u'downloaded ds')
+            proj_obj = n.query_project(proj_dict[proj])
 
-# Extract Refreshes
+            ds_obj = TableauFile(ds_filename)
+            ds_dses = ds_obj.tableau_document.datasources  # type: list[TableauDatasource]
+            # You may need to change details of the data source connections here
+            # Uncomment below if you have things to change
+            # for ds_ds in ds_dses:
+            #    for conn in ds_ds.connections:
+            # Change the dbname is most common
+            # conn.dbname = u'prod'
+            # conn.port = u'10000'
+
+            new_ds_filename = ds_obj.save_new_file(u'Updated Datasource')
+
+            # Here is also where any credential mapping would need to happen, because credentials can't be retrieved
+
+            new_ds_luid = n.publish_datasource(new_ds_filename, ds_name, proj_obj, overwrite=True)
+            print(u'Published data source, resulting in new luid {}'.format(new_ds_luid))
+
+            # Add to an Extract Schedule if one was scheduled
+            if ds_luid in ds_extract_tasks:
+                n.add_datasource_to_schedule(ds_name_or_luid=new_ds_luid,
+                                             schedule_name_or_luid=ds_extract_tasks[o_ds_luid])
+
 
 # Subscriptions
+# It is easy to replicate subscription to a whole workbook but this is the amount of work it would take for a view:
+# (1) Get the view ID, then look up the workbook it belongs to
+# (2) Query the views for that workbook on the NEW site
+# (3) Query the view for the workbook on the original site
+# (4) Do a text name match between the Views on both sites to get the new site view luid
+# (5) Subscribe to that view luid on the new site
 
-# If migrating to Tableau Online, build a translation dictionary for the original schedule name and the new schedule name
+# Is this possible? Yes. It it worth it? I'm not sure
+
 
 print(u'Starting subscriptions')
 subscriptions = o.query_subscriptions()
 
-for sub in subscriptions:
-    sub_request = n.build_request_from_response(sub)
+# Subscriptions actually require 3 different IDs to line up --
+# the content (workbook or view), the user and the subscription
+# Everything must be replicated over
 
-    # Subscriptions actually require 3 different IDs to line up --
-    # the content (workbook or view), the user and the subscription
-    # Everything must be replicated over
+# If migrating to Tableau Online, build a translation dictionary for the original schedule name and the new schedule name
+
+# If changing names from one site to another, user you mapping dictionary here instead of querying for users
+#n_users = n.query_users()
+#n_users_dict = n.convert_xml_list_to_name_id_dict(n_users)
+
+
+#for sub in subscriptions:
+#    sub_request = n.build_request_from_response(sub)
 
     #n.create_subscription()
 
 
 
-# Alerts
+# Alerts: Currently not replicable
+# Only available in API 3.2 and later
+# No way to create an equivalent data driven alert, because while you can get the existence of an Alert from the
+# originating site, there is no method to ADD a data driven alert to the new site, only to Add a User to an
+# existing Data Driven Alert
+# existing Data Driven Alert
