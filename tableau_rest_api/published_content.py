@@ -250,8 +250,6 @@ class PublishedContent(TableauBase):
         self.convert_permissions_xml_object_from_orig_site_to_current_site(perms_tsr, orig_content.t_rest_api,
                                                                            username_map=username_map)
         self.set_permissions_by_permissions_direct_xml(perms_tsr)
-
-
         self.end_log_block()
 
     # Determine if capabilities are already set identically (or identically enough) to skip
@@ -436,7 +434,7 @@ class PublishedContent(TableauBase):
 
                     if need_to_change is False:
                         self.log(u'No changes necessary, skipping update for quicker performance')
-                        self.end_log_block()
+                        # self.end_log_block()
                         continue
             # Check if all capabilities are set to Unspecified, and ignore
             specified_cap_count = 0
@@ -562,6 +560,7 @@ class Project20(PublishedContent):
         obj_list = []
         xml = xml_obj.findall(u'.//t:granteeCapabilities', self.ns_map)
         if len(xml) == 0:
+            self.end_log_block()
             return []
         else:
             for gcaps in xml:
@@ -665,6 +664,7 @@ class Project21(Project20):
         obj_list = []
         xml = xml_obj.findall(u'.//t:granteeCapabilities', self.ns_map)
         if len(xml) == 0:
+            self.end_log_block()
             return []
         else:
             for gcaps in xml:
@@ -989,6 +989,7 @@ class Project28(Project21):
         obj_list = []
         xml = xml_obj.findall(u'.//t:granteeCapabilities', self.ns_map)
         if len(xml) == 0:
+            self.end_log_block()
             return []
         else:
             for gcaps in xml:

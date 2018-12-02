@@ -2,7 +2,9 @@
 
 from tableau_tools.tableau_rest_api import *
 from tableau_tools import *
+from tableau_tools.tableau_documents import *
 import time
+import os
 
 o_server = u'http://127.0.0.1'
 o_username = u''
@@ -14,6 +16,7 @@ n_username = u''
 n_password = u''
 new_site_name = u'Test Site Replica'
 new_site_content_url = u'test_site_replica'
+
 
 # Sign in to the original site with an administrator level user
 o = TableauRestApiConnection31(server=o_server, username=o_username,
@@ -31,12 +34,14 @@ n_default.enable_logging(logger)
 
 # Die if the new site already exists
 try:
-    n_default.create_site(new_site_name, new_site_content_url)
+    n_default.create_site(new_site_name, new_site_content_url, admin_mode=u'ContentOnly')
+    print(u'New Site Created')
 except AlreadyExistsException as e:
 #    print(e.msg)
 #    print(u"Cannot create new site, it already exists. Exiting")
 #    exit()
     # Alternative pathway blows away the existing site if it finds one with that site_content_url
+    print(u'Site with name already existed, removing and then creating the new site')
     n_existing_to_replace = TableauRestApiConnection31(server=n_server, username=n_username,
                                                        password=n_password, site_content_url=new_site_content_url)
     n_existing_to_replace.signin()
@@ -44,6 +49,7 @@ except AlreadyExistsException as e:
     n_existing_to_replace.delete_current_site()
     # Now Create the new site
     n_default.create_site(new_site_name, new_site_content_url)
+    print(u'New Site Created')
 n_default.signout()
 
 
@@ -52,9 +58,10 @@ n = TableauRestApiConnection31(server=n_server, username=n_username,
                                password=n_password, site_content_url=new_site_content_url)
 n.signin()
 n.enable_logging(logger)
+print(u"Signed in to new site, beginning replication")
 
 # Now we start replicating from one site to the other
-
+print(u"Starting groups")
 # Replicate Groups first, so you can put users in them
 groups = o.query_groups()
 for group in groups:
@@ -63,8 +70,9 @@ for group in groups:
         continue
 
     n.create_group(direct_xml_request=n.build_request_from_response(group))
-
+print(u"Finished groups")
 # Replicate Users
+print(u"Starting users")
 users = o.query_users()
 # Loop through the Element objects themselves because of more details to add
 excluded_server_admins = []
@@ -102,10 +110,11 @@ for user in users:
     # new_username = u'{}@{}'.format(user.get(u'name'), u'mydomain.net')
     # n.add_user(username=new_username, site_role=user.get(u'siteRole'), auth_setting=u'SAML')  # or u'ServerDefault'
 # Sleep a bit to let them all get added in
+print(u"Finished users, sleeping for a few moments")
 time.sleep(4)
 
 # Put users in groups
-
+print(u"Starting users in groups")
 # Grab all the group names from the original site
 groups_dict = o.convert_xml_list_to_name_id_dict(groups)
 
@@ -139,8 +148,9 @@ for group in groups_dict:
     #    new_group_users.append(new_name)
 
     n.add_users_to_group(new_group_users, group)
-
+print(u"Finished users into groups")
 # Create all of the projects
+print(u"Started projects")
 projects = o.query_projects()
 proj_dict = o.convert_xml_list_to_name_id_dict(projects)
 for proj in projects:
@@ -157,6 +167,11 @@ for proj in projects:
 
     n.create_project(direct_xml_request=proj_request, no_return=True)
 
+# Let the projects get all settled in
+print(u"Finished groups, sleeping for a few moments")
+time.sleep(4)
+
+print(u"Starting parent project assignment")
 # Now Assign projects to their parents if they have one
 # We'll use XPath to only grab elements that have a parentProjectId
 child_projects = projects.findall(u'.//t:project[@parentProjectId]', n.ns_map)
@@ -170,34 +185,245 @@ for proj in child_projects:
                          parent_project_name_or_luid=new_parent_project_name)
 
 
-# Let the projects get all settled in
+# Let the project updates get all settled in
+print(u'Finished parent project assignment, sleeping for a few moments')
 time.sleep(4)
 
 # Set Permissions for all the Projects to Match when usernames and group names perfectly match between the systems
+print(u'Starting project permissions')
 for proj_name in proj_dict:
     orig_proj = o.query_project(proj_name)
     new_proj = n.query_project(proj_name)
-    new_proj.replicate_permissions_direct_xml(orig_proj)
 
-# If you are transferring where the usernames may vary (say to Online where all usernames are e-mail addresses
-# must come up with a mechanism for
+    # If you are transferring where the usernames may vary (say to Online where all usernames are e-mail addresses
+    # must come up with a mechanism for mapping the username.
+    users_mapping = None
+    # Create a username_map dict to pass like {'original_username', : 'new_username'}.
+    # Uncomment the following if necessary:
+    # users_mapping = { 'username' : 'username@domain.net', 'admin' : 'admin@domain.net' }
 
-# Datasources
+    new_proj.replicate_permissions_direct_xml(orig_proj, username_map=users_mapping)
+
+print(u'Finished project permissions')
+
+# Migrate Schedules BEFORE data sources and workbooks, so that you can update their Extract and Subscriptions at the
+# time you publish them
+
+# Schedules
+# If migrating to Tableau Online, comment out the whole following section,
+# you'll need to do a mapping when replicating subscriptions
+
+print(u'Starting schedules')
+# Schedules are Server wide, so you must be a Server admin to sync them
+# You probably don't want to override existing schedules on the new Server
+# So you might comment this whole thing out, or do a name check like:
+existing_schedules_new_server = n.query_schedules()
+
+# Let's assume a quick name match is enough to know whether to bother to add
+existing_schedules_dict = n.convert_xml_list_to_name_id_dict(existing_schedules_new_server)
+
+schedules = o.query_schedules()
+for sched in schedules:
+    # Check if a Schedule with this name already exists
+    if sched.get(u'name') in existing_schedules_dict:
+        print(u'Skipping Schedule {}, a schedule with this name already exists on server'.format(sched.get(u'name')))
+        continue
+    sched_request = n.build_request_from_response(sched)
+    n.create_schedule(direct_xml_request=sched_request)
+print(u'Finished schedules, sleeping for a few moments')
+
+time.sleep(4)
+
+# Workbooks
+# This is all based on the replicate_workbooks_with_published_dses method in the template_publish_sample.py example
+# Because of published data sources, it makes the most sense to replicate workbooks first and also whatever published
+# data sources happen to be connected to them, then loop back around later for any stray data sources
+
+# Keep track of datasources that are republished to not replicate effort later
+replicated_datasources_luid_list = []
+
+
+# Simple object to keep all the details this requires straight
+class PublishedDSInfo:
+    def __init__(self, orig_content_url):
+        self.orig_content_url = orig_content_url
+        self.orig_luid = None
+        self.orig_name = None
+        self.orig_proj_name = None
+        self.new_luid = None
+        self.new_content_url = None
+
+
+# Determine which published data sources to copy across
+# Do in a first step in case multiple workbooks are connected to the same
+# set of data sources
+orig_ds_content_url = {}
+error_wbs = []
+
+
+
+# Go Project by Project because workbook names are unique within Projects at least
+o_projects = o.query_projects()
+o_proj_dict = o.convert_xml_list_to_name_id_dict(o_projects)
+for proj in o_proj_dict:
+    # use a LUID lookup through o_proj_dict[proj] to reduce name lookups
+    print(u'Starting workbooks in project {}'.format(proj))
+    wbs_in_proj = o.query_workbooks_in_project(o_proj_dict[proj])
+    workbook_name_or_luids = o.convert_xml_list_to_name_id_dict(wbs_in_proj)
+
+    # which is necessary to make sure there is no name duplication
+    wb_files = {}
+
+    # Go through all the workbooks you'd identified to publish over
+    for wb in workbook_name_or_luids:
+        try:
+
+            # We need the workbook downloaded even if there are no published data sources
+            # But we have to open it up to see if there are any
+            wb_filename = o.download_workbook(wb_name_or_luid=wb, filename_no_extension=wb,
+                                              proj_name_or_luid=o_proj_dict[proj])
+            wb_files[wb] = wb_filename
+            # Open up the file using the tableau_documents sub-module to find out if the
+            # data sources are published. This is easier and more exact than using the REST API
+            wb_obj = TableauFile(wb_filename, logger)
+            dses = wb_obj.tableau_document.datasources  # type: list[TableauDatasource]
+            for ds in dses:
+                # Add any published datasources to the dict with the object to hold the details
+                if ds.published is True:
+                    orig_ds_content_url[ds.published_ds_content_url] = PublishedDSInfo(ds.published_ds_content_url)
+        except NoMatchFoundException as e:
+            logger.log(u'Could not find a workbook with name or luid {}, skipping'.format(wb))
+            error_wbs.append(wb)
+        except MultipleMatchesFoundException as e:
+            logger.log(u'wb {} had multiple matches found, skipping'.format(wb))
+            error_wbs.append(wb)
+
+    print(u"Found {} published data sources to move over".format(len(orig_ds_content_url)))
+
+    # Look up all these data sources and find their LUIDs so they can be downloaded
+    all_dses = o.query_datasources()
+
+    for ds_content_url in orig_ds_content_url:
+        print(ds_content_url)
+
+        ds_xml = all_dses.findall(u'.//t:datasource[@contentUrl="{}"]'.format(ds_content_url), o.ns_map)
+        if len(ds_xml) == 1:
+            orig_ds_content_url[ds_content_url].orig_luid = ds_xml[0].get(u'id')
+            orig_ds_content_url[ds_content_url].orig_name = ds_xml[0].get(u'name')
+
+            for element in ds_xml[0]:
+                if element.tag.find(u'project') != -1:
+                    orig_ds_content_url[ds_content_url].orig_proj_name = element.get(u'name')
+                    break
+        else:
+            # This really shouldn't be possible, so you might want to add a break point here
+            print(u'Could not find matching datasource for contentUrl {}'.format(ds_content_url))
+
+    print(u'Finished finding all of the info from the data sources')
+
+    # Download those data sources and republish them
+    # You need the credentials to republish, as always
+
+    dest_project = n.query_project(proj)
+
+    for ds in orig_ds_content_url:
+        ds_filename = o.download_datasource(orig_ds_content_url[ds].orig_luid, u'downloaded ds')
+        proj_obj = n.query_project(orig_ds_content_url[ds].orig_proj_name)
+
+        ds_obj = TableauFile(ds_filename)
+        ds_dses = ds_obj.tableau_document.datasources  # type: list[TableauDatasource]
+        # You may need to change details of the data source connections here
+        # Uncomment below if you have things to change
+        # for ds_ds in ds_dses:
+        #    for conn in ds_ds.connections:
+        # Change the dbname is most common
+        # conn.dbname = u'prod'
+        # conn.port = u'10000'
+
+        new_ds_filename = ds_obj.save_new_file(u'Updated Datasource')
+
+        # Here is also where any credential mapping would need to happen, because credentials can't be retrieved
+
+        orig_ds_content_url[ds].new_luid = n.publish_datasource(new_ds_filename, orig_ds_content_url[ds].orig_name,
+                                                                proj_obj, overwrite=True)
+        print(u'Published data source, resulting in new luid {}'.format(orig_ds_content_url[ds].new_luid))
+
+        # Add to the list that don't need to be republished
+        replicated_datasources_luid_list.append(orig_ds_content_url[ds].orig_luid)
+
+        # Clean the file
+        os.remove(new_ds_filename)
+
+        try:
+            new_ds = n.query_datasource(orig_ds_content_url[ds].new_luid)
+            orig_ds_content_url[ds].new_content_url = new_ds[0].get(u'contentUrl')
+            print(u'New Content URL is {}'.format(orig_ds_content_url[ds].new_content_url))
+        except RecoverableHTTPException as e:
+            print(e.tableau_error_code)
+            print(e.http_code)
+            print(e.luid)
+
+    print(u'Finished republishing all data sources to the new site')
+
+    # Now that you have the new contentUrls that map to the original ones,
+    # and you know the DSes have been pushed across, you can open up the workbook and
+    # make sure that all of the contentUrls are correct
+    for wb in wb_files:
+        t_file = TableauFile(wb_files[wb], logger_obj=logger)
+        dses = t_file.tableau_document.datasources  # type: list[TableauDatasource]
+        for ds in dses:
+            if ds.published is True:
+                # Set the Site of the published data source
+                ds.published_ds_site = new_site_content_url
+
+                o_ds_content_url = ds.published_ds_content_url
+                if o_ds_content_url in orig_ds_content_url:
+                    ds.published_ds_content_url = orig_ds_content_url[o_ds_content_url].new_content_url
+            # If the datasources AREN'T published, then you may need to change details directly here
+            else:
+                print(u'Not a published data source')
+            #    for conn in ds.connections:
+            # Change the dbname is most common
+            # conn.dbname = u'prod'
+            # conn.port = u'10000'
+
+        temp_wb_file = t_file.save_new_file(u'Modified Workbook'.format(wb))
+
+        # Map any credentials for embedded datasources in the workbook here as well
+
+        new_workbook_luid = n.publish_workbook(workbook_filename=temp_wb_file, workbook_name=wb,
+                                               project_obj=dest_project,
+                                               overwrite=True, check_published_ds=False)
+        print(u'Published new workbook {}'.format(new_workbook_luid))
+        os.remove(temp_wb_file)
+    print(u'Finished workbooks for project {}'.format(proj))
+print(u'Finished publishing all workbooks')
+
+
+# Published Datasources that were not attached to a workbook
 # Note -- data sources with embedded data credentials must have them supplied again at this publish time
 # Must publish Data Sources
 
-# Workbooks
 
-# Schedules
-# Schedules are Server wide, so you must be a Server admin to sync them
-# You probably don't want to override existing schedules on the new Server
 
-# If migrating to Tableau Online, comment out this section
-#schedules = o.query_schedules()
-#for sched in schedules:
-
+# Extract Refreshes
 
 # Subscriptions
-# If migrating to Tableau Online, build a translation dictionary for the
+
+# If migrating to Tableau Online, build a translation dictionary for the original schedule name and the new schedule name
+
+print(u'Starting subscriptions')
+subscriptions = o.query_subscriptions()
+
+for sub in subscriptions:
+    sub_request = n.build_request_from_response(sub)
+
+    # Subscriptions actually require 3 different IDs to line up --
+    # the content (workbook or view), the user and the subscription
+    # Everything must be replicated over
+
+    #n.create_subscription()
+
+
 
 # Alerts
