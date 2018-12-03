@@ -101,6 +101,10 @@ class TableauDatasource(TableauDocument):
                     self.log(u'connection tags found, building a TableauConnection object')
                     new_conn = TableauConnection(connection_xml_obj)
                     self.connections.append(new_conn)
+                    if new_conn.connection_type == u'sqlproxy':
+                        self._published = True
+                        repository_location_xml = self.xml.find(u'repository-location')
+                        self.repository_location = repository_location_xml
 
             # Grab the relation
             elif self.ds_version_type in [u'10', u'10.5']:
@@ -113,6 +117,9 @@ class TableauDatasource(TableauDocument):
                 for published_datasource in published_datasources:
                     self.log(u'Published Datasource connection tags found, building a TableauConnection object')
                     self.connections.append(TableauConnection(published_datasource))
+                    self._published = True
+                    repository_location_xml = self.xml.find(u'repository-location')
+                    self.repository_location = repository_location_xml
 
             # Skip the relation if it is a Parameters datasource. Eventually, build out separate object
             if self.xml.get(u'name') != u'Parameters':
@@ -122,13 +129,13 @@ class TableauDatasource(TableauDocument):
                 self.log(u'Found a Parameters datasource')
 
 
-        self.repository_location = None
+        #self.repository_location = None
 
-        if self.xml.find(u'repository-location') is not None:
-            if len(self.xml.find(u'repository-location')) == 0:
-                self._published = True
-                repository_location_xml = self.xml.find(u'repository-location')
-                self.repository_location = repository_location_xml
+        #if self.xml.find(u'repository-location') is not None:
+        #    if len(self.xml.find(u'repository-location')) == 0:
+        #        self._published = True
+        #        repository_location_xml = self.xml.find(u'repository-location')
+        #        self.repository_location = repository_location_xml
 
         # Grab the extract filename if there is an extract section
         if self.xml.find(u'extract') is not None:

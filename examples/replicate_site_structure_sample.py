@@ -359,18 +359,25 @@ for proj in o_proj_dict:
         ds_dses = ds_obj.tableau_document.datasources  # type: list[TableauDatasource]
         # You may need to change details of the data source connections here
         # Uncomment below if you have things to change
-        # for ds_ds in ds_dses:
-        #    for conn in ds_ds.connections:
+        credentials = None
+        for ds_ds in ds_dses:
+            for conn in ds_ds.connections:
         # Change the dbname is most common
-        # conn.dbname = u'prod'
-        # conn.port = u'10000'
+                # Credential mapping example, could be much more full
+                if conn.server.find(u'servername') != -1:
+                    credentials = {u'username': u'uname', u'password': u'pword'}
 
         new_ds_filename = ds_obj.save_new_file(u'Updated Datasource')
 
         # Here is also where any credential mapping would need to happen, because credentials can't be retrieved
-
-        orig_ds_content_url[ds].new_luid = n.publish_datasource(new_ds_filename, orig_ds_content_url[ds].orig_name,
-                                                                proj_obj, overwrite=True)
+        if credentials is not None:
+            orig_ds_content_url[ds].new_luid = n.publish_datasource(new_ds_filename, orig_ds_content_url[ds].orig_name,
+                                                                    proj_obj, overwrite=True,
+                                                                    connection_username=credentials[u'username'],
+                                                                    connection_password=credentials[u'password'])
+        else:
+            orig_ds_content_url[ds].new_luid = n.publish_datasource(new_ds_filename, orig_ds_content_url[ds].orig_name,
+                                                                    proj_obj, overwrite=True)
         print(u'Published data source, resulting in new luid {}'.format(orig_ds_content_url[ds].new_luid))
 
         # Add to an Extract Schedule if one was scheduled
@@ -475,7 +482,7 @@ for proj in proj_dict:
             print(u'Published data source, resulting in new luid {}'.format(new_ds_luid))
 
             # Add to an Extract Schedule if one was scheduled
-            if ds_luid in ds_extract_tasks:
+            if o_ds_luid in ds_extract_tasks:
                 n.add_datasource_to_schedule(ds_name_or_luid=new_ds_luid,
                                              schedule_name_or_luid=ds_extract_tasks[o_ds_luid])
 
@@ -516,5 +523,4 @@ subscriptions = o.query_subscriptions()
 # Only available in API 3.2 and later
 # No way to create an equivalent data driven alert, because while you can get the existence of an Alert from the
 # originating site, there is no method to ADD a data driven alert to the new site, only to Add a User to an
-# existing Data Driven Alert
 # existing Data Driven Alert
