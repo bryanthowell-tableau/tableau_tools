@@ -8,6 +8,7 @@ from ..tableau_documents.tableau_workbook import TableauWorkbook
 from ..tableau_documents.tableau_datasource import TableauDatasource
 from ..tableau_exceptions import *
 from rest_xml_request import RestXmlRequest
+from rest_json_request import RestJsonRequest
 from published_content import Project20, Project21, Project28, Workbook, Datasource
 import copy
 
@@ -39,6 +40,7 @@ class TableauRestApiConnection(TableauBase):
         self._last_response_content_type = None
 
         self._request_obj = None  # type: RestXmlRequest
+        self._request_json_obj = None  # type: RestJsonRequest
 
         # All defined in TableauBase superclass
         self._site_roles = self.site_roles
@@ -309,6 +311,27 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return xml
 
+    # baseline method for any get request. appends to base url
+    def query_resource_json(self, url_ending, server_level=False, page_number=None):
+        """
+        :type url_ending: unicode
+        :type server_level: bool
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+        api_call = self.build_api_url(url_ending, server_level)
+        if self._request_json_obj is None:
+            self._request_json_obj = RestJsonRequest(token=self.token, logger=self.logger,
+                                                     verify_ssl_cert=self.verify_ssl_cert)
+        self._request_json_obj.http_verb = u'get'
+        self._request_json_obj.url = api_call
+        self._request_json_obj.request_from_api(page_number=page_number)
+        json_response = self._request_json_obj.get_response()  # return JSON as string
+        self._request_obj.url = None
+        self.end_log_block()
+        return json_response
+
     def query_single_element_from_endpoint(self, element_name, name_or_luid, server_level=False):
         """
         :type element_name: unicode
@@ -493,6 +516,16 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return dses
 
+    def query_datasources_json(self, page_number=None):
+        """
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+        datasources = self.query_resource_json(u"datasources", page_number=page_number)
+        self.end_log_block()
+        return datasources
+
     # Tries to guess name or LUID, hope there is only one
     def query_datasource(self, ds_name_or_luid, proj_name_or_luid=None):
         """
@@ -595,6 +628,21 @@ class TableauRestApiConnection(TableauBase):
 
     # # No basic verb for querying a single group, so run a query_groups
 
+    def query_groups_json(self, page_number=None):
+        """
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+        groups = self.query_resource_json(u"groups", page_number=page_number)
+        #for group in groups:
+        #    # Add to group-name : luid cache
+        #    group_luid = group.get(u"id")
+        #    group_name = group.get(u'name')
+        #    self.group_name_luid_cache[group_name] = group_luid
+        self.end_log_block()
+        return groups
+
     def query_group(self, group_name_or_luid):
         """
         :type group_name_or_luid: unicode
@@ -664,6 +712,16 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return projects
 
+    def query_projects_json(self, page_number=None):
+        """
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+        projects = self.query_resource_json(u"projects", page_number=page_number)
+        self.end_log_block()
+        return projects
+
     def query_project(self, project_name_or_luid):
         """
         :type project_name_or_luid: unicode
@@ -721,6 +779,16 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return sites
 
+    def query_sites_json(self, page_number=None):
+        """
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+        sites = self.query_resource_json(u"sites", server_level=True, page_number=page_number)
+        self.end_log_block()
+        return sites
+
     # Methods for getting info about the sites, since you can only query a site when you are signed into it
 
     # Return list of all site contentUrls
@@ -768,6 +836,25 @@ class TableauRestApiConnection(TableauBase):
         self.start_log_block()
         users = self.query_resource(u"users")
         self.log(u'Found {} users'.format(unicode(len(users))))
+        self.end_log_block()
+        return users
+
+    # The reference has this name, so for consistency adding an alias
+    def get_users_json(self, page_number=None):
+        """
+        :type page_number: int
+        :rtype: json
+        """
+        return self.query_users_json(page_number=page_number)
+
+    def query_users_json(self, page_number=None):
+        """
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+        users = self.query_resource_json(u"users", page_number=page_number)
+        #self.log(u'Found {} users'.format(unicode(len(users))))
         self.end_log_block()
         return users
 
@@ -866,6 +953,23 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return wbs
 
+    def query_workbooks_json(self, username_or_luid=None, page_number=None):
+        """
+        :type username_or_luid: unicode
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+        if username_or_luid is None:
+            user_luid = self.user_luid
+        elif self.is_luid(username_or_luid):
+            user_luid = username_or_luid
+        else:
+            user_luid = self.query_user_luid(username_or_luid)
+        wbs = self.query_resource_json(u"users/{}/workbooks".format(user_luid), page_number=page_number)
+        self.end_log_block()
+        return wbs
+
     # Because a workbook can have the same pretty name in two projects, requires more logic
     def query_workbook(self, wb_name_or_luid, proj_name_or_luid=None, username_or_luid=None):
         """
@@ -924,7 +1028,7 @@ class TableauRestApiConnection(TableauBase):
             wb_luid = workbooks_with_name[0].get("id")
             self.end_log_block()
             return wb_luid
-        elif len(workbooks_with_name) > 1 and proj_name_or_luid is not False:
+        elif len(workbooks_with_name) > 1 and proj_name_or_luid is not None:
             if self.is_luid(proj_name_or_luid):
                 wb_in_proj = workbooks.findall(u'.//t:workbook[@name="{}"]/t:project[@id="{}"]/..'.format(wb_name, proj_name_or_luid), self.ns_map)
             else:
@@ -976,6 +1080,29 @@ class TableauRestApiConnection(TableauBase):
         else:
             wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
         vws = self.query_resource(u"workbooks/{}/views?includeUsageStatistics={}".format(wb_luid, str(usage).lower()))
+        self.end_log_block()
+        return vws
+
+    def query_workbook_views_json(self, wb_name_or_luid, proj_name_or_luid=None, username_or_luid=None, usage=False,
+                                  page_number=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type username_or_luid: unicode
+        :type usage: bool
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+        if usage not in [True, False]:
+            raise InvalidOptionException(u'Usage can only be set to True or False')
+        if self.is_luid(wb_name_or_luid):
+            wb_luid = wb_name_or_luid
+        else:
+            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
+        vws = self.query_resource_json(u"workbooks/{}/views?includeUsageStatistics={}".format(wb_luid,
+                                                                                              str(usage).lower()),
+                                                                                              page_number=page_number)
         self.end_log_block()
         return vws
 

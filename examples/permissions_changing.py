@@ -3,32 +3,6 @@
 from tableau_tools.tableau_rest_api import *
 from tableau_tools import *
 
-capabilities_to_set = {u"Download Full Data": u"Deny"}
-tableau_group_name = u'All Users'
-
-server = u'http://'
-username = u'username'
-password = u'secure_password'
-site = u'a_site'
-
-logger = Logger(u'Permissions.log')
-
-t = TableauRestApiConnection25(server, username, password, site)
-t.signin()
-t.enable_logging(logger)
-
-projects = t.query_projects()
-projects_dict = t.convert_xml_list_to_name_id_dict(projects)
-
-
-# Determine the identifer (LUID) of the Group
-try:
-    all_users_group_luid = t.query_group_luid(tableau_group_name)
-except NoMatchFoundException:
-    print(u"No group found using the name provided")
-    exit()
-
-
 def update_workbook_permissions(project_obj, published_workbook_object, group_luid, capabilities_dict):
     """
     :type project_obj: Project
@@ -63,33 +37,68 @@ def update_workbook_permissions(project_obj, published_workbook_object, group_lu
         print(u'No permissions found for group, adding new permissions')
         published_workbook_object.set_permissions_by_permissions_obj_list([new_perm_obj, ])
 
+capabilities_to_set = {u"Download Full Data": u"Deny"}
+tableau_group_name = u'All Users'
 
-for project in projects_dict:
-    # List of projects we want to search in. Uncomment if you want to limit which projects are affected:
-    # projects_to_change = [u'Project A', u'Project C']
-    # if project not in projects_to_change:
-    #    continue
+server = u'http://'
+username = u'username'
+password = u'secure_password'
+site = u'a_site'
 
-    # Update the workbook_defaults in the project
+logger = Logger(u'Permissions.log')
 
-    # Get the project as an object so permissions are available
-    try:
-        project_object = t.query_project(project)
-    except NoMatchFoundException:
-        print(u"No project found with the given name, check the log")
-        exit()
+t = TableauRestApiConnection28(server=server, username=username, password=password, site_content_url=site)
+t.signin()
+t.enable_logging(logger)
 
-    workbook_defaults_obj = project_object.workbook_defaults
-    print(u"Updating the Project's Workbook Defaults")
-    update_workbook_permissions(project_object, workbook_defaults_obj, all_users_group_luid, capabilities_to_set)
+projects = t.query_projects()
+projects_dict = t.convert_xml_list_to_name_id_dict(projects)
 
-    # Update the workbooks themselves (if the permissions aren't locked, because this would be a waste of time)
-    if project_object.are_permissions_locked() is False:
-        wbs_in_project = t.query_workbooks_in_project(project)
-        wbs_dict = t.convert_xml_list_to_name_id_dict(wbs_in_project)
-        for wb in wbs_dict:
-            # Second parameter project_name is unecessary when passing a LUID
-            # That is why you reference wbs_dict[wb], rather than wb directly, which is just the name
-            wb_obj = t.get_published_workbook_object(wbs_dict[wb], u"")
-            print(u'Updating workbook with LUID {}'.format(wbs_dict[wb]))
-            update_workbook_permissions(project_object, wb_obj, all_users_group_luid, capabilities_to_set)
+
+# Determine the identifer (LUID) of the Group
+try:
+    all_users_group_luid = t.query_group_luid(group_name=tableau_group_name)
+    for project in projects_dict:
+        # List of projects we want to search in. Uncomment if you want to limit which projects are affected:
+        # projects_to_change = [u'Project A', u'Project C']
+        # if project not in projects_to_change:
+        #    continue
+
+        # Update the workbook_defaults in the project
+
+        # Get the project as an object so permissions are available
+        try:
+            project_object = t.query_project(project_name_or_luid=project)
+            workbook_defaults_obj = project_object.workbook_defaults
+            print(u"Updating the Project's Workbook Defaults")
+            update_workbook_permissions(project_obj=project_object, published_workbook_object=workbook_defaults_obj,
+                                        group_luid=all_users_group_luid, capabilities_dict=capabilities_to_set)
+
+            # Update the workbooks themselves (if the permissions aren't locked, because this would be a waste of time)
+            if project_object.are_permissions_locked() is False:
+                wbs_in_project = t.query_workbooks_in_project(project_name_or_luid=project)
+                wbs_dict = t.convert_xml_list_to_name_id_dict(wbs_in_project)
+                for wb in wbs_dict:
+                    # Second parameter project_name is unecessary when passing a LUID
+                    # That is why you reference wbs_dict[wb], rather than wb directly, which is just the name
+                    wb_obj = t.get_published_workbook_object(workbook_name_or_luid=wbs_dict[wb],
+                                                             project_name_or_luid=u"")
+                    print(u'Updating workbook with LUID {}'.format(wbs_dict[wb]))
+                    update_workbook_permissions(project_obj=project_object, published_workbook_object=wb_obj,
+                                                group_luid=all_users_group_luid, capabilities_dict=capabilities_to_set)
+
+        except NoMatchFoundException:
+            print(u"No project found with the given name, check the log")
+            exit()
+
+except NoMatchFoundException:
+    print(u"No group found using the name provided")
+    exit()
+
+
+
+
+
+
+
+

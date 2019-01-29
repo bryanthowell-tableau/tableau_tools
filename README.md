@@ -50,6 +50,7 @@ The TableauDatasource class uses the `TDEFileGenerator` and/or the `HyperFileGen
 * 4.4.0: A lot of improvements to the tableau_documents library and its documentation
 * 4.5.0: 2018.1 (API 3.0) compatibility. All requests for a given connection using a single HTTP session, and other improvements to the RestXmlRequest class.
 * 4.7.0: Dropping API 2.0 (Tableau 9.0) compatibility. Any method that is overwritten in a later version will not be updated in the TableauRestApiConnection class going forward. Also implemented a direct_xml_request parameter for Add and Update methods, allowing direct submission of an ElementTree.Element request to the endpoints, particularly for replication.
+* 4.8.0 Introduces the RestJsonRequest object and _json plural querying methods for passing JSON responses to other systems
 ## --- Table(au) of Contents ---
 ------
 
@@ -116,6 +117,7 @@ The TableauDatasource class uses the `TDEFileGenerator` and/or the `HyperFileGen
   * [2.12 Creating a TableauDatasource from Scratch](#212-creating-a-tableaudatasource-from-scratch)
   * [2.13 Creating and Modifying Parameters](#213-creating-and-modifying-parameters)
     + [2.13.1 TableauParameter class](#2131-tableauparameter-class)
+  * [2.14 HyperFileGenerator and TDEFileGenerator Classes](#214-)
 - [3 tabcmd](#3-tabcmd)
   * [3.1 Tabcmd Class](#31-tabcmd-class)
   * [3.2 Triggering an Extract Refresh](#32-triggering-an-extract-refresh)
@@ -133,6 +135,7 @@ tableau_tools
     * permissions
     * published_content (Project, Workbook, Datasource)
     * rest_xml_request
+    * rest_json_request
     * sort
     * tableau_rest_api_server_connection
     * tableau_rest_api_server_connection21
@@ -143,6 +146,9 @@ tableau_tools
     * tableau_rest_api_server_connection26
     * tableau_rest_api_server_connection27
     * tableau_rest_api_server_connection28
+    * tableau_rest_api_server_connection30
+    * tableau_rest_api_server_connection31
+    * tableau_rest_api_server_connection32
     * url_filter
 * tableau_documents
     * tableau_connection
@@ -225,6 +231,10 @@ tableau_tools 4.0+ implements the different versions of the Tableau Server REST 
 
 `TableauRestApiConnection30: 2018.1`
 
+`TableauRestApiConnection31: 2018.2`
+
+`TableauRestApiConnection32: 2018.3`
+
 You need to initialize at least one object of this class. 
 Ex.:
 
@@ -275,13 +285,16 @@ The simplest method for getting information from the REST API are the "plural" q
 
 `TableauRestApiConnection.query_groups()`
 
-`TableauRestApiConnection.query_users()`
+`TableauRestApiConnection.query_users(username_or_luid)`
 
 `TableauRestApiConnection.query_workbooks()`
 
 `TableauRestApiConnection.query_projects()`
 
 `TableauRestApiConnection.query_datasources()`
+
+`TableauRestApiConnection.query_workbook_views()`
+
 
 These will all return an ElementTree object representing the results from the REST API call. This can be useful if you need all of the information returned, but most of your calls to these methods will be to get a dictionary of names : luids you can use for lookup. There is a simple static method for this conversion
 
@@ -296,6 +309,25 @@ Ex.
     
     for group_name in groups_dict:
         print "Group name {} is LUID {}".format(group_name, groups_dict[group_name])
+
+There are also equivalent JSON querying methods for the plural methods, which return a Python json object, using the Tableau REST API's native method for requesting JSON responses rather than XML. 
+
+The JSON plural query methods allow you to specify the page of results using the page= optional parameter(starting at 1). If you do not specify a page, tableau_tools will automatically paginate through all results and combine them together. 
+
+
+`TableauRestApiConnection.query_groups_json(page_number=None)`
+
+`TableauRestApiConnection.query_users_json(page_number=None)`
+
+`TableauRestApiConnection.query_workbooks_json(username_or_luid, page_number=None)`
+
+`TableauRestApiConnection.query_projects_json(page_number=None)`
+
+`TableauRestApiConnection.query_datasources_json(page_number=None)`
+
+`TableauRestApiConnection.query_workbook_views_json(page_number=None)`
+
+
 
 ##### 1.2.2.1 Filtering and Sorting (Tableau Server 9.3+)
 `TableauRestApiConnection22` implements filtering and sorting for the methods where it is allowed. Singular lookup methods are programmed to take advantage of this automatically for improved perofrmance, but the plural querying methods can use the filters to bring back specific sets.
@@ -1522,6 +1554,31 @@ Ex.
     param.set_allowable_values_to_list(allowable_values)
     param.set_current_value(u'Spring 2018')
 
+### 2.14 HyperFileGenerator and TDEFileGenerator Classes
+The "add extract" functionality in tableau_tools uses the Extract API/Tableau SDK (they are the same thing, the names changed back and forth over time). The HyperFileGenerator and TDEFileGenerator classes are replicas of one another, but HyperFileGenerator uses the Extract API 2.0, which is capable of creating Hyper files. 
+
+You can use them in conjunction with PyODBC (install via pip) to create extracts very simply from a query to an ODBC connection. In essence, the classes will map any of the PyODBC data types to the Extract API data types automatically when you provide a PyODBC cursor from an executed query.
+
+`HyperFileGenerator(logger_obj)`
+
+There are two steps to creating an extract. You first must create a Table Definition, then you insert the rows of data.
+
+The most basic way to set a Table Definition is defining a dict in the form of {'column_name' : 'data_type'}.
+
+`HyperFileGenerator.set_table_definition(column_name_type_dict, collation=Collation.EN_US)`
+
+However, you can use the a pyodbc cursor to the same effect, which basically lets you just write a query and pass everything through directly:
+
+`HyperFileGenerator.create_table_definition_from_pyodbc_cursor(pydobc_cursor, collation=Collation.EN_US)`
+
+This will return the TableDefinition object from the Extract API, but it also sets the internal table_definition for the particular instance of the HyperFileGenerator object so you don't need to do anything other than run this method and anything afterward you do will take the current TableDefinition.
+
+To generate the extract:
+`HyperFileGenerator.create_extract(tde_filename, append=False, table_name=u'Extract', pyodbc_cursor=None)`
+
+You do need to specify an actual filename for it to write to, because the Extract API always works on a file on disk. You can specify multiple tables within this file by giving different table names, and you can even append by specifying append=True while using the same table_name that previously has been created within the file. The pyodbc_cursor= optional parameter will run through all of the rows from the cursor and add them to the Extract. 
+
+At the current time, the only exposed method to add data to the extract is the pyodbc cursor.
 
 ## 3 tabcmd
 The Tableau Server REST API can do most of the things that the tabcmd command line tool can, but if you are using older versions of Tableau Server, some of those features may not have been implemented yet. If you need a functionality from tabcmd, the `tabcmd.py` file in the main part of tableau_tools library wraps most of the commonly used functionality to allow for easier scripting of calls (rather than doing it directly on the command line or using batch files)

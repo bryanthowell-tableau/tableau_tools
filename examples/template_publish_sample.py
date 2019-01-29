@@ -74,7 +74,7 @@ def promote_from_dev_to_test(logger_obj=None):
         new_project = test.query_project(u'Promoted Content')
         test.publish_datasource(u'Temp TDSX.tdsx', ds, new_project, overwrite=True, save_credentials=True)
         # If you have credentials to publish
-        # test.publish_datasource(temp_filename, ds, new_project, connection_username=u'', connection_password=u'', overwrite=True, save_credentials=True)
+        #test.publish_datasource(temp_filename, ds, new_project, connection_username=u'', connection_password=u'', overwrite=True, save_credentials=True)
         os.remove(u'Temp TDSX.tdsx')
 
 # promote_from_dev_to_test(logger)

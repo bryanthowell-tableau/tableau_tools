@@ -153,6 +153,56 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
             self.end_log_block()
             raise NoMatchFoundException(u"No {} found with name {}".format(element_name, name))
 
+    # These are the new basic methods that use the Filter functionality introduced
+    def query_resource_json(self, url_ending, server_level=False, filters=None, sorts=None, additional_url_ending=None,
+                            page_number=None):
+        """
+        :type url_ending: unicode
+        :type server_level: bool
+        :type filters: list[UrlFilter]
+        :type sorts: list[Sort]
+        :type additional_url_ending: unicode
+        :type page_number: int
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if filters is not None:
+            if len(filters) > 0:
+                filters_url = u"filter="
+                for f in filters:
+                    filters_url += f.get_filter_string() + u","
+                filters_url = filters_url[:-1]
+
+        if sorts is not None:
+            if len(sorts) > 0:
+                sorts_url = u"sort="
+                for sort in sorts:
+                    sorts_url += sort.get_sort_string() + u","
+                sorts_url = sorts_url[:-1]
+
+        if sorts is not None and filters is not None:
+            url_ending += u"?{}&{}".format(sorts_url, filters_url)
+        elif sorts is not None:
+            url_ending += u"?{}".format(sorts_url)
+        elif filters is not None and len(filters) > 0:
+            url_ending += u"?{}".format(filters_url)
+        elif additional_url_ending is not None:
+            url_ending += u"?"
+        if additional_url_ending is not None:
+            url_ending += additional_url_ending
+
+        api_call = self.build_api_url(url_ending, server_level)
+        if self._request_json_obj is None:
+            self._request_json_obj = RestJsonRequest(token=self.token, logger=self.logger,
+                                                     verify_ssl_cert=self.verify_ssl_cert)
+        self._request_json_obj.http_verb = u'get'
+        self._request_json_obj.url = api_call
+        self._request_json_obj.request_from_api(page_number=page_number)
+        json_response = self._request_json_obj.get_response()  # return JSON as string
+        self._request_obj.url = None
+        self.end_log_block()
+        return json_response
+
     # Check method for filter objects
     @staticmethod
     def _check_filter_objects(filter_checks):

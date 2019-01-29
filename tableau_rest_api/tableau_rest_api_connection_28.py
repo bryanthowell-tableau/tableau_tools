@@ -1,4 +1,6 @@
 from tableau_rest_api_connection_27 import *
+import csv
+import urllib
 
 
 class TableauRestApiConnection28(TableauRestApiConnection27):
@@ -255,7 +257,7 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
             self.end_log_block()
             raise
 
-    def save_view_data_as_csv(self, wb_name_or_luid, view_name_or_luid, filename_no_extension=None,
+    def save_view_data_as_csv(self, wb_name_or_luid=None, view_name_or_luid=None, filename_no_extension=None,
                               proj_name_or_luid=None, view_filter_map=None):
         """
         :type wb_name_or_luid: unicode
@@ -293,10 +295,9 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
                 save_file.write(data)
                 save_file.close()
                 self.end_log_block()
+                return
             else:
-                self.end_log_block()
-                # Do we need to do a codec conversion to make this unicode text?
-                return data
+                raise InvalidOptionException(u'This method is for saving response to file. Must include filename_no_extension parameter')
 
         # You might be requesting something that doesn't exist
         except RecoverableHTTPException as e:
@@ -305,6 +306,46 @@ class TableauRestApiConnection28(TableauRestApiConnection27):
             raise
         except IOError:
             self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension))
+            self.end_log_block()
+            raise
+
+    def query_view_data(self, wb_name_or_luid=None, view_name_or_luid=None, proj_name_or_luid=None,
+                        view_filter_map=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type view_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type view_filter_map: dict
+        :rtype: csv
+        """
+        self.start_log_block()
+
+        if self.is_luid(view_name_or_luid):
+            view_luid = view_name_or_luid
+        else:
+            if wb_name_or_luid is None:
+                raise InvalidOptionException(u'If looking up view by name, must include workbook')
+            view_luid = self.query_workbook_view_luid(wb_name_or_luid, view_name=view_name_or_luid,
+                                                      proj_name_or_luid=proj_name_or_luid)
+        try:
+            if view_filter_map is not None:
+                final_filter_map = {}
+                for key in view_filter_map:
+                    new_key = u"vf_{}".format(key)
+                    final_filter_map[new_key] = view_filter_map[key]
+
+                additional_url_params = u"?" + urllib.urlencode(final_filter_map)
+            else:
+                additional_url_params = u""
+            url = self.build_api_url(u"views/{}/data{}".format(view_luid, additional_url_params))
+            # Raw response should be UTF-8 encoded plain text CSV
+            data = self.send_binary_get_request(url)
+            # Convert to CSV object?
+            return data
+
+        # You might be requesting something that doesn't exist
+        except RecoverableHTTPException as e:
+            self.log(u"Attempt to request data results in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
             self.end_log_block()
             raise
 
