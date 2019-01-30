@@ -31,7 +31,7 @@ class TableauRestApiConnection(TableauBase):
         self.site_content_url = site_content_url
         self.username = username
         self._password = password
-        self.token = None  # Holds the login token from the Sign In call
+        self._token = None  # Holds the login token from the Sign In call
         self.site_luid = ""
         self.user_luid = ""
         self._login_as_user_id = None
@@ -53,6 +53,18 @@ class TableauRestApiConnection(TableauBase):
 
         # For working around SSL issues
         self.verify_ssl_cert = True
+
+    @property
+    def token(self):
+        return self._token
+
+    @token.setter
+    def token(self, new_token):
+        self._token = new_token
+        if self._request_obj is not None:
+            self._request_obj.token = self._token
+        if self._request_json_obj is not None:
+            self._request_json_obj.token = self._token
 
     def enable_logging(self, logger_obj):
         """
@@ -212,7 +224,6 @@ class TableauRestApiConnection(TableauBase):
             luid = self.query_datasource_luid(datasource_name_or_luid, project_name_or_luid)
         ds_obj = Datasource(luid, self, tableau_server_version=self.version, default=False, logger_obj=self.logger)
         return ds_obj
-
 
     #
     # Sign-in and Sign-out
