@@ -476,7 +476,7 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         if username_or_luid is not None:
             wbs = self.query_resource_json(u"users/{}/workbooks".format(user_luid), page_number=page_number)
         else:
-            wbs = self.query_resource(u"workbooks".format(user_luid), sorts=sorts, filters=filters, fields=fields)
+            wbs = self.query_resource_json(u"workbooks".format(user_luid), sorts=sorts, filters=filters, fields=fields)
 
         self.end_log_block()
         return wbs

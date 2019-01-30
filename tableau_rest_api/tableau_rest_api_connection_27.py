@@ -112,11 +112,6 @@ class TableauRestApiConnection27(TableauRestApiConnection26):
 
             self.start_log_block()
             groups = self.query_resource_json(u"groups", filters=filters, sorts=sorts, page_number=page_number)
-            for group in groups:
-                # Add to group-name : luid cache
-                group_luid = group.get(u"id")
-                group_name = group.get(u'name')
-                self.group_name_luid_cache[group_name] = group_luid
             self.end_log_block()
             return groups
 
