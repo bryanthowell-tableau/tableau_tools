@@ -406,7 +406,7 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         :type owner_name_filter: UrlFilter
         :type tags_filter: UrlFilter
         :type sorts: list[Sort]
-        :type fields: list[Sort]
+        :type fields: list[unicode]
         :rtype: etree.Element
         """
         self.start_log_block()
@@ -453,7 +453,7 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         :type owner_name_filter: UrlFilter
         :type tags_filter: UrlFilter
         :type sorts: list[Sort]
-        :type fields: list[Sort]
+        :type fields: list[unicode]
         :type page_number: int
         :rtype: json
         """
@@ -474,12 +474,69 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         filters = self._check_filter_objects(filter_checks)
 
         if username_or_luid is not None:
-            wbs = self.query_resource_json(u"users/{}/workbooks".format(user_luid), page_number=page_number)
+            wbs = self.query_resource_json(u"users/{}/workbooks".format(user_luid), sorts=sorts, filters=filters,
+                                           fields=fields, page_number=page_number)
         else:
-            wbs = self.query_resource_json(u"workbooks".format(user_luid), sorts=sorts, filters=filters, fields=fields)
+            wbs = self.query_resource_json(u"workbooks".format(user_luid), sorts=sorts, filters=filters, fields=fields,
+                                           page_number=page_number)
 
         self.end_log_block()
         return wbs
+
+    def query_views(self, all_fields=True, usage=False, created_at_filter=None, updated_at_filter=None,
+                    tags_filter=None, sorts=None, fields=None):
+        """
+        :type usage: bool
+        :type created_at_filter: UrlFilter
+        :type updated_at_filter: UrlFilter
+        :type tags_filter: UrlFilter
+        :type sorts: list[Sort]
+        :type fields: list[unicode]
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+
+        if fields is None:
+            if all_fields is True:
+                fields = [u'_all_']
+
+        if usage not in [True, False]:
+            raise InvalidOptionException(u'Usage can only be set to True or False')
+        filter_checks = {u'updatedAt': updated_at_filter, u'createdAt': created_at_filter, u'tags': tags_filter}
+        filters = self._check_filter_objects(filter_checks)
+
+        vws = self.query_resource(u"views", filters=filters, sorts=sorts, fields=fields,
+                                  additional_url_ending=u"includeUsageStatistics={}".format(str(usage).lower()))
+        self.end_log_block()
+        return vws
+
+    def query_views_json(self, all_fields=True, usage=False, created_at_filter=None, updated_at_filter=None,
+                    tags_filter=None, sorts=None, fields=None, page_number=None):
+        """
+        :type usage: bool
+        :type created_at_filter: UrlFilter
+        :type updated_at_filter: UrlFilter
+        :type tags_filter: UrlFilter
+        :type sorts: list[Sort]
+        :type fields: list[unicode]
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+
+        if fields is None:
+            if all_fields is True:
+                fields = [u'_all_']
+
+        if usage not in [True, False]:
+            raise InvalidOptionException(u'Usage can only be set to True or False')
+        filter_checks = {u'updatedAt': updated_at_filter, u'createdAt': created_at_filter, u'tags': tags_filter}
+        filters = self._check_filter_objects(filter_checks)
+
+        vws = self.query_resource_json(u"views", filters=filters, sorts=sorts, fields=fields,
+                                  additional_url_ending=u"includeUsageStatistics={}".format(str(usage).lower()))
+        self.end_log_block()
+        return vws
 
     # Alias added in
     def get_users(self, all_fields=True, last_login_filter=None, site_role_filter=None, sorts=None, fields=None):
