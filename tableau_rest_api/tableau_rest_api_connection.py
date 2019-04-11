@@ -2288,7 +2288,7 @@ class TableauRestApiConnection(TableauBase):
     # If a TableauDatasource or TableauWorkbook is passed, will upload from its content
     def publish_content(self, content_type, content_filename, content_name, project_luid, url_params=None,
                         connection_username=None, connection_password=None, save_credentials=True, show_tabs=False,
-                        check_published_ds=True, oauth_flag=False):
+                        check_published_ds=True, oauth_flag=False, generate_thumbnails_as_username_or_luid=None):
         # Single upload limit in MB
         single_upload_limit = 20
 
@@ -2344,6 +2344,12 @@ class TableauRestApiConnection(TableauBase):
                     t1.set(u'name', content_name)
                     if show_tabs is not False:
                         t1.set(u'showTabs', str(show_tabs).lower())
+                    if generate_thumbnails_as_username_or_luid is not None:
+                        if self.is_luid(generate_thumbnails_as_username_or_luid):
+                            thumbnail_user_luid = generate_thumbnails_as_username_or_luid
+                        else:
+                            thumbnail_user_luid = self.query_user_luid(generate_thumbnails_as_username_or_luid)
+                        t1.set(u'generateThumbnailsAsUser', thumbnail_user_luid)
 
                     if connection_username is not None:
                         cc = etree.Element(u'connectionCredentials')
