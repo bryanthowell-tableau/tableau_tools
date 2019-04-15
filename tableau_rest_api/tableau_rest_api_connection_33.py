@@ -46,7 +46,11 @@ class TableauRestApiConnection32(TableauRestApiConnection31):
 
     # Flow Methods Start
 
-    def query_flows_for_a_site(self, sorts=None):
+
+    def query_flow_luid(self, flow_name):
+        pass
+
+    def query_flows(self, sorts=None):
         self.start_log_block()
         flows = self.query_resource('flows', sorts=sorts)
 
@@ -54,10 +58,12 @@ class TableauRestApiConnection32(TableauRestApiConnection31):
         return flows
 
     # Just an alias for the method
-    def query_flows(self):
-        return self.query_flows_for_a_site()
+    def query_flows_for_a_site(self):
+        return self.query_flows()
 
     def query_flows_for_a_user(self, username_or_luid):
         pass
 
+    def run_flow_now(self):
+        pass
     # Flow Methods End
