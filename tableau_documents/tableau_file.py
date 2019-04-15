@@ -222,7 +222,7 @@ class TableauFile(TableauBase):
                 try:
                     shutil.rmtree(directory)
                 except OSError as e:
-                    # Just means that directory didn't exist for some reason, probably a swap occurred 
+                    # Just means that directory didn't exist for some reason, probably a swap occurred
                     pass
             new_zf.close()
 
