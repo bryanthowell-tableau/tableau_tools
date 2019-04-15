@@ -1,4 +1,5 @@
 from tableau_rest_api_connection_32 import *
+from url_filter import UrlFilter33
 
 class TableauRestApiConnection32(TableauRestApiConnection31):
     def __init__(self, server, username, password, site_content_url=u""):
@@ -46,24 +47,226 @@ class TableauRestApiConnection32(TableauRestApiConnection31):
 
     # Flow Methods Start
 
-
-    def query_flow_luid(self, flow_name):
-        pass
-
-    def query_flows(self, sorts=None):
+    def query_flow_luid(self, flow_name, project_name_or_luid=None):
+        """
+        :type flow_name: unicode
+        :type project_name_or_luid: unicode
+        :rtype: unicode
+        """
         self.start_log_block()
-        flows = self.query_resource('flows', sorts=sorts)
+
+        flow_name_filter = UrlFilter33.create_name_filter(flow_name)
+
+        flows = self.query_flows_for_a_site(flow_name_filter=flow_name_filter,
+                                            project_name_or_luid=project_name_or_luid)
+        # There should only be one flow here if any found
+        if len(flows) == 1:
+            self.end_log_block()
+            return flows[0].get(u"id")
+        else:
+            self.end_log_block()
+            raise NoMatchFoundException(u"No {} found with name {}".format(flows, flow_name))
+
+    def query_flows_for_a_site(self, project_name_or_luid=None, all_fields=True, updated_at_filter=None,
+                               created_at_filter=None, flow_name_filter=None, owner_name_filter=None, sorts=None,
+                               fields=None):
+        """
+        :type project_name_or_luid: unicode
+        :type all_fields: bool
+        :type updated_at_filter: UrlFilter
+        :type created_at_filter: UrlFilter
+        :type flow_name_filter: UrlFilter
+        :type owner_name_filter: UrlFilter
+        :type sorts: list[Sort]
+        :type fields: list[unicode]
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if fields is None:
+            if all_fields is True:
+                fields = [u'_all_']
+
+        # If create a ProjectName filter inherently if necessary
+        project_name_filter = None
+        if project_name_or_luid is not None:
+            if not self.is_luid(project_name_or_luid):
+                project_name = project_name_or_luid
+            else:
+                project = self.query_project_xml_object(project_name_or_luid)
+                project_name = project.get(u'name')
+            project_name_filter = UrlFilter33.create_project_name_equals_filter(project_name)
+
+        filter_checks = {u'updatedAt': updated_at_filter, u'createdAt': created_at_filter, u'name': flow_name_filter,
+                         u'ownerName': owner_name_filter, u'projectName': project_name_filter}
+        filters = self._check_filter_objects(filter_checks)
+
+        flows = self.query_resource(u'flows', filters=filters, sorts=sorts, fields=fields)
 
         self.end_log_block()
         return flows
 
-    # Just an alias for the method
-    def query_flows_for_a_site(self):
-        return self.query_flows()
+    def query_flows_for_a_user(self, username_or_luid, is_owner_flag=False):
+        """
+        :type username_or_luid: unicode
+        :type is_owner_flag: bool
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if self.is_luid(username_or_luid):
+            user_luid = username_or_luid
+        else:
+            user_luid = self.query_user_luid(username_or_luid)
+        additional_url_params = u""
+        if is_owner_flag is True:
+            additional_url_params += u"?ownedBy=true"
 
-    def query_flows_for_a_user(self, username_or_luid):
-        pass
+        flows = self.query_resource(u'users/{}/flows{}'.format(user_luid, additional_url_params))
+        self.end_log_block()
+        return flows
 
-    def run_flow_now(self):
-        pass
+    def get_flow_run_tasks(self):
+        """
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        tasks = self.query_resource(u'tasks/runFlow')
+        self.end_log_block()
+        return tasks
+
+    def get_flow_run_task(self, task_luid):
+        """
+        :type task_luid: unicode
+        :rtype: unicode
+        """
+        self.start_log_block()
+        task = self.query_resource(u'tasks/runFlow/{}'.format(task_luid))
+        self.end_log_block()
+        return task
+
+    def run_flow_now(self, flow_name_or_luid, flow_output_step_ids=None):
+        """
+        :type flow_name_or_luid: unicode
+        :type flow_output_step_ids: list[unicode]
+        :rtype unicode
+        """
+        self.start_log_block()
+        if self.is_luid(flow_name_or_luid):
+            flow_luid = flow_name_or_luid
+        else:
+            flow_luid = self.query_flow_luid(flow_name_or_luid)
+
+        additional_url_params = u""
+
+        # Implement once documentation is back up and going
+        if flow_output_step_ids is not None:
+            pass
+
+        tsr = etree.Element(u'tsRequest')
+        url = self.build_api_url(u"flows/{}/run{}".format(flow_luid, additional_url_params))
+        job_luid = self.send_add_request(url, tsr)
+        self.end_log_block()
+        return job_luid
+
+    def run_flow_task(self, task_luid):
+        """
+        :type task_luid: unicode
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        url = self.build_api_url(u'tasks/runFlow/{}/runNow'.format(task_luid))
+        response = self.send_post_request(url)
+        self.end_log_block()
+        return response
+
+
+    def update_flow(self, flow_name_or_luid, project_name_or_luid=None, owner_username_or_luid=None):
+        """
+        :type flow_name_or_luid: unicode
+        :type project_name_or_luid: unicode
+        :type owner_username_or_luid: unicode
+        :return:
+        """
+        self.start_log_block()
+        if project_name_or_luid is None and owner_username_or_luid is None:
+            raise InvalidOptionException(u'Must include at least one change, either project or owner or both')
+
+        if self.is_luid(flow_name_or_luid):
+            flow_luid = flow_name_or_luid
+        else:
+            flow_luid = self.query_flow_luid(flow_name_or_luid)
+
+        tsr = etree.Element(u'tsRequest')
+        f = etree.Element(u'flow')
+        if project_name_or_luid is not None:
+            if self.is_luid(project_name_or_luid):
+                proj_luid = project_name_or_luid
+            else:
+                proj_luid = self.query_project_luid(project_name_or_luid)
+            p = etree.Element(u'project')
+            p.set(u'id', proj_luid)
+            f.append(p)
+
+        if owner_username_or_luid is not None:
+            if self.is_luid(owner_username_or_luid):
+                owner_luid = owner_username_or_luid
+            else:
+                owner_luid = self.query_user_luid(owner_username_or_luid)
+
+            o = etree.Element(u'owner')
+            o.set(u'id', owner_luid)
+            f.append(o)
+
+        tsr.append(f)
+
+        url = self.build_api_url(u'flows/{}'.format(flow_luid))
+        response = self.send_update_request(url, tsr)
+
+        self.end_log_block()
+        return response
+
+    def delete_flow(self, flow_name_or_luid):
+        """
+        :type flow_name_or_luid: unicode
+        :return:
+        """
+        self.start_log_block()
+        if self.is_luid(flow_name_or_luid):
+            flow_luid = flow_name_or_luid
+        else:
+            flow_luid = self.query_flow_luid(flow_name_or_luid)
+        url = self.build_api_url(u"flows/{}".format(flow_luid))
+        self.send_delete_request(url)
+        self.end_log_block()
+
+    def add_flow_task_to_schedule(self, flow_name_or_luid, schedule_name_or_luid):
+        """
+        :type flow_name_or_luid: unicode
+        :type schedule_name_or_luid: unicode
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if self.is_luid(flow_name_or_luid):
+            flow_luid = flow_name_or_luid
+        else:
+            flow_luid = self.query_flow_luid(flow_name_or_luid)
+
+        if self.is_luid(schedule_name_or_luid):
+            sched_luid = schedule_name_or_luid
+        else:
+            sched_luid = self.query_schedule_luid(schedule_name_or_luid)
+
+        tsr = etree.Element(u'tsRequest')
+        t = etree.Element(u'task')
+        fr = etree.Element(u'flowRun')
+        f = etree.Element(u'flow')
+        f.set(u'id', flow_luid)
+        fr.append(f)
+        t.append(fr)
+        tsr.append(t)
+
+        url = self.build_api_url(u"schedules/{}/flows".format(sched_luid))
+        response = self.send_update_request(url, tsr)
+
+        self.end_log_block()
+        return response
     # Flow Methods End
