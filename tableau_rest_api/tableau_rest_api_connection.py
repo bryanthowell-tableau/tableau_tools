@@ -1219,16 +1219,17 @@ class TableauRestApiConnection(TableauBase):
     # Start of download / save methods
     #
 
-    # Do not include file extension
-    def save_workbook_view_preview_image(self, wb_name_or_luid, view_name_or_luid, filename_no_extension,
+    # You must pass in the wb name because the endpoint needs it (although, you could potentially look up the
+    # workbook LUID from the view LUID
+    def query_view_preview_image(self, wb_name_or_luid, view_name_or_luid,
                                          proj_name_or_luid=None):
         """
         :type wb_name_or_luid: unicode
         :type view_name_or_luid: unicode
         :type proj_name_or_luid: unicode
         :type filename_no_extension: unicode
-        :rtype:
-        """
+        :rtype: bytes
+       """
         self.start_log_block()
         if self.is_luid(wb_name_or_luid):
             wb_luid = wb_name_or_luid
@@ -1241,24 +1242,85 @@ class TableauRestApiConnection(TableauBase):
             view_luid = self.query_workbook_view_luid(wb_name_or_luid, view_name=view_name_or_luid,
                                                       proj_name_or_luid=proj_name_or_luid)
         try:
-            if filename_no_extension.find('.png') == -1:
-                filename_no_extension += '.png'
-            save_file = open(filename_no_extension, 'wb')
+
             url = self.build_api_url(u"workbooks/{}/views/{}/previewImage".format(wb_luid, view_luid))
             image = self.send_binary_get_request(url)
+
+            self.end_log_block()
+            return image
+
+        # You might be requesting something that doesn't exist
+        except RecoverableHTTPException as e:
+            self.log(u"Attempt to request preview image results in HTTP error {}, Tableau Code {}".format(e.http_code,
+                                                                                                          e.tableau_error_code))
+            self.end_log_block()
+            raise
+
+
+    # Do not include file extension
+
+    # Just an alias but it matches the naming of the current reference guide (2019.1)
+    def save_view_preview_image(self, wb_name_or_luid, view_name_or_luid, filename_no_extension,
+                                         proj_name_or_luid=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type view_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type filename_no_extension: unicode
+        :rtype:
+        """
+        self.save_workbook_view_preview_image(wb_name_or_luid, view_name_or_luid, filename_no_extension,
+                                         proj_name_or_luid)
+
+    def save_workbook_view_preview_image(self, wb_name_or_luid, view_name_or_luid, filename_no_extension,
+                                         proj_name_or_luid=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type view_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type filename_no_extension: unicode
+        :rtype:
+        """
+        self.start_log_block()
+        image = self.query_view_preview_image(wb_name_or_luid=wb_name_or_luid, view_name_or_luid=view_name_or_luid,
+                                              proj_name_or_luid=proj_name_or_luid)
+        if filename_no_extension.find('.png') == -1:
+            filename_no_extension += '.png'
+        try:
+            save_file = open(filename_no_extension, 'wb')
             save_file.write(image)
             save_file.close()
             self.end_log_block()
 
-        # You might be requesting something that doesn't exist
-        except RecoverableHTTPException as e:
-            self.log(u"Attempt to request preview image results in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
-            self.end_log_block()
-            raise
         except IOError:
             self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension))
             self.end_log_block()
             raise
+
+    def query_workbook_preview_image(self, wb_name_or_luid, proj_name_or_luid=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :rtype: bytes
+        """
+        self.start_log_block()
+        if self.is_luid(wb_name_or_luid):
+            wb_luid = wb_name_or_luid
+        else:
+            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
+        try:
+
+            url = self.build_api_url(u"workbooks/{}/previewImage".format(wb_luid))
+            image = self.send_binary_get_request(url)
+            self.end_log_block()
+            return image
+
+        # You might be requesting something that doesn't exist, but unlikely
+        except RecoverableHTTPException as e:
+            self.log(u"Attempt to request preview image results in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
+            self.end_log_block()
+            raise
+
 
     # Do not include file extension
     def save_workbook_preview_image(self, wb_name_or_luid, filename_no_extension, proj_name_or_luid=None):
@@ -1270,25 +1332,15 @@ class TableauRestApiConnection(TableauBase):
         :rtype:
         """
         self.start_log_block()
-        if self.is_luid(wb_name_or_luid):
-            wb_luid = wb_name_or_luid
-        else:
-            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
+        image = self.query_workbook_preview_image(wb_name_or_luid=wb_name_or_luid, proj_name_or_luid=proj_name_or_luid)
+        if filename_no_extension.find('.png') == -1:
+            filename_no_extension += '.png'
         try:
-            if filename_no_extension.find('.png') == -1:
-                filename_no_extension += '.png'
             save_file = open(filename_no_extension, 'wb')
-            url = self.build_api_url(u"workbooks/{}/previewImage".format(wb_luid))
-            image = self.send_binary_get_request(url)
             save_file.write(image)
             save_file.close()
             self.end_log_block()
 
-        # You might be requesting something that doesn't exist, but unlikely
-        except RecoverableHTTPException as e:
-            self.log(u"Attempt to request preview image results in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
-            self.end_log_block()
-            raise
         except IOError:
             self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension))
             self.end_log_block()

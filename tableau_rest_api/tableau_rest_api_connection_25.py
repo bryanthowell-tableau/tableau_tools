@@ -1,5 +1,5 @@
 from tableau_rest_api_connection_24 import *
-
+import urllib
 
 class TableauRestApiConnection25(TableauRestApiConnection24):
     def __init__(self, server, username, password, site_content_url=u""):
@@ -120,12 +120,13 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         self.end_log_block()
         return self.get_published_project_object(project_luid, response)
 
-    def query_view_image(self, view_name_or_luid, save_filename_no_extension, high_resolution=False,
+    # Generic implementation of all the CSV/PDF/PNG requests
+    def _query_data_file(self, download_type, view_name_or_luid, high_resolution=None, view_filter_map=None,
                          wb_name_or_luid=None, proj_name_or_luid=None):
         """
         :type view_name_or_luid: unicode
-        :type save_filename_no_extension: unicode
         :type high_resolution: bool
+        :type view_filter_map: dict
         :type wb_name_or_luid: unicode
         :type proj_name_or_luid
         :rtype:
@@ -137,7 +138,80 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
             view_luid = self.query_workbook_view_luid(wb_name_or_luid, view_name=view_name_or_luid,
                                                       proj_name_or_luid=proj_name_or_luid)
 
+        if view_filter_map is not None:
+            final_filter_map = {}
+            for key in view_filter_map:
+                new_key = u"vf_{}".format(key)
+                final_filter_map[new_key] = view_filter_map[key]
+
+            additional_url_params = u"?" + urllib.urlencode(final_filter_map)
+            if high_resolution is True:
+                additional_url_params += u"&resolution=high"
+
+        else:
+            additional_url_params = u""
+            if high_resolution is True:
+                additional_url_params += u"?resolution=high"
+        try:
+
+            url = self.build_api_url(u"views/{}/{}{}".format(view_luid, download_type, additional_url_params))
+            binary_result = self.send_binary_get_request(url)
+
+            self.end_log_block()
+            return binary_result
+        except RecoverableHTTPException as e:
+            self.log(u"Attempt to request results in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
+            self.end_log_block()
+            raise
+
+    def query_view_image(self, view_name_or_luid, high_resolution=False, view_filter_map=None,
+                         wb_name_or_luid=None, proj_name_or_luid=None):
+        """
+        :type view_name_or_luid: unicode
+        :type high_resolution: bool
+        :type view_filter_map: dict
+        :type wb_name_or_luid: unicode
+        :type proj_name_or_luid
+        :rtype:
+        """
+        self.start_log_block()
+        image = self._query_data_file(u'image', view_name_or_luid=view_name_or_luid, high_resolution=high_resolution,
+                                      view_filter_map=view_filter_map, wb_name_or_luid=wb_name_or_luid,
+                                      proj_name_or_luid=proj_name_or_luid)
         self.end_log_block()
+        return image
+
+    def save_view_image(self, wb_name_or_luid=None, view_name_or_luid=None, filename_no_extension=None,
+                        proj_name_or_luid=None, view_filter_map=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type view_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type filename_no_extension: unicode
+        :type view_filter_map: dict
+        :rtype:
+        """
+        self.start_log_block()
+        data = self.query_view_image(wb_name_or_luid=wb_name_or_luid, view_name_or_luid=view_name_or_luid,
+                                    proj_name_or_luid=proj_name_or_luid, view_filter_map=view_filter_map)
+
+        if filename_no_extension is not None:
+            if filename_no_extension.find('.png') == -1:
+                filename_no_extension += '.png'
+            try:
+                save_file = open(filename_no_extension, 'wb')
+                save_file.write(data)
+                save_file.close()
+                self.end_log_block()
+                return
+            except IOError:
+                self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension))
+                self.end_log_block()
+                raise
+        else:
+            raise InvalidOptionException(
+                u'This method is for saving response to file. Must include filename_no_extension parameter')
+
 
     ###
     ### Fields can be used to limit or expand details can be brought in

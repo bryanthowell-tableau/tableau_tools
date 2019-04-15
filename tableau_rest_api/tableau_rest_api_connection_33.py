@@ -53,6 +53,7 @@ class TableauRestApiConnection32(TableauRestApiConnection31):
         self.end_log_block()
         return flows
 
+    # Just an alias for the method
     def query_flows(self):
         return self.query_flows_for_a_site()
 
