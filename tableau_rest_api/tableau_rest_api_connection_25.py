@@ -142,7 +142,12 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
             final_filter_map = {}
             for key in view_filter_map:
                 new_key = u"vf_{}".format(key)
-                final_filter_map[new_key] = view_filter_map[key]
+                # Check if this just a string
+                if isinstance(view_filter_map[key], basestring):
+                    value = view_filter_map[key]
+                else:
+                    value = ",".join(map(unicode,view_filter_map[key]))
+                final_filter_map[new_key] = value
 
             additional_url_params = u"?" + urllib.urlencode(final_filter_map)
             if high_resolution is True:
