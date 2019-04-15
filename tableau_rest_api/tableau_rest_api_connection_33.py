@@ -124,6 +124,41 @@ class TableauRestApiConnection32(TableauRestApiConnection31):
         self.end_log_block()
         return flows
 
+    def query_flow(self, flow_name_or_luid, project_name_or_luid=None):
+        """
+        :type flow_name_or_luid: unicode
+        :type project_name_or_luid: unicode
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if self.is_luid(flow_name_or_luid):
+            flow_luid = flow_name_or_luid
+        else:
+            flow_luid = self.query_flow_luid(flow_name_or_luid, project_name_or_luid=project_name_or_luid)
+
+        flow = self.query_resource(u'flows/{}'.format(flow_luid))
+
+        self.end_log_block()
+        return flow
+
+    def query_flow_connections(self, flow_name_or_luid, project_name_or_luid=None):
+        """
+        :type flow_name_or_luid: unicode
+        :type project_name_or_luid: unicode
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if self.is_luid(flow_name_or_luid):
+            flow_luid = flow_name_or_luid
+        else:
+            flow_luid = self.query_flow_luid(flow_name_or_luid, project_name_or_luid=project_name_or_luid)
+
+        connections = self.query_resource(u'flows/{}/connections'.format(flow_luid))
+
+        self.end_log_block()
+        return connections
+
+
     def get_flow_run_tasks(self):
         """
         :rtype: etree.Element
@@ -224,6 +259,49 @@ class TableauRestApiConnection32(TableauRestApiConnection31):
         self.end_log_block()
         return response
 
+    def update_flow_connection(self, flow_luid, flow_connection_luid,  server_address=None, port=None, connection_username=None,
+                               connection_password=None, embed_password=False):
+        """
+        :type flow_luid: unicode
+        :type flow_connection_luid: unicode
+        :type server_address: unicode
+        :type port: unicode
+        :type connection_username: unicode
+        :type connection_password: unicode
+        :type embed_password: unicode
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+
+        tsr = etree.Element(u'tsRequest')
+        c = etree.Element(u'connection')
+        updates_count = 0
+        if server_address is not None:
+            c.set(u'serverAddress', server_address)
+            updates_count += 1
+        if port is not None:
+            c.set(u'port', port)
+            updates_count += 1
+        if connection_username is not None:
+            c.set(u'userName', connection_username)
+            updates_count += 1
+        if connection_password is not None:
+            c.set(u'password', connection_password)
+            updates_count += 1
+        if embed_password is True:
+            c.set(u'embedPassword', u'true')
+            updates_count += 1
+
+        if updates_count == 0:
+            return InvalidOptionException(u'Must specify at least one element to update')
+
+        tsr.append(c)
+        url = self.build_api_url(u'flows/{}/connections/{}'.format(flow_luid, flow_connection_luid))
+        response = self.send_update_request(url, tsr)
+
+        self.end_log_block()
+        return response
+
     def delete_flow(self, flow_name_or_luid):
         """
         :type flow_name_or_luid: unicode
@@ -269,4 +347,9 @@ class TableauRestApiConnection32(TableauRestApiConnection31):
 
         self.end_log_block()
         return response
+
+    def download_flow(self):
+        pass
+
+
     # Flow Methods End
