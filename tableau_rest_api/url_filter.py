@@ -429,3 +429,15 @@ class UrlFilter31(UrlFilter30):
         :rtype: UrlFilter
         """
         return UrlFilter(u'subtitle', u'has', [subtitle, ])
+
+class UrlFilter33(UrlFilter31):
+    def __init__(self, field, operator, values):
+        UrlFilter31.__init__(self, field, operator, values)
+
+    @staticmethod
+    def create_project_name_equals_filter(project_name):
+        """
+        :type subtitle: unicode
+        :rtype: UrlFilter
+        """
+        return UrlFilter(u'projectName', u'eq', [project_name, ])

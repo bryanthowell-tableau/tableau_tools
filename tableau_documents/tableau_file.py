@@ -118,9 +118,10 @@ class TableauFile(TableauBase):
         return self._tableau_document
 
     # Appropriate extension added if needed
-    def save_new_file(self, new_filename_no_extension):
+    def save_new_file(self, new_filename_no_extension, data_file_replacement_map=None):
         """
         :type new_filename_no_extension: unicode
+        :type data_file_replacement_map: dict
         :rtype: unicode
         """
         self.start_log_block()
@@ -194,9 +195,16 @@ class TableauFile(TableauBase):
                         self.log(u'File {} is from an extract that has been replaced, skipping'.format(filename))
                         continue
 
-                    o_zf.extract(filename)
-                    new_zf.write(filename)
-                    os.remove(filename)
+                    # If file is listed in the data_file_replacement_map, write data from the mapped in file
+                    if filename in data_file_replacement_map:
+                        #data_file_obj = open(filename, mode='wb')
+                        #data_file_obj.write(data_file_replacement_map[filename])
+                        #data_file_obj.close()
+                        new_zf.write(data_file_replacement_map[filename], u"/" + filename)
+                    else:
+                        o_zf.extract(filename)
+                        new_zf.write(filename)
+                        os.remove(filename)
                     self.log(u'Removed file {}'.format(filename))
                     lowest_level = filename.split('/')
                     temp_directories_to_remove[lowest_level[0]] = True
@@ -211,7 +219,11 @@ class TableauFile(TableauBase):
             # Cleanup all the temporary directories
             for directory in temp_directories_to_remove:
                 self.log(u'Removing directory {}'.format(directory))
-                shutil.rmtree(directory)
+                try:
+                    shutil.rmtree(directory)
+                except OSError as e:
+                    # Just means that directory didn't exist for some reason, probably a swap occurred
+                    pass
             new_zf.close()
 
             return save_filename

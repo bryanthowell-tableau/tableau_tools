@@ -1219,16 +1219,17 @@ class TableauRestApiConnection(TableauBase):
     # Start of download / save methods
     #
 
-    # Do not include file extension
-    def save_workbook_view_preview_image(self, wb_name_or_luid, view_name_or_luid, filename_no_extension,
+    # You must pass in the wb name because the endpoint needs it (although, you could potentially look up the
+    # workbook LUID from the view LUID
+    def query_view_preview_image(self, wb_name_or_luid, view_name_or_luid,
                                          proj_name_or_luid=None):
         """
         :type wb_name_or_luid: unicode
         :type view_name_or_luid: unicode
         :type proj_name_or_luid: unicode
         :type filename_no_extension: unicode
-        :rtype:
-        """
+        :rtype: bytes
+       """
         self.start_log_block()
         if self.is_luid(wb_name_or_luid):
             wb_luid = wb_name_or_luid
@@ -1241,24 +1242,85 @@ class TableauRestApiConnection(TableauBase):
             view_luid = self.query_workbook_view_luid(wb_name_or_luid, view_name=view_name_or_luid,
                                                       proj_name_or_luid=proj_name_or_luid)
         try:
-            if filename_no_extension.find('.png') == -1:
-                filename_no_extension += '.png'
-            save_file = open(filename_no_extension, 'wb')
+
             url = self.build_api_url(u"workbooks/{}/views/{}/previewImage".format(wb_luid, view_luid))
             image = self.send_binary_get_request(url)
+
+            self.end_log_block()
+            return image
+
+        # You might be requesting something that doesn't exist
+        except RecoverableHTTPException as e:
+            self.log(u"Attempt to request preview image results in HTTP error {}, Tableau Code {}".format(e.http_code,
+                                                                                                          e.tableau_error_code))
+            self.end_log_block()
+            raise
+
+
+    # Do not include file extension
+
+    # Just an alias but it matches the naming of the current reference guide (2019.1)
+    def save_view_preview_image(self, wb_name_or_luid, view_name_or_luid, filename_no_extension,
+                                         proj_name_or_luid=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type view_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type filename_no_extension: unicode
+        :rtype:
+        """
+        self.save_workbook_view_preview_image(wb_name_or_luid, view_name_or_luid, filename_no_extension,
+                                         proj_name_or_luid)
+
+    def save_workbook_view_preview_image(self, wb_name_or_luid, view_name_or_luid, filename_no_extension,
+                                         proj_name_or_luid=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type view_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type filename_no_extension: unicode
+        :rtype:
+        """
+        self.start_log_block()
+        image = self.query_view_preview_image(wb_name_or_luid=wb_name_or_luid, view_name_or_luid=view_name_or_luid,
+                                              proj_name_or_luid=proj_name_or_luid)
+        if filename_no_extension.find('.png') == -1:
+            filename_no_extension += '.png'
+        try:
+            save_file = open(filename_no_extension, 'wb')
             save_file.write(image)
             save_file.close()
             self.end_log_block()
 
-        # You might be requesting something that doesn't exist
-        except RecoverableHTTPException as e:
-            self.log(u"Attempt to request preview image results in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
-            self.end_log_block()
-            raise
         except IOError:
             self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension))
             self.end_log_block()
             raise
+
+    def query_workbook_preview_image(self, wb_name_or_luid, proj_name_or_luid=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :rtype: bytes
+        """
+        self.start_log_block()
+        if self.is_luid(wb_name_or_luid):
+            wb_luid = wb_name_or_luid
+        else:
+            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
+        try:
+
+            url = self.build_api_url(u"workbooks/{}/previewImage".format(wb_luid))
+            image = self.send_binary_get_request(url)
+            self.end_log_block()
+            return image
+
+        # You might be requesting something that doesn't exist, but unlikely
+        except RecoverableHTTPException as e:
+            self.log(u"Attempt to request preview image results in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
+            self.end_log_block()
+            raise
+
 
     # Do not include file extension
     def save_workbook_preview_image(self, wb_name_or_luid, filename_no_extension, proj_name_or_luid=None):
@@ -1270,25 +1332,15 @@ class TableauRestApiConnection(TableauBase):
         :rtype:
         """
         self.start_log_block()
-        if self.is_luid(wb_name_or_luid):
-            wb_luid = wb_name_or_luid
-        else:
-            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
+        image = self.query_workbook_preview_image(wb_name_or_luid=wb_name_or_luid, proj_name_or_luid=proj_name_or_luid)
+        if filename_no_extension.find('.png') == -1:
+            filename_no_extension += '.png'
         try:
-            if filename_no_extension.find('.png') == -1:
-                filename_no_extension += '.png'
             save_file = open(filename_no_extension, 'wb')
-            url = self.build_api_url(u"workbooks/{}/previewImage".format(wb_luid))
-            image = self.send_binary_get_request(url)
             save_file.write(image)
             save_file.close()
             self.end_log_block()
 
-        # You might be requesting something that doesn't exist, but unlikely
-        except RecoverableHTTPException as e:
-            self.log(u"Attempt to request preview image results in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
-            self.end_log_block()
-            raise
         except IOError:
             self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension))
             self.end_log_block()
@@ -2288,7 +2340,8 @@ class TableauRestApiConnection(TableauBase):
     # If a TableauDatasource or TableauWorkbook is passed, will upload from its content
     def publish_content(self, content_type, content_filename, content_name, project_luid, url_params=None,
                         connection_username=None, connection_password=None, save_credentials=True, show_tabs=False,
-                        check_published_ds=True, oauth_flag=False):
+                        check_published_ds=True, oauth_flag=False, generate_thumbnails_as_username_or_luid=None,
+                        description=None, views_to_hide_list=None):
         # Single upload limit in MB
         single_upload_limit = 20
 
@@ -2296,14 +2349,14 @@ class TableauRestApiConnection(TableauBase):
         temp_wb_filename = None
 
         # Must be 'workbook' or 'datasource'
-        if content_type not in [u'workbook', u'datasource']:
-            raise InvalidOptionException(u"content_type must be 'workbook' or 'datasource'")
+        if content_type not in [u'workbook', u'datasource', u'flow']:
+            raise InvalidOptionException(u"content_type must be 'workbook',  'datasource', or 'flow' ")
 
         file_extension = None
         final_filename = None
         cleanup_temp_file = False
 
-        for ending in [u'.twb', u'.twbx', u'.tde', u'.tdsx', u'.tds', u'.tde', u'.hyper']:
+        for ending in [u'.twb', u'.twbx', u'.tde', u'.tdsx', u'.tds', u'.tde', u'.hyper', u'.tfl', u'.tflx']:
             if content_filename.endswith(ending):
                 file_extension = ending[1:]
 
@@ -2339,11 +2392,17 @@ class TableauRestApiConnection(TableauBase):
 
                     # Build publish request in ElementTree then convert at publish
                     publish_request_xml = etree.Element(u'tsRequest')
-                    # could be either workbook or datasource
+                    # could be either workbook, datasource, or flow
                     t1 = etree.Element(content_type)
                     t1.set(u'name', content_name)
                     if show_tabs is not False:
                         t1.set(u'showTabs', str(show_tabs).lower())
+                    if generate_thumbnails_as_username_or_luid is not None:
+                        if self.is_luid(generate_thumbnails_as_username_or_luid):
+                            thumbnail_user_luid = generate_thumbnails_as_username_or_luid
+                        else:
+                            thumbnail_user_luid = self.query_user_luid(generate_thumbnails_as_username_or_luid)
+                        t1.set(u'generateThumbnailsAsUser', thumbnail_user_luid)
 
                     if connection_username is not None:
                         cc = etree.Element(u'connectionCredentials')
@@ -2355,6 +2414,19 @@ class TableauRestApiConnection(TableauBase):
                         cc.set(u'embed', str(save_credentials).lower())
                         t1.append(cc)
 
+                    # Views to Hide in Workbooks from 3.2
+                    if views_to_hide_list is not None:
+                        if len(views_to_hide_list) > 0:
+                            vs = etree.Element(u'views')
+                            for view_name in views_to_hide_list:
+                                v = etree.Element(u'view')
+                                v.set(u'name', view_name)
+                                v.set(u'hidden', u'true')
+                            t1.append(vs)
+
+                    # Description only allowed for Flows as of 3.3
+                    if description is not None:
+                         t1.set(u'description', description)
                     p = etree.Element(u'project')
                     p.set(u'id', project_luid)
                     t1.append(p)

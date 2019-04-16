@@ -51,6 +51,7 @@ The TableauDatasource class uses the `TDEFileGenerator` and/or the `HyperFileGen
 * 4.5.0: 2018.1 (API 3.0) compatibility. All requests for a given connection using a single HTTP session, and other improvements to the RestXmlRequest class.
 * 4.7.0: Dropping API 2.0 (Tableau 9.0) compatibility. Any method that is overwritten in a later version will not be updated in the TableauRestApiConnection class going forward. Also implemented a direct_xml_request parameter for Add and Update methods, allowing direct submission of an ElementTree.Element request to the endpoints, particularly for replication.
 * 4.8.0 Introduces the RestJsonRequest object and _json plural querying methods for passing JSON responses to other systems
+* 4.9.0 API 3.3 (2019.1) compatibility, as well as ability to swap in static files using TableauDocument and other bug fixes.
 ## --- Table(au) of Contents ---
 ------
 
@@ -1120,6 +1121,23 @@ ex.
     # u'A Workbook (1).twb'
     print(file_2)
     # u'A Workbook (2).twb'
+
+#### 2.2.1 Replacing Static Data Files
+`TableauFile` has an optional argument on the save_new_file method to allow swapping in new data files (CSV, XLS or Hyper) into an existing TWBX or TDSX. 
+
+    TableauFile.save_new_file(new_filename_no_extension, data_file_replacement_map=None)  # returns new filename
+
+data_file_replacement_map accepts a dict in format { 'TableauFileFilename' : 'FilenameOfNewFileOnDisk' }. To find out the TableauFileFilename, print out the `other_files` property of the TableauFile object:
+
+    t_file = TableauFile('My AmazingWorkbook.twbx')
+    for file in t_file.other_files:
+        print(file)
+        
+You should be able to find the exact naming of the data file you want to replace. Copy that exactly and use it as the key in your dictionary. For the value, use a fully qualified filename on your machine:
+    
+    t_file = TableauFile('My AmazingWorkbook.twbx')
+    file_map = { 'Data/en_US-US/Sample - Superstore.xls' : '/Users/bhowell/Documents/My Tableau Repository/Datasources/2018.3/en_US-EU/Sample - EU Superstore.xls'}
+    t_file.save_new_file('My AmazingWorkbook - Updated', data_file_replacement_map=file_map)
 
 ### 2.3 TableauDocument Class
 The TableauDocument class helps map the differences between `TableauWorkbook` and `TableauDatasource`. It only implements two properties:

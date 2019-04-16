@@ -10,13 +10,13 @@ import xml.etree.cElementTree as etree
 class TableauBase(object):
     def __init__(self):
         # In reverse order to work down until the acceptable version is found on the server, through login process
-        self.supported_versions = (u'2018.3', u'2018.2', u'2018.1', u"10.5", u"10.4", u"10.3", u"10.2", u"10.1", u"10.0", u"9.3", u"9.2", u"9.1", u"9.0")
+        self.supported_versions = (u'2019.1', u'2018.3', u'2018.2', u'2018.1', u"10.5", u"10.4", u"10.3", u"10.2", u"10.1", u"10.0", u"9.3", u"9.2", u"9.1", u"9.0")
         self.logger = None
         self.luid_pattern = r"[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*"
 
         # Defaults, will get updated with each update. Overwritten by set_tableau_server_version
-        self.version = u"10.5"
-        self.api_version = u"2.8"
+        self.version = u"2018.2"
+        self.api_version = u"3.1"
         self.tableau_namespace = u'http://tableau.com/api'
         self.ns_map = {'t': 'http://tableau.com/api'}
         self.ns_prefix = '{' + self.ns_map['t'] + '}'
@@ -89,7 +89,8 @@ class TableauBase(object):
             u"2.8": server_content_roles_2_1,
             u'3.0': server_content_roles_2_1,
             u'3.1': server_content_roles_2_1,
-            u'3.2': server_content_roles_2_1
+            u'3.2': server_content_roles_2_1,
+            u'3.3': server_content_roles_2_1
         }
 
         self.server_to_rest_capability_map = {
@@ -220,6 +221,43 @@ class TableauBase(object):
                 )
             }
 
+        capabilities_3_3 = {
+                u"project": (u"Read", u"Write", u'ProjectLeader', u'InheritedProjectLeader'),
+                u"workbook": (
+                    u'Read',
+                    u'ExportImage',
+                    u'ExportData',
+                    u'ViewComments',
+                    u'AddComment',
+                    u'Filter',
+                    u'ViewUnderlyingData',
+                    u'ShareView',
+                    u'WebAuthoring',
+                    u'Write',
+                    u'ExportXml',
+                    u'ChangeHierarchy',
+                    u'Delete',
+                    u'ChangePermissions',
+
+                ),
+                u"datasource": (
+                    u'Read',
+                    u'Connect',
+                    u'Write',
+                    u'ExportXml',
+                    u'Delete',
+                    u'ChangePermissions'
+                ),
+                u'flow': (
+                    u'ChangeHierarchy',
+                    u'ChangePermissions',
+                    u'Delete',
+                    u'ExportXml',
+                    u'Read',
+                    u'Write'
+                )
+            }
+
         self.available_capabilities = {
             u"2.0": capabilities_2_0,
             u"2.1": capabilities_2_1,
@@ -232,7 +270,8 @@ class TableauBase(object):
             u'2.8': capabilities_2_8,
             u'3.0': capabilities_2_8,
             u'3.1': capabilities_2_8,
-            u'3.2': capabilities_2_8
+            u'3.2': capabilities_2_8,
+            u'3.3': capabilities_3_3
 
         }
 
@@ -283,7 +322,7 @@ class TableauBase(object):
             u"Hyper": u'hyper'
         }
 
-        self.permissionable_objects = (u'datasource', u'project', u'workbook')
+        self.permissionable_objects = (u'datasource', u'project', u'workbook', u'flow')
 
     def set_tableau_server_version(self, tableau_server_version):
         """
@@ -314,6 +353,8 @@ class TableauBase(object):
                 self.api_version = u'3.1'
             elif unicode(tableau_server_version) == u'2018.3':
                 self.api_version = u'3.2'
+            elif unicode(tableau_server_version) == u'2019.1':
+                self.api_version = u'3.3'
             self.tableau_namespace = u'http://tableau.com/api'
             self.ns_map = {'t': 'http://tableau.com/api'}
             self.version = tableau_server_version
