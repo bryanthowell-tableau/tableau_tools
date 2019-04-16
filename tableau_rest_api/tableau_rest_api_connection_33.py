@@ -14,7 +14,7 @@ class TableauRestApiConnection32(TableauRestApiConnection31):
 
     def publish_workbook(self, workbook_filename, workbook_name, project_obj, overwrite=False, async_publish=False, connection_username=None,
                          connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=True,
-                         oauth_flag=False, generate_thumbnails_as_username_or_luid=None):
+                         oauth_flag=False, views_to_hide_list=None, generate_thumbnails_as_username_or_luid=None):
         """
         :type workbook_filename: unicode
         :type workbook_name: unicode
@@ -36,6 +36,7 @@ class TableauRestApiConnection32(TableauRestApiConnection31):
                                    {u"overwrite": overwrite, u"asJob": async_publish}, connection_username,
                                    connection_password, save_credentials, show_tabs=show_tabs,
                                    check_published_ds=check_published_ds, oauth_flag=oauth_flag,
+                                   views_to_hide_list=views_to_hide_list,
                                    generate_thumbnails_as_username_or_luid=generate_thumbnails_as_username_or_luid)
         if async_publish is True:
             job = xml.findall(u'.//t:job', self.ns_map)

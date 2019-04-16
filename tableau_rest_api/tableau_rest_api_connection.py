@@ -2341,7 +2341,7 @@ class TableauRestApiConnection(TableauBase):
     def publish_content(self, content_type, content_filename, content_name, project_luid, url_params=None,
                         connection_username=None, connection_password=None, save_credentials=True, show_tabs=False,
                         check_published_ds=True, oauth_flag=False, generate_thumbnails_as_username_or_luid=None,
-                        description=None):
+                        description=None, views_to_hide_list=None):
         # Single upload limit in MB
         single_upload_limit = 20
 
@@ -2413,6 +2413,16 @@ class TableauRestApiConnection(TableauBase):
                             cc.set(u'password', connection_password)
                         cc.set(u'embed', str(save_credentials).lower())
                         t1.append(cc)
+
+                    # Views to Hide in Workbooks from 3.2
+                    if views_to_hide_list is not None:
+                        if len(views_to_hide_list) > 0:
+                            vs = etree.Element(u'views')
+                            for view_name in views_to_hide_list:
+                                v = etree.Element(u'view')
+                                v.set(u'name', view_name)
+                                v.set(u'hidden', u'true')
+                            t1.append(vs)
 
                     # Description only allowed for Flows as of 3.3
                     if description is not None:
