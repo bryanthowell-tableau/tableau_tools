@@ -398,5 +398,25 @@ class TableauRestApiConnection32(TableauRestApiConnection31):
         self.end_log_block()
         return save_filename
 
+    def publish_flow(self, flow_filename, flow_name, project_obj, overwrite=False, connection_username=None,
+                     connection_password=None, save_credentials=True, description=None, oauth_flag=False):
+        """
+        :type flow_filename: unicode
+        :type flow_name: unicode
+        :type project_obj: Project20 or Project21 or Project28
+        :type overwrite: bool
+        :type connection_username: unicode
+        :type connection_password: unicode
+        :type save_credentials: bool
+        :type description: unicode
+        :type oauth_flag: bool
+        :rtype: unicode
+        """
+        project_luid = project_obj.luid
+        xml = self.publish_content(u'flow', flow_filename, flow_name, project_luid, {u"overwrite": overwrite},
+                                   connection_username, connection_password, save_credentials, oauth_flag=oauth_flag,
+                                   description=description)
+        flow = xml.findall(u'.//t:flow', self.ns_map)
+        return flow[0].get('id')
 
     # Flow Methods End

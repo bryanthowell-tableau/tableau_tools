@@ -2340,7 +2340,8 @@ class TableauRestApiConnection(TableauBase):
     # If a TableauDatasource or TableauWorkbook is passed, will upload from its content
     def publish_content(self, content_type, content_filename, content_name, project_luid, url_params=None,
                         connection_username=None, connection_password=None, save_credentials=True, show_tabs=False,
-                        check_published_ds=True, oauth_flag=False, generate_thumbnails_as_username_or_luid=None):
+                        check_published_ds=True, oauth_flag=False, generate_thumbnails_as_username_or_luid=None,
+                        description=None):
         # Single upload limit in MB
         single_upload_limit = 20
 
@@ -2348,14 +2349,14 @@ class TableauRestApiConnection(TableauBase):
         temp_wb_filename = None
 
         # Must be 'workbook' or 'datasource'
-        if content_type not in [u'workbook', u'datasource']:
-            raise InvalidOptionException(u"content_type must be 'workbook' or 'datasource'")
+        if content_type not in [u'workbook', u'datasource', u'flow']:
+            raise InvalidOptionException(u"content_type must be 'workbook',  'datasource', or 'flow' ")
 
         file_extension = None
         final_filename = None
         cleanup_temp_file = False
 
-        for ending in [u'.twb', u'.twbx', u'.tde', u'.tdsx', u'.tds', u'.tde', u'.hyper']:
+        for ending in [u'.twb', u'.twbx', u'.tde', u'.tdsx', u'.tds', u'.tde', u'.hyper', u'.tfl', u'.tflx']:
             if content_filename.endswith(ending):
                 file_extension = ending[1:]
 
@@ -2391,7 +2392,7 @@ class TableauRestApiConnection(TableauBase):
 
                     # Build publish request in ElementTree then convert at publish
                     publish_request_xml = etree.Element(u'tsRequest')
-                    # could be either workbook or datasource
+                    # could be either workbook, datasource, or flow
                     t1 = etree.Element(content_type)
                     t1.set(u'name', content_name)
                     if show_tabs is not False:
@@ -2413,6 +2414,9 @@ class TableauRestApiConnection(TableauBase):
                         cc.set(u'embed', str(save_credentials).lower())
                         t1.append(cc)
 
+                    # Description only allowed for Flows as of 3.3
+                    if description is not None:
+                         t1.set(u'description', description)
                     p = etree.Element(u'project')
                     p.set(u'id', project_luid)
                     t1.append(p)
