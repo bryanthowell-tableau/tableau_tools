@@ -348,8 +348,55 @@ class TableauRestApiConnection32(TableauRestApiConnection31):
         self.end_log_block()
         return response
 
-    def download_flow(self):
-        pass
+    # Do not include file extension, added automatically. Without filename, only returns the response
+    # Use no_obj_return for save without opening and processing
+    def download_flow(self, flow_name_or_luid, filename_no_extension, proj_name_or_luid=None):
+        """
+        :type flow_name_or_luid: unicode
+        :type filename_no_extension: unicode
+        :type proj_name_or_luid: unicode
+        :return Filename of the save workbook
+        :rtype: unicode
+        """
+        self.start_log_block()
+        if self.is_luid(flow_name_or_luid):
+            flow_luid = flow_name_or_luid
+        else:
+            flow_luid = self.query_workbook_luid(flow_name_or_luid, proj_name_or_luid)
+        try:
+
+            url = self.build_api_url(u"flows/{}/content".format(flow_luid))
+            flow = self.send_binary_get_request(url)
+            extension = None
+            if self._last_response_content_type.find(u'application/xml') != -1:
+                extension = u'.tfl'
+            elif self._last_response_content_type.find(u'application/octet-stream') != -1:
+                extension = u'.tflx'
+            if extension is None:
+                raise IOError(u'File extension could not be determined')
+            self.log(
+                u'Response type was {} so extension will be {}'.format(self._last_response_content_type, extension))
+        except RecoverableHTTPException as e:
+            self.log(u"download_workbook resulted in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
+            self.end_log_block()
+            raise
+        except:
+            self.end_log_block()
+            raise
+        try:
+
+            save_filename = filename_no_extension + extension
+
+            save_file = open(save_filename, 'wb')
+            save_file.write(flow)
+            save_file.close()
+
+        except IOError:
+            self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
+            raise
+
+        self.end_log_block()
+        return save_filename
 
 
     # Flow Methods End

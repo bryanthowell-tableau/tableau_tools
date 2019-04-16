@@ -1191,3 +1191,12 @@ class View(PublishedContent):
             self.log(u'Permissions object list has {} items'.format(unicode(len(obj_list))))
             self.end_log_block()
             return obj_list
+
+
+class Flow(PublishedContent):
+    def __init__(self, luid, tableau_rest_api_obj, tableau_server_version, default=False, logger_obj=None,
+                 content_xml_obj=None):
+        PublishedContent.__init__(self, luid, u"flow", tableau_rest_api_obj, tableau_server_version,
+                                  default=default, logger_obj=logger_obj, content_xml_obj=content_xml_obj)
+        self.__available_capabilities = self.available_capabilities[self.api_version][u"flow"]
+        self.log(u"Flow object initiating")
