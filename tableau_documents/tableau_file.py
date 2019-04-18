@@ -196,7 +196,7 @@ class TableauFile(TableauBase):
                         continue
 
                     # If file is listed in the data_file_replacement_map, write data from the mapped in file
-                    if filename in data_file_replacement_map:
+                    if data_file_replacement_map and filename in data_file_replacement_map:
                         #data_file_obj = open(filename, mode='wb')
                         #data_file_obj.write(data_file_replacement_map[filename])
                         #data_file_obj.close()
