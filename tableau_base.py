@@ -330,7 +330,7 @@ class TableauBase(object):
         """
         # API Versioning (starting in 9.2)
         if unicode(tableau_server_version)in [u"9.2", u"9.3", u"10.0", u"10.1", u"10.2", u"10.3", u"10.4", u"10.5",
-                                              u'2018.1', u'2018.2', u'2018.3']:
+                                              u'2018.1', u'2018.2', u'2018.3', u'2019.1']:
             if unicode(tableau_server_version) == u"9.2":
                 self.api_version = u"2.1"
             elif unicode(tableau_server_version) == u"9.3":
@@ -444,13 +444,13 @@ class TableauBase(object):
 
     # Generic method for XML lists for the "query" actions to name -> id dict
     @staticmethod
-    def convert_xml_list_to_name_id_dict(lxml_obj):
+    def convert_xml_list_to_name_id_dict(etree_obj):
         """
-        :type lxml_obj: etree.Element
+        :type etree_obj: etree.Element
         :return: dict
         """
         d = {}
-        for element in lxml_obj:
+        for element in etree_obj:
             e_id = element.get("id")
             # If list is collection, have to run one deeper
             if e_id is None:
