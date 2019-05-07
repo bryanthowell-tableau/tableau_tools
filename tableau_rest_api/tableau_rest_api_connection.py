@@ -279,6 +279,24 @@ class TableauRestApiConnection(TableauBase):
         self._request_obj.xml_request = None
         self.end_log_block()
 
+    def swap_token(self, site_luid, user_luid, token):
+        """
+        :type token: unicode
+        :type site_luid: unicode
+        :type user_luid: unicode
+        :return:
+        """
+        self.start_log_block()
+        self.token = token
+        self.site_luid = site_luid
+        self.user_luid = user_luid
+        if self._request_obj is None:
+            self._request_obj = RestXmlRequest(None, self.token, self.logger, ns_map_url=self.ns_map['t'],
+                                               verify_ssl_cert=self.verify_ssl_cert)
+        else:
+            self._request_obj.token = self.token
+        self.end_log_block()
+
     def signout(self, session_token=None):
         """
         :type session_token: unicode
