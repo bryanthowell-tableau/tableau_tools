@@ -293,6 +293,7 @@ class TableauRestApiConnection(TableauBase):
         if self._request_obj is None:
             self._request_obj = RestXmlRequest(None, self.token, self.logger, ns_map_url=self.ns_map['t'],
                                                verify_ssl_cert=self.verify_ssl_cert)
+            self._request_obj.token = self.token
         else:
             self._request_obj.token = self.token
         self.end_log_block()
