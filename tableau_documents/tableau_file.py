@@ -80,8 +80,8 @@ class TableauFile(TableauBase):
                     # Here we throw out metadata-records even when opening a workbook from disk, they take up space
                     # and are recreate automatically. Very similar to what we do in initialization of TableauWorkbook
                     o_ds_fh = codecs.open(filename, 'r', encoding='utf-8')
-                    ds_fh = codecs.open(u'temp_file.txt', 'w', encoding='utf-8')
-                    self.temp_filename = u'temp_file.txt'
+                    self.temp_filename = '/'.join(filename.split('/')[:-1]) + u'/temp_file.txt'
+                    ds_fh = codecs.open(self.temp_filename, 'w', encoding='utf-8')
                     metadata_flag = None
                     for line in o_ds_fh:
                         # Grab the datasources
@@ -97,7 +97,7 @@ class TableauFile(TableauBase):
                     ds_fh.close()
                     utf8_parser = etree.XMLParser(encoding='utf-8')
 
-                    ds_xml = etree.parse(u'temp_file.txt', parser=utf8_parser)
+                    ds_xml = etree.parse(self.temp_filename, parser=utf8_parser)
 
                     self._tableau_document = TableauDatasource(ds_xml.getroot(), self.logger)
                 self.xml_name = None
