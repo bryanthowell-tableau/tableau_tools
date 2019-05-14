@@ -5,6 +5,7 @@ from tableau_tools.tableau_rest_api import *
 
 # This script uses the tabcmd object to trigger an extract refresh
 # Please use the 10_3 script if on a 10.3+ version of Tableau Server, which uses the REST API commands
+# Should be totally deprecated at this point
 
 logger = Logger(u'extract_refresh.log')
 

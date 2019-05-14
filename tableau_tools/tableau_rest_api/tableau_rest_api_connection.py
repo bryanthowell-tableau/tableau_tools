@@ -8,8 +8,9 @@ from ..tableau_documents.tableau_workbook import TableauWorkbook
 from ..tableau_documents.tableau_datasource import TableauDatasource
 from ..tableau_exceptions import *
 from rest_xml_request import RestXmlRequest
+from rest_json_request import RestJsonRequest
 from published_content import Project20, Project21, Project28, Workbook, Datasource
-import urllib
+import copy
 
 
 class TableauRestApiConnection(TableauBase):
@@ -30,7 +31,7 @@ class TableauRestApiConnection(TableauBase):
         self.site_content_url = site_content_url
         self.username = username
         self._password = password
-        self.token = None  # Holds the login token from the Sign In call
+        self._token = None  # Holds the login token from the Sign In call
         self.site_luid = ""
         self.user_luid = ""
         self._login_as_user_id = None
@@ -39,6 +40,7 @@ class TableauRestApiConnection(TableauBase):
         self._last_response_content_type = None
 
         self._request_obj = None  # type: RestXmlRequest
+        self._request_json_obj = None  # type: RestJsonRequest
 
         # All defined in TableauBase superclass
         self._site_roles = self.site_roles
@@ -52,6 +54,17 @@ class TableauRestApiConnection(TableauBase):
         # For working around SSL issues
         self.verify_ssl_cert = True
 
+    @property
+    def token(self):
+        return self._token
+
+    @token.setter
+    def token(self, new_token):
+        self._token = new_token
+        if self._request_obj is not None:
+            self._request_obj.token = self._token
+        if self._request_json_obj is not None:
+            self._request_json_obj.token = self._token
 
     def enable_logging(self, logger_obj):
         """
@@ -121,6 +134,30 @@ class TableauRestApiConnection(TableauBase):
         tsr.append(s)
         return tsr
 
+    # This is specifically for replication from one site to another
+    def build_request_from_response(self, request):
+        """
+        :type request: etree.Element
+        :rtype: etree.Element
+        :return response
+        """
+
+        tsr = etree.Element(u'tsRequest')
+        request_copy = copy.deepcopy(request)
+        # If the object happens to include the tsResponse root tag, strip it out
+        if request_copy.tag.find(u"tsResponse") != -1:
+            for r in request_copy:
+                request_copy = copy.deepcopy(r)
+
+        # Try to remove any namespaces
+        for e in request_copy.iter():
+            e.tag = e.tag.replace(u"{{{}}}".format(self.ns_map[u't']), u"")
+        if request_copy.get(u'id') is not None:
+            del(request_copy.attrib[u'id'])
+
+        tsr.append(request_copy)
+        return tsr
+
     @staticmethod
     def __build_connection_update_xml(new_server_address=None, new_server_port=None,
                                       new_connection_username=None, new_connection_password=None):
@@ -188,7 +225,6 @@ class TableauRestApiConnection(TableauBase):
         ds_obj = Datasource(luid, self, tableau_server_version=self.version, default=False, logger_obj=self.logger)
         return ds_obj
 
-
     #
     # Sign-in and Sign-out
     #
@@ -243,6 +279,25 @@ class TableauRestApiConnection(TableauBase):
         self._request_obj.xml_request = None
         self.end_log_block()
 
+    def swap_token(self, site_luid, user_luid, token):
+        """
+        :type token: unicode
+        :type site_luid: unicode
+        :type user_luid: unicode
+        :return:
+        """
+        self.start_log_block()
+        self.token = token
+        self.site_luid = site_luid
+        self.user_luid = user_luid
+        if self._request_obj is None:
+            self._request_obj = RestXmlRequest(None, self.token, self.logger, ns_map_url=self.ns_map['t'],
+                                               verify_ssl_cert=self.verify_ssl_cert)
+            self._request_obj.token = self.token
+        else:
+            self._request_obj.token = self.token
+        self.end_log_block()
+
     def signout(self, session_token=None):
         """
         :type session_token: unicode
@@ -285,6 +340,27 @@ class TableauRestApiConnection(TableauBase):
         self._request_obj.url = None
         self.end_log_block()
         return xml
+
+    # baseline method for any get request. appends to base url
+    def query_resource_json(self, url_ending, server_level=False, page_number=None):
+        """
+        :type url_ending: unicode
+        :type server_level: bool
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+        api_call = self.build_api_url(url_ending, server_level)
+        if self._request_json_obj is None:
+            self._request_json_obj = RestJsonRequest(token=self.token, logger=self.logger,
+                                                     verify_ssl_cert=self.verify_ssl_cert)
+        self._request_json_obj.http_verb = u'get'
+        self._request_json_obj.url = api_call
+        self._request_json_obj.request_from_api(page_number=page_number)
+        json_response = self._request_json_obj.get_response()  # return JSON as string
+        self._request_obj.url = None
+        self.end_log_block()
+        return json_response
 
     def query_single_element_from_endpoint(self, element_name, name_or_luid, server_level=False):
         """
@@ -470,6 +546,16 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return dses
 
+    def query_datasources_json(self, page_number=None):
+        """
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+        datasources = self.query_resource_json(u"datasources", page_number=page_number)
+        self.end_log_block()
+        return datasources
+
     # Tries to guess name or LUID, hope there is only one
     def query_datasource(self, ds_name_or_luid, proj_name_or_luid=None):
         """
@@ -572,6 +658,21 @@ class TableauRestApiConnection(TableauBase):
 
     # # No basic verb for querying a single group, so run a query_groups
 
+    def query_groups_json(self, page_number=None):
+        """
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+        groups = self.query_resource_json(u"groups", page_number=page_number)
+        #for group in groups:
+        #    # Add to group-name : luid cache
+        #    group_luid = group.get(u"id")
+        #    group_name = group.get(u'name')
+        #    self.group_name_luid_cache[group_name] = group_luid
+        self.end_log_block()
+        return groups
+
     def query_group(self, group_name_or_luid):
         """
         :type group_name_or_luid: unicode
@@ -641,6 +742,16 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return projects
 
+    def query_projects_json(self, page_number=None):
+        """
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+        projects = self.query_resource_json(u"projects", page_number=page_number)
+        self.end_log_block()
+        return projects
+
     def query_project(self, project_name_or_luid):
         """
         :type project_name_or_luid: unicode
@@ -666,6 +777,20 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return project_luid
 
+    def query_project_xml_object(self, project_name_or_luid):
+        """
+        :param project_name_or_luid: unicode
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if self.is_luid(project_name_or_luid):
+            luid = project_name_or_luid
+        else:
+            luid = self.query_project_luid(project_name_or_luid)
+        proj_xml = self.query_single_element_from_endpoint(u'project', luid)
+        self.end_log_block()
+        return proj_xml
+
     #
     # End Project Querying Methods
     #
@@ -681,6 +806,16 @@ class TableauRestApiConnection(TableauBase):
         """
         self.start_log_block()
         sites = self.query_resource(u"sites", server_level=True)
+        self.end_log_block()
+        return sites
+
+    def query_sites_json(self, page_number=None):
+        """
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+        sites = self.query_resource_json(u"sites", server_level=True, page_number=page_number)
         self.end_log_block()
         return sites
 
@@ -731,6 +866,25 @@ class TableauRestApiConnection(TableauBase):
         self.start_log_block()
         users = self.query_resource(u"users")
         self.log(u'Found {} users'.format(unicode(len(users))))
+        self.end_log_block()
+        return users
+
+    # The reference has this name, so for consistency adding an alias
+    def get_users_json(self, page_number=None):
+        """
+        :type page_number: int
+        :rtype: json
+        """
+        return self.query_users_json(page_number=page_number)
+
+    def query_users_json(self, page_number=None):
+        """
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+        users = self.query_resource_json(u"users", page_number=page_number)
+        #self.log(u'Found {} users'.format(unicode(len(users))))
         self.end_log_block()
         return users
 
@@ -829,6 +983,23 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return wbs
 
+    def query_workbooks_json(self, username_or_luid=None, page_number=None):
+        """
+        :type username_or_luid: unicode
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+        if username_or_luid is None:
+            user_luid = self.user_luid
+        elif self.is_luid(username_or_luid):
+            user_luid = username_or_luid
+        else:
+            user_luid = self.query_user_luid(username_or_luid)
+        wbs = self.query_resource_json(u"users/{}/workbooks".format(user_luid), page_number=page_number)
+        self.end_log_block()
+        return wbs
+
     # Because a workbook can have the same pretty name in two projects, requires more logic
     def query_workbook(self, wb_name_or_luid, proj_name_or_luid=None, username_or_luid=None):
         """
@@ -887,7 +1058,7 @@ class TableauRestApiConnection(TableauBase):
             wb_luid = workbooks_with_name[0].get("id")
             self.end_log_block()
             return wb_luid
-        elif len(workbooks_with_name) > 1 and proj_name_or_luid is not False:
+        elif len(workbooks_with_name) > 1 and proj_name_or_luid is not None:
             if self.is_luid(proj_name_or_luid):
                 wb_in_proj = workbooks.findall(u'.//t:workbook[@name="{}"]/t:project[@id="{}"]/..'.format(wb_name, proj_name_or_luid), self.ns_map)
             else:
@@ -939,6 +1110,29 @@ class TableauRestApiConnection(TableauBase):
         else:
             wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
         vws = self.query_resource(u"workbooks/{}/views?includeUsageStatistics={}".format(wb_luid, str(usage).lower()))
+        self.end_log_block()
+        return vws
+
+    def query_workbook_views_json(self, wb_name_or_luid, proj_name_or_luid=None, username_or_luid=None, usage=False,
+                                  page_number=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type username_or_luid: unicode
+        :type usage: bool
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+        if usage not in [True, False]:
+            raise InvalidOptionException(u'Usage can only be set to True or False')
+        if self.is_luid(wb_name_or_luid):
+            wb_luid = wb_name_or_luid
+        else:
+            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
+        vws = self.query_resource_json(u"workbooks/{}/views?includeUsageStatistics={}".format(wb_luid,
+                                                                                              str(usage).lower()),
+                                                                                              page_number=page_number)
         self.end_log_block()
         return vws
 
@@ -1044,16 +1238,17 @@ class TableauRestApiConnection(TableauBase):
     # Start of download / save methods
     #
 
-    # Do not include file extension
-    def save_workbook_view_preview_image(self, wb_name_or_luid, view_name_or_luid, filename_no_extension,
+    # You must pass in the wb name because the endpoint needs it (although, you could potentially look up the
+    # workbook LUID from the view LUID
+    def query_view_preview_image(self, wb_name_or_luid, view_name_or_luid,
                                          proj_name_or_luid=None):
         """
         :type wb_name_or_luid: unicode
         :type view_name_or_luid: unicode
         :type proj_name_or_luid: unicode
         :type filename_no_extension: unicode
-        :rtype:
-        """
+        :rtype: bytes
+       """
         self.start_log_block()
         if self.is_luid(wb_name_or_luid):
             wb_luid = wb_name_or_luid
@@ -1066,24 +1261,85 @@ class TableauRestApiConnection(TableauBase):
             view_luid = self.query_workbook_view_luid(wb_name_or_luid, view_name=view_name_or_luid,
                                                       proj_name_or_luid=proj_name_or_luid)
         try:
-            if filename_no_extension.find('.png') == -1:
-                filename_no_extension += '.png'
-            save_file = open(filename_no_extension, 'wb')
+
             url = self.build_api_url(u"workbooks/{}/views/{}/previewImage".format(wb_luid, view_luid))
             image = self.send_binary_get_request(url)
+
+            self.end_log_block()
+            return image
+
+        # You might be requesting something that doesn't exist
+        except RecoverableHTTPException as e:
+            self.log(u"Attempt to request preview image results in HTTP error {}, Tableau Code {}".format(e.http_code,
+                                                                                                          e.tableau_error_code))
+            self.end_log_block()
+            raise
+
+
+    # Do not include file extension
+
+    # Just an alias but it matches the naming of the current reference guide (2019.1)
+    def save_view_preview_image(self, wb_name_or_luid, view_name_or_luid, filename_no_extension,
+                                         proj_name_or_luid=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type view_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type filename_no_extension: unicode
+        :rtype:
+        """
+        self.save_workbook_view_preview_image(wb_name_or_luid, view_name_or_luid, filename_no_extension,
+                                         proj_name_or_luid)
+
+    def save_workbook_view_preview_image(self, wb_name_or_luid, view_name_or_luid, filename_no_extension,
+                                         proj_name_or_luid=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type view_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type filename_no_extension: unicode
+        :rtype:
+        """
+        self.start_log_block()
+        image = self.query_view_preview_image(wb_name_or_luid=wb_name_or_luid, view_name_or_luid=view_name_or_luid,
+                                              proj_name_or_luid=proj_name_or_luid)
+        if filename_no_extension.find('.png') == -1:
+            filename_no_extension += '.png'
+        try:
+            save_file = open(filename_no_extension, 'wb')
             save_file.write(image)
             save_file.close()
             self.end_log_block()
 
-        # You might be requesting something that doesn't exist
-        except RecoverableHTTPException as e:
-            self.log(u"Attempt to request preview image results in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
-            self.end_log_block()
-            raise
         except IOError:
             self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension))
             self.end_log_block()
             raise
+
+    def query_workbook_preview_image(self, wb_name_or_luid, proj_name_or_luid=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :rtype: bytes
+        """
+        self.start_log_block()
+        if self.is_luid(wb_name_or_luid):
+            wb_luid = wb_name_or_luid
+        else:
+            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
+        try:
+
+            url = self.build_api_url(u"workbooks/{}/previewImage".format(wb_luid))
+            image = self.send_binary_get_request(url)
+            self.end_log_block()
+            return image
+
+        # You might be requesting something that doesn't exist, but unlikely
+        except RecoverableHTTPException as e:
+            self.log(u"Attempt to request preview image results in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
+            self.end_log_block()
+            raise
+
 
     # Do not include file extension
     def save_workbook_preview_image(self, wb_name_or_luid, filename_no_extension, proj_name_or_luid=None):
@@ -1095,25 +1351,15 @@ class TableauRestApiConnection(TableauBase):
         :rtype:
         """
         self.start_log_block()
-        if self.is_luid(wb_name_or_luid):
-            wb_luid = wb_name_or_luid
-        else:
-            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
+        image = self.query_workbook_preview_image(wb_name_or_luid=wb_name_or_luid, proj_name_or_luid=proj_name_or_luid)
+        if filename_no_extension.find('.png') == -1:
+            filename_no_extension += '.png'
         try:
-            if filename_no_extension.find('.png') == -1:
-                filename_no_extension += '.png'
             save_file = open(filename_no_extension, 'wb')
-            url = self.build_api_url(u"workbooks/{}/previewImage".format(wb_luid))
-            image = self.send_binary_get_request(url)
             save_file.write(image)
             save_file.close()
             self.end_log_block()
 
-        # You might be requesting something that doesn't exist, but unlikely
-        except RecoverableHTTPException as e:
-            self.log(u"Attempt to request preview image results in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
-            self.end_log_block()
-            raise
         except IOError:
             self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension))
             self.end_log_block()
@@ -1222,11 +1468,13 @@ class TableauRestApiConnection(TableauBase):
     # Create / Add Methods
     #
 
-    def add_user_by_username(self, username, site_role=u'Unlicensed', update_if_exists=False):
+    def add_user_by_username(self, username=None, site_role=u'Unlicensed', update_if_exists=False,
+                             direct_xml_request=None):
         """
         :type username: unicode
         :type site_role: unicode
         :type update_if_exists: bool
+        :type direct_xml_request: etree.Element
         :rtype: unicode
         """
         self.start_log_block()
@@ -1235,11 +1483,14 @@ class TableauRestApiConnection(TableauBase):
             raise InvalidOptionException(u"{} is not a valid site role in Tableau Server".format(site_role))
 
         self.log(u"Adding {}".format(username))
-        tsr = etree.Element(u"tsRequest")
-        u = etree.Element(u"user")
-        u.set(u"name", username)
-        u.set(u"siteRole", site_role)
-        tsr.append(u)
+        if direct_xml_request is not None:
+            tsr = direct_xml_request
+        else:
+            tsr = etree.Element(u"tsRequest")
+            u = etree.Element(u"user")
+            u.set(u"name", username)
+            u.set(u"siteRole", site_role)
+            tsr.append(u)
 
         url = self.build_api_url(u'users')
         try:
@@ -1265,7 +1516,8 @@ class TableauRestApiConnection(TableauBase):
 
     # This is "Add User to Site", since you must be logged into a site.
     # Set "update_if_exists" to True if you want the equivalent of an 'upsert', ignoring the exceptions
-    def add_user(self, username, fullname, site_role=u'Unlicensed', password=None, email=None, update_if_exists=False):
+    def add_user(self, username=None, fullname=None, site_role=u'Unlicensed', password=None, email=None,
+                 update_if_exists=False, direct_xml_request=None):
         """
         :type username: unicode
         :type fullname: unicode
@@ -1277,10 +1529,49 @@ class TableauRestApiConnection(TableauBase):
         :rtype: unicode
         """
         self.start_log_block()
+        # Add User requires two commands, so have to split into the add and the update XML if replicating
+
+        if direct_xml_request is not None:
+            # Parse to second level, should be
+            new_user_tsr = etree.Element(u'tsRequest')
+            new_user_u = etree.Element(u'user')
+            for t in direct_xml_request:
+                if t.tag != u'user':
+                    raise InvalidOptionException(u'Must submit a tsRequest with a user element')
+                for a in t.attrib:
+                    if a in [u'name', u'siteRole', u'authSetting']:
+                        new_user_u.set(a, t.attrib[a])
+            new_user_tsr.append(new_user_u)
+            print(etree.tostring(new_user_tsr))
+            return
+
         try:
             # Add username first, then update with full name
-            new_user_luid = self.add_user_by_username(username, site_role=site_role, update_if_exists=update_if_exists)
-            self.update_user(new_user_luid, fullname, site_role, password, email)
+            if direct_xml_request is not None:
+                # Parse to second level, should be
+                new_user_tsr = etree.Element(u'tsRequest')
+                new_user_u = etree.Element(u'user')
+                for t in direct_xml_request:
+                    if t.tag != u'user':
+                        raise InvalidOptionException(u'Must submit a tsRequest with a user element')
+                    for a in t.attrib:
+                        if a in [u'name', u'siteRole', u'authSetting']:
+                            new_user_u.set(a, t.attrib[a])
+                new_user_tsr.append(new_user_u)
+                new_user_luid = self.add_user_by_username(direct_xml_request=new_user_tsr)
+
+                update_tsr = etree.Element(u'tsRequest')
+                update_u = etree.Element(u'user')
+                for t in direct_xml_request:
+                    for a in t.attrib:
+                        if a in [u'fullName', u'email', u'password', u'siteRole', u'authSetting']:
+                            update_u.set(a, t.attrib[a])
+                update_tsr.append(update_u)
+                self.update_user(username_or_luid=new_user_luid, direct_xml_request=update_tsr)
+            else:
+                # Add username first, then update with full name
+                new_user_luid = self.add_user_by_username(username, site_role=site_role, update_if_exists=update_if_exists)
+                self.update_user(new_user_luid, fullname, site_role, password, email)
             self.end_log_block()
             return new_user_luid
         except AlreadyExistsException as e:
@@ -1289,17 +1580,21 @@ class TableauRestApiConnection(TableauBase):
             return e.existing_luid
 
     # Returns the LUID of an existing group if one already exists
-    def create_group(self, group_name):
+    def create_group(self, group_name=None, direct_xml_request=None):
         """
         :type group_name: unicode
+        :type direct_xml_request: etree.Element
         :rtype: unicode
         """
         self.start_log_block()
 
-        tsr = etree.Element(u"tsRequest")
-        g = etree.Element(u"group")
-        g.set(u"name", group_name)
-        tsr.append(g)
+        if direct_xml_request is not None:
+            tsr = direct_xml_request
+        else:
+            tsr = etree.Element(u"tsRequest")
+            g = etree.Element(u"group")
+            g.set(u"name", group_name)
+            tsr.append(g)
 
         url = self.build_api_url(u"groups")
         try:
@@ -1351,22 +1646,26 @@ class TableauRestApiConnection(TableauBase):
             group = response.findall(u'.//t:group', self.ns_map)
             return group[0].get('id')
 
-    def create_project(self, project_name, project_desc=None, no_return=False):
+    def create_project(self, project_name=None, project_desc=None, no_return=False, direct_xml_request=None):
         """
         :type project_name: unicode
         :type project_desc: unicode
         :type no_return: bool
+        :type direct_xml_request: etree.Element
         :rtype: Project20
         """
         self.start_log_block()
 
-        tsr = etree.Element(u"tsRequest")
-        p = etree.Element(u"project")
-        p.set(u"name", project_name)
+        if direct_xml_request is not None:
+            tsr = direct_xml_request
+        else:
+            tsr = etree.Element(u"tsRequest")
+            p = etree.Element(u"project")
+            p.set(u"name", project_name)
 
-        if project_desc is not None:
-            p.set(u'description', project_desc)
-        tsr.append(p)
+            if project_desc is not None:
+                p.set(u'description', project_desc)
+            tsr.append(p)
 
         url = self.build_api_url(u"projects")
         try:
@@ -1385,7 +1684,7 @@ class TableauRestApiConnection(TableauBase):
 
     # Both SiteName and ContentUrl must be unique to add a site
     def create_site(self, new_site_name, new_content_url, admin_mode=None, user_quota=None, storage_quota=None,
-                    disable_subscriptions=None):
+                    disable_subscriptions=None, direct_xml_request=None):
         """
         :type new_site_name: unicode
         :type new_content_url: unicode
@@ -1393,11 +1692,14 @@ class TableauRestApiConnection(TableauBase):
         :type user_quota: unicode
         :type storage_quota: unicode
         :type disable_subscriptions: bool
+        :type direct_xml_request: etree.Element
         :rtype: unicode
         """
-
-        add_request = self.build_site_request_xml(new_site_name, new_content_url, admin_mode, user_quota,
-                                                  storage_quota, disable_subscriptions)
+        if direct_xml_request is not None:
+            add_request = direct_xml_request
+        else:
+            add_request = self.build_site_request_xml(new_site_name, new_content_url, admin_mode, user_quota,
+                                                      storage_quota, disable_subscriptions)
         url = self.build_api_url(u"sites/",
                                  server_level=True)  # Site actions drop back out of the site ID hierarchy like login
         try:
@@ -1554,13 +1856,14 @@ class TableauRestApiConnection(TableauBase):
     #
 
     def update_user(self, username_or_luid, full_name=None, site_role=None, password=None,
-                    email=None):
+                    email=None, direct_xml_request=None):
         """
         :type username_or_luid: unicode
         :type full_name: unicode
         :type site_role: unicode
         :type password: unicode
         :type email: unicode
+        :type direct_xml_request: etree.Element
         :rtype: etree.Element
         """
         self.start_log_block()
@@ -1569,17 +1872,20 @@ class TableauRestApiConnection(TableauBase):
         else:
             user_luid = self.query_user_luid(username_or_luid)
 
-        tsr = etree.Element(u"tsRequest")
-        u = etree.Element(u"user")
-        if full_name is not None:
-            u.set(u'fullName', full_name)
-        if site_role is not None:
-            u.set(u'siteRole', site_role)
-        if email is not None:
-            u.set(u'email', email)
-        if password is not None:
-            u.set(u'password', password)
-        tsr.append(u)
+        if direct_xml_request is not None:
+            tsr = direct_xml_request
+        else:
+            tsr = etree.Element(u"tsRequest")
+            u = etree.Element(u"user")
+            if full_name is not None:
+                u.set(u'fullName', full_name)
+            if site_role is not None:
+                u.set(u'siteRole', site_role)
+            if email is not None:
+                u.set(u'email', email)
+            if password is not None:
+                u.set(u'password', password)
+            tsr.append(u)
 
         url = self.build_api_url(u"users/{}".format(user_luid))
         response = self.send_update_request(url, tsr)
@@ -2005,7 +2311,8 @@ class TableauRestApiConnection(TableauBase):
     '''
 
     def publish_workbook(self, workbook_filename, workbook_name, project_obj, overwrite=False, connection_username=None,
-                         connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=True):
+                         connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=True,
+                         oauth_flag=False):
         """
         :type workbook_filename: unicode
         :type workbook_name: unicode
@@ -2017,18 +2324,20 @@ class TableauRestApiConnection(TableauBase):
         :type show_tabs: bool
         :param check_published_ds: Set to False to improve publish speed if you KNOW there are no published data sources
         :type check_published_ds: bool
+        :type oauth_flag: bool
         :rtype: unicode
         """
 
         project_luid = project_obj.luid
         xml = self.publish_content(u'workbook', workbook_filename, workbook_name, project_luid,
                                    {u"overwrite": overwrite}, connection_username, connection_password,
-                                   save_credentials, show_tabs=show_tabs, check_published_ds=check_published_ds)
+                                   save_credentials, show_tabs=show_tabs, check_published_ds=check_published_ds,
+                                   oauth_flag=oauth_flag)
         workbook = xml.findall(u'.//t:workbook', self.ns_map)
         return workbook[0].get('id')
 
     def publish_datasource(self, ds_filename, ds_name, project_obj, overwrite=False, connection_username=None,
-                           connection_password=None, save_credentials=True):
+                           connection_password=None, save_credentials=True, oauth_flag=False):
         """
         :type ds_filename: unicode
         :type ds_name: unicode
@@ -2037,11 +2346,12 @@ class TableauRestApiConnection(TableauBase):
         :type connection_username: unicode
         :type connection_password: unicode
         :type save_credentials: bool
+        :type oauth_flag: bool
         :rtype: unicode
         """
         project_luid = project_obj.luid
         xml = self.publish_content(u'datasource', ds_filename, ds_name, project_luid, {u"overwrite": overwrite},
-                                   connection_username, connection_password, save_credentials)
+                                   connection_username, connection_password, save_credentials, oauth_flag=oauth_flag)
         datasource = xml.findall(u'.//t:datasource', self.ns_map)
         return datasource[0].get('id')
 
@@ -2049,7 +2359,8 @@ class TableauRestApiConnection(TableauBase):
     # If a TableauDatasource or TableauWorkbook is passed, will upload from its content
     def publish_content(self, content_type, content_filename, content_name, project_luid, url_params=None,
                         connection_username=None, connection_password=None, save_credentials=True, show_tabs=False,
-                        check_published_ds=True):
+                        check_published_ds=True, oauth_flag=False, generate_thumbnails_as_username_or_luid=None,
+                        description=None, views_to_hide_list=None):
         # Single upload limit in MB
         single_upload_limit = 20
 
@@ -2057,14 +2368,14 @@ class TableauRestApiConnection(TableauBase):
         temp_wb_filename = None
 
         # Must be 'workbook' or 'datasource'
-        if content_type not in [u'workbook', u'datasource']:
-            raise InvalidOptionException(u"content_type must be 'workbook' or 'datasource'")
+        if content_type not in [u'workbook', u'datasource', u'flow']:
+            raise InvalidOptionException(u"content_type must be 'workbook',  'datasource', or 'flow' ")
 
         file_extension = None
         final_filename = None
         cleanup_temp_file = False
 
-        for ending in [u'.twb', u'.twbx', u'.tde', u'.tdsx', u'.tds', u'.tde', u'.hyper']:
+        for ending in [u'.twb', u'.twbx', u'.tde', u'.tdsx', u'.tds', u'.tde', u'.hyper', u'.tfl', u'.tflx']:
             if content_filename.endswith(ending):
                 file_extension = ending[1:]
 
@@ -2100,19 +2411,41 @@ class TableauRestApiConnection(TableauBase):
 
                     # Build publish request in ElementTree then convert at publish
                     publish_request_xml = etree.Element(u'tsRequest')
-                    # could be either workbook or datasource
+                    # could be either workbook, datasource, or flow
                     t1 = etree.Element(content_type)
                     t1.set(u'name', content_name)
                     if show_tabs is not False:
                         t1.set(u'showTabs', str(show_tabs).lower())
+                    if generate_thumbnails_as_username_or_luid is not None:
+                        if self.is_luid(generate_thumbnails_as_username_or_luid):
+                            thumbnail_user_luid = generate_thumbnails_as_username_or_luid
+                        else:
+                            thumbnail_user_luid = self.query_user_luid(generate_thumbnails_as_username_or_luid)
+                        t1.set(u'generateThumbnailsAsUser', thumbnail_user_luid)
 
-                    if connection_username is not None and connection_password is not None:
+                    if connection_username is not None:
                         cc = etree.Element(u'connectionCredentials')
                         cc.set(u'name', connection_username)
-                        cc.set(u'password', connection_password)
+                        if oauth_flag is True:
+                            cc.set(u'oAuth', u"True")
+                        if connection_password is not None:
+                            cc.set(u'password', connection_password)
                         cc.set(u'embed', str(save_credentials).lower())
                         t1.append(cc)
 
+                    # Views to Hide in Workbooks from 3.2
+                    if views_to_hide_list is not None:
+                        if len(views_to_hide_list) > 0:
+                            vs = etree.Element(u'views')
+                            for view_name in views_to_hide_list:
+                                v = etree.Element(u'view')
+                                v.set(u'name', view_name)
+                                v.set(u'hidden', u'true')
+                            t1.append(vs)
+
+                    # Description only allowed for Flows as of 3.3
+                    if description is not None:
+                         t1.set(u'description', description)
                     p = etree.Element(u'project')
                     p.set(u'id', project_luid)
                     t1.append(p)

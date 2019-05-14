@@ -35,6 +35,14 @@ class TableauRestApiConnection24(TableauRestApiConnection23):
         # grab api version number
 
     def query_views(self, usage=False, created_at_filter=None, updated_at_filter=None, tags_filter=None, sorts=None):
+        """
+        :type usage: bool
+        :type created_at_filter: UrlFilter
+        :type updated_at_filter: UrlFilter
+        :type tags_filter: UrlFilter
+        :type sorts: list[Sort]
+        :rtype: etree.Element
+        """
         self.start_log_block()
         if usage not in [True, False]:
             raise InvalidOptionException(u'Usage can only be set to True or False')
@@ -43,6 +51,29 @@ class TableauRestApiConnection24(TableauRestApiConnection23):
 
         vws = self.query_resource(u"views", filters=filters, sorts=sorts,
                                   additional_url_ending=u"includeUsageStatistics={}".format(str(usage).lower()))
+        self.end_log_block()
+        return vws
+
+    def query_views_json(self, usage=False, created_at_filter=None, updated_at_filter=None, tags_filter=None,
+                         sorts=None, page_number=None):
+        """
+        :type usage: bool
+        :type created_at_filter: UrlFilter
+        :type updated_at_filter: UrlFilter
+        :type tags_filter: UrlFilter
+        :type sorts: list[Sort]
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+        if usage not in [True, False]:
+            raise InvalidOptionException(u'Usage can only be set to True or False')
+        filter_checks = {u'updatedAt': updated_at_filter, u'createdAt': created_at_filter, u'tags': tags_filter}
+        filters = self._check_filter_objects(filter_checks)
+
+        vws = self.query_resource_json(u"views", filters=filters, sorts=sorts,
+                                       additional_url_ending=u"includeUsageStatistics={}".format(str(usage).lower()),
+                                       page_number=page_number)
         self.end_log_block()
         return vws
 
@@ -87,5 +118,26 @@ class TableauRestApiConnection24(TableauRestApiConnection23):
 
         self.end_log_block()
         return dses
+
+    def query_datasources_json(self, updated_at_filter=None, created_at_filter=None,
+                               tags_filter=None, datasource_type_filter=None, sorts=None, page_number=None):
+        """
+        :type updated_at_filter: UrlFilter
+        :type created_at_filter: UrlFilter
+        :type tags_filter: UrlFilter
+        :type datasource_type_filter: UrlFilter
+        :type sorts: list[Sort]
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+        filter_checks = {u'updatedAt': updated_at_filter, u'createdAt': created_at_filter, u'tags': tags_filter,
+                         u'type': datasource_type_filter}
+        filters = self._check_filter_objects(filter_checks)
+
+        datasources = self.query_resource_json(u'datasources', filters=filters, sorts=sorts, page_number=page_number)
+
+        self.end_log_block()
+        return datasources
 
     # query_datasource and query_datasource_luid can't be improved because filtering doesn't take a Project Name/LUID

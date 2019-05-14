@@ -24,6 +24,16 @@ class TableauRestApiConnection22(TableauRestApiConnection21):
         self.end_log_block()
         return schedules
 
+    def query_schedules_json(self, page_number=None):
+        """
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+        schedules = self.query_resource_json(u"schedules", server_level=True, page_number=page_number)
+        self.end_log_block()
+        return schedules
+
     def query_extract_schedules(self):
         """
         :rtype: etree.Element
@@ -78,8 +88,6 @@ class TableauRestApiConnection22(TableauRestApiConnection21):
         self.end_log_block()
         return tasks
 
-
-
     #
     # End Scheduler Querying Methods
     #
@@ -93,6 +101,19 @@ class TableauRestApiConnection22(TableauRestApiConnection21):
         if usage not in [True, False]:
             raise InvalidOptionException(u'Usage can only be set to True or False')
         vws = self.query_resource(u"views?includeUsageStatistics={}".format(str(usage).lower()))
+        self.end_log_block()
+        return vws
+
+    def query_views_json(self, usage=False, page_number=None):
+        """
+        :type usage: bool
+        :rtype: json
+        """
+        self.start_log_block()
+        if usage not in [True, False]:
+            raise InvalidOptionException(u'Usage can only be set to True or False')
+        vws = self.query_resource_json(u"views?includeUsageStatistics={}".format(str(usage).lower()),
+                                       page_number=page_number)
         self.end_log_block()
         return vws
 

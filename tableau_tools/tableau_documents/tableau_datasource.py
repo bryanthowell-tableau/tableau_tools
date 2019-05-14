@@ -1,6 +1,7 @@
 from ..tableau_base import *
 from tableau_connection import TableauConnection
-from tableau_document import TableauColumns, TableauDocument
+from tableau_document import TableauDocument
+from tableau_columns import TableauColumns
 
 import xml.etree.ElementTree as etree
 from ..tableau_exceptions import *
@@ -81,7 +82,9 @@ class TableauDatasource(TableauDocument):
                 self.ds_version_type = u'9'
             else:
                 version_split = xml_version.split(u'.')
-                if int(version_split[1]) < 5:
+                if int(version_split[0]) >= 18:
+                    self.ds_version_type = u'10.5'
+                elif int(version_split[1]) < 5:
                     self.ds_version_type = u'10'
                 else:
                     self.ds_version_type = u'10.5'
@@ -98,6 +101,10 @@ class TableauDatasource(TableauDocument):
                     self.log(u'connection tags found, building a TableauConnection object')
                     new_conn = TableauConnection(connection_xml_obj)
                     self.connections.append(new_conn)
+                    if new_conn.connection_type == u'sqlproxy':
+                        self._published = True
+                        repository_location_xml = self.xml.find(u'repository-location')
+                        self.repository_location = repository_location_xml
 
             # Grab the relation
             elif self.ds_version_type in [u'10', u'10.5']:
@@ -110,6 +117,9 @@ class TableauDatasource(TableauDocument):
                 for published_datasource in published_datasources:
                     self.log(u'Published Datasource connection tags found, building a TableauConnection object')
                     self.connections.append(TableauConnection(published_datasource))
+                    self._published = True
+                    repository_location_xml = self.xml.find(u'repository-location')
+                    self.repository_location = repository_location_xml
 
             # Skip the relation if it is a Parameters datasource. Eventually, build out separate object
             if self.xml.get(u'name') != u'Parameters':
@@ -119,13 +129,13 @@ class TableauDatasource(TableauDocument):
                 self.log(u'Found a Parameters datasource')
 
 
-        self.repository_location = None
+        #self.repository_location = None
 
-        if self.xml.find(u'repository-location') is not None:
-            if len(self.xml.find(u'repository-location')) == 0:
-                self._published = True
-                repository_location_xml = self.xml.find(u'repository-location')
-                self.repository_location = repository_location_xml
+        #if self.xml.find(u'repository-location') is not None:
+        #    if len(self.xml.find(u'repository-location')) == 0:
+        #        self._published = True
+        #        repository_location_xml = self.xml.find(u'repository-location')
+        #        self.repository_location = repository_location_xml
 
         # Grab the extract filename if there is an extract section
         if self.xml.find(u'extract') is not None:
@@ -385,7 +395,12 @@ class TableauDatasource(TableauDocument):
             # Write the XML header line
             lh.write(u"<?xml version='1.0' encoding='utf-8' ?>\n\n")
             # Write the datasource XML itself
-            lh.write(self.get_datasource_xml())
+            ds_string = self.get_datasource_xml()
+            if isinstance(ds_string, bytes):
+                final_string = ds_string.decode(u'utf-8')
+            else:
+                final_string = ds_string
+            lh.write(final_string)
             lh.close()
 
             # Handle all of this in the TableauFile object now
@@ -450,7 +465,8 @@ class TableauDatasource(TableauDocument):
             else:
                 from tde_file_generator import TDEFileGenerator
         except Exception as ex:
-            print u"Must install the Tableau Extract SDK to add extracts"
+            print(u"Must have correct install of Tableau Extract SDK to add extracts")
+            print(u'Exception arising from the Tableau Extract SDK itself')
             raise
         e = etree.Element(u'extract')
         e.set(u'count', u'-1')
@@ -780,15 +796,14 @@ class TableauDatasource(TableauDocument):
                 if join_desc[u"custom_sql"] is None:
                     new_table_rel = self.create_table_relation(join_desc[u"db_table_name"],
                                                                join_desc[u"table_alias"])
-                elif join_desc[u"custom_sql"] is not None:
+                else:
                     new_table_rel = self.create_custom_sql_relation(join_desc[u'custom_sql'],
                                                                     join_desc[u'table_alias'])
                 r.append(new_table_rel)
                 prev_relation = r
 
                 rel_xml_obj.append(prev_relation)
-
-                return rel_xml_obj
+        return rel_xml_obj
 
     def add_table_column(self, table_alias, table_field_name, tableau_field_alias):
         # Check to make sure the alias has been added

@@ -112,7 +112,8 @@ class TableauRestApiConnection30(TableauRestApiConnection28):
         return response
 
     def publish_workbook(self, workbook_filename, workbook_name, project_obj, overwrite=False, async_publish=False, connection_username=None,
-                         connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=True):
+                         connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=True,
+                         oauth_flag=False):
         """
         :type workbook_filename: unicode
         :type workbook_name: unicode
@@ -124,6 +125,7 @@ class TableauRestApiConnection30(TableauRestApiConnection28):
         :type show_tabs: bool
         :param check_published_ds: Set to False to improve publish speed if you KNOW there are no published data sources
         :type check_published_ds: bool
+        :type oauth_flag: bool
         :rtype: unicode
         """
 
@@ -131,7 +133,7 @@ class TableauRestApiConnection30(TableauRestApiConnection28):
         xml = self.publish_content(u'workbook', workbook_filename, workbook_name, project_luid,
                                    {u"overwrite": overwrite, u"asJob": async_publish}, connection_username,
                                    connection_password, save_credentials, show_tabs=show_tabs,
-                                   check_published_ds=check_published_ds)
+                                   check_published_ds=check_published_ds, oauth_flag=oauth_flag)
         if async_publish is True:
             job = xml.findall(u'.//t:job', self.ns_map)
             return job[0].get(u'id')

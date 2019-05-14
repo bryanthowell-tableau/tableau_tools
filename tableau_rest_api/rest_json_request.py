@@ -9,10 +9,11 @@ import math
 import copy
 import requests
 import sys
+import json
 
 
 # Handles all of the actual HTTP calling
-class RestXmlRequest(TableauBase):
+class RestJsonRequest(TableauBase):
     def __init__(self, url=None, token=None, logger=None, ns_map_url='http://tableau.com/api',
                  verify_ssl_cert=True):
         """
@@ -25,21 +26,22 @@ class RestXmlRequest(TableauBase):
 
         # requests Session created to minimize connections
         self.session = requests.Session()
+        self.session.headers.update({u'Content-Type': u'application/json', u'Accept': u'application/json'})
 
-        self.__defined_response_types = (u'xml', u'png', u'binary')
+        self.__defined_response_types = (u'xml', u'png', u'binary', u'json')
         self.__defined_http_verbs = (u'post', u'get', u'put', u'delete')
         self.url = url
         self._xml_request = None
-        self._token = token
+        self.token = token
         self.__raw_response = None
         self.__last_error = None
         self.__last_url_request = None
         self.__last_response_headers = None
-        self.__xml_object = None
+        self.__json_object = None
         self.ns_map = {'t': ns_map_url}
         etree.register_namespace('t', ns_map_url)
         self.logger = logger
-        self.log(u'RestXmlRequest intialized')
+        self.log(u'RestJsonRequest intialized')
         self.__publish = None
         self.__boundary_string = None
         self.__publish_content = None
@@ -51,7 +53,7 @@ class RestXmlRequest(TableauBase):
 
         try:
             self.http_verb = 'get'
-            self.set_response_type('xml')
+            self.set_response_type(u'json')
         except:
             raise
 
@@ -63,7 +65,8 @@ class RestXmlRequest(TableauBase):
     def token(self, token):
         self._token = token
         # Requests documentation says setting a dict value to None will remove it.
-        self.session.headers.update({'X-tableau-auth': token})
+        self.session.headers.update({'X-tableau-auth': token, u'Content-Type': u'application/json',
+                                     u'Accept': u'application/json'})
 
     @property
     def xml_request(self):
@@ -95,6 +98,8 @@ class RestXmlRequest(TableauBase):
             self.__response_type = response_type
         else:
             raise InvalidOptionException(u"Response type '{}' is not defined in this library".format(response_type))
+        #if response_type == u'json':
+            #self.session.headers.update({'Content-Type': 'application/json'})
 
     # Must set a boundary string when publishing
     def set_publish_content(self, content, boundary_string):
@@ -118,9 +123,9 @@ class RestXmlRequest(TableauBase):
         return self.__last_response_content_type
 
     def get_response(self):
-        if self.__response_type == 'xml' and self.__xml_object is not None:
-            self.log_debug(u"XML Object Response: {}".format(etree.tostring(self.__xml_object, encoding='utf-8').decode('utf-8')))
-            return self.__xml_object
+        if self.__response_type == u'json' and self.__json_object is not None:
+            self.log_debug(u"JSON Object Response: {}".format(json.dumps(self.__json_object)))
+            return self.__json_object
         else:
             return self.__raw_response
 
@@ -256,51 +261,56 @@ class RestXmlRequest(TableauBase):
         if self.__response_type == 'xml':
             self.log_debug(u"Raw Response: {}".format(unicode_raw_response))
 
-    def request_from_api(self, page_number=1):
-        try:
+    def request_from_api(self, page_number=None):
+
+        if page_number is not None:
             self.__make_request(page_number)
-        except:
-            raise
-        if self.__response_type == 'xml':
-            if self.__raw_response == '' or self.__raw_response is None or len(self.__raw_response) == 0:
-                return True
-            utf8_parser = etree.XMLParser(encoding='UTF-8')
-            sio = BytesIO(self.__raw_response)
-            xml = etree.parse(sio, parser=utf8_parser)
-            # Set the XML object to the first returned. Will be replaced if there is pagination
-            self.__xml_object = xml.getroot()
-
-            for pagination in xml.findall(u'.//t:pagination', namespaces=self.ns_map):
-
-                # page_number = int(pagination.get('pageNumber'))
-                page_size = int(pagination.get('pageSize'))
-                total_available = int(pagination.get('totalAvailable'))
-                total_pages = int(math.ceil(float(total_available) / float(page_size)))
-
-                full_xml_obj = None
-                for obj in xml.getroot():
-                    if obj.tag != 'pagination':
-                        full_xml_obj = obj
-                combined_xml_obj = copy.deepcopy(full_xml_obj)
-
-                if total_pages > 1:
-                    for i in xrange(2, total_pages + 1):
-
-                        self.__make_request(i)  # Get next page
-                        utf8_parser2 = etree.XMLParser(encoding='utf-8')
-                        xml = etree.parse(BytesIO(self.__raw_response), parser=utf8_parser2)
-                        for obj in xml.getroot():
-                            if obj.tag != 'pagination':
-                                full_xml_obj = obj
-                        # This is the actual element, now need to append a copy to the big one
-                        for e in full_xml_obj:
-                            combined_xml_obj.append(e)
-
-                self.__xml_object = combined_xml_obj
-                self.log_debug(u"Logging the combined xml object")
-                self.log_debug(etree.tostring(self.__xml_object, encoding='utf-8').decode('utf-8'))
-                self.log(u"Request succeeded")
-                return True
-        elif self.__response_type in ['binary', 'png', 'csv']:
-            self.log(u'Non XML response')
+            full_json_obj = json.loads(self.__raw_response)
+            self.__json_object = full_json_obj
+            self.log_debug(u"Logging the JSON object for page {}".format(page_number))
+            self.log_debug(json.dumps(self.__json_object))
+            self.log(u"Request succeeded")
             return True
+        else:
+            self.__make_request(1)
+            if self.__response_type == u'json':
+                if self.__raw_response == '' or self.__raw_response is None or len(self.__raw_response) == 0:
+                    return True
+
+                full_json_obj = json.loads(self.__raw_response)
+
+                total_pages = 1
+                for level_1 in full_json_obj:
+
+                    if level_1 == u'pagination':
+
+                        # page_number = int(pagination.get('pageNumber'))
+                        page_size = int(full_json_obj[u'pagination'][u'pageSize'])
+                        total_available = int(full_json_obj[u'pagination'][u'totalAvailable'])
+                        total_pages = int(math.ceil(float(total_available) / float(page_size)))
+                        self.log_debug(u'{} pages of content found'.format(total_pages))
+                    else:
+                        combined_json_obj = copy.deepcopy(full_json_obj[level_1])
+                        if total_pages > 1:
+                            self.log_debug(u'Working on the pages')
+                            for i in xrange(2, total_pages + 1):
+                                self.log_debug(u'Starting on page {}'.format(i))
+                                self.__make_request(i)  # Get next page
+
+                                full_json_obj = json.loads(self.__raw_response)
+                                for l1 in full_json_obj:
+                                    if l1 != u'pagination':
+                                        for main_element in full_json_obj[l1]:
+                                            # One level in to get to the list
+                                            for list_element in full_json_obj[l1][main_element]:
+                                                for e in combined_json_obj:
+                                                    combined_json_obj[e].append(copy.deepcopy(list_element))
+
+                        self.__json_object = combined_json_obj
+                    self.log_debug(u"Logging the combined JSON object")
+                    self.log_debug(json.dumps(self.__json_object))
+                    self.log(u"Request succeeded")
+                return True
+            elif self.__response_type in ['binary', 'png', 'csv']:
+                self.log(u'Non XML response')
+                return True

@@ -90,6 +90,31 @@ class TableauRestApiConnection27(TableauRestApiConnection26):
         self.end_log_block()
         return groups
 
+    def query_groups_json(self, name_filter=None, domain_name_filter=None, domain_nickname_filter=None,
+                          is_local_filter=None, user_count_filter=None, minimum_site_role_filter=None,
+                          sorts=None, page_number=None):
+            """
+            :type name_filter: UrlFilter
+            :type domain_name_filter: UrlFilter
+            :type domain_nickname_filter: UrlFilter
+            :type is_local_filter: UrlFilter
+            :type user_count_filter: UrlFilter
+            :type minimum_site_role_filter: UrlFilter
+            :type sorts: list[Sort]
+            :type page_number: int
+            :rtype: etree.Element
+            """
+            filter_checks = {u'name': name_filter, u'domainName': domain_name_filter,
+                             u'domainNickname': domain_nickname_filter, u'isLocal': is_local_filter,
+                             u'userCount': user_count_filter, u'minimumSiteRole': minimum_site_role_filter}
+
+            filters = self._check_filter_objects(filter_checks)
+
+            self.start_log_block()
+            groups = self.query_resource_json(u"groups", filters=filters, sorts=sorts, page_number=page_number)
+            self.end_log_block()
+            return groups
+
         # # No basic verb for querying a single group, so run a query_groups
 
     def query_group(self, group_name_or_luid):
@@ -155,6 +180,31 @@ class TableauRestApiConnection27(TableauRestApiConnection26):
         self.end_log_block()
         return projects
 
+    def query_projects_json(self, name_filter=None, owner_name_filter=None, updated_at_filter=None,
+                            created_at_filter=None, owner_domain_filter=None, owner_email_filter=None, sorts=None,
+                            page_number=None):
+        """
+        :type name_filter: UrlFilter
+        :type owner_name_filter: UrlFilter
+        :type updated_at_filter: UrlFilter
+        :type created_at_filter: UrlFilter
+        :type owner_domain_filter: UrlFilter
+        :type owner_email_filter: UrlFilter
+        :type sorts: list[Sort]
+        :type page_number: int
+        :rtype: etree.Element
+        """
+        filter_checks = {u'name': name_filter, u'ownerName': owner_name_filter,
+                         u'updatedAt': updated_at_filter, u'createdAt': created_at_filter,
+                         u'ownerDomain': owner_domain_filter, u'ownerEmail': owner_email_filter}
+
+        filters = self._check_filter_objects(filter_checks)
+
+        self.start_log_block()
+        projects = self.query_resource_json(u"projects", filters=filters, sorts=sorts, page_number=None)
+        self.end_log_block()
+        return projects
+
     def query_project_luid(self, project_name):
         """
         :type project_name: unicode
@@ -181,6 +231,19 @@ class TableauRestApiConnection27(TableauRestApiConnection26):
         self.end_log_block()
         return proj
 
+    def query_project_xml_object(self, project_name_or_luid):
+        """
+        :param project_name_or_luid: unicode
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if self.is_luid(project_name_or_luid):
+            luid = project_name_or_luid
+        else:
+            luid = self.query_project_luid(project_name_or_luid)
+        proj_xml = self.query_single_element_from_endpoint_with_filter(u'project', luid)
+        self.end_log_block()
+        return proj_xml
     #
     # End Project Querying Methods
     #

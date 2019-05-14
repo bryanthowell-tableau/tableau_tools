@@ -118,7 +118,12 @@ class TableauWorkbook(TableauDocument):
                         final_datasources = self.datasources
                     for ds in final_datasources:
                         self.log(u'Writing datasource XML into the workbook')
-                        lh.write(ds.get_datasource_xml())
+                        ds_string = ds.get_datasource_xml()
+                        if isinstance(ds_string, bytes):
+                            final_string = ds_string.decode(u'utf-8')
+                        else:
+                            final_string = ds_string
+                        lh.write(final_string)
                     lh.write('</datasources>\n')
             lh.close()
             self.end_log_block()

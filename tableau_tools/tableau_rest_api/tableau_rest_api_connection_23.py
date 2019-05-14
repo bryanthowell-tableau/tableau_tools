@@ -153,6 +153,56 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
             self.end_log_block()
             raise NoMatchFoundException(u"No {} found with name {}".format(element_name, name))
 
+    # These are the new basic methods that use the Filter functionality introduced
+    def query_resource_json(self, url_ending, server_level=False, filters=None, sorts=None, additional_url_ending=None,
+                            page_number=None):
+        """
+        :type url_ending: unicode
+        :type server_level: bool
+        :type filters: list[UrlFilter]
+        :type sorts: list[Sort]
+        :type additional_url_ending: unicode
+        :type page_number: int
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if filters is not None:
+            if len(filters) > 0:
+                filters_url = u"filter="
+                for f in filters:
+                    filters_url += f.get_filter_string() + u","
+                filters_url = filters_url[:-1]
+
+        if sorts is not None:
+            if len(sorts) > 0:
+                sorts_url = u"sort="
+                for sort in sorts:
+                    sorts_url += sort.get_sort_string() + u","
+                sorts_url = sorts_url[:-1]
+
+        if sorts is not None and filters is not None:
+            url_ending += u"?{}&{}".format(sorts_url, filters_url)
+        elif sorts is not None:
+            url_ending += u"?{}".format(sorts_url)
+        elif filters is not None and len(filters) > 0:
+            url_ending += u"?{}".format(filters_url)
+        elif additional_url_ending is not None:
+            url_ending += u"?"
+        if additional_url_ending is not None:
+            url_ending += additional_url_ending
+
+        api_call = self.build_api_url(url_ending, server_level)
+        if self._request_json_obj is None:
+            self._request_json_obj = RestJsonRequest(token=self.token, logger=self.logger,
+                                                     verify_ssl_cert=self.verify_ssl_cert)
+        self._request_json_obj.http_verb = u'get'
+        self._request_json_obj.url = api_call
+        self._request_json_obj.request_from_api(page_number=page_number)
+        json_response = self._request_json_obj.get_response()  # return JSON as string
+        self._request_obj.url = None
+        self.end_log_block()
+        return json_response
+
     # Check method for filter objects
     @staticmethod
     def _check_filter_objects(filter_checks):
@@ -390,8 +440,9 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         self.end_log_block()
         return subscriptions
 
-    def create_subscription(self, subscription_subject, view_or_workbook, content_name_or_luid, schedule_name_or_luid,
-                            username_or_luid, project_name_or_luid=None, wb_name_or_luid=None):
+    def create_subscription(self, subscription_subject=None, view_or_workbook=None, content_name_or_luid=None,
+                            schedule_name_or_luid=None, username_or_luid=None, project_name_or_luid=None,
+                            wb_name_or_luid=None, direct_xml_request=None):
         """
         :type subscription_subject: unicode
         :type view_or_workbook: unicode
@@ -400,49 +451,53 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         :type username_or_luid: unicode
         :type project_name_or_luid: unicode
         :type wb_name_or_luid: unicode
+        :type direct_xml_request: etree.Element
         :rtype: unicode
         """
         self.start_log_block()
-        if view_or_workbook not in [u'View', u'Workbook']:
-            raise InvalidOptionException(u"view_or_workbook must be 'Workbook' or 'View'")
-
-        if self.is_luid(username_or_luid):
-            user_luid = username_or_luid
+        if direct_xml_request is not None:
+            tsr = direct_xml_request
         else:
-            user_luid = self.query_user_luid(username_or_luid)
-
-        if self.is_luid(schedule_name_or_luid):
-            schedule_luid = schedule_name_or_luid
-        else:
-            schedule_luid = self.query_schedule_luid(schedule_name_or_luid)
-
-        if self.is_luid(content_name_or_luid):
-            content_luid = content_name_or_luid
-        else:
-            if view_or_workbook == u'View':
-                if wb_name_or_luid is None:
-                    raise InvalidOptionException(u'Must include wb_name_or_luid for a View name lookup')
-                content_luid = self.query_workbook_view_luid(wb_name_or_luid, content_name_or_luid,
-                                                             proj_name_or_luid=project_name_or_luid, username_or_luid=user_luid)
-            elif view_or_workbook == u'Workbook':
-                content_luid = self.query_workbook_luid(content_name_or_luid, project_name_or_luid, user_luid)
-            else:
+            if view_or_workbook not in [u'View', u'Workbook']:
                 raise InvalidOptionException(u"view_or_workbook must be 'Workbook' or 'View'")
 
-        tsr = etree.Element(u'tsRequest')
-        s = etree.Element(u'subscription')
-        s.set(u'subject', subscription_subject)
-        c = etree.Element(u'content')
-        c.set(u'type', view_or_workbook)
-        c.set(u'id', content_luid)
-        sch = etree.Element(u'schedule')
-        sch.set(u'id', schedule_luid)
-        u = etree.Element(u'user')
-        u.set(u'id', user_luid)
-        s.append(c)
-        s.append(sch)
-        s.append(u)
-        tsr.append(s)
+            if self.is_luid(username_or_luid):
+                user_luid = username_or_luid
+            else:
+                user_luid = self.query_user_luid(username_or_luid)
+
+            if self.is_luid(schedule_name_or_luid):
+                schedule_luid = schedule_name_or_luid
+            else:
+                schedule_luid = self.query_schedule_luid(schedule_name_or_luid)
+
+            if self.is_luid(content_name_or_luid):
+                content_luid = content_name_or_luid
+            else:
+                if view_or_workbook == u'View':
+                    if wb_name_or_luid is None:
+                        raise InvalidOptionException(u'Must include wb_name_or_luid for a View name lookup')
+                    content_luid = self.query_workbook_view_luid(wb_name_or_luid, content_name_or_luid,
+                                                                 proj_name_or_luid=project_name_or_luid, username_or_luid=user_luid)
+                elif view_or_workbook == u'Workbook':
+                    content_luid = self.query_workbook_luid(content_name_or_luid, project_name_or_luid, user_luid)
+                else:
+                    raise InvalidOptionException(u"view_or_workbook must be 'Workbook' or 'View'")
+
+            tsr = etree.Element(u'tsRequest')
+            s = etree.Element(u'subscription')
+            s.set(u'subject', subscription_subject)
+            c = etree.Element(u'content')
+            c.set(u'type', view_or_workbook)
+            c.set(u'id', content_luid)
+            sch = etree.Element(u'schedule')
+            sch.set(u'id', schedule_luid)
+            u = etree.Element(u'user')
+            u.set(u'id', user_luid)
+            s.append(c)
+            s.append(sch)
+            s.append(u)
+            tsr.append(s)
 
         url = self.build_api_url(u'subscriptions')
         try:
@@ -524,8 +579,9 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
     # Begin Schedule Methods
     #
 
-    def create_schedule(self, name, extract_or_subscription, frequency, parallel_or_serial, priority, start_time=None,
-                        end_time=None, interval_value_s=None, interval_hours_minutes=None):
+    def create_schedule(self, name=None, extract_or_subscription=None, frequency=None, parallel_or_serial=None,
+                        priority=None, start_time=None,end_time=None, interval_value_s=None,
+                        interval_hours_minutes=None, direct_xml_request=None):
         """
         :type name: unicode
         :type extract_or_subscription: unicode
@@ -536,98 +592,28 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
         :type end_time: unicode
         :type interval_value_s: unicode or list[unicode]
         :type interval_hours_minutes: unicode
+        :type direct_xml_request: etree.Element
         :rtype:
         """
         self.start_log_block()
-        if extract_or_subscription not in [u'Extract', u'Subscription']:
-            raise InvalidOptionException(u"extract_or_subscription can only be 'Extract' or 'Subscription'")
-        if priority < 1 or priority > 100:
-            raise InvalidOptionException(u"priority must be an integer between 1 and 100")
-        if parallel_or_serial not in [u'Parallel', u'Serial']:
-            raise InvalidOptionException(u"parallel_or_serial must be 'Parallel' or 'Serial'")
-        if frequency not in [u'Hourly', u'Daily', u'Weekly', u'Monthly']:
-            raise InvalidOptionException(u"frequency must be 'Hourly', 'Daily', 'Weekly' or 'Monthly'")
-        tsr = etree.Element(u'tsRequest')
-        s = etree.Element(u'schedule')
-        s.set(u'name', name)
-        s.set(u'priority', unicode(priority))
-        s.set(u'type', extract_or_subscription)
-        s.set(u'frequency', frequency)
-        s.set(u'executionOrder', parallel_or_serial)
-        fd = etree.Element(u'frequencyDetails')
-        fd.set(u'start', start_time)
-        if end_time is not None:
-            fd.set(u'end', end_time)
-        intervals = etree.Element(u'intervals')
-
-        # Daily does not need an interval value
-
-        if interval_value_s is not None:
-            ivs = self.to_list(interval_value_s)
-            for i in ivs:
-                interval = etree.Element(u'interval')
-                if frequency == u'Hourly':
-                    if interval_hours_minutes is None:
-                        raise InvalidOptionException(u'Hourly must set interval_hours_minutes to "hours" or "minutes"')
-                    interval.set(interval_hours_minutes, i)
-                if frequency == u'Weekly':
-                    interval.set(u'weekDay', i)
-                if frequency == u'Monthly':
-                    interval.set(u'monthDay', i)
-                intervals.append(interval)
-
-        fd.append(intervals)
-        s.append(fd)
-        tsr.append(s)
-
-        # Schedule requests happen at the server rather than site level, like a login
-        url = self.build_api_url(u"schedules", server_level=True)
-        try:
-            new_schedule = self.send_add_request(url, tsr)
-            new_schedule_luid = new_schedule.findall(u'.//t:schedule', self.ns_map)[0].get("id")
-            self.end_log_block()
-            return new_schedule_luid
-        except RecoverableHTTPException as e:
-            if e.tableau_error_code == u'409021':
-                raise AlreadyExistsException(u'Schedule Already exists on the server', None)
-
-    def update_schedule(self, schedule_name_or_luid, new_name=None, frequency=None, parallel_or_serial=None,
-                        priority=None, start_time=None, end_time=None, interval_value_s=None, interval_hours_minutes=None):
-        """
-        :type schedule_name_or_luid: unicode
-        :type new_name: unicode
-        :type frequency: unicode
-        :type parallel_or_serial: unicode
-        :type priority: int
-        :type start_time: unicode
-        :type end_time: unicode
-        :type interval_value_s: unicode or list[unicode]
-        :type interval_hours_minutes: unicode
-        :rtype:
-        """
-        self.start_log_block()
-        if self.is_luid(schedule_name_or_luid):
-            luid = schedule_name_or_luid
+        if direct_xml_request is not None:
+            tsr = direct_xml_request
         else:
-            luid = self.query_schedule_luid(schedule_name_or_luid)
-
-        tsr = etree.Element(u'tsRequest')
-        s = etree.Element(u'schedule')
-        if new_name is not None:
-            s.set(u'name', new_name)
-        if priority is not None:
+            if extract_or_subscription not in [u'Extract', u'Subscription']:
+                raise InvalidOptionException(u"extract_or_subscription can only be 'Extract' or 'Subscription'")
             if priority < 1 or priority > 100:
                 raise InvalidOptionException(u"priority must be an integer between 1 and 100")
-            s.set(u'priority', unicode(priority))
-        if frequency is not None:
-            s.set(u'frequency', frequency)
-        if parallel_or_serial is not None:
             if parallel_or_serial not in [u'Parallel', u'Serial']:
                 raise InvalidOptionException(u"parallel_or_serial must be 'Parallel' or 'Serial'")
-            s.set(u'executionOrder', parallel_or_serial)
-        if frequency is not None:
             if frequency not in [u'Hourly', u'Daily', u'Weekly', u'Monthly']:
                 raise InvalidOptionException(u"frequency must be 'Hourly', 'Daily', 'Weekly' or 'Monthly'")
+            tsr = etree.Element(u'tsRequest')
+            s = etree.Element(u'schedule')
+            s.set(u'name', name)
+            s.set(u'priority', unicode(priority))
+            s.set(u'type', extract_or_subscription)
+            s.set(u'frequency', frequency)
+            s.set(u'executionOrder', parallel_or_serial)
             fd = etree.Element(u'frequencyDetails')
             fd.set(u'start', start_time)
             if end_time is not None:
@@ -652,7 +638,84 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
 
             fd.append(intervals)
             s.append(fd)
-        tsr.append(s)
+            tsr.append(s)
+
+        # Schedule requests happen at the server rather than site level, like a login
+        url = self.build_api_url(u"schedules", server_level=True)
+        try:
+            new_schedule = self.send_add_request(url, tsr)
+            new_schedule_luid = new_schedule.findall(u'.//t:schedule', self.ns_map)[0].get("id")
+            self.end_log_block()
+            return new_schedule_luid
+        except RecoverableHTTPException as e:
+            if e.tableau_error_code == u'409021':
+                raise AlreadyExistsException(u'Schedule Already exists on the server', None)
+
+    def update_schedule(self, schedule_name_or_luid, new_name=None, frequency=None, parallel_or_serial=None,
+                        priority=None, start_time=None, end_time=None, interval_value_s=None,
+                        interval_hours_minutes=None, direct_xml_request=None):
+        """
+        :type schedule_name_or_luid: unicode
+        :type new_name: unicode
+        :type frequency: unicode
+        :type parallel_or_serial: unicode
+        :type priority: int
+        :type start_time: unicode
+        :type end_time: unicode
+        :type interval_value_s: unicode or list[unicode]
+        :type interval_hours_minutes: unicode
+        :rtype:
+        """
+        self.start_log_block()
+        if self.is_luid(schedule_name_or_luid):
+            luid = schedule_name_or_luid
+        else:
+            luid = self.query_schedule_luid(schedule_name_or_luid)
+        if direct_xml_request is not None:
+            tsr = direct_xml_request
+        else:
+            tsr = etree.Element(u'tsRequest')
+            s = etree.Element(u'schedule')
+            if new_name is not None:
+                s.set(u'name', new_name)
+            if priority is not None:
+                if priority < 1 or priority > 100:
+                    raise InvalidOptionException(u"priority must be an integer between 1 and 100")
+                s.set(u'priority', unicode(priority))
+            if frequency is not None:
+                s.set(u'frequency', frequency)
+            if parallel_or_serial is not None:
+                if parallel_or_serial not in [u'Parallel', u'Serial']:
+                    raise InvalidOptionException(u"parallel_or_serial must be 'Parallel' or 'Serial'")
+                s.set(u'executionOrder', parallel_or_serial)
+            if frequency is not None:
+                if frequency not in [u'Hourly', u'Daily', u'Weekly', u'Monthly']:
+                    raise InvalidOptionException(u"frequency must be 'Hourly', 'Daily', 'Weekly' or 'Monthly'")
+                fd = etree.Element(u'frequencyDetails')
+                fd.set(u'start', start_time)
+                if end_time is not None:
+                    fd.set(u'end', end_time)
+                intervals = etree.Element(u'intervals')
+
+                # Daily does not need an interval value
+
+                if interval_value_s is not None:
+                    ivs = self.to_list(interval_value_s)
+                    for i in ivs:
+                        interval = etree.Element(u'interval')
+                        if frequency == u'Hourly':
+                            if interval_hours_minutes is None:
+                                raise InvalidOptionException(u'Hourly must set interval_hours_minutes to "hours" or "minutes"')
+                            interval.set(interval_hours_minutes, i)
+                        if frequency == u'Weekly':
+                            interval.set(u'weekDay', i)
+                        if frequency == u'Monthly':
+                            interval.set(u'monthDay', i)
+                        intervals.append(interval)
+
+                fd.append(intervals)
+                s.append(fd)
+            tsr.append(s)
 
         # Schedule requests happen at the server rather than site level, like a login
         url = self.build_api_url(u"schedules/{}".format(luid), server_level=True)
@@ -1113,12 +1176,14 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
             save_file = open(save_filename, 'wb')
             save_file.write(ds)
             save_file.close()
+            self.end_log_block()
             return save_filename
         except IOError:
             self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
+            self.end_log_block()
             raise
 
-        self.end_log_block()
+
 
     # Do not include file extension, added automatically. Without filename, only returns the response
     # Use no_obj_return for save without opening and processing
@@ -1162,12 +1227,14 @@ class TableauRestApiConnection23(TableauRestApiConnection22):
             save_file = open(save_filename, 'wb')
             save_file.write(wb)
             save_file.close()
+            self.end_log_block()
             return save_filename
 
         except IOError:
             self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
+            self.end_log_block()
             raise
-        self.end_log_block()
+
 
     #
     # End Revision Methods

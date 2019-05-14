@@ -40,25 +40,29 @@ class TableauRestApiConnection21(TableauRestApiConnection):
         self.end_log_block()
         return proj
 
-    def create_project(self, project_name, project_desc=None, locked_permissions=True, no_return=False):
+    def create_project(self, project_name=None, project_desc=None, locked_permissions=True, no_return=False,
+                       direct_xml_request=None):
         """
         :type project_name: unicode
         :type project_desc: unicode
         :type locked_permissions: bool
         :type no_return: bool
+        :type direct_xml_request: etree.Element
         :rtype: Project21
         """
         self.start_log_block()
+        if direct_xml_request is not None:
+            tsr = direct_xml_request
+        else:
+            tsr = etree.Element(u"tsRequest")
+            p = etree.Element(u"project")
+            p.set(u"name", project_name)
 
-        tsr = etree.Element(u"tsRequest")
-        p = etree.Element(u"project")
-        p.set(u"name", project_name)
-
-        if project_desc is not None:
-            p.set(u'description', project_desc)
-        if locked_permissions is not False:
-            p.set(u'contentPermissions', u"LockedToProject")
-        tsr.append(p)
+            if project_desc is not None:
+                p.set(u'description', project_desc)
+            if locked_permissions is not False:
+                p.set(u'contentPermissions', u"LockedToProject")
+            tsr.append(p)
 
         url = self.build_api_url(u"projects")
         try:
@@ -126,15 +130,18 @@ class TableauRestApiConnection21(TableauRestApiConnection):
             self.send_delete_request(url)
         self.end_log_block()
 
-    def add_user_by_username(self, username, site_role=u'Unlicensed', auth_setting=None, update_if_exists=False):
+    def add_user_by_username(self, username=None, site_role=u'Unlicensed', auth_setting=None, update_if_exists=False,
+                             direct_xml_request=None):
         """
         :type username: unicode
         :type site_role: unicode
         :type update_if_exists: bool
         :type auth_setting: unicode
+        :type direct_xml_request: etree.Element
         :rtype: unicode
         """
         self.start_log_block()
+
         # Check to make sure role that is passed is a valid role in the API
         if site_role not in self.site_roles:
             raise InvalidOptionException(u"{} is not a valid site role in Tableau Server".format(site_role))
@@ -143,13 +150,16 @@ class TableauRestApiConnection21(TableauRestApiConnection):
             if auth_setting not in [u'SAML', u'ServerDefault']:
                 raise InvalidOptionException(u'auth_setting must be either "SAML" or "ServerDefault"')
         self.log(u"Adding {}".format(username))
-        tsr = etree.Element(u"tsRequest")
-        u = etree.Element(u"user")
-        u.set(u"name", username)
-        u.set(u"siteRole", site_role)
-        if auth_setting is not None:
-            u.set(u'authSetting', auth_setting)
-        tsr.append(u)
+        if direct_xml_request is not None:
+            tsr = direct_xml_request
+        else:
+            tsr = etree.Element(u"tsRequest")
+            u = etree.Element(u"user")
+            u.set(u"name", username)
+            u.set(u"siteRole", site_role)
+            if auth_setting is not None:
+                u.set(u'authSetting', auth_setting)
+            tsr.append(u)
 
         url = self.build_api_url(u'users')
         try:
@@ -175,8 +185,8 @@ class TableauRestApiConnection21(TableauRestApiConnection):
 
     # This is "Add User to Site", since you must be logged into a site.
     # Set "update_if_exists" to True if you want the equivalent of an 'upsert', ignoring the exceptions
-    def add_user(self, username, fullname, site_role=u'Unlicensed', password=None, email=None, auth_setting=None,
-                 update_if_exists=False):
+    def add_user(self, username=None, fullname=None, site_role=u'Unlicensed', password=None, email=None, auth_setting=None,
+                 update_if_exists=False, direct_xml_request=None):
         """
         :type username: unicode
         :type fullname: unicode
@@ -185,14 +195,39 @@ class TableauRestApiConnection21(TableauRestApiConnection):
         :type email: unicode
         :type update_if_exists: bool
         :type auth_setting: unicode
+        :type direct_xml_request: etree.Element
         :rtype: unicode
         """
         self.start_log_block()
+
         try:
             # Add username first, then update with full name
-            new_user_luid = self.add_user_by_username(username, site_role=site_role, update_if_exists=update_if_exists,
-                                                      auth_setting=auth_setting)
-            self.update_user(new_user_luid, fullname, site_role, password, email)
+            if direct_xml_request is not None:
+                # Parse to second level, should be
+                new_user_tsr = etree.Element(u'tsRequest')
+                new_user_u = etree.Element(u'user')
+                for t in direct_xml_request:
+                    if t.tag != u'user':
+                        raise InvalidOptionException(u'Must submit a tsRequest with a user element')
+                    for a in t.attrib:
+                        if a in [u'name', u'siteRole', u'authSetting']:
+                            new_user_u.set(a, t.attrib[a])
+                new_user_tsr.append(new_user_u)
+                new_user_luid = self.add_user_by_username(direct_xml_request=new_user_tsr)
+
+                update_tsr = etree.Element(u'tsRequest')
+                update_u = etree.Element(u'user')
+                for t in direct_xml_request:
+                    for a in t.attrib:
+                        if a in [u'fullName', u'email', u'password', u'siteRole', u'authSetting']:
+                            update_u.set(a, t.attrib[a])
+                update_tsr.append(update_u)
+                self.update_user(username_or_luid=new_user_luid, direct_xml_request=update_tsr)
+
+            else:
+                new_user_luid = self.add_user_by_username(username, site_role=site_role,
+                                                          update_if_exists=update_if_exists, auth_setting=auth_setting)
+                self.update_user(new_user_luid, fullname, site_role, password, email)
             self.end_log_block()
             return new_user_luid
         except AlreadyExistsException as e:

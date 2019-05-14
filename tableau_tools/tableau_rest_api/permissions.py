@@ -386,3 +386,13 @@ class DatasourcePermissions28(Permissions):
                 u'all': u'Allow'
             }
         }
+
+
+class FlowPermissions33(Permissions):
+    def __init__(self, group_or_user, group_or_user_luid):
+        Permissions.__init__(self, group_or_user, group_or_user_luid, u'flow')
+        for cap in self.available_capabilities[u'3.3'][u'flow']:
+            if cap != u'all':
+                self.capabilities[cap] = None
+        # Unclear that there are any defined roles for Prep Conductor flows
+        self.role_set = {}
