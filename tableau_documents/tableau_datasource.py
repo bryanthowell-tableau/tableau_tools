@@ -281,9 +281,11 @@ class TableauDatasource(TableauDocument):
         else:
             raise InvalidOptionException(u'ds_version must be either "9" or "10"')
         connection.set(u'class', ds_type)
+
         connection.set(u'dbname', db_name)
         connection.set(u'odbc-native-protocol', u'yes') # is this always necessary, or just PostgreSQL?
-        connection.set(u'server', server)
+        if server is not None:
+            connection.set(u'server', server)
         if authentication is not None:
             connection.set(u'authentication', authentication)
         if initial_sql is not None:
@@ -294,6 +296,7 @@ class TableauDatasource(TableauDocument):
         self.start_log_block()
         self.ds_generator = True
         conn = self.create_new_connection_xml(self.ds_version_type, ds_type, server, db_or_schema_name, authentication, initial_sql)
+        print(etree.tostring(conn))
         if self.ds_version_type == u'9':
             self.xml.append(conn)
             self._connection_root = conn
@@ -301,7 +304,7 @@ class TableauDatasource(TableauDocument):
             c = etree.Element(u'connection')
             c.set(u'class', u'federated')
             ncs = etree.Element(u'named-connections')
-            ncs.append(conn)
+            ncs.append(copy.deepcopy(conn))
             c.append(ncs)
             self.xml.append(c)
             self._connection_root = c
@@ -318,8 +321,9 @@ class TableauDatasource(TableauDocument):
         self.log(u'Generating datasource xml')
 
         # Generate a copy of the XML object that was originally passed in
-        new_xml = copy.deepcopy(self.xml)
 
+        if self.xml is not None:
+           new_xml = copy.deepcopy(self.xml)
         # Run through and generate any new sections to be added from the datasource_generator
 
         # Column Mappings
@@ -751,6 +755,8 @@ class TableauDatasource(TableauDocument):
                 rel_xml_obj.set(item[0], item[1])
             if self.main_table_relation.text is not None:
                 rel_xml_obj.text = self.main_table_relation.text
+            print("First join relationships")
+            print(etree.tostring(rel_xml_obj))
         else:
             prev_relation = rel_xml_obj
 
@@ -788,7 +794,6 @@ class TableauDatasource(TableauDocument):
                             and_expression.append(e)
                         else:
                             and_expression = e
-
                 c.append(and_expression)
                 r.append(c)
                 r.append(prev_relation)
@@ -801,8 +806,7 @@ class TableauDatasource(TableauDocument):
                                                                     join_desc[u'table_alias'])
                 r.append(new_table_rel)
                 prev_relation = r
-
-                rel_xml_obj.append(prev_relation)
+                rel_xml_obj.append(copy.deepcopy(r))
         return rel_xml_obj
 
     def add_table_column(self, table_alias, table_field_name, tableau_field_alias):
@@ -1064,13 +1068,20 @@ class TableauDatasource(TableauDocument):
         return a
 
     def generate_aliases_column_section(self):
+        """
+        :rtype: list[etree.Element]
+        """
         column_aliases_array = []
 
         # Now to put in each column tag
         for column_alias in self.column_aliases:
             c = etree.Element(u"column")
+            print("Column section")
+            print(etree.tostring(c))
             # Name is the Tableau Field Alias, always surrounded by brackets SQL Server style
             c.set(u"name", u"[{}]".format(column_alias))
+            print("Column section 2")
+            print(etree.tostring(c))
             if self.column_aliases[column_alias][u"datatype"] is not None:
                 c.set(u"datatype", self.column_aliases[column_alias][u"datatype"])
             if self.column_aliases[column_alias][u"caption"] is not None:
@@ -1085,6 +1096,8 @@ class TableauDatasource(TableauDocument):
                 # quoteattr adds an extra real set of quotes around the string, which needs to be sliced out
                 calc.set(u'formula', quoteattr(self.column_aliases[column_alias][u'calculation'])[1:-1])
                 c.append(calc)
+            print("Column section at end")
+            print(etree.tostring(c))
             column_aliases_array.append(c)
         return column_aliases_array
 

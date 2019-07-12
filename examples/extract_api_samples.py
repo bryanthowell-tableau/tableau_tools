@@ -39,7 +39,7 @@ def pyodbc_connect_and_query(odbc_connect_string, query):
 def hyper_create_two_tables(new_hyper_filename, table_1_pyodbc_conn_string, table_1_query, table_1_tableau_name,
                             table_2_pyodbc_conn_string, table_2_query, table_2_tableau_name):
 
-    h = HyperFileGenerator(logger)
+    h = HyperFileGenerator()
 
     # Table 1
     filled_cursor = pyodbc_connect_and_query(table_1_pyodbc_conn_string, table_1_query)
@@ -66,15 +66,17 @@ def hyper_create_two_tables(new_hyper_filename, table_1_pyodbc_conn_string, tabl
 def create_new_tds_for_two_table_extract(new_tds_filename, hyper_filename):
     t_file = TableauFile(new_tds_filename, create_new=True, ds_version=u'10.5')
     ds = t_file.tableau_document.datasources[0]  # type: TableauDatasource
-    conn = ds.add_new_connection(ds_type=u'hyper', db_or_schema_name=u'Data/Test File.hyper',
+    conn = ds.add_new_connection(ds_type=u'hyper', db_or_schema_name=u'Data/{}'.format(hyper_filename),
                                  authentication=u'auth-none')
     conn_obj = ds.connections[0]  # type: TableauConnection
     conn_obj.username = u'tableau_internal_user'
+
+    # Your actual logic here will vary depending on what you have named the tables and what they join on
     ds.set_first_table(u'First Table', u'First Table', connection=conn, extract=True)
-    # join_clause = ds.define_join_on_clause(u'First Table', u'agent_id', u'=', u'Second Table', u'agent_id')
-    # ds.join_table(u'Inner', u'Second Table', u'Second Table', [join_clause, ])
-    t_file.save_new_file(u'Generated Hyper Final')
-# extract_api_with_tds()
+    join_clause = ds.define_join_on_clause(u'First Table', u'join_key_id', u'=', u'Second Table', u'join_key_id')
+    ds.join_table(u'Inner', u'Second Table', u'Second Table', [join_clause, ])
+    new_filename = t_file.save_new_file(u'Generated Hyper Final')
+    return new_filename
 
 
 # This is the functional example using the functions above
@@ -109,4 +111,5 @@ def build_row_level_security_extract_file():
 
     # You can also create a simple TDS that defines the JOINs programmatically using tableau_tools
 
-    # Example forthcoming
+
+

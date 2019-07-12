@@ -87,6 +87,9 @@ class HyperFileGenerator(TableauBase):
                 self.log(u'Skipped column {}, {}'.format(col[0], col[1].__name__))
         return self.table_definition
 
+#    def create_table_definition_from_pandas_dataframe(self, pandas_dataframe, collation=Collation.EN_US):
+
+
     def create_extract(self, tde_filename, append=False, table_name=u'Extract', pyodbc_cursor=None):
         try:
             # Using "with" handles closing the TDE correctly

@@ -118,7 +118,7 @@ class TableauFile(TableauBase):
         return self._tableau_document
 
     # Appropriate extension added if needed
-    def save_new_file(self, new_filename_no_extension, data_file_replacement_map=None):
+    def save_new_file(self, new_filename_no_extension, data_file_replacement_map=None, new_data_files_map=None):
         """
         :type new_filename_no_extension: unicode
         :type data_file_replacement_map: dict
@@ -131,13 +131,13 @@ class TableauFile(TableauBase):
         self.log(u'Saving to a file with new filename {}'.format(new_filename))
         # Change filetype if there are new extracts to add
         for ds in self.tableau_document.datasources:
-            if ds.tde_filename is not None:
+            if ds.tde_filename is not None or new_data_files_map is not None:
                 if self.file_type == u'twb':
                     self._final_file_type = u'twbx'
                     self.packaged_filename = u"{}.twb".format(new_filename)
                     self.log(u'Final filetype will be TWBX')
                     break
-                if self.file_type == u'tds':
+                if self.file_type == u'tds' or new_data_files_map is not None:
                     self._final_file_type = u'tdsx'
                     self.packaged_filename = u"{}.tds".format(new_filename)
                     self.log(u'Final filetype will be TDSX')
@@ -201,6 +201,8 @@ class TableauFile(TableauBase):
                         #data_file_obj.write(data_file_replacement_map[filename])
                         #data_file_obj.close()
                         new_zf.write(data_file_replacement_map[filename], u"/" + filename)
+                        # Delete from the data_file_replacement_map to reduce down to end
+                        del data_file_replacement_map[filename]
                     else:
                         o_zf.extract(filename)
                         new_zf.write(filename)
@@ -209,6 +211,11 @@ class TableauFile(TableauBase):
                     lowest_level = filename.split('/')
                     temp_directories_to_remove[lowest_level[0]] = True
                 file_obj.close()
+
+            # Loop through remaining files in data_file_replacement_map to just add
+            for filename in new_data_files_map:
+                new_zf.write(new_data_files_map[filename], u"/" + filename)
+
             # If new extract, write that file
             for ds in self.tableau_document.datasources:
                 if ds.tde_filename is not None:
