@@ -330,8 +330,10 @@ class TableauDatasource(TableauDocument):
 
         # Column Aliases
         if self.ds_generator is not None:
-            new_rel_xml = self.generate_relation_section()
             connection_root = new_xml.find(u'.//connection', self.ns_map)
+            named_connection = connection_root.find(u'.//named-connection', self.ns_map)
+            connection_name = named_connection.get(u'name')
+            new_rel_xml = self.generate_relation_section(connection_name=connection_name)
             connection_root.append(new_rel_xml)
             cas = self.generate_aliases_column_section()
             # If there is no existing aliases tag, gotta add one. Unlikely but safety first
@@ -740,7 +742,7 @@ class TableauDatasource(TableauDocument):
                           u"custom_sql": custom_sql}
         self.join_relations.append(full_join_desc)
 
-    def generate_relation_section(self):
+    def generate_relation_section(self, connection_name=None):
         # Because of the strange way that the interior definition is the last on, you need to work inside out
         # "Middle-out" as Silicon Valley suggests.
         # Generate the actual JOINs
@@ -755,14 +757,15 @@ class TableauDatasource(TableauDocument):
                 rel_xml_obj.set(item[0], item[1])
             if self.main_table_relation.text is not None:
                 rel_xml_obj.text = self.main_table_relation.text
-            print("First join relationships")
-            print(etree.tostring(rel_xml_obj))
+
         else:
-            prev_relation = rel_xml_obj
+            prev_relation = None
 
             # We go through each relation, build the whole thing, then append it to the previous relation, then make
             # that the new prev_relationship. Something like recursion
+            #print(self.join_relations)
             for join_desc in self.join_relations:
+
                 r = etree.Element(u"relation")
                 r.set(u"join", join_desc[u"join_type"])
                 r.set(u"type", u"join")
@@ -796,17 +799,29 @@ class TableauDatasource(TableauDocument):
                             and_expression = e
                 c.append(and_expression)
                 r.append(c)
-                r.append(prev_relation)
+                if prev_relation is not None:
+                    r.append(prev_relation)
 
                 if join_desc[u"custom_sql"] is None:
+                    # Append the main table first (not sure this works for more deep hierarchies, but let's see
+                    main_rel_xml_obj = etree.Element(u'relation')
+                    for item in self.main_table_relation.items():
+                        main_rel_xml_obj.set(item[0], item[1])
+                    if self.main_table_relation.text is not None:
+                        main_rel_xml_obj.text = self.main_table_relation.text
+                    main_rel_xml_obj.set(u'connection', connection_name)
+                    r.append(main_rel_xml_obj)
+
                     new_table_rel = self.create_table_relation(join_desc[u"db_table_name"],
-                                                               join_desc[u"table_alias"])
+                                                               join_desc[u"table_alias"], connection=connection_name)
                 else:
                     new_table_rel = self.create_custom_sql_relation(join_desc[u'custom_sql'],
-                                                                    join_desc[u'table_alias'])
+                                                                    join_desc[u'table_alias'], connection=connection_name)
                 r.append(new_table_rel)
                 prev_relation = r
-                rel_xml_obj.append(copy.deepcopy(r))
+                #prev_relation = copy.deepcopy(r)
+                #rel_xml_obj.append(copy.deepcopy(r))
+            rel_xml_obj = copy.deepcopy(prev_relation)
         return rel_xml_obj
 
     def add_table_column(self, table_alias, table_field_name, tableau_field_alias):

@@ -166,6 +166,8 @@ class TableauFile(TableauBase):
                 os.remove(self.tableau_document.twb_filename)
                 self.tableau_document.twb_filename = u'temp.twb'
                 file_obj.close()
+
+            # Call to the tableau_document object to write the Tableau XML
             self.tableau_document.save_file(self.packaged_filename)
             new_zf.write(self.packaged_filename)
             self.log(u'Removing file {}'.format(self.packaged_filename))

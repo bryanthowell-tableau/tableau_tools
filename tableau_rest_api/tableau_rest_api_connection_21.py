@@ -35,7 +35,8 @@ class TableauRestApiConnection21(TableauRestApiConnection):
             luid = project_name_or_luid
         else:
             luid = self.query_project_luid(project_name_or_luid)
-        proj = self.get_published_project_object(luid, self.query_single_element_from_endpoint(u'project', project_name_or_luid))
+        proj = self.get_published_project_object(luid, self.query_single_element_from_endpoint(u'project',
+                                                                                               project_name_or_luid))
 
         self.end_log_block()
         return proj
