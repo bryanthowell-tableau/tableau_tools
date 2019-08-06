@@ -7,8 +7,29 @@ from tableau_tools.tableau_documents.tableau_datasource import TableauDatasource
 import pyodbc
 import sys
 
+# Extract files (.hyper and .tde) have very little metadata in them
+# They are most useful when combined with <datasource> XML in a TDS file, wrapped together as a TDSX
+# or with that same XML in a TWB file, packaged together as a TWBX
 
+# Two ways to handle the process of attaching the data source XML to the updated Extract file:
+# 1. Substitution: Create a valid TDSX/TWBX in Tableau Desktop, then use that file as a base for substituting updated
+# Extract files. As long as structure of Extract does not change, should work all the time
+# 2. Creation from Scratch: If the structure of the Extract can vary, then you cannot pre-build the XML.
+# tableau_tools has the necessary methods to build the data source XML from scratch, including relationships
+
+
+#
+# Getting Data Into an Extract / Building the Extract
+#
+
+# One way to create the Extract is to pass a pyoodbc cursor
+# This function handles some of the encoding parameters correctly for you since Extracts are unicode
 def pyodbc_connect_and_query(odbc_connect_string, query):
+    """
+    :type odbc_connect_string: str
+    :type query: str
+    :rtype: pyodbc.Cursor
+    """
     try:
         conn = pyodbc.connect(odbc_connect_string)
         conn.setdecoding(pyodbc.SQL_WCHAR, encoding='utf-8')
@@ -33,6 +54,23 @@ def pyodbc_connect_and_query(odbc_connect_string, query):
         print("\nODBC error, exiting...\n")
         sys.exit()
     return cursor
+
+#
+# Substitution
+#
+
+
+# You may need to find out the name of the Hyper file within the file
+# A TWBX could have multiple Extract files, so you may need to find the exact name
+def show_extract_files_in_packaged_file(filename):
+    pass
+
+# Specify the existing Extract file you want replaced
+# It should match exactly, so it's best to do this after building the TDSX/TWBX the first time in Desktop using
+# an Extract file you created programmatically using the same code as the one you will substitute in here
+def substitute_an_existing_extract(new_extract_filename):
+    pass
+
 
 
 # Example of creating two tables in a single Hyper file
