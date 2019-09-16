@@ -9,14 +9,14 @@ class Sort:
         :type direction: uniode
         """
         self.field = field
-        if direction not in [u'asc', u'desc']:
-            raise InvalidOptionException(u'Sort direction must be asc or desc')
+        if direction not in ['asc', 'desc']:
+            raise InvalidOptionException('Sort direction must be asc or desc')
         self.direction = direction
 
     def get_sort_string(self):
         """
         :rtype: unicode
         """
-        sort_string = u'{}:{}'.format(self.field, self.direction)
+        sort_string = '{}:{}'.format(self.field, self.direction)
         return sort_string
 

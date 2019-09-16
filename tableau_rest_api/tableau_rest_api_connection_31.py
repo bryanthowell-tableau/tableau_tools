@@ -1,8 +1,8 @@
-from tableau_rest_api_connection_30 import *
+from .tableau_rest_api_connection_30 import *
 
 
 class TableauRestApiConnection31(TableauRestApiConnection30):
-    def __init__(self, server, username, password, site_content_url=u""):
+    def __init__(self, server, username, password, site_content_url=""):
         """
         :type server: unicode
         :type username: unicode
@@ -10,7 +10,7 @@ class TableauRestApiConnection31(TableauRestApiConnection30):
         :type site_content_url: unicode
         """
         TableauRestApiConnection30.__init__(self, server, username, password, site_content_url)
-        self.set_tableau_server_version(u"2018.2")
+        self.set_tableau_server_version("2018.2")
 
     def query_jobs(self, progress_filter=None, job_type_filter=None, created_at_filter=None, started_at_filter=None,
                    ended_at_filter=None, title_filter=None, subtitle_filter=None, notes_filter=None):
@@ -26,14 +26,14 @@ class TableauRestApiConnection31(TableauRestApiConnection30):
         :rtype: etree.Element
         """
         self.start_log_block()
-        filter_checks = {u'progress': progress_filter, u'jobType': job_type_filter,
-                         u'createdAt': created_at_filter, u'title': title_filter,
-                         u'notes': notes_filter, u'endedAt': ended_at_filter,
-                         u'subtitle': subtitle_filter, u'startedAt': started_at_filter}
+        filter_checks = {'progress': progress_filter, 'jobType': job_type_filter,
+                         'createdAt': created_at_filter, 'title': title_filter,
+                         'notes': notes_filter, 'endedAt': ended_at_filter,
+                         'subtitle': subtitle_filter, 'startedAt': started_at_filter}
         filters = self._check_filter_objects(filter_checks)
 
-        jobs = self.query_resource(u"jobs", filters=filters)
-        self.log(u'Found {} jobs'.format(unicode(len(jobs))))
+        jobs = self.query_resource("jobs", filters=filters)
+        self.log('Found {} jobs'.format(str(len(jobs))))
         self.end_log_block()
         return jobs
 
@@ -43,7 +43,7 @@ class TableauRestApiConnection31(TableauRestApiConnection30):
         :return:
         """
         self.start_log_block()
-        url = self.build_api_url(u"jobs/{}".format(job_luid))
+        url = self.build_api_url("jobs/{}".format(job_luid))
         self.send_update_request(url, None)
         self.end_log_block()
 
@@ -59,15 +59,15 @@ class TableauRestApiConnection31(TableauRestApiConnection30):
         else:
             proj_luid = self.query_project_luid(proj_name_or_luid)
 
-        tsr = etree.Element(u'tsRequest')
-        f = etree.Element(u'favorite')
-        f.set(u'label', favorite_name)
-        w = etree.Element(u'project')
-        w.set(u'id', proj_luid)
+        tsr = etree.Element('tsRequest')
+        f = etree.Element('favorite')
+        f.set('label', favorite_name)
+        w = etree.Element('project')
+        w.set('id', proj_luid)
         f.append(w)
         tsr.append(f)
 
-        url = self.build_api_url(u"favorites/{}".format(proj_luid))
+        url = self.build_api_url("favorites/{}".format(proj_luid))
         update_response = self.send_update_request(url, tsr)
         self.end_log_block()
         return update_response
@@ -89,6 +89,6 @@ class TableauRestApiConnection31(TableauRestApiConnection30):
                 proj_luid = proj
             else:
                 proj_luid = self.query_project_luid(proj)
-            url = self.build_api_url(u"favorites/{}/projects/{}".format(user_luid, proj_luid))
+            url = self.build_api_url("favorites/{}/projects/{}".format(user_luid, proj_luid))
             self.send_delete_request(url)
         self.end_log_block()

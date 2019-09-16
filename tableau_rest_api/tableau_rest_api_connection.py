@@ -7,9 +7,9 @@ from ..tableau_documents.tableau_file import TableauFile
 from ..tableau_documents.tableau_workbook import TableauWorkbook
 from ..tableau_documents.tableau_datasource import TableauDatasource
 from ..tableau_exceptions import *
-from rest_xml_request import RestXmlRequest
-from rest_json_request import RestJsonRequest
-from published_content import Project20, Project21, Project28, Workbook, Datasource
+from .rest_xml_request import RestXmlRequest
+from .rest_json_request import RestJsonRequest
+from .published_content import Project20, Project21, Project28, Workbook, Datasource
 import copy
 
 
@@ -23,10 +23,10 @@ class TableauRestApiConnection(TableauBase):
         :type site_content_url: unicode
         """
         TableauBase.__init__(self)
-        if server.find(u'http') == -1:
-            raise InvalidOptionException(u'Server URL must include http:// or https://')
+        if server.find('http') == -1:
+            raise InvalidOptionException('Server URL must include http:// or https://')
 
-        etree.register_namespace(u't', self.ns_map[u't'])
+        etree.register_namespace('t', self.ns_map['t'])
         self.server = server
         self.site_content_url = site_content_url
         self.username = username
@@ -93,9 +93,9 @@ class TableauRestApiConnection(TableauBase):
 
     def build_api_url(self, call, server_level=False):
         if server_level is True:
-            return u"{}/api/{}/{}".format(self.server, self.api_version, call)
+            return "{}/api/{}/{}".format(self.server, self.api_version, call)
         else:
-            return u"{}/api/{}/sites/{}/{}".format(self.server, self.api_version, self.site_luid, call)
+            return "{}/api/{}/sites/{}/{}".format(self.server, self.api_version, self.site_luid, call)
 
     #
     # Internal REST API Helpers (mostly XML definitions that are reused between methods)
@@ -113,23 +113,23 @@ class TableauRestApiConnection(TableauBase):
         :type state: unicode
         :rtype: unicode
         """
-        tsr = etree.Element(u"tsRequest")
-        s = etree.Element(u'site')
+        tsr = etree.Element("tsRequest")
+        s = etree.Element('site')
 
         if site_name is not None:
-            s.set(u'name', site_name)
+            s.set('name', site_name)
         if content_url is not None:
-            s.set(u'contentUrl', content_url)
+            s.set('contentUrl', content_url)
         if admin_mode is not None:
-            s.set(u'adminMode', admin_mode)
+            s.set('adminMode', admin_mode)
         if user_quota is not None:
-            s.set(u'userQuota', unicode(user_quota))
+            s.set('userQuota', str(user_quota))
         if state is not None:
-            s.set(u'state', state)
+            s.set('state', state)
         if storage_quota is not None:
-            s.set(u'storageQuota', unicode(storage_quota))
+            s.set('storageQuota', str(storage_quota))
         if disable_subscriptions is not None:
-            s.set(u'disableSubscriptions', unicode(disable_subscriptions).lower())
+            s.set('disableSubscriptions', str(disable_subscriptions).lower())
 
         tsr.append(s)
         return tsr
@@ -142,18 +142,18 @@ class TableauRestApiConnection(TableauBase):
         :return response
         """
 
-        tsr = etree.Element(u'tsRequest')
+        tsr = etree.Element('tsRequest')
         request_copy = copy.deepcopy(request)
         # If the object happens to include the tsResponse root tag, strip it out
-        if request_copy.tag.find(u"tsResponse") != -1:
+        if request_copy.tag.find("tsResponse") != -1:
             for r in request_copy:
                 request_copy = copy.deepcopy(r)
 
         # Try to remove any namespaces
         for e in request_copy.iter():
-            e.tag = e.tag.replace(u"{{{}}}".format(self.ns_map[u't']), u"")
-        if request_copy.get(u'id') is not None:
-            del(request_copy.attrib[u'id'])
+            e.tag = e.tag.replace("{{{}}}".format(self.ns_map['t']), "")
+        if request_copy.get('id') is not None:
+            del(request_copy.attrib['id'])
 
         tsr.append(request_copy)
         return tsr
@@ -169,16 +169,16 @@ class TableauRestApiConnection(TableauBase):
         :rtype:
         """
 
-        tsr = etree.Element(u'tsRequest')
-        c = etree.Element(u"connection")
+        tsr = etree.Element('tsRequest')
+        c = etree.Element("connection")
         if new_server_address is not None:
-            c.set(u'serverAddress', new_server_address)
+            c.set('serverAddress', new_server_address)
         if new_server_port is not None:
-            c.set(u'serverPort', new_server_port)
+            c.set('serverPort', new_server_port)
         if new_connection_username is not None:
-            c.set(u'userName', new_connection_username)
+            c.set('userName', new_connection_username)
         if new_connection_username is not None:
-            c.set(u'password', new_connection_password)
+            c.set('password', new_connection_password)
         tsr.append(c)
         return tsr
 
@@ -235,46 +235,46 @@ class TableauRestApiConnection(TableauBase):
         :rtype:
         """
         self.start_log_block()
-        tsr = etree.Element(u"tsRequest")
-        c = etree.Element(u"credentials")
-        c.set(u"name", self.username)
-        c.set(u"password", self._password)
-        s = etree.Element(u"site")
+        tsr = etree.Element("tsRequest")
+        c = etree.Element("credentials")
+        c.set("name", self.username)
+        c.set("password", self._password)
+        s = etree.Element("site")
         if self.site_content_url.lower() not in ['default', '']:
-            s.set(u"contentUrl", self.site_content_url)
+            s.set("contentUrl", self.site_content_url)
 
         c.append(s)
 
         if user_luid_to_impersonate is not None:
-            u = etree.Element(u'user')
-            u.set(u'id', user_luid_to_impersonate)
+            u = etree.Element('user')
+            u.set('id', user_luid_to_impersonate)
             c.append(u)
 
         tsr.append(c)
 
-        url = self.build_api_url(u"auth/signin", server_level=True)
+        url = self.build_api_url("auth/signin", server_level=True)
 
-        self.log(u'Logging in via: {}'.format(url))
+        self.log('Logging in via: {}'.format(url))
 
         # Create the RestXmlRequest to be used throughout
 
         self._request_obj = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'],
                                            verify_ssl_cert=self.verify_ssl_cert)
         self._request_obj.xml_request = tsr
-        self._request_obj.http_verb = u'post'
-        self.log(u'Login payload is\n {}'.format(etree.tostring(tsr)))
+        self._request_obj.http_verb = 'post'
+        self.log('Login payload is\n {}'.format(etree.tostring(tsr)))
 
         self._request_obj.request_from_api(0)
         # self.log(api.get_raw_response())
         xml = self._request_obj.get_response()
 
-        credentials_element = xml.findall(u'.//t:credentials', self.ns_map)
-        self.token = credentials_element[0].get(u"token")
-        self.log(u"Token is " + self.token)
+        credentials_element = xml.findall('.//t:credentials', self.ns_map)
+        self.token = credentials_element[0].get("token")
+        self.log("Token is " + self.token)
         self._request_obj.token = self.token
-        self.site_luid = credentials_element[0].findall(u".//t:site", self.ns_map)[0].get(u"id")
-        self.user_luid = credentials_element[0].findall(u".//t:user", self.ns_map)[0].get(u"id")
-        self.log(u"Site ID is " + self.site_luid)
+        self.site_luid = credentials_element[0].findall(".//t:site", self.ns_map)[0].get("id")
+        self.user_luid = credentials_element[0].findall(".//t:user", self.ns_map)[0].get("id")
+        self.log("Site ID is " + self.site_luid)
         self._request_obj.url = None
         self._request_obj.xml_request = None
         self.end_log_block()
@@ -304,19 +304,19 @@ class TableauRestApiConnection(TableauBase):
         :rtype:
         """
         self.start_log_block()
-        url = self.build_api_url(u"auth/signout", server_level=True)
-        self.log(u'Logging out via: {}'.format(url))
+        url = self.build_api_url("auth/signout", server_level=True)
+        self.log('Logging out via: {}'.format(url))
         self._request_obj.url = url
         # This allows for signout when using the older session token style
         if session_token is not None:
             self._request_obj.token = session_token
 
-        self._request_obj.http_verb = u'post'
+        self._request_obj.http_verb = 'post'
         self._request_obj.request_from_api()
         # Reset the main object to the original token for other requests
         self._request_obj.token = self.token
         self._request_obj.url = None
-        self.log(u'Signed out successfully')
+        self.log('Signed out successfully')
         self.end_log_block()
 
     #
@@ -332,8 +332,8 @@ class TableauRestApiConnection(TableauBase):
         """
         self.start_log_block()
         api_call = self.build_api_url(url_ending, server_level)
-        self._request_obj.set_response_type(u'xml')
-        self._request_obj.http_verb = u'get'
+        self._request_obj.set_response_type('xml')
+        self._request_obj.http_verb = 'get'
         self._request_obj.url = api_call
         self._request_obj.request_from_api()
         xml = self._request_obj.get_response()  # return Element rather than ElementTree
@@ -354,7 +354,7 @@ class TableauRestApiConnection(TableauBase):
         if self._request_json_obj is None:
             self._request_json_obj = RestJsonRequest(token=self.token, logger=self.logger,
                                                      verify_ssl_cert=self.verify_ssl_cert)
-        self._request_json_obj.http_verb = u'get'
+        self._request_json_obj.http_verb = 'get'
         self._request_json_obj.url = api_call
         self._request_json_obj.request_from_api(page_number=page_number)
         json_response = self._request_json_obj.get_response()  # return JSON as string
@@ -371,44 +371,44 @@ class TableauRestApiConnection(TableauBase):
         """
         self.start_log_block()
         # A few elements have singular endpoints
-        singular_endpoints = [u'workbook', u'user', u'datasource', u'site']
+        singular_endpoints = ['workbook', 'user', 'datasource', 'site']
         if element_name in singular_endpoints and self.is_luid(name_or_luid):
-            element = self.query_resource(u"{}s/{}".format(element_name, name_or_luid))
+            element = self.query_resource("{}s/{}".format(element_name, name_or_luid))
             self.end_log_block()
             return element
         else:
-            elements = self.query_resource(u"{}s".format(element_name), server_level=server_level)
+            elements = self.query_resource("{}s".format(element_name), server_level=server_level)
             if self.is_luid(name_or_luid):
                 luid = name_or_luid
             else:
                 luid = self.query_single_element_luid_by_name_from_endpoint(element_name, name_or_luid)
-            element = elements.findall(u'.//t:{}[@id="{}"]'.format(element_name, luid), self.ns_map)
+            element = elements.findall('.//t:{}[@id="{}"]'.format(element_name, luid), self.ns_map)
         if len(element) == 1:
             self.end_log_block()
             return element[0]
         else:
             self.end_log_block()
-            raise NoMatchFoundException(u"No {} found with name or luid {}".format(element_name, name_or_luid))
+            raise NoMatchFoundException("No {} found with name or luid {}".format(element_name, name_or_luid))
 
     def query_single_element_luid_by_name_from_endpoint(self, element_name, name, server_level=False):
         self.start_log_block()
-        elements = self.query_resource(u"{}s".format(element_name), server_level=server_level)
-        if element_name == u'group':
+        elements = self.query_resource("{}s".format(element_name), server_level=server_level)
+        if element_name == 'group':
             for e in elements:
-                self.group_name_luid_cache[e.get(u'name')] = e.get(u'id')
-        element = elements.findall(u'.//t:{}[@name="{}"]'.format(element_name, name), self.ns_map)
+                self.group_name_luid_cache[e.get('name')] = e.get('id')
+        element = elements.findall('.//t:{}[@name="{}"]'.format(element_name, name), self.ns_map)
         if len(element) == 1:
             self.end_log_block()
-            return element[0].get(u"id")
+            return element[0].get("id")
         else:
             self.end_log_block()
-            raise NoMatchFoundException(u"No {} found with name {}".format(element_name, name))
+            raise NoMatchFoundException("No {} found with name {}".format(element_name, name))
 
     def send_post_request(self, url):
         self.start_log_block()
-        self._request_obj.set_response_type(u'xml')
+        self._request_obj.set_response_type('xml')
         self._request_obj.url = url
-        self._request_obj.http_verb = u'post'
+        self._request_obj.http_verb = 'post'
         self._request_obj.request_from_api(0)
         xml = self._request_obj.get_response()  # return Element rather than ElementTree
         self._request_obj.url = None
@@ -423,10 +423,10 @@ class TableauRestApiConnection(TableauBase):
         """
         self.start_log_block()
 
-        self._request_obj.set_response_type(u'xml')
+        self._request_obj.set_response_type('xml')
         self._request_obj.url = url
         self._request_obj.xml_request = request
-        self._request_obj.http_verb = u'post'
+        self._request_obj.http_verb = 'post'
         self._request_obj.request_from_api(0)  # Zero disables paging, for all non queries
         xml = self._request_obj.get_response()  # return Element rather than ElementTree
         # Clean up after request made
@@ -438,10 +438,10 @@ class TableauRestApiConnection(TableauBase):
     def send_update_request(self, url, request):
         self.start_log_block()
 
-        self._request_obj.set_response_type(u'xml')
+        self._request_obj.set_response_type('xml')
         self._request_obj.url = url
         self._request_obj.xml_request = request
-        self._request_obj.http_verb = u'put'
+        self._request_obj.http_verb = 'put'
         self._request_obj.request_from_api(0)  # Zero disables paging, for all non queries
         self.end_log_block()
         self._request_obj.url = None
@@ -450,9 +450,9 @@ class TableauRestApiConnection(TableauBase):
 
     def send_delete_request(self, url):
         self.start_log_block()
-        self._request_obj.set_response_type(u'xml')
+        self._request_obj.set_response_type('xml')
         self._request_obj.url = url
-        self._request_obj.http_verb = u'delete'
+        self._request_obj.http_verb = 'delete'
 
         try:
             self._request_obj.request_from_api(0)  # Zero disables paging, for all non queries
@@ -461,9 +461,9 @@ class TableauRestApiConnection(TableauBase):
             # Return for counter
             return 1
         except RecoverableHTTPException as e:
-            self.log(u'Non fatal HTTP Exception Response {}, Tableau Code {}'.format(e.http_code, e.tableau_error_code))
+            self.log('Non fatal HTTP Exception Response {}, Tableau Code {}'.format(e.http_code, e.tableau_error_code))
             if e.tableau_error_code in [404003, 404002]:
-                self.log(u'Delete action did not find the resource. Consider successful, keep going')
+                self.log('Delete action did not find the resource. Consider successful, keep going')
             self._request_obj.url = None
             self.end_log_block()
         except:
@@ -472,11 +472,11 @@ class TableauRestApiConnection(TableauBase):
     def send_publish_request(self, url, xml_request, content, boundary_string):
         self.start_log_block()
 
-        self._request_obj.set_response_type(u'xml')
+        self._request_obj.set_response_type('xml')
         self._request_obj.url = url
         self._request_obj.set_publish_content(content, boundary_string)
         self._request_obj.xml_request = xml_request
-        self._request_obj.http_verb = u'post'
+        self._request_obj.http_verb = 'post'
         self._request_obj.request_from_api(0)
         xml = self._request_obj.get_response()  # return Element rather than ElementTree
         # Cleanup
@@ -488,10 +488,10 @@ class TableauRestApiConnection(TableauBase):
 
     def send_append_request(self, url, request, boundary_string):
         self.start_log_block()
-        self._request_obj.set_response_type(u'xml')
+        self._request_obj.set_response_type('xml')
         self._request_obj.url = url
         self._request_obj.set_publish_content(request, boundary_string)
-        self._request_obj.http_verb = u'put'
+        self._request_obj.http_verb = 'put'
         self._request_obj.request_from_api(0)
         xml = self._request_obj.get_response()  # return Element rather than ElementTree
         # Cleanup
@@ -505,8 +505,8 @@ class TableauRestApiConnection(TableauBase):
         self.start_log_block()
         self._request_obj.url = url
 
-        self._request_obj.http_verb = u'get'
-        self._request_obj.set_response_type(u'binary')
+        self._request_obj.http_verb = 'get'
+        self._request_obj.set_response_type('binary')
         self._request_obj.request_from_api(0)
         # Set this content type so we can set the file extension
         self._last_response_content_type = self._request_obj.get_last_response_content_type()
@@ -531,13 +531,13 @@ class TableauRestApiConnection(TableauBase):
         :rtype: etree.Element
         """
         self.start_log_block()
-        datasources = self.query_resource(u"datasources")
+        datasources = self.query_resource("datasources")
         if project_name_or_luid is not None:
             if self.is_luid(project_name_or_luid):
                 project_luid = project_name_or_luid
             else:
                 project_luid = self.query_project_luid(project_name_or_luid)
-            dses_in_project = datasources.findall(u'.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
+            dses_in_project = datasources.findall('.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
             dses = etree.Element(self.ns_prefix + 'datasources')
             for ds in dses_in_project:
                 dses.append(ds)
@@ -552,7 +552,7 @@ class TableauRestApiConnection(TableauBase):
         :rtype: json
         """
         self.start_log_block()
-        datasources = self.query_resource_json(u"datasources", page_number=page_number)
+        datasources = self.query_resource_json("datasources", page_number=page_number)
         self.end_log_block()
         return datasources
 
@@ -567,11 +567,11 @@ class TableauRestApiConnection(TableauBase):
 
         # LUID
         if self.is_luid(ds_name_or_luid):
-            ds = self.query_resource(u"datasources/{}".format(ds_name_or_luid))
+            ds = self.query_resource("datasources/{}".format(ds_name_or_luid))
         # Name
         else:
             ds_luid = self.query_datasource_luid(ds_name_or_luid, proj_name_or_luid)
-            ds = self.query_resource(u"datasources/{}".format(ds_luid))
+            ds = self.query_resource("datasources/{}".format(ds_luid))
         self.end_log_block()
         return ds
 
@@ -590,36 +590,36 @@ class TableauRestApiConnection(TableauBase):
             datasources = self.query_datasources()
         # Search for ContentUrl which should be unique, return
         if content_url is not None:
-            datasources_with_name = datasources.findall(u'.//t:datasource[@contentUrl="{}"]'.format(content_url), self.ns_map)
+            datasources_with_name = datasources.findall('.//t:datasource[@contentUrl="{}"]'.format(content_url), self.ns_map)
             self.end_log_block()
             if len(datasources_with_name == 1):
-                return datasources_with_name[0].get(u"id")
+                return datasources_with_name[0].get("id")
             else:
-                raise NoMatchFoundException(u"No datasource found with ContentUrl {}".format(content_url))
+                raise NoMatchFoundException("No datasource found with ContentUrl {}".format(content_url))
         # If no ContentUrl search, find any with the name
         else:
-            datasources_with_name = datasources.findall(u'.//t:datasource[@name="{}"]'.format(datasource_name), self.ns_map)
+            datasources_with_name = datasources.findall('.//t:datasource[@name="{}"]'.format(datasource_name), self.ns_map)
             # If no match, exception
             if len(datasources_with_name) == 0:
                 self.end_log_block()
-                raise NoMatchFoundException(u"No datasource found with name {} in any project".format(datasource_name))
+                raise NoMatchFoundException("No datasource found with name {} in any project".format(datasource_name))
             # If no Project Name is specified, but there is only one match, return, otherwise throw MultipleMatchesException
             elif project_name_or_luid is None:
                 if len(datasources_with_name) == 1:
                     self.end_log_block()
-                    return datasources_with_name[0].get(u"id")
+                    return datasources_with_name[0].get("id")
                 # If no project is declared, and more than one match
                 else:
-                    raise MultipleMatchesFoundException(u'More than one datasource found by name {} without a project specified'.format(datasource_name))
+                    raise MultipleMatchesFoundException('More than one datasource found by name {} without a project specified'.format(datasource_name))
             # If Project_name is specified was filtered above, so find the name
             else:
                 for ds_in_proj in datasources:
-                    if ds_in_proj.get(u"name") == datasource_name:
+                    if ds_in_proj.get("name") == datasource_name:
                         self.end_log_block()
-                        return ds_in_proj.get(u"id")
+                        return ds_in_proj.get("id")
 
                 self.end_log_block()
-                raise NoMatchFoundException(u"No datasource found with name {} in project {}".format(datasource_name, project_name_or_luid))
+                raise NoMatchFoundException("No datasource found with name {} in project {}".format(datasource_name, project_name_or_luid))
 
     def query_datasource_content_url(self, datasource_name_or_luid, project_name_or_luid=None):
         """
@@ -629,7 +629,7 @@ class TableauRestApiConnection(TableauBase):
         """
         self.start_log_block()
         ds = self.query_datasource(datasource_name_or_luid, project_name_or_luid)
-        content_url = ds.get(u'contentUrl')
+        content_url = ds.get('contentUrl')
         self.end_log_block()
         return content_url
 
@@ -647,11 +647,11 @@ class TableauRestApiConnection(TableauBase):
         :rtype: etree.Element
         """
         self.start_log_block()
-        groups = self.query_resource(u"groups")
+        groups = self.query_resource("groups")
         for group in groups:
             # Add to group-name : luid cache
-            group_luid = group.get(u"id")
-            group_name = group.get(u'name')
+            group_luid = group.get("id")
+            group_name = group.get('name')
             self.group_name_luid_cache[group_name] = group_luid
         self.end_log_block()
         return groups
@@ -664,7 +664,7 @@ class TableauRestApiConnection(TableauBase):
         :rtype: json
         """
         self.start_log_block()
-        groups = self.query_resource_json(u"groups", page_number=page_number)
+        groups = self.query_resource_json("groups", page_number=page_number)
         #for group in groups:
         #    # Add to group-name : luid cache
         #    group_luid = group.get(u"id")
@@ -679,10 +679,10 @@ class TableauRestApiConnection(TableauBase):
         :rtype: etree.Element
         """
         self.start_log_block()
-        group = self.query_single_element_from_endpoint(u'group', group_name_or_luid)
+        group = self.query_single_element_from_endpoint('group', group_name_or_luid)
         # Add to group_name : luid cache
-        group_luid = group.get(u"id")
-        group_name = group.get(u'name')
+        group_luid = group.get("id")
+        group_name = group.get('name')
         self.group_name_luid_cache[group_name] = group_luid
 
         self.end_log_block()
@@ -697,9 +697,9 @@ class TableauRestApiConnection(TableauBase):
         self.start_log_block()
         if group_name in self.group_name_luid_cache:
             group_luid = self.group_name_luid_cache[group_name]
-            self.log(u'Found group name {} in cache with luid {}'.format(group_name, group_luid))
+            self.log('Found group name {} in cache with luid {}'.format(group_name, group_luid))
         else:
-            group_luid = self.query_single_element_luid_by_name_from_endpoint(u'group', group_name)
+            group_luid = self.query_single_element_luid_by_name_from_endpoint('group', group_name)
             self.group_name_luid_cache[group_name] = group_luid
         self.end_log_block()
         return group_luid
@@ -710,16 +710,16 @@ class TableauRestApiConnection(TableauBase):
         :rtype: unicode
         """
         self.start_log_block()
-        for name, luid in self.group_name_luid_cache.items():
+        for name, luid in list(self.group_name_luid_cache.items()):
             if luid == group_luid:
                 group_name = name
-                self.log(u'Found group name {} in cache with luid {}'.format(group_name, group_luid))
+                self.log('Found group name {} in cache with luid {}'.format(group_name, group_luid))
                 return group_name
         # If match is found
-        group = self.query_single_element_from_endpoint(u'group', group_luid)
-        group_luid = group.get(u"id")
-        group_name = group.get(u'name')
-        self.log(u'Loading the Group: LUID cache')
+        group = self.query_single_element_from_endpoint('group', group_luid)
+        group_luid = group.get("id")
+        group_name = group.get('name')
+        self.log('Loading the Group: LUID cache')
         self.group_name_luid_cache[group_name] = group_luid
         self.end_log_block()
         return group_name
@@ -738,7 +738,7 @@ class TableauRestApiConnection(TableauBase):
         :rtype: etree.Element
         """
         self.start_log_block()
-        projects = self.query_resource(u"projects")
+        projects = self.query_resource("projects")
         self.end_log_block()
         return projects
 
@@ -748,7 +748,7 @@ class TableauRestApiConnection(TableauBase):
         :rtype: json
         """
         self.start_log_block()
-        projects = self.query_resource_json(u"projects", page_number=page_number)
+        projects = self.query_resource_json("projects", page_number=page_number)
         self.end_log_block()
         return projects
 
@@ -762,7 +762,7 @@ class TableauRestApiConnection(TableauBase):
             luid = project_name_or_luid
         else:
             luid = self.query_project_luid(project_name_or_luid)
-        proj = self.get_published_project_object(luid, self.query_single_element_from_endpoint(u'project', luid))
+        proj = self.get_published_project_object(luid, self.query_single_element_from_endpoint('project', luid))
 
         self.end_log_block()
         return proj
@@ -773,7 +773,7 @@ class TableauRestApiConnection(TableauBase):
         :rtype: unicode
         """
         self.start_log_block()
-        project_luid = self.query_single_element_luid_by_name_from_endpoint(u'project', project_name)
+        project_luid = self.query_single_element_luid_by_name_from_endpoint('project', project_name)
         self.end_log_block()
         return project_luid
 
@@ -787,7 +787,7 @@ class TableauRestApiConnection(TableauBase):
             luid = project_name_or_luid
         else:
             luid = self.query_project_luid(project_name_or_luid)
-        proj_xml = self.query_single_element_from_endpoint(u'project', luid)
+        proj_xml = self.query_single_element_from_endpoint('project', luid)
         self.end_log_block()
         return proj_xml
 
@@ -805,7 +805,7 @@ class TableauRestApiConnection(TableauBase):
         :rtype: etree.Element
         """
         self.start_log_block()
-        sites = self.query_resource(u"sites", server_level=True)
+        sites = self.query_resource("sites", server_level=True)
         self.end_log_block()
         return sites
 
@@ -815,7 +815,7 @@ class TableauRestApiConnection(TableauBase):
         :rtype: json
         """
         self.start_log_block()
-        sites = self.query_resource_json(u"sites", server_level=True, page_number=page_number)
+        sites = self.query_resource_json("sites", server_level=True, page_number=page_number)
         self.end_log_block()
         return sites
 
@@ -830,7 +830,7 @@ class TableauRestApiConnection(TableauBase):
         sites = self.query_sites()
         site_content_urls = []
         for site in sites:
-            site_content_urls.append(site.get(u"contentUrl"))
+            site_content_urls.append(site.get("contentUrl"))
         self.end_log_block()
         return site_content_urls
 
@@ -840,7 +840,7 @@ class TableauRestApiConnection(TableauBase):
         :rtype: etree.Element
         """
         self.start_log_block()
-        site = self.query_resource(u"sites/{}".format(self.site_luid), server_level=True)
+        site = self.query_resource("sites/{}".format(self.site_luid), server_level=True)
         self.end_log_block()
         return site
 
@@ -864,8 +864,8 @@ class TableauRestApiConnection(TableauBase):
         :rtype: etree.Element
         """
         self.start_log_block()
-        users = self.query_resource(u"users")
-        self.log(u'Found {} users'.format(unicode(len(users))))
+        users = self.query_resource("users")
+        self.log('Found {} users'.format(str(len(users))))
         self.end_log_block()
         return users
 
@@ -883,7 +883,7 @@ class TableauRestApiConnection(TableauBase):
         :rtype: json
         """
         self.start_log_block()
-        users = self.query_resource_json(u"users", page_number=page_number)
+        users = self.query_resource_json("users", page_number=page_number)
         #self.log(u'Found {} users'.format(unicode(len(users))))
         self.end_log_block()
         return users
@@ -894,11 +894,11 @@ class TableauRestApiConnection(TableauBase):
         :rtype: etree.Element
         """
         self.start_log_block()
-        user = self.query_single_element_from_endpoint(u"user", username_or_luid)
+        user = self.query_single_element_from_endpoint("user", username_or_luid)
 
         # Add to username : luid cache
-        user_luid = user.get(u"id")
-        username = user.get(u'name')
+        user_luid = user.get("id")
+        username = user.get('name')
         self.username_luid_cache[username] = user_luid
 
         self.end_log_block()
@@ -912,9 +912,9 @@ class TableauRestApiConnection(TableauBase):
         self.start_log_block()
         if username in self.username_luid_cache:
             user_luid = self.username_luid_cache[username]
-            self.log(u'Found username {} in cache with luid {}'.format(username, user_luid))
+            self.log('Found username {} in cache with luid {}'.format(username, user_luid))
         else:
-            user_luid = self.query_single_element_luid_by_name_from_endpoint(u"user", username)
+            user_luid = self.query_single_element_luid_by_name_from_endpoint("user", username)
             self.username_luid_cache[username] = user_luid
         self.end_log_block()
         return user_luid
@@ -926,11 +926,11 @@ class TableauRestApiConnection(TableauBase):
         """
         self.start_log_block()
         try:
-            luid_index = self.username_luid_cache.values().index(user_luid)
-            username = self.username_luid_cache.keys()[luid_index]
+            luid_index = list(self.username_luid_cache.values()).index(user_luid)
+            username = list(self.username_luid_cache.keys())[luid_index]
         except ValueError as e:
             user = self.query_user(user_luid)
-            username = user.get(u'name')
+            username = user.get('name')
 
         self.end_log_block()
         return username
@@ -945,7 +945,7 @@ class TableauRestApiConnection(TableauBase):
             luid = group_name_or_luid
         else:
             luid = self.query_group_luid(group_name_or_luid)
-        users = self.query_resource(u"groups/{}/users".format(luid))
+        users = self.query_resource("groups/{}/users".format(luid))
         self.end_log_block()
         return users
 
@@ -970,13 +970,13 @@ class TableauRestApiConnection(TableauBase):
             user_luid = username_or_luid
         else:
             user_luid = self.query_user_luid(username_or_luid)
-        wbs = self.query_resource(u"users/{}/workbooks".format(user_luid))
+        wbs = self.query_resource("users/{}/workbooks".format(user_luid))
         if project_name_or_luid is not None:
             if self.is_luid(project_name_or_luid):
                 project_luid = project_name_or_luid
             else:
                 project_luid = self.query_project_luid(project_name_or_luid)
-            wbs_in_project = wbs.findall(u'.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
+            wbs_in_project = wbs.findall('.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
             wbs = etree.Element(self.ns_prefix + 'workbooks')
             for wb in wbs_in_project:
                 wbs.append(wb)
@@ -996,7 +996,7 @@ class TableauRestApiConnection(TableauBase):
             user_luid = username_or_luid
         else:
             user_luid = self.query_user_luid(username_or_luid)
-        wbs = self.query_resource_json(u"users/{}/workbooks".format(user_luid), page_number=page_number)
+        wbs = self.query_resource_json("users/{}/workbooks".format(user_luid), page_number=page_number)
         self.end_log_block()
         return wbs
 
@@ -1011,31 +1011,31 @@ class TableauRestApiConnection(TableauBase):
         self.start_log_block()
         workbooks = self.query_workbooks(username_or_luid)
         if self.is_luid(wb_name_or_luid):
-            workbooks_with_name = self.query_resource(u"workbooks/{}".format(wb_name_or_luid))
+            workbooks_with_name = self.query_resource("workbooks/{}".format(wb_name_or_luid))
         else:
-            workbooks_with_name = workbooks.findall(u'.//t:workbook[@name="{}"]'.format(wb_name_or_luid), self.ns_map)
+            workbooks_with_name = workbooks.findall('.//t:workbook[@name="{}"]'.format(wb_name_or_luid), self.ns_map)
         if len(workbooks_with_name) == 0:
             self.end_log_block()
-            raise NoMatchFoundException(u"No workbook found for username '{}' named {}".format(username_or_luid, wb_name_or_luid))
+            raise NoMatchFoundException("No workbook found for username '{}' named {}".format(username_or_luid, wb_name_or_luid))
         elif proj_name_or_luid is None:
             if len(workbooks_with_name) == 1:
-                wb_luid = workbooks_with_name[0].get(u"id")
-                wb = self.query_resource(u"workbooks/{}".format(wb_luid))
+                wb_luid = workbooks_with_name[0].get("id")
+                wb = self.query_resource("workbooks/{}".format(wb_luid))
                 self.end_log_block()
                 return wb
             else:
                 self.end_log_block()
-                raise MultipleMatchesFoundException(u'More than one workbook found by name {} without a project specified').format(wb_name_or_luid)
+                raise MultipleMatchesFoundException('More than one workbook found by name {} without a project specified').format(wb_name_or_luid)
         else:
             if self.is_luid(proj_name_or_luid):
-                wb_in_proj = workbooks.findall(u'.//t:workbook[@name="{}"]/:project[@id="{}"]/..'.format(wb_name_or_luid, proj_name_or_luid), self.ns_map)
+                wb_in_proj = workbooks.findall('.//t:workbook[@name="{}"]/:project[@id="{}"]/..'.format(wb_name_or_luid, proj_name_or_luid), self.ns_map)
             else:
-                wb_in_proj = workbooks.findall(u'.//t:workbook[@name="{}"]/t:project[@name="{}"]/..'.format(wb_name_or_luid, proj_name_or_luid), self.ns_map)
+                wb_in_proj = workbooks.findall('.//t:workbook[@name="{}"]/t:project[@name="{}"]/..'.format(wb_name_or_luid, proj_name_or_luid), self.ns_map)
             if len(wb_in_proj) == 0:
                 self.end_log_block()
-                raise NoMatchFoundException(u'No workbook found with name {} in project {}'.format(wb_name_or_luid, proj_name_or_luid))
-            wb_luid = wb_in_proj[0].get(u"id")
-            wb = self.query_resource(u"workbooks/{}".format(wb_luid))
+                raise NoMatchFoundException('No workbook found with name {} in project {}'.format(wb_name_or_luid, proj_name_or_luid))
+            wb_luid = wb_in_proj[0].get("id")
+            wb = self.query_resource("workbooks/{}".format(wb_luid))
             self.end_log_block()
             return wb
 
@@ -1050,28 +1050,28 @@ class TableauRestApiConnection(TableauBase):
         if username_or_luid is None:
             username_or_luid = self.user_luid
         workbooks = self.query_workbooks(username_or_luid)
-        workbooks_with_name = workbooks.findall(u'.//t:workbook[@name="{}"]'.format(wb_name), self.ns_map)
+        workbooks_with_name = workbooks.findall('.//t:workbook[@name="{}"]'.format(wb_name), self.ns_map)
         if len(workbooks_with_name) == 0:
             self.end_log_block()
-            raise NoMatchFoundException(u"No workbook found for username '{}' named {}".format(username_or_luid, wb_name))
+            raise NoMatchFoundException("No workbook found for username '{}' named {}".format(username_or_luid, wb_name))
         elif len(workbooks_with_name) == 1:
             wb_luid = workbooks_with_name[0].get("id")
             self.end_log_block()
             return wb_luid
         elif len(workbooks_with_name) > 1 and proj_name_or_luid is not None:
             if self.is_luid(proj_name_or_luid):
-                wb_in_proj = workbooks.findall(u'.//t:workbook[@name="{}"]/t:project[@id="{}"]/..'.format(wb_name, proj_name_or_luid), self.ns_map)
+                wb_in_proj = workbooks.findall('.//t:workbook[@name="{}"]/t:project[@id="{}"]/..'.format(wb_name, proj_name_or_luid), self.ns_map)
             else:
-                wb_in_proj = workbooks.findall(u'.//t:workbook[@name="{}"]/t:project[@name="{}"]/..'.format(wb_name, proj_name_or_luid), self.ns_map)
+                wb_in_proj = workbooks.findall('.//t:workbook[@name="{}"]/t:project[@name="{}"]/..'.format(wb_name, proj_name_or_luid), self.ns_map)
             if len(wb_in_proj) == 0:
                 self.end_log_block()
-                raise NoMatchFoundException(u'No workbook found with name {} in project {}').format(wb_name, proj_name_or_luid)
+                raise NoMatchFoundException('No workbook found with name {} in project {}').format(wb_name, proj_name_or_luid)
             wb_luid = wb_in_proj[0].get("id")
             self.end_log_block()
             return wb_luid
         else:
             self.end_log_block()
-            raise MultipleMatchesFoundException(u'More than one workbook found by name {} without a project specified').format(wb_name)
+            raise MultipleMatchesFoundException('More than one workbook found by name {} without a project specified').format(wb_name)
 
     def query_workbooks_in_project(self, project_name_or_luid, username_or_luid=None):
         self.start_log_block()
@@ -1087,7 +1087,7 @@ class TableauRestApiConnection(TableauBase):
             user_luid = self.query_user_luid(username_or_luid)
         workbooks = self.query_workbooks(user_luid)
         # This brings back the workbook itself
-        wbs_in_project = workbooks.findall(u'.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
+        wbs_in_project = workbooks.findall('.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
         wbs = etree.Element(self.ns_prefix + 'workbooks')
         for wb in wbs_in_project:
             wbs.append(wb)
@@ -1104,12 +1104,12 @@ class TableauRestApiConnection(TableauBase):
         """
         self.start_log_block()
         if usage not in [True, False]:
-            raise InvalidOptionException(u'Usage can only be set to True or False')
+            raise InvalidOptionException('Usage can only be set to True or False')
         if self.is_luid(wb_name_or_luid):
             wb_luid = wb_name_or_luid
         else:
             wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
-        vws = self.query_resource(u"workbooks/{}/views?includeUsageStatistics={}".format(wb_luid, str(usage).lower()))
+        vws = self.query_resource("workbooks/{}/views?includeUsageStatistics={}".format(wb_luid, str(usage).lower()))
         self.end_log_block()
         return vws
 
@@ -1125,12 +1125,12 @@ class TableauRestApiConnection(TableauBase):
         """
         self.start_log_block()
         if usage not in [True, False]:
-            raise InvalidOptionException(u'Usage can only be set to True or False')
+            raise InvalidOptionException('Usage can only be set to True or False')
         if self.is_luid(wb_name_or_luid):
             wb_luid = wb_name_or_luid
         else:
             wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
-        vws = self.query_resource_json(u"workbooks/{}/views?includeUsageStatistics={}".format(wb_luid,
+        vws = self.query_resource_json("workbooks/{}/views?includeUsageStatistics={}".format(wb_luid,
                                                                                               str(usage).lower()),
                                                                                               page_number=page_number)
         self.end_log_block()
@@ -1149,25 +1149,25 @@ class TableauRestApiConnection(TableauBase):
         """
         self.start_log_block()
         if usage not in [True, False]:
-            raise InvalidOptionException(u'Usage can only be set to True or False')
+            raise InvalidOptionException('Usage can only be set to True or False')
         if self.is_luid(wb_name_or_luid):
             wb_luid = wb_name_or_luid
         else:
             wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
-        vws = self.query_resource(u"workbooks/{}/views?includeUsageStatistics={}".format(wb_luid, str(usage).lower()))
+        vws = self.query_resource("workbooks/{}/views?includeUsageStatistics={}".format(wb_luid, str(usage).lower()))
         if view_content_url is not None:
-            views_with_name = vws.findall(u'.//t:view[@contentUrl="{}"]'.format(view_content_url), self.ns_map)
+            views_with_name = vws.findall('.//t:view[@contentUrl="{}"]'.format(view_content_url), self.ns_map)
         elif self.is_luid(view_name_or_luid):
-            views_with_name = vws.findall(u'.//t:view[@id="{}"]'.format(view_name_or_luid), self.ns_map)
+            views_with_name = vws.findall('.//t:view[@id="{}"]'.format(view_name_or_luid), self.ns_map)
         else:
-            views_with_name = vws.findall(u'.//t:view[@name="{}"]'.format(view_name_or_luid), self.ns_map)
+            views_with_name = vws.findall('.//t:view[@name="{}"]'.format(view_name_or_luid), self.ns_map)
         if len(views_with_name) == 0:
             self.end_log_block()
-            raise NoMatchFoundException(u'No view found with name {} in workbook {}').format(view_name_or_luid, wb_name_or_luid)
+            raise NoMatchFoundException('No view found with name {} in workbook {}').format(view_name_or_luid, wb_name_or_luid)
         elif len(views_with_name) > 1:
             self.end_log_block()
             raise MultipleMatchesFoundException(
-                u'More than one view found by name {} in workbook {}. Use view_content_url parameter').format(view_name_or_luid, wb_name_or_luid)
+                'More than one view found by name {} in workbook {}. Use view_content_url parameter').format(view_name_or_luid, wb_name_or_luid)
         self.end_log_block()
         return views_with_name
 
@@ -1184,24 +1184,24 @@ class TableauRestApiConnection(TableauBase):
         """
         self.start_log_block()
         if usage not in [True, False]:
-            raise InvalidOptionException(u'Usage can only be set to True or False')
+            raise InvalidOptionException('Usage can only be set to True or False')
         if self.is_luid(wb_name_or_luid):
             wb_luid = wb_name_or_luid
         else:
             wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
-        vws = self.query_resource(u"workbooks/{}/views?includeUsageStatistics={}".format(wb_luid, str(usage).lower()))
+        vws = self.query_resource("workbooks/{}/views?includeUsageStatistics={}".format(wb_luid, str(usage).lower()))
         if view_content_url is not None:
-            views_with_name = vws.findall(u'.//t:view[@contentUrl="{}"]'.format(view_content_url), self.ns_map)
+            views_with_name = vws.findall('.//t:view[@contentUrl="{}"]'.format(view_content_url), self.ns_map)
         else:
-            views_with_name = vws.findall(u'.//t:view[@name="{}"]'.format(view_name), self.ns_map)
+            views_with_name = vws.findall('.//t:view[@name="{}"]'.format(view_name), self.ns_map)
         if len(views_with_name) == 0:
             self.end_log_block()
-            raise NoMatchFoundException(u'No view found with name {} or content_url {} in workbook {}').format(view_name, view_content_url, wb_name_or_luid)
+            raise NoMatchFoundException('No view found with name {} or content_url {} in workbook {}').format(view_name, view_content_url, wb_name_or_luid)
         elif len(views_with_name) > 1:
             self.end_log_block()
             raise MultipleMatchesFoundException(
-                u'More than one view found by name {} in workbook {}. Use view_content_url parameter').format(view_name, view_content_url, wb_name_or_luid)
-        view_luid = views_with_name[0].get(u'id')
+                'More than one view found by name {} in workbook {}. Use view_content_url parameter').format(view_name, view_content_url, wb_name_or_luid)
+        view_luid = views_with_name[0].get('id')
         self.end_log_block()
         return view_luid
 
@@ -1213,7 +1213,7 @@ class TableauRestApiConnection(TableauBase):
             wb_luid = wb_name_or_luid
         else:
             wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
-        conns = self.query_resource(u"workbooks/{}/connections".format(wb_luid))
+        conns = self.query_resource("workbooks/{}/connections".format(wb_luid))
         self.end_log_block()
         return conns
 
@@ -1224,7 +1224,7 @@ class TableauRestApiConnection(TableauBase):
         :rtype: etree.Element
         """
         self.start_log_block()
-        job = self.query_resource(u"jobs/{}".format(job_luid))
+        job = self.query_resource("jobs/{}".format(job_luid))
         self.end_log_block()
         return job
 
@@ -1262,7 +1262,7 @@ class TableauRestApiConnection(TableauBase):
                                                       proj_name_or_luid=proj_name_or_luid)
         try:
 
-            url = self.build_api_url(u"workbooks/{}/views/{}/previewImage".format(wb_luid, view_luid))
+            url = self.build_api_url("workbooks/{}/views/{}/previewImage".format(wb_luid, view_luid))
             image = self.send_binary_get_request(url)
 
             self.end_log_block()
@@ -1270,7 +1270,7 @@ class TableauRestApiConnection(TableauBase):
 
         # You might be requesting something that doesn't exist
         except RecoverableHTTPException as e:
-            self.log(u"Attempt to request preview image results in HTTP error {}, Tableau Code {}".format(e.http_code,
+            self.log("Attempt to request preview image results in HTTP error {}, Tableau Code {}".format(e.http_code,
                                                                                                           e.tableau_error_code))
             self.end_log_block()
             raise
@@ -1312,7 +1312,7 @@ class TableauRestApiConnection(TableauBase):
             self.end_log_block()
 
         except IOError:
-            self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension))
+            self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension))
             self.end_log_block()
             raise
 
@@ -1329,14 +1329,14 @@ class TableauRestApiConnection(TableauBase):
             wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
         try:
 
-            url = self.build_api_url(u"workbooks/{}/previewImage".format(wb_luid))
+            url = self.build_api_url("workbooks/{}/previewImage".format(wb_luid))
             image = self.send_binary_get_request(url)
             self.end_log_block()
             return image
 
         # You might be requesting something that doesn't exist, but unlikely
         except RecoverableHTTPException as e:
-            self.log(u"Attempt to request preview image results in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
+            self.log("Attempt to request preview image results in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
             self.end_log_block()
             raise
 
@@ -1361,7 +1361,7 @@ class TableauRestApiConnection(TableauBase):
             self.end_log_block()
 
         except IOError:
-            self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension))
+            self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension))
             self.end_log_block()
             raise
 
@@ -1380,18 +1380,18 @@ class TableauRestApiConnection(TableauBase):
         else:
             ds_luid = self.query_datasource_luid(ds_name_or_luid, project_name_or_luid=proj_name_or_luid)
         try:
-            url = self.build_api_url(u"datasources/{}/content".format(ds_luid))
+            url = self.build_api_url("datasources/{}/content".format(ds_luid))
             ds = self.send_binary_get_request(url)
             extension = None
-            if self._last_response_content_type.find(u'application/xml') != -1:
-                extension = u'.tds'
-            elif self._last_response_content_type.find(u'application/octet-stream') != -1:
-                extension = u'.tdsx'
-            self.log(u'Response type was {} so extension will be {}'.format(self._last_response_content_type, extension))
+            if self._last_response_content_type.find('application/xml') != -1:
+                extension = '.tds'
+            elif self._last_response_content_type.find('application/octet-stream') != -1:
+                extension = '.tdsx'
+            self.log('Response type was {} so extension will be {}'.format(self._last_response_content_type, extension))
             if extension is None:
-                raise IOError(u'File extension could not be determined')
+                raise IOError('File extension could not be determined')
         except RecoverableHTTPException as e:
-            self.log(u"download_datasource resulted in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
+            self.log("download_datasource resulted in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
             self.end_log_block()
             raise
         except:
@@ -1405,7 +1405,7 @@ class TableauRestApiConnection(TableauBase):
             save_file.close()
 
         except IOError:
-            self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
+            self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
             raise
 
         self.end_log_block()
@@ -1427,19 +1427,19 @@ class TableauRestApiConnection(TableauBase):
         else:
             wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
         try:
-            url = self.build_api_url(u"workbooks/{}/content".format(wb_luid))
+            url = self.build_api_url("workbooks/{}/content".format(wb_luid))
             wb = self.send_binary_get_request(url)
             extension = None
-            if self._last_response_content_type.find(u'application/xml') != -1:
-                extension = u'.twb'
-            elif self._last_response_content_type.find(u'application/octet-stream') != -1:
-                extension = u'.twbx'
+            if self._last_response_content_type.find('application/xml') != -1:
+                extension = '.twb'
+            elif self._last_response_content_type.find('application/octet-stream') != -1:
+                extension = '.twbx'
             if extension is None:
-                raise IOError(u'File extension could not be determined')
+                raise IOError('File extension could not be determined')
             self.log(
-                u'Response type was {} so extension will be {}'.format(self._last_response_content_type, extension))
+                'Response type was {} so extension will be {}'.format(self._last_response_content_type, extension))
         except RecoverableHTTPException as e:
-            self.log(u"download_workbook resulted in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
+            self.log("download_workbook resulted in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
             self.end_log_block()
             raise
         except:
@@ -1454,7 +1454,7 @@ class TableauRestApiConnection(TableauBase):
             save_file.close()
 
         except IOError:
-            self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
+            self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
             raise
 
         self.end_log_block()
@@ -1468,7 +1468,7 @@ class TableauRestApiConnection(TableauBase):
     # Create / Add Methods
     #
 
-    def add_user_by_username(self, username=None, site_role=u'Unlicensed', update_if_exists=False,
+    def add_user_by_username(self, username=None, site_role='Unlicensed', update_if_exists=False,
                              direct_xml_request=None):
         """
         :type username: unicode
@@ -1480,43 +1480,43 @@ class TableauRestApiConnection(TableauBase):
         self.start_log_block()
         # Check to make sure role that is passed is a valid role in the API
         if site_role not in self.site_roles:
-            raise InvalidOptionException(u"{} is not a valid site role in Tableau Server".format(site_role))
+            raise InvalidOptionException("{} is not a valid site role in Tableau Server".format(site_role))
 
-        self.log(u"Adding {}".format(username))
+        self.log("Adding {}".format(username))
         if direct_xml_request is not None:
             tsr = direct_xml_request
         else:
-            tsr = etree.Element(u"tsRequest")
-            u = etree.Element(u"user")
-            u.set(u"name", username)
-            u.set(u"siteRole", site_role)
+            tsr = etree.Element("tsRequest")
+            u = etree.Element("user")
+            u.set("name", username)
+            u.set("siteRole", site_role)
             tsr.append(u)
 
-        url = self.build_api_url(u'users')
+        url = self.build_api_url('users')
         try:
             new_user = self.send_add_request(url, tsr)
-            new_user_luid = new_user.findall(u'.//t:user', self.ns_map)[0].get("id")
+            new_user_luid = new_user.findall('.//t:user', self.ns_map)[0].get("id")
             self.end_log_block()
             return new_user_luid
         # If already exists, update site role unless overridden.
         except RecoverableHTTPException as e:
             if e.http_code == 409:
-                self.log(u"Username '{}' already exists on the server".format(username))
+                self.log("Username '{}' already exists on the server".format(username))
                 if update_if_exists is True:
-                    self.log(u'Updating {} to site role {}'.format(username, site_role))
+                    self.log('Updating {} to site role {}'.format(username, site_role))
                     self.update_user(username, site_role=site_role)
                     self.end_log_block()
                     return self.query_user_luid(username)
                 else:
                     self.end_log_block()
-                    raise AlreadyExistsException(u'Username already exists ', self.query_user_luid(username))
+                    raise AlreadyExistsException('Username already exists ', self.query_user_luid(username))
         except:
             self.end_log_block()
             raise
 
     # This is "Add User to Site", since you must be logged into a site.
     # Set "update_if_exists" to True if you want the equivalent of an 'upsert', ignoring the exceptions
-    def add_user(self, username=None, fullname=None, site_role=u'Unlicensed', password=None, email=None,
+    def add_user(self, username=None, fullname=None, site_role='Unlicensed', password=None, email=None,
                  update_if_exists=False, direct_xml_request=None):
         """
         :type username: unicode
@@ -1533,38 +1533,38 @@ class TableauRestApiConnection(TableauBase):
 
         if direct_xml_request is not None:
             # Parse to second level, should be
-            new_user_tsr = etree.Element(u'tsRequest')
-            new_user_u = etree.Element(u'user')
+            new_user_tsr = etree.Element('tsRequest')
+            new_user_u = etree.Element('user')
             for t in direct_xml_request:
-                if t.tag != u'user':
-                    raise InvalidOptionException(u'Must submit a tsRequest with a user element')
+                if t.tag != 'user':
+                    raise InvalidOptionException('Must submit a tsRequest with a user element')
                 for a in t.attrib:
-                    if a in [u'name', u'siteRole', u'authSetting']:
+                    if a in ['name', 'siteRole', 'authSetting']:
                         new_user_u.set(a, t.attrib[a])
             new_user_tsr.append(new_user_u)
-            print(etree.tostring(new_user_tsr))
+            print((etree.tostring(new_user_tsr)))
             return
 
         try:
             # Add username first, then update with full name
             if direct_xml_request is not None:
                 # Parse to second level, should be
-                new_user_tsr = etree.Element(u'tsRequest')
-                new_user_u = etree.Element(u'user')
+                new_user_tsr = etree.Element('tsRequest')
+                new_user_u = etree.Element('user')
                 for t in direct_xml_request:
-                    if t.tag != u'user':
-                        raise InvalidOptionException(u'Must submit a tsRequest with a user element')
+                    if t.tag != 'user':
+                        raise InvalidOptionException('Must submit a tsRequest with a user element')
                     for a in t.attrib:
-                        if a in [u'name', u'siteRole', u'authSetting']:
+                        if a in ['name', 'siteRole', 'authSetting']:
                             new_user_u.set(a, t.attrib[a])
                 new_user_tsr.append(new_user_u)
                 new_user_luid = self.add_user_by_username(direct_xml_request=new_user_tsr)
 
-                update_tsr = etree.Element(u'tsRequest')
-                update_u = etree.Element(u'user')
+                update_tsr = etree.Element('tsRequest')
+                update_u = etree.Element('user')
                 for t in direct_xml_request:
                     for a in t.attrib:
-                        if a in [u'fullName', u'email', u'password', u'siteRole', u'authSetting']:
+                        if a in ['fullName', 'email', 'password', 'siteRole', 'authSetting']:
                             update_u.set(a, t.attrib[a])
                 update_tsr.append(update_u)
                 self.update_user(username_or_luid=new_user_luid, direct_xml_request=update_tsr)
@@ -1575,7 +1575,7 @@ class TableauRestApiConnection(TableauBase):
             self.end_log_block()
             return new_user_luid
         except AlreadyExistsException as e:
-            self.log(u"Username '{}' already exists on the server; no updates performed".format(username))
+            self.log("Username '{}' already exists on the server; no updates performed".format(username))
             self.end_log_block()
             return e.existing_luid
 
@@ -1591,26 +1591,26 @@ class TableauRestApiConnection(TableauBase):
         if direct_xml_request is not None:
             tsr = direct_xml_request
         else:
-            tsr = etree.Element(u"tsRequest")
-            g = etree.Element(u"group")
-            g.set(u"name", group_name)
+            tsr = etree.Element("tsRequest")
+            g = etree.Element("group")
+            g.set("name", group_name)
             tsr.append(g)
 
-        url = self.build_api_url(u"groups")
+        url = self.build_api_url("groups")
         try:
             new_group = self.send_add_request(url, tsr)
             self.end_log_block()
-            return new_group.findall(u'.//t:group', self.ns_map)[0].get("id")
+            return new_group.findall('.//t:group', self.ns_map)[0].get("id")
         # If the name already exists, a HTTP 409 throws, so just find and return the existing LUID
         except RecoverableHTTPException as e:
             if e.http_code == 409:
-                self.log(u'Group named {} already exists, finding and returning the LUID'.format(group_name))
+                self.log('Group named {} already exists, finding and returning the LUID'.format(group_name))
                 self.end_log_block()
                 return self.query_group_luid(group_name)
 
     # Creating a synced ad group is completely different, use this method
     # The luid is only available in the Response header if bg sync. Nothing else is passed this way -- how to expose?
-    def create_group_from_ad_group(self, ad_group_name, ad_domain_name, default_site_role=u'Unlicensed',
+    def create_group_from_ad_group(self, ad_group_name, ad_domain_name, default_site_role='Unlicensed',
                                    sync_as_background=True):
         """
         :type ad_group_name: unicode
@@ -1621,29 +1621,29 @@ class TableauRestApiConnection(TableauBase):
         """
         self.start_log_block()
         if default_site_role not in self._site_roles:
-            raise InvalidOptionException(u'"{}" is not an acceptable site role'.format(default_site_role))
+            raise InvalidOptionException('"{}" is not an acceptable site role'.format(default_site_role))
 
-        tsr = etree.Element(u"tsRequest")
-        g = etree.Element(u"group")
-        g.set(u"name", ad_group_name)
-        i = etree.Element(u"import")
-        i.set(u"source", u"ActiveDirectory")
-        i.set(u"domainName", ad_domain_name)
-        i.set(u"siteRole", default_site_role)
+        tsr = etree.Element("tsRequest")
+        g = etree.Element("group")
+        g.set("name", ad_group_name)
+        i = etree.Element("import")
+        i.set("source", "ActiveDirectory")
+        i.set("domainName", ad_domain_name)
+        i.set("siteRole", default_site_role)
         g.append(i)
         tsr.append(g)
 
-        url = self.build_api_url(u"groups/?asJob={}".format(str(sync_as_background).lower()))
+        url = self.build_api_url("groups/?asJob={}".format(str(sync_as_background).lower()))
         self.log(url)
         response = self.send_add_request(url, tsr)
         # Response is different from immediate to background update. job ID lets you track progress on background
         if sync_as_background is True:
-            job = response.findall(u'.//t:job', self.ns_map)
+            job = response.findall('.//t:job', self.ns_map)
             self.end_log_block()
             return job[0].get('id')
         if sync_as_background is False:
             self.end_log_block()
-            group = response.findall(u'.//t:group', self.ns_map)
+            group = response.findall('.//t:group', self.ns_map)
             return group[0].get('id')
 
     def create_project(self, project_name=None, project_desc=None, no_return=False, direct_xml_request=None):
@@ -1659,25 +1659,25 @@ class TableauRestApiConnection(TableauBase):
         if direct_xml_request is not None:
             tsr = direct_xml_request
         else:
-            tsr = etree.Element(u"tsRequest")
-            p = etree.Element(u"project")
-            p.set(u"name", project_name)
+            tsr = etree.Element("tsRequest")
+            p = etree.Element("project")
+            p.set("name", project_name)
 
             if project_desc is not None:
-                p.set(u'description', project_desc)
+                p.set('description', project_desc)
             tsr.append(p)
 
-        url = self.build_api_url(u"projects")
+        url = self.build_api_url("projects")
         try:
             new_project = self.send_add_request(url, tsr)
 
             self.end_log_block()
-            project_luid = new_project.findall(u'.//t:project', self.ns_map)[0].get("id")
+            project_luid = new_project.findall('.//t:project', self.ns_map)[0].get("id")
             if no_return is False:
                 return self.get_published_project_object(project_luid)
         except RecoverableHTTPException as e:
             if e.http_code == 409:
-                self.log(u'Project named {} already exists, finding and returning Published Project Object'.format(project_name))
+                self.log('Project named {} already exists, finding and returning Published Project Object'.format(project_name))
                 self.end_log_block()
                 if no_return is False:
                     return self.get_published_project_object(project_name)
@@ -1700,16 +1700,16 @@ class TableauRestApiConnection(TableauBase):
         else:
             add_request = self.build_site_request_xml(new_site_name, new_content_url, admin_mode, user_quota,
                                                       storage_quota, disable_subscriptions)
-        url = self.build_api_url(u"sites/",
+        url = self.build_api_url("sites/",
                                  server_level=True)  # Site actions drop back out of the site ID hierarchy like login
         try:
             new_site = self.send_add_request(url, add_request)
-            return new_site.findall(u'.//t:site', self.ns_map)[0].get("id")
+            return new_site.findall('.//t:site', self.ns_map)[0].get("id")
         except RecoverableHTTPException as e:
             if e.http_code == 409:
-                self.log(u"Site with content_url {} already exists".format(new_content_url))
+                self.log("Site with content_url {} already exists".format(new_content_url))
                 self.end_log_block()
-                raise AlreadyExistsException(u"Site with content_url {} already exists".format(new_content_url),
+                raise AlreadyExistsException("Site with content_url {} already exists".format(new_content_url),
                                              new_content_url)
 
     # Take a single user_luid string or a collection of luid_strings
@@ -1720,7 +1720,7 @@ class TableauRestApiConnection(TableauBase):
         :rtype: unicode
         """
         self.start_log_block()
-        group_name = u""
+        group_name = ""
         if self.is_luid(group_name_or_luid):
             group_luid = group_name_or_luid
         else:
@@ -1729,24 +1729,24 @@ class TableauRestApiConnection(TableauBase):
 
         users = self.to_list(username_or_luid_s)
         for user in users:
-            username = u""
+            username = ""
             if self.is_luid(user):
                 user_luid = user
             else:
                 username = user
                 user_luid = self.query_user_luid(user)
 
-            tsr = etree.Element(u"tsRequest")
-            u = etree.Element(u"user")
-            u.set(u"id", user_luid)
+            tsr = etree.Element("tsRequest")
+            u = etree.Element("user")
+            u.set("id", user_luid)
             tsr.append(u)
 
-            url = self.build_api_url(u"groups/{}/users/".format(group_luid))
+            url = self.build_api_url("groups/{}/users/".format(group_luid))
             try:
-                self.log(u"Adding username {}, ID {} to group {}, ID {}".format(username, user_luid, group_name, group_luid))
+                self.log("Adding username {}, ID {} to group {}, ID {}".format(username, user_luid, group_name, group_luid))
                 self.send_add_request(url, tsr)
             except RecoverableHTTPException as e:
-                self.log(u"Recoverable HTTP exception {} with Tableau Error Code {}, skipping".format(str(e.http_code), e.tableau_error_code))
+                self.log("Recoverable HTTP exception {} with Tableau Error Code {}, skipping".format(str(e.http_code), e.tableau_error_code))
         self.end_log_block()
 
     # Tags can be scalar string or list
@@ -1762,14 +1762,14 @@ class TableauRestApiConnection(TableauBase):
             wb_luid = wb_name_or_luid
         else:
             wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
-        url = self.build_api_url(u"workbooks/{}/tags".format(wb_luid))
+        url = self.build_api_url("workbooks/{}/tags".format(wb_luid))
 
-        tsr = etree.Element(u"tsRequest")
-        ts = etree.Element(u"tags")
+        tsr = etree.Element("tsRequest")
+        ts = etree.Element("tags")
         tags = self.to_list(tag_s)
         for tag in tags:
-            t = etree.Element(u"tag")
-            t.set(u"label", tag)
+            t = etree.Element("tag")
+            t.set("label", tag)
             ts.append(t)
         tsr.append(ts)
 
@@ -1796,15 +1796,15 @@ class TableauRestApiConnection(TableauBase):
         else:
             user_luid = self.query_user_luid(username_or_luid)
 
-        tsr = etree.Element(u'tsRequest')
-        f = etree.Element(u'favorite')
-        f.set(u'label', favorite_name)
-        w = etree.Element(u'workbook')
-        w.set(u'id', wb_luid)
+        tsr = etree.Element('tsRequest')
+        f = etree.Element('favorite')
+        f.set('label', favorite_name)
+        w = etree.Element('workbook')
+        w.set('id', wb_luid)
         f.append(w)
         tsr.append(f)
 
-        url = self.build_api_url(u"favorites/{}".format(user_luid))
+        url = self.build_api_url("favorites/{}".format(user_luid))
         update_response = self.send_update_request(url, tsr)
         self.end_log_block()
         return update_response
@@ -1825,24 +1825,24 @@ class TableauRestApiConnection(TableauBase):
             view_luid = view_name_or_luid
         else:
             if wb_name_or_luid is None:
-                raise InvalidOptionException(u'When passing a View Name instead of LUID, must also specify workbook name or luid')
+                raise InvalidOptionException('When passing a View Name instead of LUID, must also specify workbook name or luid')
             view_luid = self.query_workbook_view_luid(wb_name_or_luid, view_name_or_luid, view_content_url,
                                                       proj_name_or_luid, username_or_luid)
-            self.log(u'View luid found {}'.format(view_luid))
+            self.log('View luid found {}'.format(view_luid))
 
         if self.is_luid(username_or_luid):
             user_luid = username_or_luid
         else:
             user_luid = self.query_user_luid(username_or_luid)
-        tsr = etree.Element(u'tsRequest')
-        f = etree.Element(u'favorite')
-        f.set(u'label', favorite_name)
-        v = etree.Element(u'view')
-        v.set(u'id', view_luid)
+        tsr = etree.Element('tsRequest')
+        f = etree.Element('favorite')
+        f.set('label', favorite_name)
+        v = etree.Element('view')
+        v.set('id', view_luid)
         f.append(v)
         tsr.append(f)
 
-        url = self.build_api_url(u"favorites/{}".format(user_luid))
+        url = self.build_api_url("favorites/{}".format(user_luid))
         update_response = self.send_update_request(url, tsr)
         self.end_log_block()
         return update_response
@@ -1875,19 +1875,19 @@ class TableauRestApiConnection(TableauBase):
         if direct_xml_request is not None:
             tsr = direct_xml_request
         else:
-            tsr = etree.Element(u"tsRequest")
-            u = etree.Element(u"user")
+            tsr = etree.Element("tsRequest")
+            u = etree.Element("user")
             if full_name is not None:
-                u.set(u'fullName', full_name)
+                u.set('fullName', full_name)
             if site_role is not None:
-                u.set(u'siteRole', site_role)
+                u.set('siteRole', site_role)
             if email is not None:
-                u.set(u'email', email)
+                u.set('email', email)
             if password is not None:
-                u.set(u'password', password)
+                u.set('password', password)
             tsr.append(u)
 
-        url = self.build_api_url(u"users/{}".format(user_luid))
+        url = self.build_api_url("users/{}".format(user_luid))
         response = self.send_update_request(url, tsr)
         self.end_log_block()
         return response
@@ -1908,22 +1908,22 @@ class TableauRestApiConnection(TableauBase):
         else:
             datasource_luid = self.query_datasource_luid(datasource_name_or_luid, datasource_project_name_or_luid)
 
-        tsr = etree.Element(u"tsRequest")
-        d = etree.Element(u"datasource")
+        tsr = etree.Element("tsRequest")
+        d = etree.Element("datasource")
         if new_datasource_name is not None:
-            d.set(u'name', new_datasource_name)
+            d.set('name', new_datasource_name)
         if new_project_luid is not None:
-            p = etree.Element(u'project')
-            p.set(u'id', new_project_luid)
+            p = etree.Element('project')
+            p.set('id', new_project_luid)
             d.append(p)
         if new_owner_luid is not None:
-            o = etree.Element(u'owner')
-            o.set(u'id', new_owner_luid)
+            o = etree.Element('owner')
+            o.set('id', new_owner_luid)
             d.append(o)
 
         tsr.append(d)
 
-        url = self.build_api_url(u"datasources/{}".format(datasource_luid))
+        url = self.build_api_url("datasources/{}".format(datasource_luid))
         response = self.send_update_request(url, tsr)
         self.end_log_block()
         return response
@@ -1942,7 +1942,7 @@ class TableauRestApiConnection(TableauBase):
         tsr = self.__build_connection_update_xml(new_server_address, new_server_port,
                                                             new_connection_username,
                                                             new_connection_password)
-        url = self.build_api_url(u"datasources/{}/connection".format(datasource_luid))
+        url = self.build_api_url("datasources/{}/connection".format(datasource_luid))
         response = self.send_update_request(url, tsr)
         self.end_log_block()
         return response
@@ -1960,12 +1960,12 @@ class TableauRestApiConnection(TableauBase):
         else:
             group_luid = self.query_group_luid(name_or_luid)
 
-        tsr = etree.Element(u"tsRequest")
-        g = etree.Element(u"group")
-        g.set(u"name", new_group_name)
+        tsr = etree.Element("tsRequest")
+        g = etree.Element("group")
+        g.set("name", new_group_name)
         tsr.append(g)
 
-        url = self.build_api_url(u"groups/{}".format(group_luid))
+        url = self.build_api_url("groups/{}".format(group_luid))
         response = self.send_update_request(url, tsr)
         self.end_log_block()
         return response
@@ -1982,20 +1982,20 @@ class TableauRestApiConnection(TableauBase):
         """
         self.start_log_block()
         if sync_as_background not in [True, False]:
-            error = u"'{}' passed for sync_as_background. Use True or False".format(str(sync_as_background).lower())
+            error = "'{}' passed for sync_as_background. Use True or False".format(str(sync_as_background).lower())
             raise InvalidOptionException(error)
 
         if default_site_role not in self._site_roles:
-            raise InvalidOptionException(u"'{}' is not a valid site role in Tableau".format(default_site_role))
+            raise InvalidOptionException("'{}' is not a valid site role in Tableau".format(default_site_role))
         # Check that the group exists
         self.query_group(group_name_or_luid)
-        tsr = etree.Element(u'tsRequest')
-        g = etree.Element(u'group')
-        g.set(u'name', ad_group_name)
-        i = etree.Element(u'import')
-        i.set(u'source', u'ActiveDirectory')
-        i.set(u'domainName', ad_domain)
-        i.set(u'siteRole', default_site_role)
+        tsr = etree.Element('tsRequest')
+        g = etree.Element('group')
+        g.set('name', ad_group_name)
+        i = etree.Element('import')
+        i.set('source', 'ActiveDirectory')
+        i.set('domainName', ad_domain)
+        i.set('siteRole', default_site_role)
         g.append(i)
         tsr.append(g)
 
@@ -2004,15 +2004,15 @@ class TableauRestApiConnection(TableauBase):
         else:
             group_luid = self.query_group_luid(group_name_or_luid)
         url = self.build_api_url(
-            u"groups/{}".format(group_luid) + u"?asJob={}".format(unicode(sync_as_background)).lower())
+            "groups/{}".format(group_luid) + "?asJob={}".format(str(sync_as_background)).lower())
         response = self.send_update_request(url, tsr)
         # Response is different from immediate to background update. job ID lets you track progress on background
         if sync_as_background is True:
-            job = response.findall(u'.//t:job', self.ns_map)
+            job = response.findall('.//t:job', self.ns_map)
             self.end_log_block()
             return job[0].get('id')
         if sync_as_background is False:
-            group = response.findall(u'.//t:group', self.ns_map)
+            group = response.findall('.//t:group', self.ns_map)
             self.end_log_block()
             return group[0].get('id')
 
@@ -2030,15 +2030,15 @@ class TableauRestApiConnection(TableauBase):
         else:
             project_luid = self.query_project_luid(name_or_luid)
 
-        tsr = etree.Element(u"tsRequest")
-        p = etree.Element(u"project")
+        tsr = etree.Element("tsRequest")
+        p = etree.Element("project")
         if new_project_name is not None:
-            p.set(u'name', new_project_name)
+            p.set('name', new_project_name)
         if new_project_description is not None:
-            p.set(u'description', new_project_description)
+            p.set('description', new_project_description)
         tsr.append(p)
 
-        url = self.build_api_url(u"projects/{}".format(project_luid))
+        url = self.build_api_url("projects/{}".format(project_luid))
         response = self.send_update_request(url, tsr)
         self.end_log_block()
         return self.get_published_project_object(project_luid, response)
@@ -2059,7 +2059,7 @@ class TableauRestApiConnection(TableauBase):
         self.start_log_block()
         tsr = self.build_site_request_xml(site_name, content_url, admin_mode, user_quota, storage_quota,
                                                      disable_subscriptions, state)
-        url = self.build_api_url(u"")
+        url = self.build_api_url("")
         response = self.send_update_request(url, tsr)
         self.end_log_block()
         return response
@@ -2080,21 +2080,21 @@ class TableauRestApiConnection(TableauBase):
         else:
             workbook_luid = self.query_workbook_luid(workbook_name_or_luid, workbook_project_name_or_luid,
                                                      self.username)
-        tsr = etree.Element(u"tsRequest")
-        w = etree.Element(u"workbook")
-        w.set(u'showTabs', unicode(show_tabs).lower())
+        tsr = etree.Element("tsRequest")
+        w = etree.Element("workbook")
+        w.set('showTabs', str(show_tabs).lower())
         if new_project_luid is not None:
-            p = etree.Element(u'project')
-            p.set(u'id', new_project_luid)
+            p = etree.Element('project')
+            p.set('id', new_project_luid)
             w.append(p)
 
         if new_owner_luid is not None:
-            o = etree.Element(u'owner')
-            o.set(u'id', new_owner_luid)
+            o = etree.Element('owner')
+            o.set('id', new_owner_luid)
             w.append(o)
         tsr.append(w)
 
-        url = self.build_api_url(u"workbooks/{}".format(workbook_luid))
+        url = self.build_api_url("workbooks/{}".format(workbook_luid))
         response = self.send_update_request(url, tsr)
         self.end_log_block()
         return response
@@ -2116,7 +2116,7 @@ class TableauRestApiConnection(TableauBase):
         self.start_log_block()
         tsr = self.__build_connection_update_xml(new_server_address, new_server_port, new_connection_username,
                                                  new_connection_password)
-        url = self.build_api_url(u"workbooks/{}/connections/{}".format(wb_luid, connection_luid))
+        url = self.build_api_url("workbooks/{}/connections/{}".format(wb_luid, connection_luid))
         response = self.send_update_request(url, tsr)
         self.end_log_block()
         return response
@@ -2139,7 +2139,7 @@ class TableauRestApiConnection(TableauBase):
             else:
                 datasource_luid = self.query_datasource_luid(datasource_name_or_luid, None)
 
-            url = self.build_api_url(u"datasources/{}".format(datasource_luid))
+            url = self.build_api_url("datasources/{}".format(datasource_luid))
             self.send_delete_request(url)
         self.end_log_block()
 
@@ -2155,7 +2155,7 @@ class TableauRestApiConnection(TableauBase):
                 project_luid = project_name_or_luid
             else:
                 project_luid = self.query_project_luid(project_name_or_luid)
-            url = self.build_api_url(u"projects/{}".format(project_luid))
+            url = self.build_api_url("projects/{}".format(project_luid))
             self.send_delete_request(url)
         self.end_log_block()
 
@@ -2165,7 +2165,7 @@ class TableauRestApiConnection(TableauBase):
         :rtype:
         """
         self.start_log_block()
-        url = self.build_api_url(u"sites/{}".format(self.site_luid), server_level=True)
+        url = self.build_api_url("sites/{}".format(self.site_luid), server_level=True)
         self.send_delete_request(url)
         self.end_log_block()
 
@@ -2183,7 +2183,7 @@ class TableauRestApiConnection(TableauBase):
                 wb_luid = wb
             else:
                 wb_luid = self.query_workbook_luid(wb)
-            url = self.build_api_url(u"workbooks/{}".format(wb_luid))
+            url = self.build_api_url("workbooks/{}".format(wb_luid))
             self.send_delete_request(url)
         self.end_log_block()
 
@@ -2205,7 +2205,7 @@ class TableauRestApiConnection(TableauBase):
                 wb_luid = wb
             else:
                 wb_luid = self.query_workbook_luid(wb)
-            url = self.build_api_url(u"favorites/{}/workbooks/{}".format(user_luid, wb_luid))
+            url = self.build_api_url("favorites/{}/workbooks/{}".format(user_luid, wb_luid))
             self.send_delete_request(url)
         self.end_log_block()
 
@@ -2227,7 +2227,7 @@ class TableauRestApiConnection(TableauBase):
                 view_luid = view
             else:
                 view_luid = self.query_workbook_view_luid(wb_name_or_luid, view)
-            url = self.build_api_url(u"favorites/{}/views/{}".format(user_luid, view_luid))
+            url = self.build_api_url("favorites/{}/views/{}".format(user_luid, view_luid))
             self.send_delete_request(url)
         self.end_log_block()
 
@@ -2239,7 +2239,7 @@ class TableauRestApiConnection(TableauBase):
         :rtype:
         """
         self.start_log_block()
-        group_name = u""
+        group_name = ""
         if self.is_luid(group_name_or_luid):
             group_luid = group_name_or_luid
         else:
@@ -2247,14 +2247,14 @@ class TableauRestApiConnection(TableauBase):
             group_luid = self.query_group_name(group_name_or_luid)
         users = self.to_list(username_or_luid_s)
         for user in users:
-            username = u""
+            username = ""
             if self.is_luid(user):
                 user_luid = user
             else:
                 username = user
                 user_luid = self.query_user_luid(user)
-            url = self.build_api_url(u"groups/{}/users/{}".format(group_luid, user_luid))
-            self.log(u'Removing user {}, id {} from group {}, id {}'.format(username, user_luid, group_name, group_luid))
+            url = self.build_api_url("groups/{}/users/{}".format(group_luid, user_luid))
+            self.log('Removing user {}, id {} from group {}, id {}'.format(username, user_luid, group_name, group_luid))
             self.send_delete_request(url)
         self.end_log_block()
 
@@ -2267,14 +2267,14 @@ class TableauRestApiConnection(TableauBase):
         self.start_log_block()
         users = self.to_list(username_or_luid_s)
         for user in users:
-            username = u""
+            username = ""
             if self.is_luid(user):
                 user_luid = user
             else:
                 username = user
                 user_luid = self.query_user_luid(user)
-            url = self.build_api_url(u"users/{}".format(user_luid))
-            self.log(u'Removing user {}, id {} from site'.format(username, user_luid))
+            url = self.build_api_url("users/{}".format(user_luid))
+            self.log('Removing user {}, id {} from site'.format(username, user_luid))
             self.send_delete_request(url)
         self.end_log_block()
 
@@ -2292,7 +2292,7 @@ class TableauRestApiConnection(TableauBase):
             wb_luid = self.query_workbook_luid(wb_name_or_luid)
         deleted_count = 0
         for tag in tags:
-            url = self.build_api_url(u"workbooks/{}/tags/{}".format(wb_luid, tag))
+            url = self.build_api_url("workbooks/{}/tags/{}".format(wb_luid, tag))
             deleted_count += self.send_delete_request(url)
         self.end_log_block()
         return deleted_count
@@ -2329,11 +2329,11 @@ class TableauRestApiConnection(TableauBase):
         """
 
         project_luid = project_obj.luid
-        xml = self.publish_content(u'workbook', workbook_filename, workbook_name, project_luid,
-                                   {u"overwrite": overwrite}, connection_username, connection_password,
+        xml = self.publish_content('workbook', workbook_filename, workbook_name, project_luid,
+                                   {"overwrite": overwrite}, connection_username, connection_password,
                                    save_credentials, show_tabs=show_tabs, check_published_ds=check_published_ds,
                                    oauth_flag=oauth_flag)
-        workbook = xml.findall(u'.//t:workbook', self.ns_map)
+        workbook = xml.findall('.//t:workbook', self.ns_map)
         return workbook[0].get('id')
 
     def publish_datasource(self, ds_filename, ds_name, project_obj, overwrite=False, connection_username=None,
@@ -2350,9 +2350,9 @@ class TableauRestApiConnection(TableauBase):
         :rtype: unicode
         """
         project_luid = project_obj.luid
-        xml = self.publish_content(u'datasource', ds_filename, ds_name, project_luid, {u"overwrite": overwrite},
+        xml = self.publish_content('datasource', ds_filename, ds_name, project_luid, {"overwrite": overwrite},
                                    connection_username, connection_password, save_credentials, oauth_flag=oauth_flag)
-        datasource = xml.findall(u'.//t:datasource', self.ns_map)
+        datasource = xml.findall('.//t:datasource', self.ns_map)
         return datasource[0].get('id')
 
     # Main method for publishing a workbook. Should intelligently decide to chunk up if necessary
@@ -2368,37 +2368,37 @@ class TableauRestApiConnection(TableauBase):
         temp_wb_filename = None
 
         # Must be 'workbook' or 'datasource'
-        if content_type not in [u'workbook', u'datasource', u'flow']:
-            raise InvalidOptionException(u"content_type must be 'workbook',  'datasource', or 'flow' ")
+        if content_type not in ['workbook', 'datasource', 'flow']:
+            raise InvalidOptionException("content_type must be 'workbook',  'datasource', or 'flow' ")
 
         file_extension = None
         final_filename = None
         cleanup_temp_file = False
 
-        for ending in [u'.twb', u'.twbx', u'.tde', u'.tdsx', u'.tds', u'.tde', u'.hyper', u'.tfl', u'.tflx']:
+        for ending in ['.twb', '.twbx', '.tde', '.tdsx', '.tds', '.tde', '.hyper', '.tfl', '.tflx']:
             if content_filename.endswith(ending):
                 file_extension = ending[1:]
 
                 # If twb or twbx, open up and check for any published data sources
-                if file_extension.lower() in [u'twb', u'twbx'] and check_published_ds is True:
-                    self.log(u"Adjusting any published datasources")
+                if file_extension.lower() in ['twb', 'twbx'] and check_published_ds is True:
+                    self.log("Adjusting any published datasources")
                     t_file = TableauFile(content_filename, self.logger)
                     dses = t_file.tableau_document.datasources
                     for ds in dses:
                         # Set to the correct site
                         if ds.published is True:
-                            self.log(u"Published datasource found")
-                            self.log(u"Setting publish datasource repository to {}".format(self.site_content_url))
+                            self.log("Published datasource found")
+                            self.log("Setting publish datasource repository to {}".format(self.site_content_url))
                             ds.published_ds_site = self.site_content_url
 
-                    temp_wb_filename = t_file.save_new_file(u'temp_wb')
+                    temp_wb_filename = t_file.save_new_file('temp_wb')
                     content_filename = temp_wb_filename
                     # Open the file to be uploaded
                 try:
                     content_file = open(content_filename, 'rb')
                     file_size = os.path.getsize(content_filename)
                     file_size_mb = float(file_size) / float(1000000)
-                    self.log(u"File {} is size {} MBs".format(content_filename, file_size_mb))
+                    self.log("File {} is size {} MBs".format(content_filename, file_size_mb))
                     final_filename = content_filename
 
                     # Request type is mixed and require a boundary
@@ -2410,44 +2410,44 @@ class TableauRestApiConnection(TableauBase):
                     publish_request += bytes('Content-Type: text/xml\r\n\r\n'.encode('utf-8'))
 
                     # Build publish request in ElementTree then convert at publish
-                    publish_request_xml = etree.Element(u'tsRequest')
+                    publish_request_xml = etree.Element('tsRequest')
                     # could be either workbook, datasource, or flow
                     t1 = etree.Element(content_type)
-                    t1.set(u'name', content_name)
+                    t1.set('name', content_name)
                     if show_tabs is not False:
-                        t1.set(u'showTabs', str(show_tabs).lower())
+                        t1.set('showTabs', str(show_tabs).lower())
                     if generate_thumbnails_as_username_or_luid is not None:
                         if self.is_luid(generate_thumbnails_as_username_or_luid):
                             thumbnail_user_luid = generate_thumbnails_as_username_or_luid
                         else:
                             thumbnail_user_luid = self.query_user_luid(generate_thumbnails_as_username_or_luid)
-                        t1.set(u'generateThumbnailsAsUser', thumbnail_user_luid)
+                        t1.set('generateThumbnailsAsUser', thumbnail_user_luid)
 
                     if connection_username is not None:
-                        cc = etree.Element(u'connectionCredentials')
-                        cc.set(u'name', connection_username)
+                        cc = etree.Element('connectionCredentials')
+                        cc.set('name', connection_username)
                         if oauth_flag is True:
-                            cc.set(u'oAuth', u"True")
+                            cc.set('oAuth', "True")
                         if connection_password is not None:
-                            cc.set(u'password', connection_password)
-                        cc.set(u'embed', str(save_credentials).lower())
+                            cc.set('password', connection_password)
+                        cc.set('embed', str(save_credentials).lower())
                         t1.append(cc)
 
                     # Views to Hide in Workbooks from 3.2
                     if views_to_hide_list is not None:
                         if len(views_to_hide_list) > 0:
-                            vs = etree.Element(u'views')
+                            vs = etree.Element('views')
                             for view_name in views_to_hide_list:
-                                v = etree.Element(u'view')
-                                v.set(u'name', view_name)
-                                v.set(u'hidden', u'true')
+                                v = etree.Element('view')
+                                v.set('name', view_name)
+                                v.set('hidden', 'true')
                             t1.append(vs)
 
                     # Description only allowed for Flows as of 3.3
                     if description is not None:
-                         t1.set(u'description', description)
-                    p = etree.Element(u'project')
-                    p.set(u'id', project_luid)
+                         t1.set('description', description)
+                    p = etree.Element('project')
+                    p.set('id', project_luid)
                     t1.append(p)
                     publish_request_xml.append(t1)
 
@@ -2459,7 +2459,7 @@ class TableauRestApiConnection(TableauBase):
                     # Upload as single if less than file_size_limit MB
                     if file_size_mb <= single_upload_limit:
                         # If part of a single upload, this if the next portion
-                        self.log(u"Less than {} MB, uploading as a single call".format(str(single_upload_limit)))
+                        self.log("Less than {} MB, uploading as a single call".format(str(single_upload_limit)))
                         publish_request += bytes('\r\n'.encode('utf-8'))
                         publish_request += bytes('Content-Disposition: name="tableau_{}"; filename="{}"\r\n'.format(
                             content_type, final_filename).encode('utf-8'))
@@ -2473,16 +2473,16 @@ class TableauRestApiConnection(TableauBase):
 
                         publish_request += bytes("\r\n--{}--".format(boundary_string).encode('utf-8'))
 
-                        url = self.build_api_url(u"{}s").format(content_type)
+                        url = self.build_api_url("{}s").format(content_type)
 
                         # Allow additional parameters on the publish url
                         if len(url_params) > 0:
-                            additional_params = u'?'
+                            additional_params = '?'
                             i = 1
                             for param in url_params:
                                 if i > 1:
-                                    additional_params += u"&"
-                                additional_params += u"{}={}".format(param, str(url_params[param]).lower())
+                                    additional_params += "&"
+                                additional_params += "{}={}".format(param, str(url_params[param]).lower())
                                 i += 1
                             url += additional_params
 
@@ -2494,31 +2494,31 @@ class TableauRestApiConnection(TableauBase):
                         return self.send_publish_request(url, None, publish_request, boundary_string)
                     # Break up into chunks for upload
                     else:
-                        self.log(u"Greater than 10 MB, uploading in chunks")
+                        self.log("Greater than 10 MB, uploading in chunks")
                         upload_session_id = self.initiate_file_upload()
 
                         # Upload each chunk
                         for piece in self.read_file_in_chunks(content_file):
-                            self.log(u"Appending chunk to upload session {}".format(upload_session_id))
+                            self.log("Appending chunk to upload session {}".format(upload_session_id))
                             self.append_to_file_upload(upload_session_id, piece, final_filename)
 
                         # Finalize the publish
-                        url = self.build_api_url(u"{}s").format(content_type) + u"?uploadSessionId={}".format(
-                            upload_session_id) + u"&{}Type={}".format(content_type, file_extension)
+                        url = self.build_api_url("{}s").format(content_type) + "?uploadSessionId={}".format(
+                            upload_session_id) + "&{}Type={}".format(content_type, file_extension)
 
                         # Allow additional parameters on the publish url
                         if len(url_params) > 0:
-                            additional_params = u'&'
+                            additional_params = '&'
                             i = 1
                             for param in url_params:
                                 if i > 1:
-                                    additional_params += u"&"
-                                additional_params += u"{}={}".format(param, str(url_params[param]).lower())
+                                    additional_params += "&"
+                                additional_params += "{}={}".format(param, str(url_params[param]).lower())
                                 i += 1
                             url += additional_params
 
                         publish_request += bytes("--".encode('utf-8'))  # Need to finish off the last boundary
-                        self.log(u"Finishing the upload with a publish request")
+                        self.log("Finishing the upload with a publish request")
                         content_file.close()
                         if temp_wb_filename is not None:
                             os.remove(temp_wb_filename)
@@ -2527,19 +2527,19 @@ class TableauRestApiConnection(TableauBase):
                         return self.send_publish_request(url, None, publish_request, boundary_string)
 
                 except IOError:
-                    print u"Error: File '{}' cannot be opened to upload".format(content_filename)
+                    print("Error: File '{}' cannot be opened to upload".format(content_filename))
                     raise
 
         if file_extension is None:
             raise InvalidOptionException(
-                u"File {} does not have an acceptable extension. Should be .twb,.twbx,.tde,.tdsx,.tds,.tde".format(
+                "File {} does not have an acceptable extension. Should be .twb,.twbx,.tde,.tdsx,.tds,.tde".format(
                     content_filename))
 
     def initiate_file_upload(self):
-        url = self.build_api_url(u"fileUploads")
+        url = self.build_api_url("fileUploads")
         xml = self.send_post_request(url)
-        file_upload = xml.findall(u'.//t:fileUpload', self.ns_map)
-        return file_upload[0].get(u"uploadSessionId")
+        file_upload = xml.findall('.//t:fileUpload', self.ns_map)
+        return file_upload[0].get("uploadSessionId")
 
     # Uploads a chunk to an already started session
     def append_to_file_upload(self, upload_session_id, content, filename):
@@ -2556,5 +2556,5 @@ class TableauRestApiConnection(TableauBase):
         publish_request += content
 
         publish_request += "\r\n--{}--".format(boundary_string)
-        url = self.build_api_url(u"fileUploads/{}".format(upload_session_id))
+        url = self.build_api_url("fileUploads/{}".format(upload_session_id))
         self.send_append_request(url, publish_request, boundary_string)

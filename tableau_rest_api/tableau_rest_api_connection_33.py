@@ -1,8 +1,8 @@
-from tableau_rest_api_connection_32 import *
-from url_filter import UrlFilter33
+from .tableau_rest_api_connection_32 import *
+from .url_filter import UrlFilter33
 
 class TableauRestApiConnection33(TableauRestApiConnection32):
-    def __init__(self, server, username, password, site_content_url=u""):
+    def __init__(self, server, username, password, site_content_url=""):
         """
         :type server: unicode
         :type username: unicode
@@ -10,7 +10,7 @@ class TableauRestApiConnection33(TableauRestApiConnection32):
         :type site_content_url: unicode
         """
         TableauRestApiConnection32.__init__(self, server, username, password, site_content_url)
-        self.set_tableau_server_version(u"2019.1")
+        self.set_tableau_server_version("2019.1")
 
     def publish_workbook(self, workbook_filename, workbook_name, project_obj, overwrite=False, async_publish=False, connection_username=None,
                          connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=True,
@@ -32,18 +32,18 @@ class TableauRestApiConnection33(TableauRestApiConnection32):
         """
 
         project_luid = project_obj.luid
-        xml = self.publish_content(u'workbook', workbook_filename, workbook_name, project_luid,
-                                   {u"overwrite": overwrite, u"asJob": async_publish}, connection_username,
+        xml = self.publish_content('workbook', workbook_filename, workbook_name, project_luid,
+                                   {"overwrite": overwrite, "asJob": async_publish}, connection_username,
                                    connection_password, save_credentials, show_tabs=show_tabs,
                                    check_published_ds=check_published_ds, oauth_flag=oauth_flag,
                                    views_to_hide_list=views_to_hide_list,
                                    generate_thumbnails_as_username_or_luid=generate_thumbnails_as_username_or_luid)
         if async_publish is True:
-            job = xml.findall(u'.//t:job', self.ns_map)
-            return job[0].get(u'id')
+            job = xml.findall('.//t:job', self.ns_map)
+            return job[0].get('id')
         else:
-            workbook = xml.findall(u'.//t:workbook', self.ns_map)
-            return workbook[0].get(u'id')
+            workbook = xml.findall('.//t:workbook', self.ns_map)
+            return workbook[0].get('id')
 
 
     # Flow Methods Start
@@ -63,10 +63,10 @@ class TableauRestApiConnection33(TableauRestApiConnection32):
         # There should only be one flow here if any found
         if len(flows) == 1:
             self.end_log_block()
-            return flows[0].get(u"id")
+            return flows[0].get("id")
         else:
             self.end_log_block()
-            raise NoMatchFoundException(u"No {} found with name {}".format(flows, flow_name))
+            raise NoMatchFoundException("No {} found with name {}".format(flows, flow_name))
 
     def query_flows_for_a_site(self, project_name_or_luid=None, all_fields=True, updated_at_filter=None,
                                created_at_filter=None, flow_name_filter=None, owner_name_filter=None, sorts=None,
@@ -85,7 +85,7 @@ class TableauRestApiConnection33(TableauRestApiConnection32):
         self.start_log_block()
         if fields is None:
             if all_fields is True:
-                fields = [u'_all_']
+                fields = ['_all_']
 
         # If create a ProjectName filter inherently if necessary
         project_name_filter = None
@@ -94,14 +94,14 @@ class TableauRestApiConnection33(TableauRestApiConnection32):
                 project_name = project_name_or_luid
             else:
                 project = self.query_project_xml_object(project_name_or_luid)
-                project_name = project.get(u'name')
+                project_name = project.get('name')
             project_name_filter = UrlFilter33.create_project_name_equals_filter(project_name)
 
-        filter_checks = {u'updatedAt': updated_at_filter, u'createdAt': created_at_filter, u'name': flow_name_filter,
-                         u'ownerName': owner_name_filter, u'projectName': project_name_filter}
+        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'name': flow_name_filter,
+                         'ownerName': owner_name_filter, 'projectName': project_name_filter}
         filters = self._check_filter_objects(filter_checks)
 
-        flows = self.query_resource(u'flows', filters=filters, sorts=sorts, fields=fields)
+        flows = self.query_resource('flows', filters=filters, sorts=sorts, fields=fields)
 
         self.end_log_block()
         return flows
@@ -117,11 +117,11 @@ class TableauRestApiConnection33(TableauRestApiConnection32):
             user_luid = username_or_luid
         else:
             user_luid = self.query_user_luid(username_or_luid)
-        additional_url_params = u""
+        additional_url_params = ""
         if is_owner_flag is True:
-            additional_url_params += u"?ownedBy=true"
+            additional_url_params += "?ownedBy=true"
 
-        flows = self.query_resource(u'users/{}/flows{}'.format(user_luid, additional_url_params))
+        flows = self.query_resource('users/{}/flows{}'.format(user_luid, additional_url_params))
         self.end_log_block()
         return flows
 
@@ -137,7 +137,7 @@ class TableauRestApiConnection33(TableauRestApiConnection32):
         else:
             flow_luid = self.query_flow_luid(flow_name_or_luid, project_name_or_luid=project_name_or_luid)
 
-        flow = self.query_resource(u'flows/{}'.format(flow_luid))
+        flow = self.query_resource('flows/{}'.format(flow_luid))
 
         self.end_log_block()
         return flow
@@ -154,7 +154,7 @@ class TableauRestApiConnection33(TableauRestApiConnection32):
         else:
             flow_luid = self.query_flow_luid(flow_name_or_luid, project_name_or_luid=project_name_or_luid)
 
-        connections = self.query_resource(u'flows/{}/connections'.format(flow_luid))
+        connections = self.query_resource('flows/{}/connections'.format(flow_luid))
 
         self.end_log_block()
         return connections
@@ -165,7 +165,7 @@ class TableauRestApiConnection33(TableauRestApiConnection32):
         :rtype: etree.Element
         """
         self.start_log_block()
-        tasks = self.query_resource(u'tasks/runFlow')
+        tasks = self.query_resource('tasks/runFlow')
         self.end_log_block()
         return tasks
 
@@ -175,7 +175,7 @@ class TableauRestApiConnection33(TableauRestApiConnection32):
         :rtype: unicode
         """
         self.start_log_block()
-        task = self.query_resource(u'tasks/runFlow/{}'.format(task_luid))
+        task = self.query_resource('tasks/runFlow/{}'.format(task_luid))
         self.end_log_block()
         return task
 
@@ -191,14 +191,14 @@ class TableauRestApiConnection33(TableauRestApiConnection32):
         else:
             flow_luid = self.query_flow_luid(flow_name_or_luid)
 
-        additional_url_params = u""
+        additional_url_params = ""
 
         # Implement once documentation is back up and going
         if flow_output_step_ids is not None:
             pass
 
-        tsr = etree.Element(u'tsRequest')
-        url = self.build_api_url(u"flows/{}/run{}".format(flow_luid, additional_url_params))
+        tsr = etree.Element('tsRequest')
+        url = self.build_api_url("flows/{}/run{}".format(flow_luid, additional_url_params))
         job_luid = self.send_add_request(url, tsr)
         self.end_log_block()
         return job_luid
@@ -209,7 +209,7 @@ class TableauRestApiConnection33(TableauRestApiConnection32):
         :rtype: etree.Element
         """
         self.start_log_block()
-        url = self.build_api_url(u'tasks/runFlow/{}/runNow'.format(task_luid))
+        url = self.build_api_url('tasks/runFlow/{}/runNow'.format(task_luid))
         response = self.send_post_request(url)
         self.end_log_block()
         return response
@@ -224,22 +224,22 @@ class TableauRestApiConnection33(TableauRestApiConnection32):
         """
         self.start_log_block()
         if project_name_or_luid is None and owner_username_or_luid is None:
-            raise InvalidOptionException(u'Must include at least one change, either project or owner or both')
+            raise InvalidOptionException('Must include at least one change, either project or owner or both')
 
         if self.is_luid(flow_name_or_luid):
             flow_luid = flow_name_or_luid
         else:
             flow_luid = self.query_flow_luid(flow_name_or_luid)
 
-        tsr = etree.Element(u'tsRequest')
-        f = etree.Element(u'flow')
+        tsr = etree.Element('tsRequest')
+        f = etree.Element('flow')
         if project_name_or_luid is not None:
             if self.is_luid(project_name_or_luid):
                 proj_luid = project_name_or_luid
             else:
                 proj_luid = self.query_project_luid(project_name_or_luid)
-            p = etree.Element(u'project')
-            p.set(u'id', proj_luid)
+            p = etree.Element('project')
+            p.set('id', proj_luid)
             f.append(p)
 
         if owner_username_or_luid is not None:
@@ -248,13 +248,13 @@ class TableauRestApiConnection33(TableauRestApiConnection32):
             else:
                 owner_luid = self.query_user_luid(owner_username_or_luid)
 
-            o = etree.Element(u'owner')
-            o.set(u'id', owner_luid)
+            o = etree.Element('owner')
+            o.set('id', owner_luid)
             f.append(o)
 
         tsr.append(f)
 
-        url = self.build_api_url(u'flows/{}'.format(flow_luid))
+        url = self.build_api_url('flows/{}'.format(flow_luid))
         response = self.send_update_request(url, tsr)
 
         self.end_log_block()
@@ -274,30 +274,30 @@ class TableauRestApiConnection33(TableauRestApiConnection32):
         """
         self.start_log_block()
 
-        tsr = etree.Element(u'tsRequest')
-        c = etree.Element(u'connection')
+        tsr = etree.Element('tsRequest')
+        c = etree.Element('connection')
         updates_count = 0
         if server_address is not None:
-            c.set(u'serverAddress', server_address)
+            c.set('serverAddress', server_address)
             updates_count += 1
         if port is not None:
-            c.set(u'port', port)
+            c.set('port', port)
             updates_count += 1
         if connection_username is not None:
-            c.set(u'userName', connection_username)
+            c.set('userName', connection_username)
             updates_count += 1
         if connection_password is not None:
-            c.set(u'password', connection_password)
+            c.set('password', connection_password)
             updates_count += 1
         if embed_password is True:
-            c.set(u'embedPassword', u'true')
+            c.set('embedPassword', 'true')
             updates_count += 1
 
         if updates_count == 0:
-            return InvalidOptionException(u'Must specify at least one element to update')
+            return InvalidOptionException('Must specify at least one element to update')
 
         tsr.append(c)
-        url = self.build_api_url(u'flows/{}/connections/{}'.format(flow_luid, flow_connection_luid))
+        url = self.build_api_url('flows/{}/connections/{}'.format(flow_luid, flow_connection_luid))
         response = self.send_update_request(url, tsr)
 
         self.end_log_block()
@@ -313,7 +313,7 @@ class TableauRestApiConnection33(TableauRestApiConnection32):
             flow_luid = flow_name_or_luid
         else:
             flow_luid = self.query_flow_luid(flow_name_or_luid)
-        url = self.build_api_url(u"flows/{}".format(flow_luid))
+        url = self.build_api_url("flows/{}".format(flow_luid))
         self.send_delete_request(url)
         self.end_log_block()
 
@@ -334,16 +334,16 @@ class TableauRestApiConnection33(TableauRestApiConnection32):
         else:
             sched_luid = self.query_schedule_luid(schedule_name_or_luid)
 
-        tsr = etree.Element(u'tsRequest')
-        t = etree.Element(u'task')
-        fr = etree.Element(u'flowRun')
-        f = etree.Element(u'flow')
-        f.set(u'id', flow_luid)
+        tsr = etree.Element('tsRequest')
+        t = etree.Element('task')
+        fr = etree.Element('flowRun')
+        f = etree.Element('flow')
+        f.set('id', flow_luid)
         fr.append(f)
         t.append(fr)
         tsr.append(t)
 
-        url = self.build_api_url(u"schedules/{}/flows".format(sched_luid))
+        url = self.build_api_url("schedules/{}/flows".format(sched_luid))
         response = self.send_update_request(url, tsr)
 
         self.end_log_block()
@@ -366,19 +366,19 @@ class TableauRestApiConnection33(TableauRestApiConnection32):
             flow_luid = self.query_workbook_luid(flow_name_or_luid, proj_name_or_luid)
         try:
 
-            url = self.build_api_url(u"flows/{}/content".format(flow_luid))
+            url = self.build_api_url("flows/{}/content".format(flow_luid))
             flow = self.send_binary_get_request(url)
             extension = None
-            if self._last_response_content_type.find(u'application/xml') != -1:
-                extension = u'.tfl'
-            elif self._last_response_content_type.find(u'application/octet-stream') != -1:
-                extension = u'.tflx'
+            if self._last_response_content_type.find('application/xml') != -1:
+                extension = '.tfl'
+            elif self._last_response_content_type.find('application/octet-stream') != -1:
+                extension = '.tflx'
             if extension is None:
-                raise IOError(u'File extension could not be determined')
+                raise IOError('File extension could not be determined')
             self.log(
-                u'Response type was {} so extension will be {}'.format(self._last_response_content_type, extension))
+                'Response type was {} so extension will be {}'.format(self._last_response_content_type, extension))
         except RecoverableHTTPException as e:
-            self.log(u"download_workbook resulted in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
+            self.log("download_workbook resulted in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
             self.end_log_block()
             raise
         except:
@@ -393,7 +393,7 @@ class TableauRestApiConnection33(TableauRestApiConnection32):
             save_file.close()
 
         except IOError:
-            self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
+            self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
             raise
 
         self.end_log_block()
@@ -414,10 +414,10 @@ class TableauRestApiConnection33(TableauRestApiConnection32):
         :rtype: unicode
         """
         project_luid = project_obj.luid
-        xml = self.publish_content(u'flow', flow_filename, flow_name, project_luid, {u"overwrite": overwrite},
+        xml = self.publish_content('flow', flow_filename, flow_name, project_luid, {"overwrite": overwrite},
                                    connection_username, connection_password, save_credentials, oauth_flag=oauth_flag,
                                    description=description)
-        flow = xml.findall(u'.//t:flow', self.ns_map)
+        flow = xml.findall('.//t:flow', self.ns_map)
         return flow[0].get('id')
 
     # Flow Methods End

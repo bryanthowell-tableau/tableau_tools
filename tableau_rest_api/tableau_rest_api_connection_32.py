@@ -1,8 +1,8 @@
-from tableau_rest_api_connection_31 import *
+from .tableau_rest_api_connection_31 import *
 
 
 class TableauRestApiConnection32(TableauRestApiConnection31):
-    def __init__(self, server, username, password, site_content_url=u""):
+    def __init__(self, server, username, password, site_content_url=""):
         """
         :type server: unicode
         :type username: unicode
@@ -10,29 +10,29 @@ class TableauRestApiConnection32(TableauRestApiConnection31):
         :type site_content_url: unicode
         """
         TableauRestApiConnection31.__init__(self, server, username, password, site_content_url)
-        self.set_tableau_server_version(u"2018.3")
+        self.set_tableau_server_version("2018.3")
 
     def query_data_driven_alerts(self):
         self.start_log_block()
-        alerts = self.query_resource(u"dataAlerts")
+        alerts = self.query_resource("dataAlerts")
         self.end_log_block()
         return alerts
 
     def query_data_driven_alerts_for_view(self, view_luid):
         self.start_log_block()
-        alerts = self.query_resource(u"dataAlerts?filter=viewId:eq:{}".format(view_luid))
+        alerts = self.query_resource("dataAlerts?filter=viewId:eq:{}".format(view_luid))
         self.end_log_block()
         return alerts
 
     def query_data_driven_alert_details(self, data_alert_luid):
         self.start_log_block()
-        alert_details = self.query_resource(u"dataAlerts/{}".format(data_alert_luid))
+        alert_details = self.query_resource("dataAlerts/{}".format(data_alert_luid))
         self.end_log_block()
         return alert_details
 
     def delete_data_driven_alert(self, data_alert_luid):
         self.start_log_block()
-        url = self.build_api_url(u"dataAlerts/{}".format(data_alert_luid))
+        url = self.build_api_url("dataAlerts/{}".format(data_alert_luid))
         self.send_delete_request(url)
         self.end_log_block()
 
@@ -43,11 +43,11 @@ class TableauRestApiConnection32(TableauRestApiConnection31):
         else:
             user_luid = self.query_user_luid(username_or_luid)
 
-        tsr = etree.Element(u"tsRequest")
-        u = etree.Element(u"user")
-        u.set(u"id", user_luid)
+        tsr = etree.Element("tsRequest")
+        u = etree.Element("user")
+        u.set("id", user_luid)
         tsr.append(u)
-        url = self.build_api_url(u'dataAlerts/{}/users'.format(data_alert_luid))
+        url = self.build_api_url('dataAlerts/{}/users'.format(data_alert_luid))
         self.send_add_request(url, tsr)
         self.end_log_block()
 
@@ -59,29 +59,29 @@ class TableauRestApiConnection32(TableauRestApiConnection31):
         :return:
         """
         self.start_log_block()
-        tsr = etree.Element(u"tsRequest")
-        d = etree.Element(u"dataAlert")
+        tsr = etree.Element("tsRequest")
+        d = etree.Element("dataAlert")
         if subject is not None:
-            d.set(u"subject", subject)
+            d.set("subject", subject)
 
         if frequency is not None:
             frequency = frequency.lower()
-            allowed_frequency = (u'once', u'frequently', u'hourly', u'daily', u'weekly')
+            allowed_frequency = ('once', 'frequently', 'hourly', 'daily', 'weekly')
             if frequency not in allowed_frequency:
-                raise InvalidOptionException(u'frequency must be once, frequently, hourly, daily or weekly')
-            d.set(u'frequency', frequency)
+                raise InvalidOptionException('frequency must be once, frequently, hourly, daily or weekly')
+            d.set('frequency', frequency)
 
         if owner_username_or_luid is not None:
             if self.is_luid(owner_username_or_luid):
                 owner_luid = owner_username_or_luid
             else:
                 owner_luid = self.query_user_luid(owner_username_or_luid)
-            o = etree.Element(u'owner')
-            o.set(u"id", owner_luid)
+            o = etree.Element('owner')
+            o.set("id", owner_luid)
             d.append(o)
 
         tsr.append(d)
-        url = self.build_api_url(u"dataAlerts/{}".format(data_alert_luid))
+        url = self.build_api_url("dataAlerts/{}".format(data_alert_luid))
         response = self.send_update_request(url, tsr)
         self.end_log_block()
         return response
@@ -93,7 +93,7 @@ class TableauRestApiConnection32(TableauRestApiConnection31):
         else:
             user_luid = self.query_user_luid(username_or_luid)
 
-        url = self.build_api_url(u'dataAlerts/{}/users/{}'.format(data_alert_luid, user_luid))
+        url = self.build_api_url('dataAlerts/{}/users/{}'.format(data_alert_luid, user_luid))
         self.send_delete_request(url)
         self.end_log_block()
 
@@ -119,14 +119,14 @@ class TableauRestApiConnection32(TableauRestApiConnection31):
         """
 
         project_luid = project_obj.luid
-        xml = self.publish_content(u'workbook', workbook_filename, workbook_name, project_luid,
-                                   {u"overwrite": overwrite, u"asJob": async_publish}, connection_username,
+        xml = self.publish_content('workbook', workbook_filename, workbook_name, project_luid,
+                                   {"overwrite": overwrite, "asJob": async_publish}, connection_username,
                                    connection_password, save_credentials, show_tabs=show_tabs,
                                    check_published_ds=check_published_ds, oauth_flag=oauth_flag,
                                    views_to_hide_list=views_to_hide_list)
         if async_publish is True:
-            job = xml.findall(u'.//t:job', self.ns_map)
-            return job[0].get(u'id')
+            job = xml.findall('.//t:job', self.ns_map)
+            return job[0].get('id')
         else:
-            workbook = xml.findall(u'.//t:workbook', self.ns_map)
-            return workbook[0].get(u'id')
+            workbook = xml.findall('.//t:workbook', self.ns_map)
+            return workbook[0].get('id')

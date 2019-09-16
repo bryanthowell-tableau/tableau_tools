@@ -4,37 +4,37 @@ from tableau_tools.tableau_rest_api import *
 from tableau_tools.tableau_documents import *
 from tableau_tools import *
 from tableau_tools.tableau_repository import TableauRepository
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import time
 import datetime
 import os
 
-logger = Logger(u'template_publish.txt')
+logger = Logger('template_publish.txt')
 
 # In production, you would pull this from a config file or database
 tableau_sites = [
-    {u'server': u'http://tableauserver1', u'username': u'username', u'password': u'password',
-     u'site_content_url': u'site1', u'db_server': u'dbserv1', u'db_name': u'db1',
-     u'db_user': u'db1user', u'db_password': u'db1pass'},
-    {u'server': u'http://tableauserver1', u'username': u'username', u'password': u'password',
-     u'site_content_url': u'site2', u'db_server': u'dbserv1', u'db_name': u'db2',
-     u'db_user': u'db2user', u'db_password': u'db2pass'},
-    {u'server': u'http://tableauserver2', u'username': u'username', u'password': u'password',
-     u'site_content_url': u'site3', u'db_server': u'dbserv2', u'db_name': u'db3',
-     u'db_user': u'db3user', u'db_password': u'db3pass'}
+    {'server': 'http://tableauserver1', 'username': 'username', 'password': 'password',
+     'site_content_url': 'site1', 'db_server': 'dbserv1', 'db_name': 'db1',
+     'db_user': 'db1user', 'db_password': 'db1pass'},
+    {'server': 'http://tableauserver1', 'username': 'username', 'password': 'password',
+     'site_content_url': 'site2', 'db_server': 'dbserv1', 'db_name': 'db2',
+     'db_user': 'db2user', 'db_password': 'db2pass'},
+    {'server': 'http://tableauserver2', 'username': 'username', 'password': 'password',
+     'site_content_url': 'site3', 'db_server': 'dbserv2', 'db_name': 'db3',
+     'db_user': 'db3user', 'db_password': 'db3pass'}
 ]
 
 
 def promote_from_dev_to_test(logger_obj=None):
-    dev_server = u'http://'
-    dev_username = u''
-    dev_password = u'a'
-    dev_site = u'dev'
+    dev_server = 'http://'
+    dev_username = ''
+    dev_password = 'a'
+    dev_site = 'dev'
 
-    test_server = u'http://'
-    test_username = u''
-    test_password = u''
-    test_site = u'test'
+    test_server = 'http://'
+    test_username = ''
+    test_password = ''
+    test_site = 'test'
 
     dev = TableauRestApiConnection26(dev_server, dev_username, dev_password, dev_site)
     dev.signin()
@@ -52,30 +52,30 @@ def promote_from_dev_to_test(logger_obj=None):
     # Tableau Time Filters require this format: YYYY-MM-DDTHH:MM:SSZ
     filter_time_string = time_to_filter_by.isoformat('T')[:19] + 'Z'
 
-    last_update_filter = UrlFilter.create_updated_at_filter(u'gt', filter_time_string)
+    last_update_filter = UrlFilter.create_updated_at_filter('gt', filter_time_string)
 
     # Download from Templates for publishing Project
-    content_to_promote_project_name = u'Content to Promote'
+    content_to_promote_project_name = 'Content to Promote'
     dses = dev.query_datasources(content_to_promote_project_name, updated_at_filter=last_update_filter)
     ds_dict = dev.convert_xml_list_to_name_id_dict(dses)
     for ds in ds_dict:
-        print u"Downloading Datasource {}".format(ds)
+        print("Downloading Datasource {}".format(ds))
         ds_file = dev.download_datasource(ds_dict[ds], ds, content_to_promote_project_name)
         t_file = TableauFile(ds_file, logger_obj)
         dses = t_file.tableau_document.datasources
         for d in dses:
             for conn in d.connections:
-                print conn.connection_type
-                print conn.dbname
-                if conn.dbname == u'dev_db':
-                    conn.dbname = u'test_db'
+                print(conn.connection_type)
+                print(conn.dbname)
+                if conn.dbname == 'dev_db':
+                    conn.dbname = 'test_db'
 
-        t_file.save_new_file(u'Temp TDSX')
-        new_project = test.query_project(u'Promoted Content')
-        test.publish_datasource(u'Temp TDSX.tdsx', ds, new_project, overwrite=True, save_credentials=True)
+        t_file.save_new_file('Temp TDSX')
+        new_project = test.query_project('Promoted Content')
+        test.publish_datasource('Temp TDSX.tdsx', ds, new_project, overwrite=True, save_credentials=True)
         # If you have credentials to publish
         #test.publish_datasource(temp_filename, ds, new_project, connection_username=u'', connection_password=u'', overwrite=True, save_credentials=True)
-        os.remove(u'Temp TDSX.tdsx')
+        os.remove('Temp TDSX.tdsx')
 
 # promote_from_dev_to_test(logger)
 
@@ -131,13 +131,13 @@ def replicate_workbooks_with_published_dses(o_site_connection, d_site_connection
                 if ds.published is True:
                     orig_ds_content_url[ds.published_ds_content_url] = PublishedDSInfo(ds.published_ds_content_url)
         except NoMatchFoundException as e:
-            logger.log(u'Could not find a workbook with name or luid {}, skipping'.format(wb))
+            logger.log('Could not find a workbook with name or luid {}, skipping'.format(wb))
             error_wbs.append(wb)
         except MultipleMatchesFoundException as e:
-            logger.log(u'wb {} had multiple matches found, skipping'.format(wb))
+            logger.log('wb {} had multiple matches found, skipping'.format(wb))
             error_wbs.append(wb)
 
-    print(u"Found {} published data sources to move over".format(len(orig_ds_content_url)))
+    print(("Found {} published data sources to move over".format(len(orig_ds_content_url))))
 
     # Look up all these data sources and find their LUIDs so they can be downloaded
     all_dses = o.query_datasources()
@@ -145,20 +145,20 @@ def replicate_workbooks_with_published_dses(o_site_connection, d_site_connection
     for ds_content_url in orig_ds_content_url:
         print(ds_content_url)
 
-        ds_xml = all_dses.findall(u'.//t:datasource[@contentUrl="{}"]'.format(ds_content_url), o.ns_map)
+        ds_xml = all_dses.findall('.//t:datasource[@contentUrl="{}"]'.format(ds_content_url), o.ns_map)
         if len(ds_xml) == 1:
-            orig_ds_content_url[ds_content_url].orig_luid = ds_xml[0].get(u'id')
-            orig_ds_content_url[ds_content_url].orig_name = ds_xml[0].get(u'name')
+            orig_ds_content_url[ds_content_url].orig_luid = ds_xml[0].get('id')
+            orig_ds_content_url[ds_content_url].orig_name = ds_xml[0].get('name')
 
             for element in ds_xml[0]:
-                if element.tag.find(u'project') != -1:
-                    orig_ds_content_url[ds_content_url].orig_proj_name = element.get(u'name')
+                if element.tag.find('project') != -1:
+                    orig_ds_content_url[ds_content_url].orig_proj_name = element.get('name')
                     break
         else:
             # This really shouldn't be possible, so you might want to add a break point here
-            print(u'Could not find matching datasource for contentUrl {}'.format(ds_content_url))
+            print(('Could not find matching datasource for contentUrl {}'.format(ds_content_url)))
 
-    print(u'Finished finding all of the info from the data sources')
+    print('Finished finding all of the info from the data sources')
 
     # Download those data sources and republish them
     # You need the credentials to republish, as always
@@ -166,7 +166,7 @@ def replicate_workbooks_with_published_dses(o_site_connection, d_site_connection
     dest_project = d.query_project(dest_proj_name_or_luid)
 
     for ds in orig_ds_content_url:
-        ds_filename = o.download_datasource(orig_ds_content_url[ds].orig_luid, u'downloaded ds')
+        ds_filename = o.download_datasource(orig_ds_content_url[ds].orig_luid, 'downloaded ds')
         proj_obj = d.query_project(orig_ds_content_url[ds].orig_proj_name)
 
         ds_obj = TableauFile(ds_filename)
@@ -179,23 +179,23 @@ def replicate_workbooks_with_published_dses(o_site_connection, d_site_connection
                 # conn.dbname = u'prod'
                 # conn.port = u'10000'
 
-        new_ds_filename = ds_obj.save_new_file(u'Updated Datasource')
+        new_ds_filename = ds_obj.save_new_file('Updated Datasource')
 
         orig_ds_content_url[ds].new_luid = d.publish_datasource(new_ds_filename, orig_ds_content_url[ds].orig_name,
                                                                 proj_obj, overwrite=True)
-        print(u'Published data source, resulting in new luid {}'.format(orig_ds_content_url[ds].new_luid))
+        print(('Published data source, resulting in new luid {}'.format(orig_ds_content_url[ds].new_luid)))
         os.remove(new_ds_filename)
 
         try:
             new_ds = d.query_datasource(orig_ds_content_url[ds].new_luid)
-            orig_ds_content_url[ds].new_content_url = new_ds[0].get(u'contentUrl')
-            print(u'New Content URL is {}'.format(orig_ds_content_url[ds].new_content_url))
+            orig_ds_content_url[ds].new_content_url = new_ds[0].get('contentUrl')
+            print(('New Content URL is {}'.format(orig_ds_content_url[ds].new_content_url)))
         except RecoverableHTTPException as e:
-            print(e.tableau_error_code)
-            print(e.http_code)
-            print(e.luid)
+            print((e.tableau_error_code))
+            print((e.http_code))
+            print((e.luid))
 
-    print(u'Finished republishing all data sources to the new site')
+    print('Finished republishing all data sources to the new site')
 
     # Now that you have the new contentUrls that map to the original ones,
     # and you know the DSes have been pushed across, you can open up the workbook and
@@ -213,20 +213,20 @@ def replicate_workbooks_with_published_dses(o_site_connection, d_site_connection
                     ds.published_ds_content_url = orig_ds_content_url[o_ds_content_url].new_content_url
             # If the datasources AREN'T published, then you may need to change details directly here
             else:
-                print(u'Not a published data source')
+                print('Not a published data source')
             #    for conn in ds.connections:
                     # Change the dbname is most common
                     # conn.dbname = u'prod'
                     # conn.port = u'10000'
 
-        temp_wb_file = t_file.save_new_file(u'Modified Workbook'.format(wb))
+        temp_wb_file = t_file.save_new_file('Modified Workbook'.format(wb))
         new_workbook_luid = d.publish_workbook(workbook_filename=temp_wb_file, workbook_name=wb,
                                                project_obj=dest_project,
                                                overwrite=True, check_published_ds=False)
-        print(u'Published new workbook {}'.format(new_workbook_luid))
+        print(('Published new workbook {}'.format(new_workbook_luid)))
         os.remove(temp_wb_file)
 
-    print(u'Finished publishing all workbooks')
+    print('Finished publishing all workbooks')
 
 
 
@@ -299,44 +299,44 @@ def publish_from_live_connections_to_extracts(logger_obj=None):
     # a scenario where you are using source control rather than Tableau Server.
 
     # Assume you might do this for a whole directory, just showing a single file
-    t_file = TableauFile(u'SS.tds', logger_obj)
+    t_file = TableauFile('SS.tds', logger_obj)
     dses = t_file.tableau_document.datasources
     for ds in dses:
-        cols = ds.xml.find(u'.//cols')
+        cols = ds.xml.find('.//cols')
         for m in cols:
-            print m.get(u'value')
+            print(m.get('value'))
 
         for conn in ds.connections:
-            conn.dbname = u'Global SuperStore Star Schema - Staging'
+            conn.dbname = 'Global SuperStore Star Schema - Staging'
 
-        ds.add_extract(u'Extract File.tde')
-        ds.add_dimension_extract_filter(u'Customer Segment', [u'Home Office'])
-    new_filename = t_file.save_new_file(u'Saved Source')
-    t = TableauRestApiConnection26(u'http://', u'', u'', site_content_url=u'test')
+        ds.add_extract('Extract File.tde')
+        ds.add_dimension_extract_filter('Customer Segment', ['Home Office'])
+    new_filename = t_file.save_new_file('Saved Source')
+    t = TableauRestApiConnection26('http://', '', '', site_content_url='test')
     t.signin()
     t.enable_logging(logger_obj)
 
-    t2 = TableauRestApiConnection26(u'http://', u'', u'', site_content_url=u'tsite')
+    t2 = TableauRestApiConnection26('http://', '', '', site_content_url='tsite')
     t2.signin()
     t2.enable_logging(logger_obj)
 
-    default_proj = t.query_project(u'Default')
-    t.publish_datasource(new_filename, u'Auto TDSX', default_proj, overwrite=True, save_credentials=True)
+    default_proj = t.query_project('Default')
+    t.publish_datasource(new_filename, 'Auto TDSX', default_proj, overwrite=True, save_credentials=True)
 
-    t2_default = t2.query_project(u'Default')
-    t2.publish_datasource(new_filename, u'Auto TDSX', t2_default, overwrite=True, save_credentials=True)
+    t2_default = t2.query_project('Default')
+    t2.publish_datasource(new_filename, 'Auto TDSX', t2_default, overwrite=True, save_credentials=True)
 
-    t_file = TableauFile(u'SS Example.twb')
+    t_file = TableauFile('SS Example.twb')
     dses = t_file.tableau_document.datasources  # type: list[TableauDatasource]
     for ds in dses:
         # for conn in ds.connections:
         #    conn.dbname = u'Global SuperStore Star Schema - Staging'
-        ds.add_extract(u'Extract File.tde')
-        ds.add_dimension_extract_filter(u'Customer Segment', [u'Consumer'])
-    new_filename = t_file.save_new_file(u'Saved Source')
-    default_proj = t.query_project(u'Default')
-    new_wb_luid = t.publish_workbook(new_filename, u'Auto TWBX', default_proj, overwrite=True, save_credentials=True)
-    logger_obj.log(u'New LUID is {}'.format(new_wb_luid))
+        ds.add_extract('Extract File.tde')
+        ds.add_dimension_extract_filter('Customer Segment', ['Consumer'])
+    new_filename = t_file.save_new_file('Saved Source')
+    default_proj = t.query_project('Default')
+    new_wb_luid = t.publish_workbook(new_filename, 'Auto TWBX', default_proj, overwrite=True, save_credentials=True)
+    logger_obj.log('New LUID is {}'.format(new_wb_luid))
 
     # Here is where you would set this to be on an extract schedule via REST API, but there is no call for it
 
@@ -351,30 +351,30 @@ def publish_from_live_connections_to_extracts(logger_obj=None):
 
     # HEre's one with a published data source
 
-    default_proj = t.query_project(u'Default')
-    new_wb_luid = t.publish_workbook(u'Published DS Connect.twb', u'Published DS', default_proj, overwrite=True,
+    default_proj = t.query_project('Default')
+    new_wb_luid = t.publish_workbook('Published DS Connect.twb', 'Published DS', default_proj, overwrite=True,
                                      save_credentials=True)
-    logger_obj.log(u'New LUID is {}'.format(new_wb_luid))
+    logger_obj.log('New LUID is {}'.format(new_wb_luid))
 
-    new_wb_luid = t2.publish_workbook(u'Published DS Connect.twb', u'Published DS', t2_default, overwrite=True,
+    new_wb_luid = t2.publish_workbook('Published DS Connect.twb', 'Published DS', t2_default, overwrite=True,
                                       save_credentials=True)
-    logger_obj.log(u'New LUID is {}'.format(new_wb_luid))
+    logger_obj.log('New LUID is {}'.format(new_wb_luid))
 
     # This TWBX has one extract and one live connection
     # This adds an extract to the live connection
 
-    t_file = TableauFile(u'Complex.twbx', logger_obj)
+    t_file = TableauFile('Complex.twbx', logger_obj)
     dses = t_file.tableau_document.datasources
     i = 1
     for ds in dses:
         #for conn in ds.connections:
         #    conn.dbname = u'Global SuperStore Star Schema - Staging'
         try:
-            ds.add_extract(u'Extract {}.tde'.format(i))
+            ds.add_extract('Extract {}.tde'.format(i))
             i += 1
         except AlreadyExistsException as e:
             continue
-    new_filename = t_file.save_new_file(u'Complex Updated')
+    new_filename = t_file.save_new_file('Complex Updated')
     #default_proj = t.query_project(u'Default')
     #new_wb_luid = t.publish_workbook(new_filename, u'Auto TWBX', default_proj, overwrite=True, save_credentials=True)
     #logger_obj.log(u'New LUID is {}'.format(new_wb_luid))

@@ -23,18 +23,18 @@ with open('permissions_audit.txt', 'wb') as output_file:
     output_writer = csv.writer(output_file)
 
     # Headers
-    headers = [u'Site Content URL', u'Project Name', u'Project LUID', u'Are Permissions Locked?',
-               u'Principal Type', u'Principal Name', u'Principal LUID']
+    headers = ['Site Content URL', 'Project Name', 'Project LUID', 'Are Permissions Locked?',
+               'Principal Type', 'Principal Name', 'Principal LUID']
 
-    project_caps = default.available_capabilities[default.api_version][u'project']
+    project_caps = default.available_capabilities[default.api_version]['project']
     for cap in project_caps:
-        headers.append(u',{}'.format(cap))
-    workbook_caps = default.available_capabilities[default.api_version][u'workbook']
+        headers.append(',{}'.format(cap))
+    workbook_caps = default.available_capabilities[default.api_version]['workbook']
     for cap in workbook_caps:
-        headers.append(u',{}'.format(cap))
-    datasource_caps = default.available_capabilities[default.api_version][u'datasource']
+        headers.append(',{}'.format(cap))
+    datasource_caps = default.available_capabilities[default.api_version]['datasource']
     for cap in datasource_caps:
-        headers.append(u',{}'.format(cap))
+        headers.append(',{}'.format(cap))
     output_writer.writerow(headers)
 
     for site_content_url in site_content_urls:
@@ -43,7 +43,7 @@ with open('permissions_audit.txt', 'wb') as output_file:
         t.signin()
         projects = t.query_projects()
         projects_dict = t.convert_xml_list_to_name_id_dict(projects)
-        print projects_dict
+        print(projects_dict)
         for project in projects_dict:
             # combined_permissions = luid : {type, name, proj, def_wb, def_ds}
             proj_obj = t.query_project(projects_dict[project])

@@ -34,7 +34,7 @@ def pyodbc_connect_and_query(odbc_connect_string, query):
         conn = pyodbc.connect(odbc_connect_string)
         conn.setdecoding(pyodbc.SQL_WCHAR, encoding='utf-8')
         conn.setencoding(str, encoding='utf-8')
-        conn.setencoding(unicode, encoding='utf-8', ctype=pyodbc.SQL_CHAR)
+        conn.setencoding(str, encoding='utf-8', ctype=pyodbc.SQL_CHAR)
 
         # https://github.com/mkleehammer/pyodbc/issues/194 for this encoding fix
 
@@ -77,7 +77,7 @@ def hyper_create_one_table_from_pyodbc_cursor(new_hyper_filename, table_1_pyodbc
     # This takes the cursor, reads through all the rows, and ads them into the extract
     h.create_extract(new_hyper_filename, append=True, table_name=table_1_tableau_name, pyodbc_cursor=filled_cursor)
 
-    print('Table 1 added to file {}'.format(new_hyper_filename))
+    print(('Table 1 added to file {}'.format(new_hyper_filename)))
 
 # Example of creating two tables in a single Hyper file
 def hyper_create_two_tables(new_hyper_filename, table_1_pyodbc_conn_string, table_1_query, table_1_tableau_name,
@@ -103,7 +103,7 @@ def hyper_create_two_tables(new_hyper_filename, table_1_pyodbc_conn_string, tabl
     # This takes the cursor, reads through all the rows, and ads them into the extract
     h.create_extract(new_hyper_filename, append=True, table_name=table_1_tableau_name, pyodbc_cursor=filled_cursor)
 
-    print('Table 1 added to file {}'.format(new_hyper_filename))
+    print(('Table 1 added to file {}'.format(new_hyper_filename)))
 
     # Table 2
     filled_cursor_2 = pyodbc_connect_and_query(table_2_pyodbc_conn_string, table_2_query)
@@ -111,7 +111,7 @@ def hyper_create_two_tables(new_hyper_filename, table_1_pyodbc_conn_string, tabl
     h.create_table_definition_from_pyodbc_cursor(filled_cursor_2)
     # This takes the cursor, reads through all the rows, and ads them into the extract
     h.create_extract(new_hyper_filename, append=True, table_name=table_2_tableau_name, pyodbc_cursor=filled_cursor_2)
-    print('Table 2 added to file {}'.format(new_hyper_filename))
+    print(('Table 2 added to file {}'.format(new_hyper_filename)))
 
     print('All Done with Hyper create')
     return True
@@ -143,18 +143,18 @@ def substitute_an_existing_extract(new_extract_filename):
 
 
 def create_new_tds_for_two_table_extract(new_tds_filename, hyper_filename):
-    t_file = TableauFile(new_tds_filename, create_new=True, ds_version=u'10.5')
+    t_file = TableauFile(new_tds_filename, create_new=True, ds_version='10.5')
     ds = t_file.tableau_document.datasources[0]  # type: TableauDatasource
-    conn = ds.add_new_connection(ds_type=u'hyper', db_or_schema_name=u'Data/{}'.format(hyper_filename),
-                                 authentication=u'auth-none')
+    conn = ds.add_new_connection(ds_type='hyper', db_or_schema_name='Data/{}'.format(hyper_filename),
+                                 authentication='auth-none')
     conn_obj = ds.connections[0]  # type: TableauConnection
-    conn_obj.username = u'tableau_internal_user'
+    conn_obj.username = 'tableau_internal_user'
 
     # Your actual logic here will vary depending on what you have named the tables and what they join on
-    ds.set_first_table(u'First Table', u'First Table', connection=conn, extract=True)
-    join_clause = ds.define_join_on_clause(u'First Table', u'join_key_id', u'=', u'Second Table', u'join_key_id')
-    ds.join_table(u'Inner', u'Second Table', u'Second Table', [join_clause, ])
-    new_filename = t_file.save_new_file(u'Generated Hyper Final')
+    ds.set_first_table('First Table', 'First Table', connection=conn, extract=True)
+    join_clause = ds.define_join_on_clause('First Table', 'join_key_id', '=', 'Second Table', 'join_key_id')
+    ds.join_table('Inner', 'Second Table', 'Second Table', [join_clause, ])
+    new_filename = t_file.save_new_file('Generated Hyper Final')
     return new_filename
 
 

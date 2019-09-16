@@ -87,18 +87,18 @@ class RestConnectionsManager():
     # All this check is if a user token exists
     def check_user_token(self, username, site_content_url):
         # Has the site been signed into before? If not, create it
-        if site_content_url not in self.site_master_tokens.keys():
+        if site_content_url not in list(self.site_master_tokens.keys()):
             # If the site has no master token, create it
             # But we're keeping the same connection object, to limit the total number of tokens
             self.sign_in_site_master(site_content_url)
 
             # Also create an entry in the users dict for this vertical. The check is probably unnecessary but why not
-            if site_content_url not in self.site_user_tokens.keys():
+            if site_content_url not in list(self.site_user_tokens.keys()):
                 self.site_user_tokens[site_content_url] = {}
             # No user token can exist if nothing even existed on that site yet
             return False
         # Do they have an entry?
-        elif username in self.site_user_tokens[site_content_url].keys():
+        elif username in list(self.site_user_tokens[site_content_url].keys()):
             # Now check if a token exists
             if self.site_user_tokens[site_content_url][username] is None:
                 return False
@@ -162,7 +162,7 @@ class RestConnectionsManager():
             raise Exception()
 
     def switch_to_site_master(self, site_content_url):
-        if site_content_url not in self.site_master_tokens.keys():
+        if site_content_url not in list(self.site_master_tokens.keys()):
             self.sign_in_site_master(site_content_url)
         self.rest_connection.token = self.site_master_tokens[site_content_url]
         self.rest_connection.site_content_url = site_content_url

@@ -1,8 +1,8 @@
-from tableau_rest_api_connection_23 import *
+from .tableau_rest_api_connection_23 import *
 
 
 class TableauRestApiConnection24(TableauRestApiConnection23):
-    def __init__(self, server, username, password, site_content_url=u""):
+    def __init__(self, server, username, password, site_content_url=""):
         """
         :type server: unicode
         :type username: unicode
@@ -10,14 +10,14 @@ class TableauRestApiConnection24(TableauRestApiConnection23):
         :type site_content_url: unicode
         """
         TableauRestApiConnection23.__init__(self, server, username, password, site_content_url)
-        self.set_tableau_server_version(u"10.1")
+        self.set_tableau_server_version("10.1")
 
     def query_server_info(self):
         """
         :rtype: etree.Element
         """
         self.start_log_block()
-        server_info = self.query_resource(u"serverinfo", server_level=True)
+        server_info = self.query_resource("serverinfo", server_level=True)
         self.end_log_block()
         return server_info
 
@@ -45,12 +45,12 @@ class TableauRestApiConnection24(TableauRestApiConnection23):
         """
         self.start_log_block()
         if usage not in [True, False]:
-            raise InvalidOptionException(u'Usage can only be set to True or False')
-        filter_checks = {u'updatedAt': updated_at_filter, u'createdAt': created_at_filter, u'tags': tags_filter}
+            raise InvalidOptionException('Usage can only be set to True or False')
+        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter}
         filters = self._check_filter_objects(filter_checks)
 
-        vws = self.query_resource(u"views", filters=filters, sorts=sorts,
-                                  additional_url_ending=u"includeUsageStatistics={}".format(str(usage).lower()))
+        vws = self.query_resource("views", filters=filters, sorts=sorts,
+                                  additional_url_ending="includeUsageStatistics={}".format(str(usage).lower()))
         self.end_log_block()
         return vws
 
@@ -67,12 +67,12 @@ class TableauRestApiConnection24(TableauRestApiConnection23):
         """
         self.start_log_block()
         if usage not in [True, False]:
-            raise InvalidOptionException(u'Usage can only be set to True or False')
-        filter_checks = {u'updatedAt': updated_at_filter, u'createdAt': created_at_filter, u'tags': tags_filter}
+            raise InvalidOptionException('Usage can only be set to True or False')
+        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter}
         filters = self._check_filter_objects(filter_checks)
 
-        vws = self.query_resource_json(u"views", filters=filters, sorts=sorts,
-                                       additional_url_ending=u"includeUsageStatistics={}".format(str(usage).lower()),
+        vws = self.query_resource_json("views", filters=filters, sorts=sorts,
+                                       additional_url_ending="includeUsageStatistics={}".format(str(usage).lower()),
                                        page_number=page_number)
         self.end_log_block()
         return vws
@@ -83,7 +83,7 @@ class TableauRestApiConnection24(TableauRestApiConnection23):
         :rtype: etree.Element
         """
         self.start_log_block()
-        vw = self.query_single_element_from_endpoint_with_filter(u'view', vw_name_or_luid)
+        vw = self.query_single_element_from_endpoint_with_filter('view', vw_name_or_luid)
         self.end_log_block()
         return vw
 
@@ -99,17 +99,17 @@ class TableauRestApiConnection24(TableauRestApiConnection23):
         :rtype: etree.Element
         """
         self.start_log_block()
-        filter_checks = {u'updatedAt': updated_at_filter, u'createdAt': created_at_filter, u'tags': tags_filter,
-                         u'type': datasource_type_filter}
+        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter,
+                         'type': datasource_type_filter}
         filters = self._check_filter_objects(filter_checks)
 
-        datasources = self.query_resource(u'datasources', filters=filters, sorts=sorts)
+        datasources = self.query_resource('datasources', filters=filters, sorts=sorts)
         if project_name_or_luid is not None:
             if self.is_luid(project_name_or_luid):
                 project_luid = project_name_or_luid
             else:
                 project_luid = self.query_project_luid(project_name_or_luid)
-            dses_in_project = datasources.findall(u'.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
+            dses_in_project = datasources.findall('.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
             dses = etree.Element(self.ns_prefix + 'datasources')
             for ds in dses_in_project:
                 dses.append(ds)
@@ -131,11 +131,11 @@ class TableauRestApiConnection24(TableauRestApiConnection23):
         :rtype: json
         """
         self.start_log_block()
-        filter_checks = {u'updatedAt': updated_at_filter, u'createdAt': created_at_filter, u'tags': tags_filter,
-                         u'type': datasource_type_filter}
+        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter,
+                         'type': datasource_type_filter}
         filters = self._check_filter_objects(filter_checks)
 
-        datasources = self.query_resource_json(u'datasources', filters=filters, sorts=sorts, page_number=page_number)
+        datasources = self.query_resource_json('datasources', filters=filters, sorts=sorts, page_number=page_number)
 
         self.end_log_block()
         return datasources

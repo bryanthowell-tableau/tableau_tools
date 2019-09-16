@@ -10,8 +10,8 @@ from email.mime.base import MIMEBase
 
 import os
 from os.path import basename
-from tableau_repository import TableauRepository
-from tabcmd import Tabcmd
+from .tableau_repository import TableauRepository
+from .tabcmd import Tabcmd
 
 
 class TableauEmailer:

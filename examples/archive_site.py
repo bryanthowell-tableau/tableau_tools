@@ -17,28 +17,28 @@ def archive_tableau_site(save_to_directory, server, username, password, site_con
     for project in all_projects_dict:
         # Create directory for projects
         try:
-            print(u'Making directory {}'.format(project))
-            os.mkdir(u'{}/{}'.format(save_to_directory, project))
+            print(('Making directory {}'.format(project)))
+            os.mkdir('{}/{}'.format(save_to_directory, project))
         except OSError as e:
-            print(u'Directory already exists')
+            print('Directory already exists')
 
-        print(u'Downloading datasources for project {}'.format(project))
+        print(('Downloading datasources for project {}'.format(project)))
         # Get All Data sources
         dses_in_project = t.query_datasources(project_name_or_luid=all_projects_dict[project])
         for ds in dses_in_project:
-            ds_luid = ds.get(u'id')
-            ds_content_url = ds.get(u'contentUrl')
-            print(u'Downloading datasource {}'.format(ds_content_url))
+            ds_luid = ds.get('id')
+            ds_content_url = ds.get('contentUrl')
+            print(('Downloading datasource {}'.format(ds_content_url)))
             t.download_datasource(ds_name_or_luid=ds_luid,
-                                  filename_no_extension=u"{}/{}/{}".format(save_to_directory, project, ds_content_url),
+                                  filename_no_extension="{}/{}/{}".format(save_to_directory, project, ds_content_url),
                                   include_extract=False)
 
-        print(u'Downloading workbooks for project {}'.format(project))
+        print(('Downloading workbooks for project {}'.format(project)))
         wbs_in_project = t.query_workbooks_in_project(project_name_or_luid=all_projects_dict[project])
         for wb in wbs_in_project:
-            wb_luid = wb.get(u'id')
-            wb_content_url = wb.get(u'contentUrl')
-            print(u'Downloading workbook {}'.format(wb_content_url))
+            wb_luid = wb.get('id')
+            wb_content_url = wb.get('contentUrl')
+            print(('Downloading workbook {}'.format(wb_content_url)))
             t.download_workbook(wb_name_or_luid=wb_luid,
-                                filename_no_extension=u"{}/{}/{}".format(save_to_directory, project, wb_content_url),
+                                filename_no_extension="{}/{}/{}".format(save_to_directory, project, wb_content_url),
                                 include_extract=False)

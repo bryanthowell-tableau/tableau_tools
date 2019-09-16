@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from tableau_exceptions import *
-from tableau_base import TableauBase
+from .tableau_exceptions import *
+from .tableau_base import TableauBase
 import psycopg2
 import psycopg2.extensions
 psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)

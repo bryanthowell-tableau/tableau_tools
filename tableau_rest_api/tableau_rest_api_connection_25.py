@@ -1,8 +1,8 @@
-from tableau_rest_api_connection_24 import *
-import urllib
+from .tableau_rest_api_connection_24 import *
+import urllib.request, urllib.parse, urllib.error
 
 class TableauRestApiConnection25(TableauRestApiConnection24):
-    def __init__(self, server, username, password, site_content_url=u""):
+    def __init__(self, server, username, password, site_content_url=""):
         """
         :type server: unicode
         :type username: unicode
@@ -10,7 +10,7 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         :type site_content_url: unicode
         """
         TableauRestApiConnection24.__init__(self, server, username, password, site_content_url)
-        self.set_tableau_server_version(u'10.2')
+        self.set_tableau_server_version('10.2')
 
     def query_user_favorites(self, username_or_luid):
         """
@@ -22,7 +22,7 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
             user_luid = username_or_luid
         else:
             user_luid = self.query_user_luid(username_or_luid)
-        favorites = self.query_resource(u"favorites/{}/".format(user_luid))
+        favorites = self.query_resource("favorites/{}/".format(user_luid))
 
         self.end_log_block()
         return favorites
@@ -37,7 +37,7 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
             user_luid = username_or_luid
         else:
             user_luid = self.query_user_luid(username_or_luid)
-        favorites = self.query_resource_json(u"favorites/{}/".format(user_luid), page_number=page_number)
+        favorites = self.query_resource_json("favorites/{}/".format(user_luid), page_number=page_number)
 
         self.end_log_block()
         return favorites
@@ -57,28 +57,28 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         if direct_xml_request is not None:
             tsr = direct_xml_request
         else:
-            tsr = etree.Element(u"tsRequest")
-            p = etree.Element(u"project")
-            p.set(u"name", project_name)
+            tsr = etree.Element("tsRequest")
+            p = etree.Element("project")
+            p.set("name", project_name)
 
             if project_desc is not None:
-                p.set(u'description', project_desc)
+                p.set('description', project_desc)
             if locked_permissions is not False:
-                p.set(u'contentPermissions', u"LockedToProject")
+                p.set('contentPermissions', "LockedToProject")
             tsr.append(p)
 
-        url = self.build_api_url(u"projects")
+        url = self.build_api_url("projects")
         if publish_samples is True:
-            url += u'?publishSamples=true'
+            url += '?publishSamples=true'
         try:
             new_project = self.send_add_request(url, tsr)
             self.end_log_block()
-            project_luid = new_project.findall(u'.//t:project', self.ns_map)[0].get("id")
+            project_luid = new_project.findall('.//t:project', self.ns_map)[0].get("id")
             if no_return is False:
                 return self.get_published_project_object(project_luid, new_project)
         except RecoverableHTTPException as e:
             if e.http_code == 409:
-                self.log(u'Project named {} already exists, finding and returning the Published Project Object'.format(project_name))
+                self.log('Project named {} already exists, finding and returning the Published Project Object'.format(project_name))
                 self.end_log_block()
                 if no_return is False:
                     return self.query_project(project_name)
@@ -99,22 +99,22 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         else:
             project_luid = self.query_project_luid(name_or_luid)
 
-        tsr = etree.Element(u"tsRequest")
-        p = etree.Element(u"project")
+        tsr = etree.Element("tsRequest")
+        p = etree.Element("project")
         if new_project_name is not None:
-            p.set(u'name', new_project_name)
+            p.set('name', new_project_name)
         if new_project_description is not None:
-            p.set(u'description', new_project_description)
+            p.set('description', new_project_description)
         if locked_permissions is True:
-            p.set(u'contentPermissions', u"LockedToProject")
+            p.set('contentPermissions', "LockedToProject")
         elif locked_permissions is False:
-            p.set(u'contentPermissions', u"ManagedByOwner")
+            p.set('contentPermissions', "ManagedByOwner")
 
         tsr.append(p)
 
-        url = self.build_api_url(u"projects/{}".format(project_luid))
+        url = self.build_api_url("projects/{}".format(project_luid))
         if publish_samples is True:
-            url += u'?publishSamples=true'
+            url += '?publishSamples=true'
 
         response = self.send_update_request(url, tsr)
         self.end_log_block()
@@ -141,31 +141,31 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         if view_filter_map is not None:
             final_filter_map = {}
             for key in view_filter_map:
-                new_key = u"vf_{}".format(key)
+                new_key = "vf_{}".format(key)
                 # Check if this just a string
-                if isinstance(view_filter_map[key], basestring):
+                if isinstance(view_filter_map[key], str):
                     value = view_filter_map[key]
                 else:
-                    value = ",".join(map(unicode,view_filter_map[key]))
+                    value = ",".join(map(str,view_filter_map[key]))
                 final_filter_map[new_key] = value
 
-            additional_url_params = u"?" + urllib.urlencode(final_filter_map)
+            additional_url_params = "?" + urllib.parse.urlencode(final_filter_map)
             if high_resolution is True:
-                additional_url_params += u"&resolution=high"
+                additional_url_params += "&resolution=high"
 
         else:
-            additional_url_params = u""
+            additional_url_params = ""
             if high_resolution is True:
-                additional_url_params += u"?resolution=high"
+                additional_url_params += "?resolution=high"
         try:
 
-            url = self.build_api_url(u"views/{}/{}{}".format(view_luid, download_type, additional_url_params))
+            url = self.build_api_url("views/{}/{}{}".format(view_luid, download_type, additional_url_params))
             binary_result = self.send_binary_get_request(url)
 
             self.end_log_block()
             return binary_result
         except RecoverableHTTPException as e:
-            self.log(u"Attempt to request results in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
+            self.log("Attempt to request results in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
             self.end_log_block()
             raise
 
@@ -180,7 +180,7 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         :rtype:
         """
         self.start_log_block()
-        image = self._query_data_file(u'image', view_name_or_luid=view_name_or_luid, high_resolution=high_resolution,
+        image = self._query_data_file('image', view_name_or_luid=view_name_or_luid, high_resolution=high_resolution,
                                       view_filter_map=view_filter_map, wb_name_or_luid=wb_name_or_luid,
                                       proj_name_or_luid=proj_name_or_luid)
         self.end_log_block()
@@ -210,12 +210,12 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
                 self.end_log_block()
                 return
             except IOError:
-                self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension))
+                self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension))
                 self.end_log_block()
                 raise
         else:
             raise InvalidOptionException(
-                u'This method is for saving response to file. Must include filename_no_extension parameter')
+                'This method is for saving response to file. Must include filename_no_extension parameter')
 
 
     ###
@@ -238,23 +238,23 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         url_endings = []
         if filters is not None:
             if len(filters) > 0:
-                filters_url = u"filter="
+                filters_url = "filter="
                 for f in filters:
-                    filters_url += f.get_filter_string() + u","
+                    filters_url += f.get_filter_string() + ","
                 filters_url = filters_url[:-1]
                 url_endings.append(filters_url)
         if sorts is not None:
             if len(sorts) > 0:
-                sorts_url = u"sort="
+                sorts_url = "sort="
                 for sort in sorts:
-                    sorts_url += sort.get_sort_string() + u","
+                    sorts_url += sort.get_sort_string() + ","
                 sorts_url = sorts_url[:-1]
                 url_endings.append(sorts_url)
         if fields is not None:
             if len(fields) > 0:
-                fields_url = u"fields="
+                fields_url = "fields="
                 for field in fields:
-                    fields_url += u"{},".format(field)
+                    fields_url += "{},".format(field)
                 fields_url = fields_url[:-1]
                 url_endings.append(fields_url)
         if additional_url_ending is not None:
@@ -264,15 +264,15 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         if len(url_endings) > 0:
             for ending in url_endings:
                 if first is True:
-                    url_ending += u"?{}".format(ending)
+                    url_ending += "?{}".format(ending)
                     first = False
                 else:
-                    url_ending += u"&{}".format(ending)
+                    url_ending += "&{}".format(ending)
 
         api_call = self.build_api_url(url_ending, server_level)
-        self._request_obj.set_response_type(u'xml')
+        self._request_obj.set_response_type('xml')
         self._request_obj.url = api_call
-        self._request_obj.http_verb = u'get'
+        self._request_obj.http_verb = 'get'
         self._request_obj.request_from_api()
         xml = self._request_obj.get_response()  # return Element rather than ElementTree
         self._request_obj.url = None
@@ -288,24 +288,24 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         """
         self.start_log_block()
         # A few elements have singular endpoints
-        singular_endpoints = [u'workbook', u'user', u'datasource', u'site']
+        singular_endpoints = ['workbook', 'user', 'datasource', 'site']
         if element_name in singular_endpoints and self.is_luid(name_or_luid):
             if all_fields is True:
-                element = self.query_resource(u"{}s/{}?fields=_all_".format(element_name, name_or_luid))
+                element = self.query_resource("{}s/{}?fields=_all_".format(element_name, name_or_luid))
             else:
-                element = self.query_resource(u"{}s/{}".format(element_name, name_or_luid))
+                element = self.query_resource("{}s/{}".format(element_name, name_or_luid))
             self.end_log_block()
             return element
         else:
             if self.is_luid(name_or_luid):
                 if all_fields is True:
-                    elements = self.query_resource(u"{}s?fields=_all_".format(element_name))
+                    elements = self.query_resource("{}s?fields=_all_".format(element_name))
                 else:
-                    elements = self.query_resource(u"{}s".format(element_name))
+                    elements = self.query_resource("{}s".format(element_name))
                 luid = name_or_luid
-                elements = elements.findall(u'.//t:{}[@id="{}"]'.format(element_name, luid), self.ns_map)
+                elements = elements.findall('.//t:{}[@id="{}"]'.format(element_name, luid), self.ns_map)
             else:
-                elements = self.query_resource(u"{}s?filter=name:eq:{}&fields=_all_".format(element_name, name_or_luid))
+                elements = self.query_resource("{}s?filter=name:eq:{}&fields=_all_".format(element_name, name_or_luid))
         self.end_log_block()
         return elements
 
@@ -324,7 +324,7 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
             return elements[0]
         else:
             self.end_log_block()
-            raise NoMatchFoundException(u"No {} found with name or luid {}".format(element_name, name_or_luid))
+            raise NoMatchFoundException("No {} found with name or luid {}".format(element_name, name_or_luid))
 
     def query_single_element_luid_from_endpoint_with_filter(self, element_name, name, optimize_with_field=False):
         """
@@ -335,15 +335,15 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         """
         self.start_log_block()
         if optimize_with_field is True:
-            elements = self.query_resource(u"{}s?filter=name:eq:{}&fields=id".format(element_name, name))
+            elements = self.query_resource("{}s?filter=name:eq:{}&fields=id".format(element_name, name))
         else:
-            elements = self.query_resource(u"{}s?filter=name:eq:{}".format(element_name, name))
+            elements = self.query_resource("{}s?filter=name:eq:{}".format(element_name, name))
         if len(elements) == 1:
             self.end_log_block()
-            return elements[0].get(u"id")
+            return elements[0].get("id")
         else:
             self.end_log_block()
-            raise NoMatchFoundException(u"No {} found with name {}".format(element_name, name))
+            raise NoMatchFoundException("No {} found with name {}".format(element_name, name))
 
     # These are the new basic methods that use the Filter functionality introduced
     def query_resource_json(self, url_ending, server_level=False, filters=None, sorts=None, additional_url_ending=None,
@@ -362,23 +362,23 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         url_endings = []
         if filters is not None:
             if len(filters) > 0:
-                filters_url = u"filter="
+                filters_url = "filter="
                 for f in filters:
-                    filters_url += f.get_filter_string() + u","
+                    filters_url += f.get_filter_string() + ","
                 filters_url = filters_url[:-1]
                 url_endings.append(filters_url)
         if sorts is not None:
             if len(sorts) > 0:
-                sorts_url = u"sort="
+                sorts_url = "sort="
                 for sort in sorts:
-                    sorts_url += sort.get_sort_string() + u","
+                    sorts_url += sort.get_sort_string() + ","
                 sorts_url = sorts_url[:-1]
                 url_endings.append(sorts_url)
         if fields is not None:
             if len(fields) > 0:
-                fields_url = u"fields="
+                fields_url = "fields="
                 for field in fields:
-                    fields_url += u"{},".format(field)
+                    fields_url += "{},".format(field)
                 fields_url = fields_url[:-1]
                 url_endings.append(fields_url)
         if additional_url_ending is not None:
@@ -388,16 +388,16 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         if len(url_endings) > 0:
             for ending in url_endings:
                 if first is True:
-                    url_ending += u"?{}".format(ending)
+                    url_ending += "?{}".format(ending)
                     first = False
                 else:
-                    url_ending += u"&{}".format(ending)
+                    url_ending += "&{}".format(ending)
 
         api_call = self.build_api_url(url_ending, server_level)
         if self._request_json_obj is None:
             self._request_json_obj = RestJsonRequest(token=self.token, logger=self.logger,
                                                      verify_ssl_cert=self.verify_ssl_cert)
-        self._request_json_obj.http_verb = u'get'
+        self._request_json_obj.http_verb = 'get'
         self._request_json_obj.url = api_call
         self._request_json_obj.request_from_api(page_number=page_number)
         json_response = self._request_json_obj.get_response()  # return JSON as string
@@ -421,13 +421,13 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         self.start_log_block()
         if fields is None:
             if all_fields is True:
-                fields = [u'_all_']
+                fields = ['_all_']
 
-        filter_checks = {u'updatedAt': updated_at_filter, u'createdAt': created_at_filter, u'tags': tags_filter,
-                         u'type': datasource_type_filter}
+        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter,
+                         'type': datasource_type_filter}
         filters = self._check_filter_objects(filter_checks)
 
-        datasources = self.query_resource(u'datasources', filters=filters, sorts=sorts, fields=fields)
+        datasources = self.query_resource('datasources', filters=filters, sorts=sorts, fields=fields)
 
         # If there is a project filter
         if project_name_or_luid is not None:
@@ -435,7 +435,7 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
                 project_luid = project_name_or_luid
             else:
                 project_luid = self.query_project_luid(project_name_or_luid)
-            dses_in_project = datasources.findall(u'.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
+            dses_in_project = datasources.findall('.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
             dses = etree.Element(self.ns_prefix + 'datasources')
             for ds in dses_in_project:
                 dses.append(ds)
@@ -463,13 +463,13 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         self.start_log_block()
         if fields is None:
             if all_fields is True:
-                fields = [u'_all_']
+                fields = ['_all_']
 
-        filter_checks = {u'updatedAt': updated_at_filter, u'createdAt': created_at_filter, u'tags': tags_filter,
-                         u'type': datasource_type_filter}
+        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter,
+                         'type': datasource_type_filter}
         filters = self._check_filter_objects(filter_checks)
 
-        datasources = self.query_resource_json(u'datasources', filters=filters, sorts=sorts, fields=fields,
+        datasources = self.query_resource_json('datasources', filters=filters, sorts=sorts, fields=fields,
                                                page_number=page_number)
 
         self.end_log_block()
@@ -491,7 +491,7 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         self.start_log_block()
         if fields is None:
             if all_fields is True:
-                fields = [u'_all_']
+                fields = ['_all_']
 
         if username_or_luid is None:
             user_luid = self.user_luid
@@ -500,21 +500,21 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         else:
             user_luid = self.query_user_luid(username_or_luid)
 
-        filter_checks = {u'updatedAt': updated_at_filter, u'createdAt': created_at_filter, u'tags': tags_filter,
-                         u'ownerName': owner_name_filter}
+        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter,
+                         'ownerName': owner_name_filter}
         filters = self._check_filter_objects(filter_checks)
 
         if username_or_luid is not None:
-            wbs = self.query_resource(u"users/{}/workbooks".format(user_luid))
+            wbs = self.query_resource("users/{}/workbooks".format(user_luid))
         else:
-            wbs = self.query_resource(u"workbooks".format(user_luid), sorts=sorts, filters=filters, fields=fields)
+            wbs = self.query_resource("workbooks".format(user_luid), sorts=sorts, filters=filters, fields=fields)
 
         if project_name_or_luid is not None:
             if self.is_luid(project_name_or_luid):
                 project_luid = project_name_or_luid
             else:
                 project_luid = self.query_project_luid(project_name_or_luid)
-            wbs_in_project = wbs.findall(u'.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
+            wbs_in_project = wbs.findall('.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
             wbs = etree.Element(self.ns_prefix + 'workbooks')
             for wb in wbs_in_project:
                 wbs.append(wb)
@@ -539,7 +539,7 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         self.start_log_block()
         if fields is None:
             if all_fields is True:
-                fields = [u'_all_']
+                fields = ['_all_']
 
         if username_or_luid is None:
             user_luid = self.user_luid
@@ -548,15 +548,15 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         else:
             user_luid = self.query_user_luid(username_or_luid)
 
-        filter_checks = {u'updatedAt': updated_at_filter, u'createdAt': created_at_filter, u'tags': tags_filter,
-                         u'ownerName': owner_name_filter}
+        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter,
+                         'ownerName': owner_name_filter}
         filters = self._check_filter_objects(filter_checks)
 
         if username_or_luid is not None:
-            wbs = self.query_resource_json(u"users/{}/workbooks".format(user_luid), sorts=sorts, filters=filters,
+            wbs = self.query_resource_json("users/{}/workbooks".format(user_luid), sorts=sorts, filters=filters,
                                            fields=fields, page_number=page_number)
         else:
-            wbs = self.query_resource_json(u"workbooks".format(user_luid), sorts=sorts, filters=filters, fields=fields,
+            wbs = self.query_resource_json("workbooks".format(user_luid), sorts=sorts, filters=filters, fields=fields,
                                            page_number=page_number)
 
         self.end_log_block()
@@ -577,15 +577,15 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
 
         if fields is None:
             if all_fields is True:
-                fields = [u'_all_']
+                fields = ['_all_']
 
         if usage not in [True, False]:
-            raise InvalidOptionException(u'Usage can only be set to True or False')
-        filter_checks = {u'updatedAt': updated_at_filter, u'createdAt': created_at_filter, u'tags': tags_filter}
+            raise InvalidOptionException('Usage can only be set to True or False')
+        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter}
         filters = self._check_filter_objects(filter_checks)
 
-        vws = self.query_resource(u"views", filters=filters, sorts=sorts, fields=fields,
-                                  additional_url_ending=u"includeUsageStatistics={}".format(str(usage).lower()))
+        vws = self.query_resource("views", filters=filters, sorts=sorts, fields=fields,
+                                  additional_url_ending="includeUsageStatistics={}".format(str(usage).lower()))
         self.end_log_block()
         return vws
 
@@ -605,15 +605,15 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
 
         if fields is None:
             if all_fields is True:
-                fields = [u'_all_']
+                fields = ['_all_']
 
         if usage not in [True, False]:
-            raise InvalidOptionException(u'Usage can only be set to True or False')
-        filter_checks = {u'updatedAt': updated_at_filter, u'createdAt': created_at_filter, u'tags': tags_filter}
+            raise InvalidOptionException('Usage can only be set to True or False')
+        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter}
         filters = self._check_filter_objects(filter_checks)
 
-        vws = self.query_resource_json(u"views", filters=filters, sorts=sorts, fields=fields,
-                                  additional_url_ending=u"includeUsageStatistics={}".format(str(usage).lower()))
+        vws = self.query_resource_json("views", filters=filters, sorts=sorts, fields=fields,
+                                  additional_url_ending="includeUsageStatistics={}".format(str(usage).lower()))
         self.end_log_block()
         return vws
 
@@ -645,13 +645,13 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         self.start_log_block()
         if fields is None:
             if all_fields is True:
-                fields = [u'_all_']
+                fields = ['_all_']
 
-        filter_checks = {u'lastLogin': last_login_filter, u'siteRole': site_role_filter, u'name': username_filter}
+        filter_checks = {'lastLogin': last_login_filter, 'siteRole': site_role_filter, 'name': username_filter}
         filters = self._check_filter_objects(filter_checks)
 
-        users = self.query_resource(u"users", filters=filters, sorts=sorts, fields=fields)
-        self.log(u'Found {} users'.format(unicode(len(users))))
+        users = self.query_resource("users", filters=filters, sorts=sorts, fields=fields)
+        self.log('Found {} users'.format(str(len(users))))
         self.end_log_block()
         return users
 
@@ -685,14 +685,14 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         self.start_log_block()
         if fields is None:
             if all_fields is True:
-                fields = [u'_all_']
+                fields = ['_all_']
 
-        filter_checks = {u'lastLogin': last_login_filter, u'siteRole': site_role_filter, u'name': username_filter}
+        filter_checks = {'lastLogin': last_login_filter, 'siteRole': site_role_filter, 'name': username_filter}
         filters = self._check_filter_objects(filter_checks)
 
-        users = self.query_resource_json(u"users", filters=filters, sorts=sorts, fields=fields, page_number=page_number)
+        users = self.query_resource_json("users", filters=filters, sorts=sorts, fields=fields, page_number=page_number)
 
-        self.log(u'Found {} users'.format(unicode(len(users))))
+        self.log('Found {} users'.format(str(len(users))))
         self.end_log_block()
         return users
 
@@ -703,9 +703,9 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         :rtype: etree.Element
         """
         self.start_log_block()
-        user = self.query_single_element_from_endpoint_with_filter(u"user", username_or_luid, all_fields=all_fields)
-        user_luid = user.get(u"id")
-        username = user.get(u'name')
+        user = self.query_single_element_from_endpoint_with_filter("user", username_or_luid, all_fields=all_fields)
+        user_luid = user.get("id")
+        username = user.get('name')
         self.username_luid_cache[username] = user_luid
         self.end_log_block()
         return user
@@ -719,7 +719,7 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         if username in self.username_luid_cache:
             user_luid = self.username_luid_cache[username]
         else:
-            user_luid = self.query_single_element_luid_from_endpoint_with_filter(u"user", username,
+            user_luid = self.query_single_element_luid_from_endpoint_with_filter("user", username,
                                                                                  optimize_with_field=True)
             self.username_luid_cache[username] = user_luid
         self.end_log_block()
@@ -743,20 +743,20 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
             ds_luid = self.query_datasource_luid(ds_name_or_luid, project_name_or_luid=proj_name_or_luid)
         try:
             if include_extract is False:
-                url = self.build_api_url(u"datasources/{}/content?includeExtract=False".format(ds_luid))
+                url = self.build_api_url("datasources/{}/content?includeExtract=False".format(ds_luid))
             else:
-                url = self.build_api_url(u"datasources/{}/content".format(ds_luid))
+                url = self.build_api_url("datasources/{}/content".format(ds_luid))
             ds = self.send_binary_get_request(url)
             extension = None
-            if self._last_response_content_type.find(u'application/xml') != -1:
-                extension = u'.tds'
-            elif self._last_response_content_type.find(u'application/octet-stream') != -1:
-                extension = u'.tdsx'
-            self.log(u'Response type was {} so extension will be {}'.format(self._last_response_content_type, extension))
+            if self._last_response_content_type.find('application/xml') != -1:
+                extension = '.tds'
+            elif self._last_response_content_type.find('application/octet-stream') != -1:
+                extension = '.tdsx'
+            self.log('Response type was {} so extension will be {}'.format(self._last_response_content_type, extension))
             if extension is None:
-                raise IOError(u'File extension could not be determined')
+                raise IOError('File extension could not be determined')
         except RecoverableHTTPException as e:
-            self.log(u"download_datasource resulted in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
+            self.log("download_datasource resulted in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
             self.end_log_block()
             raise
         except:
@@ -770,7 +770,7 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
             save_file.close()
 
         except IOError:
-            self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
+            self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
             raise
 
         self.end_log_block()
@@ -794,21 +794,21 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
             wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
         try:
             if include_extract is False:
-                url = self.build_api_url(u"workbooks/{}/content?includeExtract=False".format(wb_luid))
+                url = self.build_api_url("workbooks/{}/content?includeExtract=False".format(wb_luid))
             else:
-                url = self.build_api_url(u"workbooks/{}/content".format(wb_luid))
+                url = self.build_api_url("workbooks/{}/content".format(wb_luid))
             wb = self.send_binary_get_request(url)
             extension = None
-            if self._last_response_content_type.find(u'application/xml') != -1:
-                extension = u'.twb'
-            elif self._last_response_content_type.find(u'application/octet-stream') != -1:
-                extension = u'.twbx'
+            if self._last_response_content_type.find('application/xml') != -1:
+                extension = '.twb'
+            elif self._last_response_content_type.find('application/octet-stream') != -1:
+                extension = '.twbx'
             if extension is None:
-                raise IOError(u'File extension could not be determined')
+                raise IOError('File extension could not be determined')
             self.log(
-                u'Response type was {} so extension will be {}'.format(self._last_response_content_type, extension))
+                'Response type was {} so extension will be {}'.format(self._last_response_content_type, extension))
         except RecoverableHTTPException as e:
-            self.log(u"download_workbook resulted in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
+            self.log("download_workbook resulted in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
             self.end_log_block()
             raise
         except:
@@ -823,7 +823,7 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
             save_file.close()
 
         except IOError:
-            self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
+            self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
             raise
 
         self.end_log_block()
@@ -848,21 +848,21 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
         try:
 
             if include_extract is False:
-                url = self.build_api_url(u"datasources/{}/revisions/{}/content?includeExtract=False".format(ds_luid,
-                                                                                                            unicode(revision_number)))
+                url = self.build_api_url("datasources/{}/revisions/{}/content?includeExtract=False".format(ds_luid,
+                                                                                                            str(revision_number)))
             else:
                 url = self.build_api_url(
-                    u"datasources/{}/revisions/{}/content".format(ds_luid, unicode(revision_number)))
+                    "datasources/{}/revisions/{}/content".format(ds_luid, str(revision_number)))
             ds = self.send_binary_get_request(url)
             extension = None
-            if self._last_response_content_type.find(u'application/xml') != -1:
-                extension = u'.tds'
-            elif self._last_response_content_type.find(u'application/octet-stream') != -1:
-                extension = u'.tdsx'
+            if self._last_response_content_type.find('application/xml') != -1:
+                extension = '.tds'
+            elif self._last_response_content_type.find('application/octet-stream') != -1:
+                extension = '.tdsx'
             if extension is None:
-                raise IOError(u'File extension could not be determined')
+                raise IOError('File extension could not be determined')
         except RecoverableHTTPException as e:
-            self.log(u"download_datasource resulted in HTTP error {}, Tableau Code {}".format(e.http_code,
+            self.log("download_datasource resulted in HTTP error {}, Tableau Code {}".format(e.http_code,
                                                                                               e.tableau_error_code))
             self.end_log_block()
             raise
@@ -880,7 +880,7 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
             self.end_log_block()
             return save_filename
         except IOError:
-            self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
+            self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
             self.end_log_block()
             raise
 
@@ -903,20 +903,20 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
             wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
         try:
             if include_extract is False:
-                url = self.build_api_url(u"workbooks/{}/revisions/{}/content?includeExtract=False".format(wb_luid,
-                                                                                                          unicode(revision_number)))
+                url = self.build_api_url("workbooks/{}/revisions/{}/content?includeExtract=False".format(wb_luid,
+                                                                                                          str(revision_number)))
             else:
-                url = self.build_api_url(u"workbooks/{}/revisions/{}/content".format(wb_luid, unicode(revision_number)))
+                url = self.build_api_url("workbooks/{}/revisions/{}/content".format(wb_luid, str(revision_number)))
             wb = self.send_binary_get_request(url)
             extension = None
-            if self._last_response_content_type.find(u'application/xml') != -1:
-                extension = u'.twb'
-            elif self._last_response_content_type.find(u'application/octet-stream') != -1:
-                extension = u'.twbx'
+            if self._last_response_content_type.find('application/xml') != -1:
+                extension = '.twb'
+            elif self._last_response_content_type.find('application/octet-stream') != -1:
+                extension = '.twbx'
             if extension is None:
-                raise IOError(u'File extension could not be determined')
+                raise IOError('File extension could not be determined')
         except RecoverableHTTPException as e:
-            self.log(u"download_workbook resulted in HTTP error {}, Tableau Code {}".format(e.http_code,
+            self.log("download_workbook resulted in HTTP error {}, Tableau Code {}".format(e.http_code,
                                                                                             e.tableau_error_code))
             self.end_log_block()
             raise
@@ -936,6 +936,6 @@ class TableauRestApiConnection25(TableauRestApiConnection24):
             return save_filename
 
         except IOError:
-            self.log(u"Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
+            self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
             self.end_log_block()
             raise
