@@ -29,16 +29,6 @@ class HyperFileGenerator(TableauBase):
                                 'date': Type.DATE
                                 }
 
-        self.python_type_map = {
-                                'float': Type.DOUBLE,
-                                'int': Type.INTEGER,
-                                'unicode': Type.UNICODE_STRING,
-                                'str': Type.UNICODE_STRING,
-                                'datetime': Type.DATETIME,
-                                'boolean': Type.BOOLEAN,
-                                'date': Type.DATE
-                                }
-
         self.table_definition = None
         self.tde_object = None
 

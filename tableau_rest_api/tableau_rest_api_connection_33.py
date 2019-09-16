@@ -1,7 +1,7 @@
 from tableau_rest_api_connection_32 import *
 from url_filter import UrlFilter33
 
-class TableauRestApiConnection32(TableauRestApiConnection31):
+class TableauRestApiConnection33(TableauRestApiConnection32):
     def __init__(self, server, username, password, site_content_url=u""):
         """
         :type server: unicode
@@ -9,7 +9,7 @@ class TableauRestApiConnection32(TableauRestApiConnection31):
         :type password: unicode
         :type site_content_url: unicode
         """
-        TableauRestApiConnection31.__init__(self, server, username, password, site_content_url)
+        TableauRestApiConnection32.__init__(self, server, username, password, site_content_url)
         self.set_tableau_server_version(u"2019.1")
 
     def publish_workbook(self, workbook_filename, workbook_name, project_obj, overwrite=False, async_publish=False, connection_username=None,

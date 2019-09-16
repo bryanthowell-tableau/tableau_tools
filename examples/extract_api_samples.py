@@ -14,7 +14,7 @@ import sys
 # Two ways to handle the process of attaching the data source XML to the updated Extract file:
 # 1. Substitution: Create a valid TDSX/TWBX in Tableau Desktop, then use that file as a base for substituting updated
 # Extract files. As long as structure of Extract does not change, should work all the time
-# 2. Creation from Scratch: If the structure of the Extract can vary, then you cannot pre-build the XML.
+# 2. Fom Scratch: If the structure of the Extract can vary, then you cannot pre-build the XML.
 # tableau_tools has the necessary methods to build the data source XML from scratch, including relationships
 
 
@@ -55,28 +55,44 @@ def pyodbc_connect_and_query(odbc_connect_string, query):
         sys.exit()
     return cursor
 
-#
-# Substitution
-#
+# Example of creating a single Hyper file
+def hyper_create_one_table_from_pyodbc_cursor(new_hyper_filename, table_1_pyodbc_conn_string, table_1_query, table_1_tableau_name):
+    """
+    :type new_hyper_filename: str
+    :type table_1_pyodbc_conn_string: str
+    :type table_1_query: str
+    :type table_1_tableau_name: str
+    :rtype:
+    """
 
+    # HyperFileGenerator is a wrapper class for the Extract API 2.0
+    # Use TDE API or Hyper API (3.0) instead
+    h = HyperFileGenerator()
 
-# You may need to find out the name of the Hyper file within the file
-# A TWBX could have multiple Extract files, so you may need to find the exact name
-def show_extract_files_in_packaged_file(filename):
-    pass
+    # Table 1
+    filled_cursor = pyodbc_connect_and_query(table_1_pyodbc_conn_string, table_1_query)
 
-# Specify the existing Extract file you want replaced
-# It should match exactly, so it's best to do this after building the TDSX/TWBX the first time in Desktop using
-# an Extract file you created programmatically using the same code as the one you will substitute in here
-def substitute_an_existing_extract(new_extract_filename):
-    pass
+    # This method gets all of the info from the table schema and correctly creates the extract schema
+    h.create_table_definition_from_pyodbc_cursor(filled_cursor)
+    # This takes the cursor, reads through all the rows, and ads them into the extract
+    h.create_extract(new_hyper_filename, append=True, table_name=table_1_tableau_name, pyodbc_cursor=filled_cursor)
 
-
+    print('Table 1 added to file {}'.format(new_hyper_filename))
 
 # Example of creating two tables in a single Hyper file
 def hyper_create_two_tables(new_hyper_filename, table_1_pyodbc_conn_string, table_1_query, table_1_tableau_name,
                             table_2_pyodbc_conn_string, table_2_query, table_2_tableau_name):
-
+    """
+    :type new_hyper_filename:
+    :type table_1_pyodbc_conn_string:
+    :type table_1_query:
+    :type table_1_tableau_name:
+    :type table_2_pyodbc_conn_string:
+    :type table_2_query:
+    :type table_2_tableau_name:
+    :return:
+    """
+    # HyperFileGenerator is a wrapper class for the Extract API
     h = HyperFileGenerator()
 
     # Table 1
@@ -99,6 +115,31 @@ def hyper_create_two_tables(new_hyper_filename, table_1_pyodbc_conn_string, tabl
 
     print('All Done with Hyper create')
     return True
+
+#
+# Substitution
+#
+
+
+# You may need to find out the name of the Hyper file within the file
+# A TWBX could have multiple Extract files, so you may need to find the exact name
+def show_extract_files_in_packaged_file(filename):
+    pass
+
+
+# Specify the existing Extract file you want replaced
+# It should match exactly, so it's best to do this after building the TDSX/TWBX the first time in Desktop using
+# an Extract file you created programmatically using the same code as the one you will substitute in here
+def substitute_an_existing_extract(new_extract_filename):
+    pass
+
+
+#
+# Creating From Scratch
+#
+
+
+
 
 
 def create_new_tds_for_two_table_extract(new_tds_filename, hyper_filename):

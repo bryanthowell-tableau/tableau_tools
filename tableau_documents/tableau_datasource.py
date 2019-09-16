@@ -310,9 +310,22 @@ class TableauDatasource(TableauDocument):
             self._connection_root = c
         else:
             raise InvalidOptionException(u'ds_version of TableauDatasource must be u"9" or u"10" ')
-        self.connections.append(TableauConnection(conn))
+        new_conn = TableauConnection(conn)
+        self.connections.append(new_conn)
 
         self.end_log_block()
+        return new_conn
+
+    def add_new_hyper_file_connection(self, hyper_filename_no_path):
+        """
+        :type hyper_filename: unicode
+        :rtype: TableauConnection
+        """
+        conn_obj = self.add_new_connection(ds_type=u'hyper', db_or_schema_name=u'Data/{}'.format(hyper_filename_no_path),
+                                     authentication=u'auth-none')
+        conn_obj.username = u'tableau_internal_user'
+        return conn_obj
+
 
     def get_datasource_xml(self):
         # The TableauDatasource object basically stores all properties separately and doesn't actually create
