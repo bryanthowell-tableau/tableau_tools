@@ -346,82 +346,101 @@ class TableauRestApiConnection(TableauBase):
     #
 
     # baseline method for any get request. appends to base url
-    def query_resource(self, url_ending, server_level=False, filters=None, sorts=None, additional_url_ending=None):
+    def query_resource(self, url_ending, server_level=False, filters=None, sorts=None, additional_url_ending=None,
+                       fields=None):
         """
         :type url_ending: unicode
         :type server_level: bool
         :type filters: list[UrlFilter]
         :type sorts: list[Sort]
         :type additional_url_ending: unicode
+        :type fields: list[unicode]
         :rtype: etree.Element
         """
         self.start_log_block()
+        url_endings = []
         if filters is not None:
             if len(filters) > 0:
                 filters_url = "filter="
                 for f in filters:
                     filters_url += f.get_filter_string() + ","
                 filters_url = filters_url[:-1]
-
+                url_endings.append(filters_url)
         if sorts is not None:
             if len(sorts) > 0:
                 sorts_url = "sort="
                 for sort in sorts:
                     sorts_url += sort.get_sort_string() + ","
                 sorts_url = sorts_url[:-1]
-
-        if sorts is not None and filters is not None:
-            url_ending += "?{}&{}".format(sorts_url, filters_url)
-        elif sorts is not None:
-            url_ending += "?{}".format(sorts_url)
-        elif filters is not None and len(filters) > 0:
-            url_ending += "?{}".format(filters_url)
-        elif additional_url_ending is not None:
-            url_ending += "?"
+                url_endings.append(sorts_url)
+        if fields is not None:
+            if len(fields) > 0:
+                fields_url = "fields="
+                for field in fields:
+                    fields_url += "{},".format(field)
+                fields_url = fields_url[:-1]
+                url_endings.append(fields_url)
         if additional_url_ending is not None:
-            url_ending += additional_url_ending
+            url_endings.append(additional_url_ending)
+
+        first = True
+        if len(url_endings) > 0:
+            for ending in url_endings:
+                if first is True:
+                    url_ending += "?{}".format(ending)
+                    first = False
+                else:
+                    url_ending += "&{}".format(ending)
 
         api_call = self.build_api_url(url_ending, server_level)
         self._request_obj.set_response_type('xml')
-        self._request_obj.http_verb = 'get'
         self._request_obj.url = api_call
+        self._request_obj.http_verb = 'get'
         self._request_obj.request_from_api()
         xml = self._request_obj.get_response()  # return Element rather than ElementTree
         self._request_obj.url = None
-
+        self.end_log_block()
         return xml
 
-    def query_elements_from_endpoint_with_filter(self, element_name, name_or_luid=None):
+    def query_elements_from_endpoint_with_filter(self, element_name, name_or_luid=None, all_fields=True):
         """
         :type element_name: unicode
         :type name_or_luid: unicode
+        :type all_fields: bool
         :rtype: etree.Element
         """
         self.start_log_block()
         # A few elements have singular endpoints
         singular_endpoints = ['workbook', 'user', 'datasource', 'site']
         if element_name in singular_endpoints and self.is_luid(name_or_luid):
-            element = self.query_resource("{}s/{}".format(element_name, name_or_luid))
+            if all_fields is True:
+                element = self.query_resource("{}s/{}?fields=_all_".format(element_name, name_or_luid))
+            else:
+                element = self.query_resource("{}s/{}".format(element_name, name_or_luid))
             self.end_log_block()
             return element
         else:
             if self.is_luid(name_or_luid):
-                elements = self.query_resource("{}s".format(element_name))
+                if all_fields is True:
+                    elements = self.query_resource("{}s?fields=_all_".format(element_name))
+                else:
+                    elements = self.query_resource("{}s".format(element_name))
                 luid = name_or_luid
                 elements = elements.findall('.//t:{}[@id="{}"]'.format(element_name, luid), self.ns_map)
             else:
-                elements = self.query_resource("{}s?filter=name:eq:{}".format(element_name, name_or_luid))
+                elements = self.query_resource("{}s?filter=name:eq:{}&fields=_all_".format(element_name, name_or_luid))
         self.end_log_block()
         return elements
 
-    def query_single_element_from_endpoint_with_filter(self, element_name, name_or_luid=None):
+    def query_single_element_from_endpoint_with_filter(self, element_name, name_or_luid=None, all_fields=True):
         """
         :type element_name: unicode
         :type name_or_luid: unicode
+        :type all_fields: bool
         :rtype: etree.Element
         """
         self.start_log_block()
-        elements = self.query_elements_from_endpoint_with_filter(element_name, name_or_luid)
+        elements = self.query_elements_from_endpoint_with_filter(element_name, name_or_luid, all_fields=all_fields)
 
         if len(elements) == 1:
             self.end_log_block()
@@ -430,14 +449,18 @@ class TableauRestApiConnection(TableauBase):
             self.end_log_block()
             raise NoMatchFoundException("No {} found with name or luid {}".format(element_name, name_or_luid))
 
-    def query_single_element_luid_from_endpoint_with_filter(self, element_name, name):
+    def query_single_element_luid_from_endpoint_with_filter(self, element_name, name, optimize_with_field=False):
         """
         :type element_name: unicode
         :type name: unicode
+        :type optimize_with_field: bool
         :rtype: unicode
         """
         self.start_log_block()
-        elements = self.query_resource("{}s?filter=name:eq:{}".format(element_name, name))
+        if optimize_with_field is True:
+            elements = self.query_resource("{}s?filter=name:eq:{}&fields=id".format(element_name, name))
+        else:
+            elements = self.query_resource("{}s?filter=name:eq:{}".format(element_name, name))
         if len(elements) == 1:
             self.end_log_block()
             return elements[0].get("id")
@@ -447,41 +470,51 @@ class TableauRestApiConnection(TableauBase):
 
     # baseline method for any get request. appends to base url
     def query_resource_json(self, url_ending, server_level=False, filters=None, sorts=None, additional_url_ending=None,
-                            page_number=None):
+                            fields=None, page_number=None):
         """
         :type url_ending: unicode
         :type server_level: bool
         :type filters: list[UrlFilter]
         :type sorts: list[Sort]
         :type additional_url_ending: unicode
+        :type fields: list[unicode]
         :type page_number: int
-        :rtype: etree.Element
+        :rtype: json
         """
         self.start_log_block()
+        url_endings = []
         if filters is not None:
             if len(filters) > 0:
                 filters_url = "filter="
                 for f in filters:
                     filters_url += f.get_filter_string() + ","
                 filters_url = filters_url[:-1]
-
+                url_endings.append(filters_url)
         if sorts is not None:
             if len(sorts) > 0:
                 sorts_url = "sort="
                 for sort in sorts:
                     sorts_url += sort.get_sort_string() + ","
                 sorts_url = sorts_url[:-1]
-
-        if sorts is not None and filters is not None:
-            url_ending += "?{}&{}".format(sorts_url, filters_url)
-        elif sorts is not None:
-            url_ending += "?{}".format(sorts_url)
-        elif filters is not None and len(filters) > 0:
-            url_ending += "?{}".format(filters_url)
-        elif additional_url_ending is not None:
-            url_ending += "?"
+                url_endings.append(sorts_url)
+        if fields is not None:
+            if len(fields) > 0:
+                fields_url = "fields="
+                for field in fields:
+                    fields_url += "{},".format(field)
+                fields_url = fields_url[:-1]
+                url_endings.append(fields_url)
         if additional_url_ending is not None:
-            url_ending += additional_url_ending
+            url_endings.append(additional_url_ending)
+
+        first = True
+        if len(url_endings) > 0:
+            for ending in url_endings:
+                if first is True:
+                    url_ending += "?{}".format(ending)
+                    first = False
+                else:
+                    url_ending += "&{}".format(ending)
 
         api_call = self.build_api_url(url_ending, server_level)
         if self._request_json_obj is None:
@@ -658,13 +691,31 @@ class TableauRestApiConnection(TableauBase):
     # Begin Datasource Querying Methods
     #
 
-    def query_datasources(self, project_name_or_luid=None):
+    def query_datasources(self, project_name_or_luid=None, all_fields=True, updated_at_filter=None, created_at_filter=None,
+                          tags_filter=None, datasource_type_filter=None, sorts=None, fields=None):
         """
         :type project_name_or_luid: unicode
+        :type all_fields: bool
+        :type updated_at_filter: UrlFilter
+        :type created_at_filter: UrlFilter
+        :type tags_filter: UrlFilter
+        :type datasource_type_filter: UrlFilter
+        :type sorts: list[Sort]
+        :type fields: list[unicode]
         :rtype: etree.Element
         """
         self.start_log_block()
-        datasources = self.query_resource("datasources")
+        if fields is None:
+            if all_fields is True:
+                fields = ['_all_']
+
+        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter,
+                         'type': datasource_type_filter}
+        filters = self._check_filter_objects(filter_checks)
+
+        datasources = self.query_resource('datasources', filters=filters, sorts=sorts, fields=fields)
+
+        # If there is a project filter
         if project_name_or_luid is not None:
             if self.is_luid(project_name_or_luid):
                 project_luid = project_name_or_luid
@@ -676,16 +727,37 @@ class TableauRestApiConnection(TableauBase):
                 dses.append(ds)
         else:
             dses = datasources
+
         self.end_log_block()
         return dses
 
-    def query_datasources_json(self, page_number=None):
+    def query_datasources_json(self, project_name_or_luid=None, all_fields=True, updated_at_filter=None,
+                               created_at_filter=None, tags_filter=None, datasource_type_filter=None, sorts=None,
+                               fields=None, page_number=None):
         """
+        :type project_name_or_luid: unicode
+        :type all_fields: bool
+        :type updated_at_filter: UrlFilter
+        :type created_at_filter: UrlFilter
+        :type tags_filter: UrlFilter
+        :type datasource_type_filter: UrlFilter
+        :type sorts: list[Sort]
+        :type fields: list[unicode]
         :type page_number: int
         :rtype: json
         """
         self.start_log_block()
-        datasources = self.query_resource_json("datasources", page_number=page_number)
+        if fields is None:
+            if all_fields is True:
+                fields = ['_all_']
+
+        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter,
+                         'type': datasource_type_filter}
+        filters = self._check_filter_objects(filter_checks)
+
+        datasources = self.query_resource_json('datasources', filters=filters, sorts=sorts, fields=fields,
+                                               page_number=page_number)
+
         self.end_log_block()
         return datasources
 
@@ -894,21 +966,47 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return projects
 
-    def query_project(self, project_name_or_luid):
+    def create_project(self, project_name=None, project_desc=None, locked_permissions=True, publish_samples=False,
+                       no_return=False, direct_xml_request=None):
         """
-        :type project_name_or_luid: unicode
+        :type project_name: unicode
+        :type project_desc: unicode
+        :type locked_permissions: bool
+        :type publish_samples: bool
+        :type no_return: bool
+        :type direct_xml_request: etree.Element
         :rtype: Project21
         """
         self.start_log_block()
-        if self.is_luid(project_name_or_luid):
-            luid = project_name_or_luid
+        if direct_xml_request is not None:
+            tsr = direct_xml_request
         else:
-            luid = self.query_project_luid(project_name_or_luid)
-        proj = self.get_published_project_object(luid, self.query_single_element_from_endpoint('project',
-                                                                                               project_name_or_luid))
+            tsr = etree.Element("tsRequest")
+            p = etree.Element("project")
+            p.set("name", project_name)
 
-        self.end_log_block()
-        return proj
+            if project_desc is not None:
+                p.set('description', project_desc)
+            if locked_permissions is not False:
+                p.set('contentPermissions', "LockedToProject")
+            tsr.append(p)
+
+        url = self.build_api_url("projects")
+        if publish_samples is True:
+            url += '?publishSamples=true'
+        try:
+            new_project = self.send_add_request(url, tsr)
+            self.end_log_block()
+            project_luid = new_project.findall('.//t:project', self.ns_map)[0].get("id")
+            if no_return is False:
+                return self.get_published_project_object(project_luid, new_project)
+        except RecoverableHTTPException as e:
+            if e.http_code == 409:
+                self.log('Project named {} already exists, finding and returning the Published Project Object'.format(
+                    project_name))
+                self.end_log_block()
+                if no_return is False:
+                    return self.query_project(project_name)
 
     def query_project_luid(self, project_name):
         """
@@ -996,58 +1094,93 @@ class TableauRestApiConnection(TableauBase):
     #
 
     # The reference has this name, so for consistency adding an alias
-    def get_users(self, last_login_filter=None, site_role_filter=None, sorts=None):
+    def get_users(self, all_fields=True, last_login_filter=None, site_role_filter=None, sorts=None, fields=None):
         """
+        :type all_fields: bool
         :type last_login_filter: UrlFilter
         :type site_role_filter: UrlFilter
         :type sorts: list[Sort]
+        :type fields: list[unicode]
         :rtype: etree.Element
         """
-        return self.query_users(last_login_filter=last_login_filter, site_role_filter=site_role_filter,
-                                sorts=sorts)
+        return self.query_users(all_fields=all_fields, last_login_filter=last_login_filter,
+                                site_role_filter=site_role_filter, sorts=sorts, fields=fields)
 
-    def query_users(self, last_login_filter=None, site_role_filter=None, sorts=None):
+
+    def query_users(self, all_fields=True, last_login_filter=None, site_role_filter=None, sorts=None, fields=None,
+                    username_filter=None):
         """
+        :type all_fields: bool
         :type last_login_filter: UrlFilter
         :type site_role_filter: UrlFilter
+        :type username_filter: UrlFilter
         :type sorts: list[Sort]
+        :type fields: list[unicode]
         :rtype: etree.Element
         """
         self.start_log_block()
-        filter_checks = {'lastLogin': last_login_filter, 'siteRole': site_role_filter}
+        if fields is None:
+            if all_fields is True:
+                fields = ['_all_']
+
+        filter_checks = {'lastLogin': last_login_filter, 'siteRole': site_role_filter, 'name': username_filter}
         filters = self._check_filter_objects(filter_checks)
 
-        users = self.query_resource("users", filters=filters, sorts=sorts)
+        users = self.query_resource("users", filters=filters, sorts=sorts, fields=fields)
         self.log('Found {} users'.format(str(len(users))))
         self.end_log_block()
         return users
 
     # The reference has this name, so for consistency adding an alias
-    def get_users_json(self, page_number=None):
+    def get_users_json(self, all_fields=True, last_login_filter=None, site_role_filter=None, sorts=None, fields=None,
+                       page_number=None):
         """
+        :type all_fields: bool
+        :type last_login_filter: UrlFilter
+        :type site_role_filter: UrlFilter
+        :type sorts: list[Sort]
+        :type fields: list[unicode]
         :type page_number: int
         :rtype: json
         """
-        return self.query_users_json(page_number=page_number)
+        return self.query_users_json(all_fields=all_fields, last_login_filter=last_login_filter,
+                                site_role_filter=site_role_filter, sorts=sorts, fields=fields, page_number=page_number)
 
-    def query_users_json(self, page_number=None):
+
+    def query_users_json(self, all_fields=True, last_login_filter=None, site_role_filter=None, sorts=None, fields=None,
+                         username_filter=None, page_number=None):
         """
+        :type all_fields: bool
+        :type last_login_filter: UrlFilter
+        :type site_role_filter: UrlFilter
+        :type username_filter: UrlFilter
+        :type sorts: list[Sort]
+        :type fields: list[unicode]
         :type page_number: int
         :rtype: json
         """
         self.start_log_block()
-        users = self.query_resource_json("users", page_number=page_number)
-        #self.log(u'Found {} users'.format(unicode(len(users))))
+        if fields is None:
+            if all_fields is True:
+                fields = ['_all_']
+
+        filter_checks = {'lastLogin': last_login_filter, 'siteRole': site_role_filter, 'name': username_filter}
+        filters = self._check_filter_objects(filter_checks)
+
+        users = self.query_resource_json("users", filters=filters, sorts=sorts, fields=fields, page_number=page_number)
+
+        self.log('Found {} users'.format(str(len(users))))
         self.end_log_block()
         return users
 
-    def query_user(self, username_or_luid):
+    def query_user(self, username_or_luid, all_fields=True):
         """
         :type username_or_luid: unicode
+        :type all_fields: bool
         :rtype: etree.Element
         """
         self.start_log_block()
-        user = self.query_single_element_from_endpoint_with_filter("user", username_or_luid)
+        user = self.query_single_element_from_endpoint_with_filter("user", username_or_luid, all_fields=all_fields)
         user_luid = user.get("id")
         username = user.get('name')
         self.username_luid_cache[username] = user_luid
@@ -1063,7 +1196,8 @@ class TableauRestApiConnection(TableauBase):
         if username in self.username_luid_cache:
             user_luid = self.username_luid_cache[username]
         else:
-            user_luid = self.query_single_element_luid_from_endpoint_with_filter("user", username)
+            user_luid = self.query_single_element_luid_from_endpoint_with_filter("user", username,
+                                                                                 optimize_with_field=True)
             self.username_luid_cache[username] = user_luid
         self.end_log_block()
         return user_luid
@@ -1101,6 +1235,136 @@ class TableauRestApiConnection(TableauBase):
     #
     # End User Querying Methods
     #
+
+    def query_server_info(self):
+        """
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        server_info = self.query_resource("serverinfo", server_level=True)
+        self.end_log_block()
+        return server_info
+
+    def query_server_version(self):
+        """
+        :rtype:
+        """
+        self.start_log_block()
+        server_info = self.query_server_info()
+        # grab the server number
+
+    def query_api_version(self):
+        self.start_log_block()
+        server_info = self.query_server_info()
+        # grab api version number
+
+    def query_views(self, usage=False, created_at_filter=None, updated_at_filter=None, tags_filter=None, sorts=None):
+        """
+        :type usage: bool
+        :type created_at_filter: UrlFilter
+        :type updated_at_filter: UrlFilter
+        :type tags_filter: UrlFilter
+        :type sorts: list[Sort]
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if usage not in [True, False]:
+            raise InvalidOptionException('Usage can only be set to True or False')
+        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter}
+        filters = self._check_filter_objects(filter_checks)
+
+        vws = self.query_resource("views", filters=filters, sorts=sorts,
+                                  additional_url_ending="includeUsageStatistics={}".format(str(usage).lower()))
+        self.end_log_block()
+        return vws
+
+    def query_views_json(self, usage=False, created_at_filter=None, updated_at_filter=None, tags_filter=None,
+                         sorts=None, page_number=None):
+        """
+        :type usage: bool
+        :type created_at_filter: UrlFilter
+        :type updated_at_filter: UrlFilter
+        :type tags_filter: UrlFilter
+        :type sorts: list[Sort]
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+        if usage not in [True, False]:
+            raise InvalidOptionException('Usage can only be set to True or False')
+        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter}
+        filters = self._check_filter_objects(filter_checks)
+
+        vws = self.query_resource_json("views", filters=filters, sorts=sorts,
+                                       additional_url_ending="includeUsageStatistics={}".format(str(usage).lower()),
+                                       page_number=page_number)
+        self.end_log_block()
+        return vws
+
+    def query_view(self, vw_name_or_luid):
+        """
+        :type vw_name_or_luid:
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        vw = self.query_single_element_from_endpoint_with_filter('view', vw_name_or_luid)
+        self.end_log_block()
+        return vw
+
+    def query_datasources(self, project_name_or_luid=None, updated_at_filter=None, created_at_filter=None,
+                          tags_filter=None, datasource_type_filter=None, sorts=None):
+        """
+        :type project_name_or_luid: unicode
+        :type updated_at_filter: UrlFilter
+        :type created_at_filter: UrlFilter
+        :type tags_filter: UrlFilter
+        :type datasource_type_filter: UrlFilter
+        :type sorts: list[Sort]
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter,
+                         'type': datasource_type_filter}
+        filters = self._check_filter_objects(filter_checks)
+
+        datasources = self.query_resource('datasources', filters=filters, sorts=sorts)
+        if project_name_or_luid is not None:
+            if self.is_luid(project_name_or_luid):
+                project_luid = project_name_or_luid
+            else:
+                project_luid = self.query_project_luid(project_name_or_luid)
+            dses_in_project = datasources.findall('.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
+            dses = etree.Element(self.ns_prefix + 'datasources')
+            for ds in dses_in_project:
+                dses.append(ds)
+        else:
+            dses = datasources
+
+        self.end_log_block()
+        return dses
+
+    def query_datasources_json(self, updated_at_filter=None, created_at_filter=None,
+                               tags_filter=None, datasource_type_filter=None, sorts=None, page_number=None):
+        """
+        :type updated_at_filter: UrlFilter
+        :type created_at_filter: UrlFilter
+        :type tags_filter: UrlFilter
+        :type datasource_type_filter: UrlFilter
+        :type sorts: list[Sort]
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter,
+                         'type': datasource_type_filter}
+        filters = self._check_filter_objects(filter_checks)
+
+        datasources = self.query_resource_json('datasources', filters=filters, sorts=sorts, page_number=page_number)
+
+        self.end_log_block()
+        return datasources
+
+    # query_datasource and query_datasource_luid can't be improved because filtering doesn't take a Project Name/LUID
 
     # Begin scheduler querying methods
     #
@@ -1182,24 +1446,329 @@ class TableauRestApiConnection(TableauBase):
     # End Scheduler Querying Methods
     #
 
+    def get_extract_refresh_tasks(self):
+        """
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        extract_tasks = self.query_resource('tasks/extractRefreshes')
+        self.end_log_block()
+        return extract_tasks
+
+    def get_extract_refresh_task(self, task_luid):
+        """
+        :type task_luid: unicode
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        extract_task = self.query_resource('tasks/extractRefreshes/{}'.format(task_luid))
+        self.start_log_block()
+        return extract_task
+
+    def get_extract_refresh_tasks_on_schedule(self, schedule_name_or_luid):
+        """
+        :param schedule_name_or_luid: unicode
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if self.is_luid(schedule_name_or_luid):
+            schedule_luid = schedule_name_or_luid
+        else:
+            schedule_luid = self.query_schedule_luid(schedule_name_or_luid)
+        tasks = self.get_extract_refresh_tasks()
+        tasks_on_sched = tasks.findall('.//t:schedule[@id="{}"]/..'.format(schedule_luid), self.ns_map)
+        if len(tasks_on_sched) == 0:
+            self.end_log_block()
+            raise NoMatchFoundException(
+                "No extract refresh tasks found on schedule {}".format(schedule_name_or_luid))
+        self.end_log_block()
+
+    def run_extract_refresh_task(self, task_luid):
+        """
+        :task task_luid: unicode
+        :rtype: unicode
+        """
+        self.start_log_block()
+        tsr = etree.Element('tsRequest')
+
+        url = self.build_api_url('tasks/extractRefreshes/{}/runNow'.format(task_luid))
+        response = self.send_add_request(url, tsr)
+        self.end_log_block()
+        return response.findall('.//t:job', self.ns_map)[0].get("id")
+
+    def run_all_extract_refreshes_for_schedule(self, schedule_name_or_luid):
+        """
+        :type schedule_name_or_luid: unicode
+        :return:
+        """
+        self.start_log_block()
+        extracts = self.query_extract_refresh_tasks_by_schedule(schedule_name_or_luid)
+        for extract in extracts:
+            self.run_extract_refresh_task(extract.get('id'))
+        self.end_log_block()
+
+    def run_extract_refresh_for_workbook(self, wb_name_or_luid, proj_name_or_luid=None, username_or_luid=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type username_or_luid: unicode
+        :return:
+        """
+        self.start_log_block()
+        if self.is_luid(wb_name_or_luid):
+            wb_luid = wb_name_or_luid
+        else:
+            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
+        tasks = self.get_extract_refresh_tasks()
+
+        extracts_for_wb = tasks.findall('.//t:extract/workbook[@id="{}"]..'.format(wb_luid), self.ns_map)
+
+        for extract in extracts_for_wb:
+            self.run_extract_refresh_task(extract.get('id'))
+        self.end_log_block()
+
+    # Check if this actually works
+    def run_extract_refresh_for_datasource(self, ds_name_or_luid, proj_name_or_luid=None):
+        """
+        :type ds_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type username_or_luid: unicode
+        :return:
+        """
+        self.start_log_block()
+        if self.is_luid(ds_name_or_luid):
+            ds_luid = ds_name_or_luid
+        else:
+            ds_luid = self.query_datasource_luid(ds_name_or_luid, proj_name_or_luid)
+        tasks = self.get_extract_refresh_tasks()
+        print(tasks)
+        extracts_for_ds = tasks.findall('.//t:extract/datasource[@id="{}"]..'.format(ds_luid), self.ns_map)
+        # print extracts_for_wb
+        for extract in extracts_for_ds:
+            self.run_extract_refresh_task(extract.get('id'))
+        self.end_log_block()
+
+    # Tags can be scalar string or list
+    def add_tags_to_datasource(self, ds_name_or_luid, tag_s, proj_name_or_luid=None):
+        """
+        :type ds_name_or_luid: unicode
+        :type tag_s: list[unicode]
+        :type proj_name_or_luid: unicode
+        :rtype: unicode
+        """
+        self.start_log_block()
+        if self.is_luid(ds_name_or_luid):
+            ds_luid = ds_name_or_luid
+        else:
+            ds_luid = self.query_workbook_luid(ds_name_or_luid, proj_name_or_luid)
+        url = self.build_api_url("datasources/{}/tags".format(ds_luid))
+
+        tsr = etree.Element("tsRequest")
+        ts = etree.Element("tags")
+        tags = self.to_list(tag_s)
+        for tag in tags:
+            t = etree.Element("tag")
+            t.set("label", tag)
+            ts.append(t)
+        tsr.append(ts)
+
+        tag_response = self.send_update_request(url, tsr)
+        self.end_log_block()
+        return tag_response
+
+    def delete_tags_from_datasource(self, ds_name_or_luid, tag_s, proj_name_or_luid=None):
+        """
+        :type ds_name_or_luid: unicode
+        :type tag_s: list[unicode] or unicode
+        :rtype: int
+        """
+        self.start_log_block()
+        tags = self.to_list(tag_s)
+        if self.is_luid(ds_name_or_luid):
+            ds_luid = ds_name_or_luid
+        else:
+            ds_luid = self.query_datasource_luid(ds_name_or_luid, proj_name_or_luid)
+        deleted_count = 0
+        for tag in tags:
+            url = self.build_api_url("datasources/{}/tags/{}".format(ds_luid, tag))
+            deleted_count += self.send_delete_request(url)
+        self.end_log_block()
+        return deleted_count
+
+    # Tags can be scalar string or list
+    def add_tags_to_view(self, view_name_or_luid, workbook_name_or_luid, tag_s, proj_name_or_luid=None):
+        """
+        :type view_name_or_luid: unicode
+        :type workbook_name_or_luid: unicode
+        :type tag_s: list[unicode]
+        :type proj_name_or_luid: unicode
+        :rtype: unicode
+        """
+        self.start_log_block()
+
+        if self.is_luid(view_name_or_luid):
+            vw_luid = view_name_or_luid
+        else:
+            vw_luid = self.query_workbook_view_luid(workbook_name_or_luid, view_name_or_luid, proj_name_or_luid)
+        url = self.build_api_url("views/{}/tags".format(vw_luid))
+
+        tsr = etree.Element("tsRequest")
+        ts = etree.Element("tags")
+        tags = self.to_list(tag_s)
+        for tag in tags:
+            t = etree.Element("tag")
+            t.set("label", tag)
+            ts.append(t)
+        tsr.append(ts)
+
+        tag_response = self.send_update_request(url, tsr)
+        self.end_log_block()
+        return tag_response
+
+    def delete_tags_from_view(self, view_name_or_luid, workbook_name_or_luid, tag_s, proj_name_or_luid=None):
+        """
+        :type view_name_or_luid: unicode
+        :type workbook_name_or_luid: unicode
+        :type tag_s: list[unicode] or unicode
+        :type proj_name_or_luid: unicode
+        :rtype: int
+        """
+        self.start_log_block()
+        tags = self.to_list(tag_s)
+        if self.is_luid(view_name_or_luid):
+            vw_luid = view_name_or_luid
+        else:
+            vw_luid = self.query_workbook_view_luid(view_name_or_luid, workbook_name_or_luid, proj_name_or_luid)
+        deleted_count = 0
+        for tag in tags:
+            url = self.build_api_url("views/{}/tags/{}".format(vw_luid, tag))
+            deleted_count += self.send_delete_request(url)
+        self.end_log_block()
+        return deleted_count
+
+
+    # Generic implementation of all the CSV/PDF/PNG requests
+    def _query_data_file(self, download_type, view_name_or_luid, high_resolution=None, view_filter_map=None,
+                         wb_name_or_luid=None, proj_name_or_luid=None):
+        """
+        :type view_name_or_luid: unicode
+        :type high_resolution: bool
+        :type view_filter_map: dict
+        :type wb_name_or_luid: unicode
+        :type proj_name_or_luid
+        :rtype:
+        """
+        self.start_log_block()
+        if self.is_luid(view_name_or_luid):
+            view_luid = view_name_or_luid
+        else:
+            view_luid = self.query_workbook_view_luid(wb_name_or_luid, view_name=view_name_or_luid,
+                                                      proj_name_or_luid=proj_name_or_luid)
+
+        if view_filter_map is not None:
+            final_filter_map = {}
+            for key in view_filter_map:
+                new_key = "vf_{}".format(key)
+                # Check if this just a string
+                if isinstance(view_filter_map[key], str):
+                    value = view_filter_map[key]
+                else:
+                    value = ",".join(map(str, view_filter_map[key]))
+                final_filter_map[new_key] = value
+
+            additional_url_params = "?" + urllib.parse.urlencode(final_filter_map)
+            if high_resolution is True:
+                additional_url_params += "&resolution=high"
+
+        else:
+            additional_url_params = ""
+            if high_resolution is True:
+                additional_url_params += "?resolution=high"
+        try:
+
+            url = self.build_api_url("views/{}/{}{}".format(view_luid, download_type, additional_url_params))
+            binary_result = self.send_binary_get_request(url)
+
+            self.end_log_block()
+            return binary_result
+        except RecoverableHTTPException as e:
+            self.log("Attempt to request results in HTTP error {}, Tableau Code {}".format(e.http_code,
+                                                                                           e.tableau_error_code))
+            self.end_log_block()
+            raise
+
+    def query_view_image(self, view_name_or_luid, high_resolution=False, view_filter_map=None,
+                         wb_name_or_luid=None, proj_name_or_luid=None):
+        """
+        :type view_name_or_luid: unicode
+        :type high_resolution: bool
+        :type view_filter_map: dict
+        :type wb_name_or_luid: unicode
+        :type proj_name_or_luid
+        :rtype:
+        """
+        self.start_log_block()
+        image = self._query_data_file('image', view_name_or_luid=view_name_or_luid, high_resolution=high_resolution,
+                                      view_filter_map=view_filter_map, wb_name_or_luid=wb_name_or_luid,
+                                      proj_name_or_luid=proj_name_or_luid)
+        self.end_log_block()
+        return image
+
+    def save_view_image(self, wb_name_or_luid=None, view_name_or_luid=None, filename_no_extension=None,
+                        proj_name_or_luid=None, view_filter_map=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type view_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type filename_no_extension: unicode
+        :type view_filter_map: dict
+        :rtype:
+        """
+        self.start_log_block()
+        data = self.query_view_image(wb_name_or_luid=wb_name_or_luid, view_name_or_luid=view_name_or_luid,
+                                     proj_name_or_luid=proj_name_or_luid, view_filter_map=view_filter_map)
+
+        if filename_no_extension is not None:
+            if filename_no_extension.find('.png') == -1:
+                filename_no_extension += '.png'
+            try:
+                save_file = open(filename_no_extension, 'wb')
+                save_file.write(data)
+                save_file.close()
+                self.end_log_block()
+                return
+            except IOError:
+                self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension))
+                self.end_log_block()
+                raise
+        else:
+            raise InvalidOptionException(
+                'This method is for saving response to file. Must include filename_no_extension parameter')
+
     #
     # Start Workbook Querying Methods
     #
 
     # Filtering implemented for workbooks in 2.2
     # This uses the logged in username for convenience by default
-    def query_workbooks(self, username_or_luid=None, project_name_or_luid=None, created_at_filter=None, updated_at_filter=None,
-                        owner_name_filter=None, tags_filter=None, sorts=None):
+    def query_workbooks(self, username_or_luid=None, project_name_or_luid=None, all_fields=True, created_at_filter=None, updated_at_filter=None,
+                        owner_name_filter=None, tags_filter=None, sorts=None, fields=None):
         """
         :type username_or_luid: unicode
+        :type all_fields: bool
         :type created_at_filter: UrlFilter
         :type updated_at_filter: UrlFilter
         :type owner_name_filter: UrlFilter
         :type tags_filter: UrlFilter
         :type sorts: list[Sort]
+        :type fields: list[unicode]
         :rtype: etree.Element
         """
         self.start_log_block()
+        if fields is None:
+            if all_fields is True:
+                fields = ['_all_']
+
         if username_or_luid is None:
             user_luid = self.user_luid
         elif self.is_luid(username_or_luid):
@@ -1214,7 +1783,8 @@ class TableauRestApiConnection(TableauBase):
         if username_or_luid is not None:
             wbs = self.query_resource("users/{}/workbooks".format(user_luid))
         else:
-            wbs = self.query_resource("workbooks".format(user_luid), sorts=sorts, filters=filters)
+            wbs = self.query_resource("workbooks".format(user_luid), sorts=sorts, filters=filters, fields=fields)
+
         if project_name_or_luid is not None:
             if self.is_luid(project_name_or_luid):
                 project_luid = project_name_or_luid
@@ -1224,7 +1794,6 @@ class TableauRestApiConnection(TableauBase):
             wbs = etree.Element(self.ns_prefix + 'workbooks')
             for wb in wbs_in_project:
                 wbs.append(wb)
-
         self.end_log_block()
         return wbs
 
@@ -1238,20 +1807,44 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return wbs
 
-    def query_workbooks_json(self, username_or_luid=None, page_number=None):
+    def query_workbooks_json(self, username_or_luid=None, project_name_or_luid=None, all_fields=True,
+                             created_at_filter=None, updated_at_filter=None, owner_name_filter=None,
+                             tags_filter=None, sorts=None, fields=None, page_number=None):
         """
         :type username_or_luid: unicode
+        :type all_fields: bool
+        :type created_at_filter: UrlFilter
+        :type updated_at_filter: UrlFilter
+        :type owner_name_filter: UrlFilter
+        :type tags_filter: UrlFilter
+        :type sorts: list[Sort]
+        :type fields: list[unicode]
         :type page_number: int
         :rtype: json
         """
         self.start_log_block()
+        if fields is None:
+            if all_fields is True:
+                fields = ['_all_']
+
         if username_or_luid is None:
             user_luid = self.user_luid
         elif self.is_luid(username_or_luid):
             user_luid = username_or_luid
         else:
             user_luid = self.query_user_luid(username_or_luid)
-        wbs = self.query_resource_json("users/{}/workbooks".format(user_luid), page_number=page_number)
+
+        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter,
+                         'ownerName': owner_name_filter}
+        filters = self._check_filter_objects(filter_checks)
+
+        if username_or_luid is not None:
+            wbs = self.query_resource_json("users/{}/workbooks".format(user_luid), sorts=sorts, filters=filters,
+                                           fields=fields, page_number=page_number)
+        else:
+            wbs = self.query_resource_json("workbooks".format(user_luid), sorts=sorts, filters=filters, fields=fields,
+                                           page_number=page_number)
+
         self.end_log_block()
         return wbs
 
@@ -1472,28 +2065,58 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return conns
 
-    def query_views(self, usage=False):
+    def query_views(self, all_fields=True, usage=False, created_at_filter=None, updated_at_filter=None,
+                    tags_filter=None, sorts=None, fields=None):
         """
         :type usage: bool
+        :type created_at_filter: UrlFilter
+        :type updated_at_filter: UrlFilter
+        :type tags_filter: UrlFilter
+        :type sorts: list[Sort]
+        :type fields: list[unicode]
         :rtype: etree.Element
         """
         self.start_log_block()
+
+        if fields is None:
+            if all_fields is True:
+                fields = ['_all_']
+
         if usage not in [True, False]:
             raise InvalidOptionException('Usage can only be set to True or False')
-        vws = self.query_resource("views?includeUsageStatistics={}".format(str(usage).lower()))
+        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter}
+        filters = self._check_filter_objects(filter_checks)
+
+        vws = self.query_resource("views", filters=filters, sorts=sorts, fields=fields,
+                                  additional_url_ending="includeUsageStatistics={}".format(str(usage).lower()))
         self.end_log_block()
         return vws
 
-    def query_views_json(self, usage=False, page_number=None):
+    def query_views_json(self, all_fields=True, usage=False, created_at_filter=None, updated_at_filter=None,
+                    tags_filter=None, sorts=None, fields=None, page_number=None):
         """
         :type usage: bool
+        :type created_at_filter: UrlFilter
+        :type updated_at_filter: UrlFilter
+        :type tags_filter: UrlFilter
+        :type sorts: list[Sort]
+        :type fields: list[unicode]
+        :type page_number: int
         :rtype: json
         """
         self.start_log_block()
+
+        if fields is None:
+            if all_fields is True:
+                fields = ['_all_']
+
         if usage not in [True, False]:
             raise InvalidOptionException('Usage can only be set to True or False')
-        vws = self.query_resource_json("views?includeUsageStatistics={}".format(str(usage).lower()),
-                                       page_number=page_number)
+        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter}
+        filters = self._check_filter_objects(filter_checks)
+
+        vws = self.query_resource_json("views", filters=filters, sorts=sorts, fields=fields,
+                                  additional_url_ending="includeUsageStatistics={}".format(str(usage).lower()))
         self.end_log_block()
         return vws
 
@@ -1646,11 +2269,14 @@ class TableauRestApiConnection(TableauBase):
             raise
 
     # Do not include file extension. Without filename, only returns the response
-    def download_datasource(self, ds_name_or_luid, filename_no_extension, proj_name_or_luid=None):
+    # Do not include file extension. Without filename, only returns the response
+    def download_datasource(self, ds_name_or_luid, filename_no_extension, proj_name_or_luid=None,
+                            include_extract=True):
         """"
         :type ds_name_or_luid: unicode
         :type filename_no_extension: unicode
         :type proj_name_or_luid: unicode
+        :type include_extract: bool
         :return Filename of the saved file
         :rtype: unicode
         """
@@ -1660,7 +2286,10 @@ class TableauRestApiConnection(TableauBase):
         else:
             ds_luid = self.query_datasource_luid(ds_name_or_luid, project_name_or_luid=proj_name_or_luid)
         try:
-            url = self.build_api_url("datasources/{}/content".format(ds_luid))
+            if include_extract is False:
+                url = self.build_api_url("datasources/{}/content?includeExtract=False".format(ds_luid))
+            else:
+                url = self.build_api_url("datasources/{}/content".format(ds_luid))
             ds = self.send_binary_get_request(url)
             extension = None
             if self._last_response_content_type.find('application/xml') != -1:
@@ -1693,11 +2322,12 @@ class TableauRestApiConnection(TableauBase):
 
     # Do not include file extension, added automatically. Without filename, only returns the response
     # Use no_obj_return for save without opening and processing
-    def download_workbook(self, wb_name_or_luid, filename_no_extension, proj_name_or_luid=None):
+    def download_workbook(self, wb_name_or_luid, filename_no_extension, proj_name_or_luid=None, include_extract=True):
         """
         :type wb_name_or_luid: unicode
         :type filename_no_extension: unicode
         :type proj_name_or_luid: unicode
+        :type include_extract: bool
         :return Filename of the save workbook
         :rtype: unicode
         """
@@ -1707,7 +2337,10 @@ class TableauRestApiConnection(TableauBase):
         else:
             wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
         try:
-            url = self.build_api_url("workbooks/{}/content".format(wb_luid))
+            if include_extract is False:
+                url = self.build_api_url("workbooks/{}/content?includeExtract=False".format(wb_luid))
+            else:
+                url = self.build_api_url("workbooks/{}/content".format(wb_luid))
             wb = self.send_binary_get_request(url)
             extension = None
             if self._last_response_content_type.find('application/xml') != -1:
@@ -2128,6 +2761,36 @@ class TableauRestApiConnection(TableauBase):
     # End Add methods
     #
 
+    def query_user_favorites(self, username_or_luid):
+        """
+        :type username_or_luid: unicode
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if self.is_luid(username_or_luid):
+            user_luid = username_or_luid
+        else:
+            user_luid = self.query_user_luid(username_or_luid)
+        favorites = self.query_resource("favorites/{}/".format(user_luid))
+
+        self.end_log_block()
+        return favorites
+
+    def query_user_favorites_json(self, username_or_luid, page_number=None):
+        """
+        :type username_or_luid: unicode
+        :rtype: json
+        """
+        self.start_log_block()
+        if self.is_luid(username_or_luid):
+            user_luid = username_or_luid
+        else:
+            user_luid = self.query_user_luid(username_or_luid)
+        favorites = self.query_resource_json("favorites/{}/".format(user_luid), page_number=page_number)
+
+        self.end_log_block()
+        return favorites
+
     #
     # Start Update Methods
     #
@@ -2295,12 +2958,13 @@ class TableauRestApiConnection(TableauBase):
 
     # Simplest method
     def update_project(self, name_or_luid, new_project_name=None, new_project_description=None,
-                       locked_permissions=None):
+                       locked_permissions=None, publish_samples=False):
         """
         :type name_or_luid: unicode
         :type new_project_name: unicode
         :type new_project_description: unicode
         :type locked_permissions: bool
+        :type publish_samples: bool
         :rtype: Project21
         """
         self.start_log_block()
@@ -2323,6 +2987,9 @@ class TableauRestApiConnection(TableauBase):
         tsr.append(p)
 
         url = self.build_api_url("projects/{}".format(project_luid))
+        if publish_samples is True:
+            url += '?publishSamples=true'
+
         response = self.send_update_request(url, tsr)
         self.end_log_block()
         return self.get_published_project_object(project_luid, response)
@@ -3344,12 +4011,13 @@ class TableauRestApiConnection(TableauBase):
         # Do not include file extension. Without filename, only returns the response
 
     def download_datasource_revision(self, ds_name_or_luid, revision_number, filename_no_extension,
-                                     proj_name_or_luid=None):
+                                     proj_name_or_luid=None, include_extract=True):
         """
         :type ds_name_or_luid: unicode
         :type revision_number: int
         :type filename_no_extension: unicode
         :type proj_name_or_luid: unicode
+        :type include_extract: bool
         :rtype: unicode
         """
         self.start_log_block()
@@ -3358,7 +4026,13 @@ class TableauRestApiConnection(TableauBase):
         else:
             ds_luid = self.query_datasource_luid(ds_name_or_luid, proj_name_or_luid)
         try:
-            url = self.build_api_url("datasources/{}/revisions/{}/content".format(ds_luid, str(revision_number)))
+
+            if include_extract is False:
+                url = self.build_api_url("datasources/{}/revisions/{}/content?includeExtract=False".format(ds_luid,
+                                                                                                            str(revision_number)))
+            else:
+                url = self.build_api_url(
+                    "datasources/{}/revisions/{}/content".format(ds_luid, str(revision_number)))
             ds = self.send_binary_get_request(url)
             extension = None
             if self._last_response_content_type.find('application/xml') != -1:
@@ -3369,7 +4043,7 @@ class TableauRestApiConnection(TableauBase):
                 raise IOError('File extension could not be determined')
         except RecoverableHTTPException as e:
             self.log("download_datasource resulted in HTTP error {}, Tableau Code {}".format(e.http_code,
-                                                                                             e.tableau_error_code))
+                                                                                              e.tableau_error_code))
             self.end_log_block()
             raise
         except:
@@ -3394,12 +4068,13 @@ class TableauRestApiConnection(TableauBase):
         # Use no_obj_return for save without opening and processing
 
     def download_workbook_revision(self, wb_name_or_luid, revision_number, filename_no_extension,
-                                   proj_name_or_luid=None):
+                                   proj_name_or_luid=None, include_extract=True):
         """
         :type wb_name_or_luid: unicode
         :type revision_number: int
         :type filename_no_extension: unicode
         :type proj_name_or_luid: unicode
+        :type include_extract: bool
         :rtype: unicode
         """
         self.start_log_block()
@@ -3408,7 +4083,11 @@ class TableauRestApiConnection(TableauBase):
         else:
             wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
         try:
-            url = self.build_api_url("workbooks/{}/revisions/{}/content".format(wb_luid, str(revision_number)))
+            if include_extract is False:
+                url = self.build_api_url("workbooks/{}/revisions/{}/content?includeExtract=False".format(wb_luid,
+                                                                                                          str(revision_number)))
+            else:
+                url = self.build_api_url("workbooks/{}/revisions/{}/content".format(wb_luid, str(revision_number)))
             wb = self.send_binary_get_request(url)
             extension = None
             if self._last_response_content_type.find('application/xml') != -1:
@@ -3419,7 +4098,7 @@ class TableauRestApiConnection(TableauBase):
                 raise IOError('File extension could not be determined')
         except RecoverableHTTPException as e:
             self.log("download_workbook resulted in HTTP error {}, Tableau Code {}".format(e.http_code,
-                                                                                           e.tableau_error_code))
+                                                                                            e.tableau_error_code))
             self.end_log_block()
             raise
         except:
