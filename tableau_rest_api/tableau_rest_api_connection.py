@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+from typing import Union, Any, Optional
 
 from ..tableau_base import *
 from ..tableau_documents.tableau_file import TableauFile
@@ -27,20 +28,20 @@ class TableauRestApiConnection(TableauBase):
             raise InvalidOptionException('Server URL must include http:// or https://')
 
         etree.register_namespace('t', self.ns_map['t'])
-        self.server = server
-        self.site_content_url = site_content_url
-        self.username = username
-        self._password = password
-        self._token = None  # Holds the login token from the Sign In call
-        self.site_luid = ""
-        self.user_luid = ""
-        self._login_as_user_id = None
+        self.server: str = server
+        self.site_content_url: str = site_content_url
+        self.username: str = username
+        self._password: str = password
+        self._token: str = ""  # Holds the login token from the Sign In call
+        self.site_luid: str = ""
+        self.user_luid: str = ""
+        self._login_as_user_id: str = ""
         self._last_error = None
-        self.logger = None
+        self.logger: Optional[Logger] = None
         self._last_response_content_type = None
 
-        self._request_obj = None  # type: RestXmlRequest
-        self._request_json_obj = None  # type: RestJsonRequest
+        self._request_obj: Optional[RestXmlRequest] = None
+        self._request_json_obj: Optional[RestJsonRequest] = None
 
         # All defined in TableauBase superclass
         self._site_roles = self.site_roles
@@ -94,7 +95,7 @@ class TableauRestApiConnection(TableauBase):
     # REST API Helper Methods
     #
 
-    def build_api_url(self, call, server_level=False):
+    def build_api_url(self, call: str, server_level: bool = False) -> str:
         if server_level is True:
             return "{}/api/{}/{}".format(self.server, self.api_version, call)
         else:
