@@ -1089,10 +1089,7 @@ class TableauRestApiConnection(TableauBase):
         :rtype: etree.Element
         """
         self.start_log_block()
-        if self.is_luid(group_name_or_luid):
-            luid = group_name_or_luid
-        else:
-            luid = self.query_group_luid(group_name_or_luid)
+        luid = self.query_group_luid(group_name_or_luid)
         users = self.query_resource("groups/{}/users".format(luid))
         self.end_log_block()
         return users
@@ -2488,28 +2485,13 @@ class TableauRestApiConnection(TableauBase):
                                              new_content_url)
 
     # Take a single user_luid string or a collection of luid_strings
-    def add_users_to_group(self, username_or_luid_s, group_name_or_luid):
-        """
-        :type username_or_luid_s: list[unicode] or unicode
-        :type group_name_or_luid: unicode
-        :rtype: unicode
-        """
+    def add_users_to_group(self, username_or_luid_s: list[str], group_name_or_luid: str) -> return etree.Element:
         self.start_log_block()
-        group_name = ""
-        if self.is_luid(group_name_or_luid):
-            group_luid = group_name_or_luid
-        else:
-            group_name = group_name_or_luid
-            group_luid = self.query_group_luid(group_name_or_luid)
+        group_luid = self.query_group_luid(group_name_or_luid)
 
         users = self.to_list(username_or_luid_s)
         for user in users:
-            username = ""
-            if self.is_luid(user):
-                user_luid = user
-            else:
-                username = user
-                user_luid = self.query_user_luid(user)
+            user_luid = self.query_user_luid(user)
 
             tsr = etree.Element("tsRequest")
             u = etree.Element("user")
@@ -2518,25 +2500,18 @@ class TableauRestApiConnection(TableauBase):
 
             url = self.build_api_url("groups/{}/users/".format(group_luid))
             try:
-                self.log("Adding username {}, ID {} to group {}, ID {}".format(username, user_luid, group_name, group_luid))
-                self.send_add_request(url, tsr)
+                self.log("Adding username ID {} to group ID {}".format(user_luid, group_luid))
+                result = self.send_add_request(url, tsr)
+                return result
             except RecoverableHTTPException as e:
                 self.log("Recoverable HTTP exception {} with Tableau Error Code {}, skipping".format(str(e.http_code), e.tableau_error_code))
         self.end_log_block()
 
     # Tags can be scalar string or list
-    def add_tags_to_workbook(self, wb_name_or_luid, tag_s, proj_name_or_luid=None):
-        """
-        :type wb_name_or_luid: unicode
-        :type tag_s: list[unicode]
-        :type proj_name_or_luid: unicode
-        :rtype: unicode
-        """
+    def add_tags_to_workbook(self, wb_name_or_luid: str, tag_s: list[str],
+                             proj_name_or_luid: Optional[str] = None) -> etree.Element:
         self.start_log_block()
-        if self.is_luid(wb_name_or_luid):
-            wb_luid = wb_name_or_luid
-        else:
-            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
+        wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
         url = self.build_api_url("workbooks/{}/tags".format(wb_luid))
 
         tsr = etree.Element("tsRequest")
@@ -2552,24 +2527,11 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return tag_response
 
-    def add_workbook_to_user_favorites(self, favorite_name, wb_name_or_luid, username_or_luid, proj_name_or_luid=None):
-        """
-        :type favorite_name: unicode
-        :type wb_name_or_luid: unicode
-        :type username_or_luid: unicode
-        :type proj_name_or_luid: unicode
-        :rtype: etree.Element
-        """
+    def add_workbook_to_user_favorites(self, favorite_name: str, wb_name_or_luid: str,
+                                       username_or_luid: str, proj_name_or_luid: Optional[str] = None) -> etree.Element:
         self.start_log_block()
-        if self.is_luid(wb_name_or_luid):
-            wb_luid = wb_name_or_luid
-        else:
-            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
-
-        if self.is_luid(username_or_luid):
-            user_luid = username_or_luid
-        else:
-            user_luid = self.query_user_luid(username_or_luid)
+        wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
+        user_luid =  self.query_user_luid(username_or_luid)
 
         tsr = etree.Element('tsRequest')
         f = etree.Element('favorite')
@@ -2584,17 +2546,10 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return update_response
 
-    def add_view_to_user_favorites(self, favorite_name, username_or_luid, view_name_or_luid=None, view_content_url=None,
-                                   wb_name_or_luid=None, proj_name_or_luid=None):
-        """
-        :type favorite_name: unicode
-        :type username_or_luid: unicode
-        :type view_name_or_luid: unicode
-        :type view_content_url: unicode
-        :type wb_name_or_luid: unicode
-        :type proj_name_or_luid: unicode
-        :rtype: etree.Element
-        """
+    def add_view_to_user_favorites(self, favorite_name: str, username_or_luid: str,
+                                   view_name_or_luid: Optional[str]= None, view_content_url: Optional[str] = None,
+                                   wb_name_or_luid: Optional[str] = None,
+                                   proj_name_or_luid: Optional[str] = None) -> etree.Element:
         self.start_log_block()
         if self.is_luid(view_name_or_luid):
             view_luid = view_name_or_luid
@@ -2605,10 +2560,7 @@ class TableauRestApiConnection(TableauBase):
                                                       proj_name_or_luid, username_or_luid)
             self.log('View luid found {}'.format(view_luid))
 
-        if self.is_luid(username_or_luid):
-            user_luid = username_or_luid
-        else:
-            user_luid = self.query_user_luid(username_or_luid)
+        user_luid = self.query_user_luid(username_or_luid)
         tsr = etree.Element('tsRequest')
         f = etree.Element('favorite')
         f.set('label', favorite_name)
