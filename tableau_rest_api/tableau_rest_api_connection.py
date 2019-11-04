@@ -382,6 +382,29 @@ class TableauRestApiConnection(TableauBase):
             self.end_log_block()
             raise NoMatchFoundException("No {} found with name or luid {}".format(element_name, name_or_luid))
 
+    def query_luid_from_name(self, content_type: str, name: str, content_url: bool = False) -> str:
+        self.start_log_block()
+        # Some endpoints have an API filter method:
+        content_url_endpoints = ['workbook', 'datasource']
+        if content_url is True:
+            if content_type not in content_url_endpoints:
+                raise InvalidOptionException('Only workbook and datasource can be used as content_type when searching via content_url')
+        filterable_endpoints = ['project', 'workbook', 'datasource']  # complete this outy
+        if content_type in filterable_endpoints and content_url is False:
+            luid = self.query_single_element_luid_from_endpoint_with_filter(element_name=content_type, name=name)
+        else:
+            if content_url is False:
+                luid = self.query_single_element_luid_by_name_from_endpoint(element_name=content_type, name=name)
+            # Enable when that method is writtne
+            #else:
+            #    luid = self.query_luid_from_content_url(content_type=content_type, content_url=content_url)
+        self.end_log_block()
+        return luid
+
+    # Build this out because sometimes it is the thing you need to search for with Workbooks or Data Sources
+    def query_luid_from_content_url(self, content_type: str, content_url: str) -> str:
+        pass
+
     def query_single_element_luid_from_endpoint_with_filter(self, element_name: str, name: str,
                                                             optimize_with_field: bool = False) -> str:
         self.start_log_block()
@@ -392,6 +415,22 @@ class TableauRestApiConnection(TableauBase):
         if len(elements) == 1:
             self.end_log_block()
             return elements[0].get("id")
+        else:
+            self.end_log_block()
+            raise NoMatchFoundException("No {} found with name {}".format(element_name, name))
+
+    def query_single_element_luid_by_name_from_endpoint(self, element_name: str, name: str,
+                                                        server_level: bool = False) -> str:
+        self.start_log_block()
+        elements = self.query_resource("{}s".format(element_name), server_level=server_level)
+        # Groups have a cache within tableau_tools
+        if element_name == 'group':
+            for e in elements:
+                self.group_name_luid_cache[e.get('name')] = e.get('id')
+        element = elements.findall('.//t:{}[@name="{}"]'.format(element_name, name), self.ns_map)
+        if len(element) == 1:
+            self.end_log_block()
+            return element[0].get("id")
         else:
             self.end_log_block()
             raise NoMatchFoundException("No {} found with name {}".format(element_name, name))
@@ -472,20 +511,7 @@ class TableauRestApiConnection(TableauBase):
             self.end_log_block()
             raise NoMatchFoundException("No {} found with name or luid {}".format(element_name, name_or_luid))
 
-    def query_single_element_luid_by_name_from_endpoint(self, element_name: str, name: str,
-                                                        server_level: bool = False) -> str:
-        self.start_log_block()
-        elements = self.query_resource("{}s".format(element_name), server_level=server_level)
-        if element_name == 'group':
-            for e in elements:
-                self.group_name_luid_cache[e.get('name')] = e.get('id')
-        element = elements.findall('.//t:{}[@name="{}"]'.format(element_name, name), self.ns_map)
-        if len(element) == 1:
-            self.end_log_block()
-            return element[0].get("id")
-        else:
-            self.end_log_block()
-            raise NoMatchFoundException("No {} found with name {}".format(element_name, name))
+
 
     def send_post_request(self, url: str) -> etree.Element:
         self.start_log_block()
