@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-from typing import Union, Any, Optional
+from typing import Union, Any, Optional, List
 
 from ..tableau_base import *
 from ..tableau_documents.tableau_file import TableauFile
@@ -11,12 +11,14 @@ from ..tableau_exceptions import *
 from .rest_xml_request import RestXmlRequest
 from .rest_json_request import RestJsonRequest
 from .published_content import Project20, Project21, Project28, Workbook, Datasource
+from .url_filter import *
+from .sort import *
 import copy
 
 
 class TableauRestApiConnection(TableauBase):
     # Defines a class that represents a RESTful connection to Tableau Server. Use full URL (http:// or https://)
-    def __init__(self, server, username, password, site_content_url=""):
+    def __init__(self, server: str, username: str, password: str, site_content_url: str =""):
         """
         :type server: unicode
         :type username: unicode
@@ -59,26 +61,21 @@ class TableauRestApiConnection(TableauBase):
         self.set_tableau_server_version("10.3")
 
     @property
-    def token(self):
+    def token(self) -> str:
         return self._token
 
     @token.setter
-    def token(self, new_token):
+    def token(self, new_token: str):
         self._token = new_token
         if self._request_obj is not None:
             self._request_obj.token = self._token
         if self._request_json_obj is not None:
             self._request_json_obj.token = self._token
 
-    def enable_logging(self, logger_obj):
-        """
-        :type logger_obj: Logger
-        :return:
-        """
-        if isinstance(logger_obj, Logger):
-            self.logger = logger_obj
-            if self._request_obj is not None:
-                self._request_obj.enable_logging(logger_obj)
+    def enable_logging(self, logger_obj: Logger):
+        self.logger = logger_obj
+        if self._request_obj is not None:
+            self._request_obj.enable_logging(logger_obj)
 
     #
     # Object helpers and setter/getters
@@ -117,21 +114,11 @@ class TableauRestApiConnection(TableauBase):
     # Internal REST API Helpers (mostly XML definitions that are reused between methods)
     #
     @staticmethod
-    def build_site_request_xml(site_name=None, content_url=None, admin_mode=None, user_quota=None,
-                               storage_quota=None, disable_subscriptions=None, state=None,
-                               revision_history_enabled=None, revision_limit=None):
-        """
-        :type site_name: unicode
-        :type content_url: unicode
-        :type admin_mode: unicode
-        :type user_quota: unicode
-        :type storage_quota: unicode
-        :type disable_subscriptions: bool
-        :type state: unicode
-        :type revision_history_enabled: bool
-        :type revision_limit: unicode
-        :rtype: unicode
-        """
+    def build_site_request_xml(site_name: Optional[str] = None, content_url: Optional[str] = None,
+                               admin_mode: Optional[str] = None, user_quota: Optional[str] = None,
+                               storage_quota: Optional[str] = None, disable_subscriptions: Optional[bool] = None,
+                               state: Optional[str] = None,
+                               revision_history_enabled: Optional[bool] = None, revision_limit: Optional[str] = None):
         tsr = etree.Element("tsRequest")
         s = etree.Element('site')
 
@@ -158,13 +145,7 @@ class TableauRestApiConnection(TableauBase):
         return tsr
 
     # This is specifically for replication from one site to another
-    def build_request_from_response(self, request):
-        """
-        :type request: etree.Element
-        :rtype: etree.Element
-        :return response
-        """
-
+    def build_request_from_response(self, request: etree.Element) -> etree.Element:
         tsr = etree.Element('tsRequest')
         request_copy = copy.deepcopy(request)
         # If the object happens to include the tsResponse root tag, strip it out
@@ -182,16 +163,10 @@ class TableauRestApiConnection(TableauBase):
         return tsr
 
     @staticmethod
-    def __build_connection_update_xml(new_server_address=None, new_server_port=None,
-                                      new_connection_username=None, new_connection_password=None):
-        """
-        :type new_server_address: unicode
-        :type new_server_port: unicode
-        :type new_connection_username: unicode
-        :type new_connection_password: unicode
-        :rtype:
-        """
-
+    def __build_connection_update_xml(new_server_address: Optional[str] = None,
+                                      new_server_port: Optional[str] = None,
+                                      new_connection_username: Optional[str] = None,
+                                      new_connection_password: Optional[str] = None) -> etree.Element:
         tsr = etree.Element('tsRequest')
         c = etree.Element("connection")
         if new_server_address is not None:
@@ -208,12 +183,8 @@ class TableauRestApiConnection(TableauBase):
     #
     # Factory methods for PublishedContent and Permissions objects
     #
-    def get_published_project_object(self, project_name_or_luid, project_xml_obj=None):
-        """
-        :type project_name_or_luid: unicode
-        :type project_xml_obj: project_xml_obj
-        :rtype: Project21
-        """
+    def get_published_project_object(self, project_name_or_luid: str,
+                                     project_xml_obj: Optional[etree.Element] = None) -> Project21:
         if self.is_luid(project_name_or_luid):
             luid = project_name_or_luid
         else:
@@ -221,12 +192,8 @@ class TableauRestApiConnection(TableauBase):
         proj_obj = Project21(luid, self, self.version, self.logger, content_xml_obj=project_xml_obj)
         return proj_obj
 
-    def get_published_workbook_object(self, workbook_name_or_luid, project_name_or_luid=None):
-        """
-        :type project_name_or_luid: unicode
-        :type workbook_name_or_luid: unicode
-        :rtype: wb_obj:Workbook
-        """
+    def get_published_workbook_object(self, workbook_name_or_luid: str,
+                                      project_name_or_luid: Optional[str] = None) -> Workbook:
         if self.is_luid(workbook_name_or_luid):
             luid = workbook_name_or_luid
         else:
@@ -234,13 +201,8 @@ class TableauRestApiConnection(TableauBase):
         wb_obj = Workbook(luid, self, tableau_server_version=self.version, default=False, logger_obj=self.logger)
         return wb_obj
 
-    def get_published_datasource_object(self, datasource_name_or_luid, project_name_or_luid=None):
-        """
-        :param project_name_or_luid:
-        :param datasource_name_or_luid:
-        :type datasource_name_or_luid: unicode
-        :rtype: ds_obj:Datasource
-        """
+    def get_published_datasource_object(self, datasource_name_or_luid: str,
+                                        project_name_or_luid: Optional[str] = None) -> Datasource:
         if self.is_luid(datasource_name_or_luid):
             luid = datasource_name_or_luid
         else:
@@ -252,11 +214,7 @@ class TableauRestApiConnection(TableauBase):
     # Sign-in and Sign-out
     #
 
-    def signin(self, user_luid_to_impersonate=None):
-        """
-        :type user_luid_to_impersonate: unicode
-        :rtype:
-        """
+    def signin(self, user_luid_to_impersonate: Optional[str] = None):
         self.start_log_block()
         tsr = etree.Element("tsRequest")
         c = etree.Element("credentials")
@@ -302,13 +260,7 @@ class TableauRestApiConnection(TableauBase):
         self._request_obj.xml_request = None
         self.end_log_block()
 
-    def swap_token(self, site_luid, user_luid, token):
-        """
-        :type token: unicode
-        :type site_luid: unicode
-        :type user_luid: unicode
-        :return:
-        """
+    def swap_token(self, site_luid: str, user_luid: str, token: str):
         self.start_log_block()
         self.token = token
         self.site_luid = site_luid
@@ -321,11 +273,7 @@ class TableauRestApiConnection(TableauBase):
             self._request_obj.token = self.token
         self.end_log_block()
 
-    def signout(self, session_token=None):
-        """
-        :type session_token: unicode
-        :rtype:
-        """
+    def signout(self, session_token: Optional[str] = None):
         self.start_log_block()
         url = self.build_api_url("auth/signout", server_level=True)
         self.log('Logging out via: {}'.format(url))
@@ -347,17 +295,9 @@ class TableauRestApiConnection(TableauBase):
     #
 
     # baseline method for any get request. appends to base url
-    def query_resource(self, url_ending, server_level=False, filters=None, sorts=None, additional_url_ending=None,
-                       fields=None):
-        """
-        :type url_ending: unicode
-        :type server_level: bool
-        :type filters: list[UrlFilter]
-        :type sorts: list[Sort]
-        :type additional_url_ending: unicode
-        :type fields: list[unicode]
-        :rtype: etree.Element
-        """
+    def query_resource(self, url_ending: str, server_level:bool = False, filters: Optional[list[UrlFilter]] = None,
+                       sorts: Optional[list[Sort]] = None, additional_url_ending: Optional[str] = None,
+                       fields: Optional[list[str]] = None) -> etree.Element:
         self.start_log_block()
         url_endings = []
         if filters is not None:
@@ -403,13 +343,9 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return xml
 
-    def query_elements_from_endpoint_with_filter(self, element_name, name_or_luid=None, all_fields=True):
-        """
-        :type element_name: unicode
-        :type name_or_luid: unicode
-        :type all_fields: bool
-        :rtype: etree.Element
-        """
+    def query_elements_from_endpoint_with_filter(self, element_name: str, name_or_luid: Optional[str] = None,
+                                                 all_fields: bool = True) -> etree.Element:
+
         self.start_log_block()
         # A few elements have singular endpoints
         singular_endpoints = ['workbook', 'user', 'datasource', 'site']
@@ -433,13 +369,9 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return elements
 
-    def query_single_element_from_endpoint_with_filter(self, element_name, name_or_luid=None, all_fields=True):
-        """
-        :type element_name: unicode
-        :type name_or_luid: unicode
-        :type all_fields: bool
-        :rtype: etree.Element
-        """
+    def query_single_element_from_endpoint_with_filter(self, element_name: str,
+                                                       name_or_luid: Optional[str] = None,
+                                                       all_fields: bool = True) -> etree.Element:
         self.start_log_block()
         elements = self.query_elements_from_endpoint_with_filter(element_name, name_or_luid, all_fields=all_fields)
 
@@ -450,13 +382,8 @@ class TableauRestApiConnection(TableauBase):
             self.end_log_block()
             raise NoMatchFoundException("No {} found with name or luid {}".format(element_name, name_or_luid))
 
-    def query_single_element_luid_from_endpoint_with_filter(self, element_name, name, optimize_with_field=False):
-        """
-        :type element_name: unicode
-        :type name: unicode
-        :type optimize_with_field: bool
-        :rtype: unicode
-        """
+    def query_single_element_luid_from_endpoint_with_filter(self, element_name: str, name: str,
+                                                            optimize_with_field: bool = False) -> str:
         self.start_log_block()
         if optimize_with_field is True:
             elements = self.query_resource("{}s?filter=name:eq:{}&fields=id".format(element_name, name))
@@ -470,18 +397,10 @@ class TableauRestApiConnection(TableauBase):
             raise NoMatchFoundException("No {} found with name {}".format(element_name, name))
 
     # baseline method for any get request. appends to base url
-    def query_resource_json(self, url_ending, server_level=False, filters=None, sorts=None, additional_url_ending=None,
-                            fields=None, page_number=None):
-        """
-        :type url_ending: unicode
-        :type server_level: bool
-        :type filters: list[UrlFilter]
-        :type sorts: list[Sort]
-        :type additional_url_ending: unicode
-        :type fields: list[unicode]
-        :type page_number: int
-        :rtype: json
-        """
+    def query_resource_json(self, url_ending: str, server_level: bool = False,
+                            filters: Optional[list[UrlFilter]] = None,
+                            sorts: Optional[list[Sort]] = None, additional_url_ending: str = None,
+                            fields: Optional[list[str]] = None, page_number: Optional[int] = None) -> str:
         self.start_log_block()
         url_endings = []
         if filters is not None:
@@ -529,13 +448,9 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return json_response
 
-    def query_single_element_from_endpoint(self, element_name, name_or_luid, server_level=False):
-        """
-        :type element_name: unicode
-        :type name_or_luid: unicode
-        :type server_level: bool
-        :rtype: etree.Element
-        """
+    def query_single_element_from_endpoint(self, element_name: str, name_or_luid: str,
+                                           server_level: bool = False) -> etree.Element:
+
         self.start_log_block()
         # A few elements have singular endpoints
         singular_endpoints = ['workbook', 'user', 'datasource', 'site']
@@ -557,7 +472,8 @@ class TableauRestApiConnection(TableauBase):
             self.end_log_block()
             raise NoMatchFoundException("No {} found with name or luid {}".format(element_name, name_or_luid))
 
-    def query_single_element_luid_by_name_from_endpoint(self, element_name, name, server_level=False):
+    def query_single_element_luid_by_name_from_endpoint(self, element_name: str, name: str,
+                                                        server_level: bool = False) -> str:
         self.start_log_block()
         elements = self.query_resource("{}s".format(element_name), server_level=server_level)
         if element_name == 'group':
@@ -571,7 +487,7 @@ class TableauRestApiConnection(TableauBase):
             self.end_log_block()
             raise NoMatchFoundException("No {} found with name {}".format(element_name, name))
 
-    def send_post_request(self, url):
+    def send_post_request(self, url: str) -> etree.Element:
         self.start_log_block()
         self._request_obj.set_response_type('xml')
         self._request_obj.url = url
@@ -582,12 +498,8 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return xml
 
-    def send_add_request(self, url, request):
-        """
-        :type url: unicode
-        :type request: etree.Element
-        :rtype:
-        """
+    def send_add_request(self, url: str, request: etree.Element) -> etree.Element:
+
         self.start_log_block()
 
         self._request_obj.set_response_type('xml')
@@ -602,7 +514,7 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return xml
 
-    def send_update_request(self, url, request):
+    def send_update_request(self, url: str, request: etree.Element) -> etree.Element:
         self.start_log_block()
 
         self._request_obj.set_response_type('xml')
@@ -615,7 +527,7 @@ class TableauRestApiConnection(TableauBase):
         self._request_obj.xml_request = None
         return self._request_obj.get_response()
 
-    def send_delete_request(self, url):
+    def send_delete_request(self, url: str) -> int:
         self.start_log_block()
         self._request_obj.set_response_type('xml')
         self._request_obj.url = url
@@ -636,7 +548,8 @@ class TableauRestApiConnection(TableauBase):
         except:
             raise
 
-    def send_publish_request(self, url, xml_request, content, boundary_string):
+    def send_publish_request(self, url: str, xml_request: etree.Element, content,
+                             boundary_string: str) -> etree.Element:
         self.start_log_block()
 
         self._request_obj.set_response_type('xml')
@@ -653,7 +566,7 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return xml
 
-    def send_append_request(self, url, request, boundary_string):
+    def send_append_request(self, url: str, request, boundary_string: str) -> etree.Element:
         self.start_log_block()
         self._request_obj.set_response_type('xml')
         self._request_obj.url = url
@@ -668,7 +581,7 @@ class TableauRestApiConnection(TableauBase):
         return xml
 
     # Used when the result is not going to be XML and you want to save the raw response as binary
-    def send_binary_get_request(self, url):
+    def send_binary_get_request(self, url: str) -> bytes:
         self.start_log_block()
         self._request_obj.url = url
 

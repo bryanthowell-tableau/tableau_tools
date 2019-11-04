@@ -76,6 +76,6 @@ class TableauRestApiConnection34(TableauRestApiConnection33):
         self.start_log_block()
         image = self._query_data_file('image', view_name_or_luid=view_name_or_luid, high_resolution=high_resolution,
                                       view_filter_map=view_filter_map, wb_name_or_luid=wb_name_or_luid,
-                                      proj_name_or_luid=proj_name_or_luid)
+                                      proj_name_or_luid=proj_name_or_luid, max_age_minutes=max_age_minutes)
         self.end_log_block()
         return image
