@@ -770,10 +770,7 @@ class TableauRestApiConnection(TableauBase):
     # Start Group Query Methods
     #
 
-    def query_groups(self):
-        """
-        :rtype: etree.Element
-        """
+    def query_groups(self) -> etree.Element:
         self.start_log_block()
         groups = self.query_resource("groups")
         for group in groups:
@@ -786,7 +783,7 @@ class TableauRestApiConnection(TableauBase):
 
     # # No basic verb for querying a single group, so run a query_groups
 
-    def query_groups_json(self, page_number=None):
+    def query_groups_json(self, page_number: Optional[int]=None) -> str:
         """
         :type page_number: int
         :rtype: json
@@ -801,11 +798,7 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return groups
 
-    def query_group(self, group_name_or_luid):
-        """
-        :type group_name_or_luid: unicode
-        :rtype: etree.Element
-        """
+    def query_group(self, group_name_or_luid: str) -> etree.Element:
         self.start_log_block()
         group = self.query_single_element_from_endpoint('group', group_name_or_luid)
         # Add to group_name : luid cache
@@ -817,11 +810,7 @@ class TableauRestApiConnection(TableauBase):
         return group
 
     # Groups luckily cannot have the same 'pretty name' on one site
-    def query_group_luid(self, group_name):
-        """
-        :type group_name: unicode
-        :rtype: unicode
-        """
+    def query_group_luid(self, group_name: str) -> str:
         self.start_log_block()
         if group_name in self.group_name_luid_cache:
             group_luid = self.group_name_luid_cache[group_name]
@@ -832,11 +821,7 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return group_luid
 
-    def query_group_name(self, group_luid):
-        """
-        :type group_luid: unicode
-        :rtype: unicode
-        """
+    def query_group_name(self, group_luid: str) -> str:
         self.start_log_block()
         for name, luid in list(self.group_name_luid_cache.items()):
             if luid == group_luid:
@@ -861,36 +846,22 @@ class TableauRestApiConnection(TableauBase):
     # Start Project Querying methods
     #
 
-    def query_projects(self):
-        """
-        :rtype: etree.Element
-        """
+    def query_projects(self) -> etree.Element:
         self.start_log_block()
         projects = self.query_resource("projects")
         self.end_log_block()
         return projects
 
-    def query_projects_json(self, page_number=None):
-        """
-        :type page_number: int
-        :rtype: json
-        """
+    def query_projects_json(self, page_number: Optional[int] = None) -> str:
         self.start_log_block()
         projects = self.query_resource_json("projects", page_number=page_number)
         self.end_log_block()
         return projects
 
-    def create_project(self, project_name=None, project_desc=None, locked_permissions=True, publish_samples=False,
-                       no_return=False, direct_xml_request=None):
-        """
-        :type project_name: unicode
-        :type project_desc: unicode
-        :type locked_permissions: bool
-        :type publish_samples: bool
-        :type no_return: bool
-        :type direct_xml_request: etree.Element
-        :rtype: Project21
-        """
+    def create_project(self, project_name: Optional[str] = None, project_desc: Optional[str] = None,
+                       locked_permissions: bool = True, publish_samples: bool = False,
+                       no_return: Optional[bool] = False,
+                       direct_xml_request: Optional[etree.Element] = None) -> Project21:
         self.start_log_block()
         if direct_xml_request is not None:
             tsr = direct_xml_request
@@ -920,13 +891,9 @@ class TableauRestApiConnection(TableauBase):
                     project_name))
                 self.end_log_block()
                 if no_return is False:
-                    return self.query_project(project_name)
+                    return self.get_published_project_object(project_name_or_luid=project_name)
 
-    def query_project_luid(self, project_name):
-        """
-        :type project_name: unicode
-        :rtype: unicode
-        """
+    def query_project_luid(self, project_name: str) -> str:
         self.start_log_block()
         project_luid = self.query_single_element_luid_by_name_from_endpoint('project', project_name)
         self.end_log_block()
@@ -2504,7 +2471,7 @@ class TableauRestApiConnection(TableauBase):
                 self.log('Project named {} already exists, finding and returning the Published Project Object'.format(project_name))
                 self.end_log_block()
                 if no_return is False:
-                    return self.query_project(project_name)
+                    return self.get_published_project_object(project_name_or_luid=project_name)
 
     # Both SiteName and ContentUrl must be unique to add a site
     def create_site(self, new_site_name, new_content_url, admin_mode=None, user_quota=None, storage_quota=None,
