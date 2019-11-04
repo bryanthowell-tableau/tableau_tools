@@ -384,6 +384,10 @@ class TableauRestApiConnection(TableauBase):
 
     def query_luid_from_name(self, content_type: str, name: str, content_url: bool = False) -> str:
         self.start_log_block()
+        # If it turns out the name is already a luid, just return it back
+        if self.is_luid(name):
+            return name
+
         # Some endpoints have an API filter method:
         content_url_endpoints = ['workbook', 'datasource']
         if content_url is True:
@@ -405,10 +409,11 @@ class TableauRestApiConnection(TableauBase):
     def query_luid_from_content_url(self, content_type: str, content_url: str) -> str:
         pass
 
-    def query_single_element_luid_from_endpoint_with_filter(self, element_name: str, name: str,
-                                                            optimize_with_field: bool = False) -> str:
+    def query_single_element_luid_from_endpoint_with_filter(self, element_name: str, name: str) -> str:
+        # Double check which can be optimized with the Fields to only bring back id
+        optimizable_fields = ['user', ]
         self.start_log_block()
-        if optimize_with_field is True:
+        if element_name in optimizable_fields:
             elements = self.query_resource("{}s?filter=name:eq:{}&fields=id".format(element_name, name))
         else:
             elements = self.query_resource("{}s?filter=name:eq:{}".format(element_name, name))
@@ -657,10 +662,7 @@ class TableauRestApiConnection(TableauBase):
 
         # If there is a project filter
         if project_name_or_luid is not None:
-            if self.is_luid(project_name_or_luid):
-                project_luid = project_name_or_luid
-            else:
-                project_luid = self.query_project_luid(project_name_or_luid)
+            project_luid = self.query_project_luid(project_name_or_luid)
             dses_in_project = datasources.findall('.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
             dses = etree.Element(self.ns_prefix + 'datasources')
             for ds in dses_in_project:
@@ -842,7 +844,7 @@ class TableauRestApiConnection(TableauBase):
             group_luid = self.group_name_luid_cache[group_name]
             self.log('Found group name {} in cache with luid {}'.format(group_name, group_luid))
         else:
-            group_luid = self.query_single_element_luid_by_name_from_endpoint('group', group_name)
+            group_luid = self.query_luid_from_name(content_type='group', name=group_name)
             self.group_name_luid_cache[group_name] = group_luid
         self.end_log_block()
         return group_luid
@@ -921,20 +923,13 @@ class TableauRestApiConnection(TableauBase):
 
     def query_project_luid(self, project_name: str) -> str:
         self.start_log_block()
-        project_luid = self.query_single_element_luid_by_name_from_endpoint('project', project_name)
+        project_luid = self.query_luid_from_name(content_type='project', name=project_name)
         self.end_log_block()
         return project_luid
 
-    def query_project_xml_object(self, project_name_or_luid):
-        """
-        :param project_name_or_luid: unicode
-        :rtype: etree.Element
-        """
+    def query_project_xml_object(self, project_name_or_luid: str) -> etree.Element:
         self.start_log_block()
-        if self.is_luid(project_name_or_luid):
-            luid = project_name_or_luid
-        else:
-            luid = self.query_project_luid(project_name_or_luid)
+        luid = self.query_project_luid(project_name_or_luid)
         proj_xml = self.query_single_element_from_endpoint('project', luid)
         self.end_log_block()
         return proj_xml
@@ -1001,30 +996,16 @@ class TableauRestApiConnection(TableauBase):
     #
 
     # The reference has this name, so for consistency adding an alias
-    def get_users(self, all_fields=True, last_login_filter=None, site_role_filter=None, sorts=None, fields=None):
-        """
-        :type all_fields: bool
-        :type last_login_filter: UrlFilter
-        :type site_role_filter: UrlFilter
-        :type sorts: list[Sort]
-        :type fields: list[unicode]
-        :rtype: etree.Element
-        """
+    def get_users(self, all_fields: bool = True, last_login_filter: Optional[UrlFilter] = None,
+                  site_role_filter: Optional[UrlFilter] = None, sorts: Optional[list[Sort]] = None,
+                  fields: Optional[list[str]]=None) -> etree.Element:
         return self.query_users(all_fields=all_fields, last_login_filter=last_login_filter,
                                 site_role_filter=site_role_filter, sorts=sorts, fields=fields)
 
 
-    def query_users(self, all_fields=True, last_login_filter=None, site_role_filter=None, sorts=None, fields=None,
-                    username_filter=None):
-        """
-        :type all_fields: bool
-        :type last_login_filter: UrlFilter
-        :type site_role_filter: UrlFilter
-        :type username_filter: UrlFilter
-        :type sorts: list[Sort]
-        :type fields: list[unicode]
-        :rtype: etree.Element
-        """
+    def query_users(self, all_fields: bool = True, last_login_filter: Optional[UrlFilter] = None,
+                  site_role_filter: Optional[UrlFilter] = None, sorts: Optional[list[Sort]] = None,
+                  fields: Optional[list[str]]=None) -> etree.Element:
         self.start_log_block()
         if fields is None:
             if all_fields is True:
@@ -1039,33 +1020,16 @@ class TableauRestApiConnection(TableauBase):
         return users
 
     # The reference has this name, so for consistency adding an alias
-    def get_users_json(self, all_fields=True, last_login_filter=None, site_role_filter=None, sorts=None, fields=None,
-                       page_number=None):
-        """
-        :type all_fields: bool
-        :type last_login_filter: UrlFilter
-        :type site_role_filter: UrlFilter
-        :type sorts: list[Sort]
-        :type fields: list[unicode]
-        :type page_number: int
-        :rtype: json
-        """
+    def get_users_json(self, all_fields: bool = True, last_login_filter: Optional[UrlFilter] = None,
+                  site_role_filter: Optional[UrlFilter] = None, sorts: Optional[list[Sort]] = None,
+                  fields: Optional[list[str]]=None, page_number: Optional[int] = None) -> str:
         return self.query_users_json(all_fields=all_fields, last_login_filter=last_login_filter,
                                 site_role_filter=site_role_filter, sorts=sorts, fields=fields, page_number=page_number)
 
+    def query_users_json(self, all_fields: bool = True, last_login_filter: Optional[UrlFilter] = None,
+                  site_role_filter: Optional[UrlFilter] = None, sorts: Optional[list[Sort]] = None,
+                  fields: Optional[list[str]]=None, page_number: Optional[int] = None) -> str:
 
-    def query_users_json(self, all_fields=True, last_login_filter=None, site_role_filter=None, sorts=None, fields=None,
-                         username_filter=None, page_number=None):
-        """
-        :type all_fields: bool
-        :type last_login_filter: UrlFilter
-        :type site_role_filter: UrlFilter
-        :type username_filter: UrlFilter
-        :type sorts: list[Sort]
-        :type fields: list[unicode]
-        :type page_number: int
-        :rtype: json
-        """
         self.start_log_block()
         if fields is None:
             if all_fields is True:
@@ -1080,12 +1044,7 @@ class TableauRestApiConnection(TableauBase):
         self.end_log_block()
         return users
 
-    def query_user(self, username_or_luid, all_fields=True):
-        """
-        :type username_or_luid: unicode
-        :type all_fields: bool
-        :rtype: etree.Element
-        """
+    def query_user(self, username_or_luid: str, all_fields: bool = True) -> etree.Element:
         self.start_log_block()
         user = self.query_single_element_from_endpoint_with_filter("user", username_or_luid, all_fields=all_fields)
         user_luid = user.get("id")
@@ -1103,8 +1062,7 @@ class TableauRestApiConnection(TableauBase):
         if username in self.username_luid_cache:
             user_luid = self.username_luid_cache[username]
         else:
-            user_luid = self.query_single_element_luid_from_endpoint_with_filter("user", username,
-                                                                                 optimize_with_field=True)
+            user_luid = self.query_luid_from_name(content_type="user", name=username)
             self.username_luid_cache[username] = user_luid
         self.end_log_block()
         return user_luid
