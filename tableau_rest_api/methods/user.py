@@ -106,3 +106,108 @@ class UserMethods(TableauRestApiBase):
     #
     # End User Querying Methods
     #
+    def add_user_by_username(self, username=None, site_role='Unlicensed', auth_setting=None, update_if_exists=False,
+                             direct_xml_request=None):
+        """
+        :type username: unicode
+        :type site_role: unicode
+        :type update_if_exists: bool
+        :type auth_setting: unicode
+        :type direct_xml_request: etree.Element
+        :rtype: unicode
+        """
+        self.start_log_block()
+
+        # Check to make sure role that is passed is a valid role in the API
+        if site_role not in self.site_roles:
+            raise InvalidOptionException("{} is not a valid site role in Tableau Server".format(site_role))
+
+        if auth_setting is not None:
+            if auth_setting not in ['SAML', 'ServerDefault']:
+                raise InvalidOptionException('auth_setting must be either "SAML" or "ServerDefault"')
+        self.log("Adding {}".format(username))
+        if direct_xml_request is not None:
+            tsr = direct_xml_request
+        else:
+            tsr = etree.Element("tsRequest")
+            u = etree.Element("user")
+            u.set("name", username)
+            u.set("siteRole", site_role)
+            if auth_setting is not None:
+                u.set('authSetting', auth_setting)
+            tsr.append(u)
+
+        url = self.build_api_url('users')
+        try:
+            new_user = self.send_add_request(url, tsr)
+            new_user_luid = new_user.findall('.//t:user', self.ns_map)[0].get("id")
+            self.end_log_block()
+            return new_user_luid
+        # If already exists, update site role unless overridden.
+        except RecoverableHTTPException as e:
+            if e.http_code == 409:
+                self.log("Username '{}' already exists on the server".format(username))
+                if update_if_exists is True:
+                    self.log('Updating {} to site role {}'.format(username, site_role))
+                    self.update_user(username, site_role=site_role)
+                    self.end_log_block()
+                    return self.query_user_luid(username)
+                else:
+                    self.end_log_block()
+                    raise AlreadyExistsException('Username already exists ', self.query_user_luid(username))
+        except:
+            self.end_log_block()
+            raise
+
+    # This is "Add User to Site", since you must be logged into a site.
+    # Set "update_if_exists" to True if you want the equivalent of an 'upsert', ignoring the exceptions
+    def add_user(self, username=None, fullname=None, site_role='Unlicensed', password=None, email=None,
+                 auth_setting=None,
+                 update_if_exists=False, direct_xml_request=None):
+        """
+        :type username: unicode
+        :type fullname: unicode
+        :type site_role: unicode
+        :type password: unicode
+        :type email: unicode
+        :type update_if_exists: bool
+        :type auth_setting: unicode
+        :type direct_xml_request: etree.Element
+        :rtype: unicode
+        """
+        self.start_log_block()
+
+        try:
+            # Add username first, then update with full name
+            if direct_xml_request is not None:
+                # Parse to second level, should be
+                new_user_tsr = etree.Element('tsRequest')
+                new_user_u = etree.Element('user')
+                for t in direct_xml_request:
+                    if t.tag != 'user':
+                        raise InvalidOptionException('Must submit a tsRequest with a user element')
+                    for a in t.attrib:
+                        if a in ['name', 'siteRole', 'authSetting']:
+                            new_user_u.set(a, t.attrib[a])
+                new_user_tsr.append(new_user_u)
+                new_user_luid = self.add_user_by_username(direct_xml_request=new_user_tsr)
+
+                update_tsr = etree.Element('tsRequest')
+                update_u = etree.Element('user')
+                for t in direct_xml_request:
+                    for a in t.attrib:
+                        if a in ['fullName', 'email', 'password', 'siteRole', 'authSetting']:
+                            update_u.set(a, t.attrib[a])
+                update_tsr.append(update_u)
+                self.update_user(username_or_luid=new_user_luid, direct_xml_request=update_tsr)
+
+            else:
+                new_user_luid = self.add_user_by_username(username, site_role=site_role,
+                                                          update_if_exists=update_if_exists, auth_setting=auth_setting)
+                self.update_user(new_user_luid, fullname, site_role, password, email)
+            self.end_log_block()
+            return new_user_luid
+        except AlreadyExistsException as e:
+            self.log("Username '{}' already exists on the server; no updates performed".format(username))
+            self.end_log_block()
+            return e.existing_luid

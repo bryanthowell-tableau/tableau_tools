@@ -162,6 +162,8 @@ class DatasourceMethods(TableauRestApiBase):
         self.end_log_block()
         return content_url
 
+    # query_datasource and query_datasource_luid can't be improved because filtering doesn't take a Project Name/LUID
+
     #
     # End Datasource Query Methods
     #
