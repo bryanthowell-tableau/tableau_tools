@@ -212,7 +212,7 @@ class RestJsonRequest(TableauBase):
         self.log(u"Received a {} error, here was response:".format(unicode(status_code)))
         self.log(raw_error_response.decode('utf8'))
 
-        json_obj = json.loads(bytes(raw_error_response), parser='utf-8')
+        json_obj = json.loads(bytes(raw_error_response), encoding='utf8')
         tableau_error = json_obj['error']
         error_code = tableau_error['code']
         detail_text = tableau_error['detail']
