@@ -1,7 +1,7 @@
 from .tableau_rest_api_connection import *
 
 
-class TableauRestApiConnection27(TableauRestApiConnection):
+class TableauRestApiConnection27(TableauRestApiBase):
     def __init__(self, server, username, password, site_content_url=""):
         """
         :type server: unicode
@@ -9,7 +9,7 @@ class TableauRestApiConnection27(TableauRestApiConnection):
         :type password: unicode
         :type site_content_url: unicode
         """
-        TableauRestApiConnection.__init__(self, server, username, password, site_content_url)
+        TableauRestApiBase.__init__(self, server, username, password, site_content_url)
         self.set_tableau_server_version("10.4")
 
     def update_datasource(self, datasource_name_or_luid, datasource_project_name_or_luid=None,
