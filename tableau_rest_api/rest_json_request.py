@@ -212,20 +212,10 @@ class RestJsonRequest(TableauBase):
         self.log(u"Received a {} error, here was response:".format(unicode(status_code)))
         self.log(raw_error_response.decode('utf8'))
 
-        utf8_parser = etree.XMLParser(encoding='utf-8')
-        xml = etree.parse(BytesIO(raw_error_response), parser=utf8_parser)
-        try:
-            tableau_error = xml.findall(u'.//t:error', namespaces=self.ns_map)
-            error_code = tableau_error[0].get('code')
-            tableau_detail = xml.findall(u'.//t:detail', namespaces=self.ns_map)
-            detail_text = tableau_detail[0].text
-        # This is to capture an error from the old API version when doing tests
-        except IndexError:
-            old_ns_map = {'t': 'http://tableausoftware.com/api'}
-            tableau_error = xml.findall(u'.//t:error', namespaces=old_ns_map)
-            error_code = tableau_error[0].get('code')
-            tableau_detail = xml.findall(u'.//t:detail', namespaces=old_ns_map)
-            detail_text = tableau_detail[0].text
+        json_obj = json.loads(BytesIO(raw_error_response), parser='utf-8')
+        tableau_error = json_obj['error']
+        error_code = tableau_error['code']
+        detail_text = tableau_error['detail']
         detail_luid_match_obj = re.search(self.__luid_pattern, detail_text)
         if detail_luid_match_obj:
             detail_luid = detail_luid_match_obj.group(0)
