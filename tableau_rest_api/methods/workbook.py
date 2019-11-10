@@ -272,3 +272,230 @@ class WorkbookMethods(TableauRestApiBase):
             self.send_delete_request(url)
         self.end_log_block()
 
+    # Do not include file extension, added automatically. Without filename, only returns the response
+    # Use no_obj_return for save without opening and processing
+    def download_workbook(self, wb_name_or_luid, filename_no_extension, proj_name_or_luid=None, include_extract=True):
+        """
+        :type wb_name_or_luid: unicode
+        :type filename_no_extension: unicode
+        :type proj_name_or_luid: unicode
+        :type include_extract: bool
+        :return Filename of the save workbook
+        :rtype: unicode
+        """
+        self.start_log_block()
+        if self.is_luid(wb_name_or_luid):
+            wb_luid = wb_name_or_luid
+        else:
+            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
+        try:
+            if include_extract is False:
+                url = self.build_api_url("workbooks/{}/content?includeExtract=False".format(wb_luid))
+            else:
+                url = self.build_api_url("workbooks/{}/content".format(wb_luid))
+            wb = self.send_binary_get_request(url)
+            extension = None
+            if self._last_response_content_type.find('application/xml') != -1:
+                extension = '.twb'
+            elif self._last_response_content_type.find('application/octet-stream') != -1:
+                extension = '.twbx'
+            if extension is None:
+                raise IOError('File extension could not be determined')
+            self.log(
+                'Response type was {} so extension will be {}'.format(self._last_response_content_type, extension))
+        except RecoverableHTTPException as e:
+            self.log("download_workbook resulted in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
+            self.end_log_block()
+            raise
+        except:
+            self.end_log_block()
+            raise
+        try:
+
+            save_filename = filename_no_extension + extension
+
+            save_file = open(save_filename, 'wb')
+            save_file.write(wb)
+            save_file.close()
+
+        except IOError:
+            self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
+            raise
+
+        self.end_log_block()
+        return save_filename
+
+    #
+    # Image and PDF endpoints
+    #
+
+    # You must pass in the wb name because the endpoint needs it (although, you could potentially look up the
+    # workbook LUID from the view LUID
+    def query_view_preview_image(self, wb_name_or_luid, view_name_or_luid,
+                                         proj_name_or_luid=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type view_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type filename_no_extension: unicode
+        :rtype: bytes
+       """
+        self.start_log_block()
+        if self.is_luid(wb_name_or_luid):
+            wb_luid = wb_name_or_luid
+        else:
+            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
+
+        if self.is_luid(view_name_or_luid):
+            view_luid = view_name_or_luid
+        else:
+            view_luid = self.query_workbook_view_luid(wb_name_or_luid, view_name=view_name_or_luid,
+                                                      proj_name_or_luid=proj_name_or_luid)
+        try:
+
+            url = self.build_api_url("workbooks/{}/views/{}/previewImage".format(wb_luid, view_luid))
+            image = self.send_binary_get_request(url)
+
+            self.end_log_block()
+            return image
+
+        # You might be requesting something that doesn't exist
+        except RecoverableHTTPException as e:
+            self.log("Attempt to request preview image results in HTTP error {}, Tableau Code {}".format(e.http_code,
+                                                                                                          e.tableau_error_code))
+            self.end_log_block()
+            raise
+
+
+    # Do not include file extension
+
+    # Just an alias but it matches the naming of the current reference guide (2019.1)
+    def save_view_preview_image(self, wb_name_or_luid, view_name_or_luid, filename_no_extension,
+                                         proj_name_or_luid=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type view_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type filename_no_extension: unicode
+        :rtype:
+        """
+        self.save_workbook_view_preview_image(wb_name_or_luid, view_name_or_luid, filename_no_extension,
+                                         proj_name_or_luid)
+
+    def save_workbook_view_preview_image(self, wb_name_or_luid, view_name_or_luid, filename_no_extension,
+                                         proj_name_or_luid=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type view_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type filename_no_extension: unicode
+        :rtype:
+        """
+        self.start_log_block()
+        image = self.query_view_preview_image(wb_name_or_luid=wb_name_or_luid, view_name_or_luid=view_name_or_luid,
+                                              proj_name_or_luid=proj_name_or_luid)
+        if filename_no_extension.find('.png') == -1:
+            filename_no_extension += '.png'
+        try:
+            save_file = open(filename_no_extension, 'wb')
+            save_file.write(image)
+            save_file.close()
+            self.end_log_block()
+
+        except IOError:
+            self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension))
+            self.end_log_block()
+            raise
+
+    def query_workbook_preview_image(self, wb_name_or_luid, proj_name_or_luid=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :rtype: bytes
+        """
+        self.start_log_block()
+        if self.is_luid(wb_name_or_luid):
+            wb_luid = wb_name_or_luid
+        else:
+            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
+        try:
+
+            url = self.build_api_url("workbooks/{}/previewImage".format(wb_luid))
+            image = self.send_binary_get_request(url)
+            self.end_log_block()
+            return image
+
+        # You might be requesting something that doesn't exist, but unlikely
+        except RecoverableHTTPException as e:
+            self.log("Attempt to request preview image results in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
+            self.end_log_block()
+            raise
+
+
+    # Do not include file extension
+    def save_workbook_preview_image(self, wb_name_or_luid, filename_no_extension, proj_name_or_luid=None):
+        """
+        :type wb_name_or_luid: unicode
+        :param filename_no_extension: Correct extension will be added automatically
+        :type filename_no_extension: unicode
+        :type proj_name_or_luid: unicode
+        :rtype:
+        """
+        self.start_log_block()
+        image = self.query_workbook_preview_image(wb_name_or_luid=wb_name_or_luid, proj_name_or_luid=proj_name_or_luid)
+        if filename_no_extension.find('.png') == -1:
+            filename_no_extension += '.png'
+        try:
+            save_file = open(filename_no_extension, 'wb')
+            save_file.write(image)
+            save_file.close()
+            self.end_log_block()
+
+        except IOError:
+            self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension))
+            self.end_log_block()
+            raise
+
+    #
+    # Tags
+    #
+
+    # Tags can be scalar string or list
+    def add_tags_to_workbook(self, wb_name_or_luid: str, tag_s: List[str],
+                             proj_name_or_luid: Optional[str] = None) -> etree.Element:
+        self.start_log_block()
+        wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
+        url = self.build_api_url("workbooks/{}/tags".format(wb_luid))
+
+        tsr = etree.Element("tsRequest")
+        ts = etree.Element("tags")
+        tags = self.to_list(tag_s)
+        for tag in tags:
+            t = etree.Element("tag")
+            t.set("label", tag)
+            ts.append(t)
+        tsr.append(ts)
+
+        tag_response = self.send_update_request(url, tsr)
+        self.end_log_block()
+        return tag_response
+
+    def delete_tags_from_workbook(self, wb_name_or_luid, tag_s):
+        """
+        :type wb_name_or_luid: unicode
+        :type tag_s: List[unicode] or unicode
+        :rtype: int
+        """
+        self.start_log_block()
+        tags = self.to_list(tag_s)
+        if self.is_luid(wb_name_or_luid):
+            wb_luid = wb_name_or_luid
+        else:
+            wb_luid = self.query_workbook_luid(wb_name_or_luid)
+        deleted_count = 0
+        for tag in tags:
+            url = self.build_api_url("workbooks/{}/tags/{}".format(wb_luid, tag))
+            deleted_count += self.send_delete_request(url)
+        self.end_log_block()
+        return deleted_count
+

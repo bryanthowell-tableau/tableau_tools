@@ -102,3 +102,14 @@ class ExtractMethods(TableauRestApiBase):
         for extract in extracts_for_ds:
             self.run_extract_refresh_task(extract.get('id'))
         self.end_log_block()
+
+    # Checks status of AD sync process or extract
+    def query_job(self, job_luid):
+        """
+        :type job_luid: unicode
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        job = self.query_resource("jobs/{}".format(job_luid))
+        self.end_log_block()
+        return job
