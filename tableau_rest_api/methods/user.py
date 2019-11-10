@@ -211,3 +211,60 @@ class UserMethods(TableauRestApiBase):
             self.log("Username '{}' already exists on the server; no updates performed".format(username))
             self.end_log_block()
             return e.existing_luid
+
+    def update_user(self, username_or_luid, full_name=None, site_role=None, password=None,
+                    email=None, direct_xml_request=None):
+        """
+        :type username_or_luid: unicode
+        :type full_name: unicode
+        :type site_role: unicode
+        :type password: unicode
+        :type email: unicode
+        :type direct_xml_request: etree.Element
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if self.is_luid(username_or_luid):
+            user_luid = username_or_luid
+        else:
+            user_luid = self.query_user_luid(username_or_luid)
+
+        if direct_xml_request is not None:
+            tsr = direct_xml_request
+        else:
+            tsr = etree.Element("tsRequest")
+            u = etree.Element("user")
+            if full_name is not None:
+                u.set('fullName', full_name)
+            if site_role is not None:
+                u.set('siteRole', site_role)
+            if email is not None:
+                u.set('email', email)
+            if password is not None:
+                u.set('password', password)
+            tsr.append(u)
+
+        url = self.build_api_url("users/{}".format(user_luid))
+        response = self.send_update_request(url, tsr)
+        self.end_log_block()
+        return response
+
+    # Can take collection or single user_luid string
+    def remove_users_from_site(self, username_or_luid_s):
+        """
+        :type username_or_luid_s: List[unicode] or unicode
+        :rtype:
+        """
+        self.start_log_block()
+        users = self.to_list(username_or_luid_s)
+        for user in users:
+            username = ""
+            if self.is_luid(user):
+                user_luid = user
+            else:
+                username = user
+                user_luid = self.query_user_luid(user)
+            url = self.build_api_url("users/{}".format(user_luid))
+            self.log('Removing user {}, id {} from site'.format(username, user_luid))
+            self.send_delete_request(url)
+        self.end_log_block()

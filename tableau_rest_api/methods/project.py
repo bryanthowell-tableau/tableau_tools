@@ -106,3 +106,54 @@ class ProjectMethods(TableauRestApiBase):
     #
     # End Project Querying Methods
     #
+
+    # Simplest method
+    def update_project(self, name_or_luid, new_project_name=None, new_project_description=None,
+                       locked_permissions=None, publish_samples=False):
+        """
+        :type name_or_luid: unicode
+        :type new_project_name: unicode
+        :type new_project_description: unicode
+        :type locked_permissions: bool
+        :type publish_samples: bool
+        :rtype: Project21
+        """
+        self.start_log_block()
+        project_luid = self.query_project_luid(name_or_luid)
+
+        tsr = etree.Element("tsRequest")
+        p = etree.Element("project")
+        if new_project_name is not None:
+            p.set('name', new_project_name)
+        if new_project_description is not None:
+            p.set('description', new_project_description)
+        if locked_permissions is True:
+            p.set('contentPermissions', "LockedToProject")
+        elif locked_permissions is False:
+            p.set('contentPermissions', "ManagedByOwner")
+
+        tsr.append(p)
+
+        url = self.build_api_url("projects/{}".format(project_luid))
+        if publish_samples is True:
+            url += '?publishSamples=true'
+
+        response = self.send_update_request(url, tsr)
+        self.end_log_block()
+        return self.get_published_project_object(project_luid, response)
+
+    def delete_projects(self, project_name_or_luid_s):
+        """
+        :type project_name_or_luid_s: List[unicode] or unicode
+        :rtype:
+        """
+        self.start_log_block()
+        projects = self.to_list(project_name_or_luid_s)
+        for project_name_or_luid in projects:
+            if self.is_luid(project_name_or_luid):
+                project_luid = project_name_or_luid
+            else:
+                project_luid = self.query_project_luid(project_name_or_luid)
+            url = self.build_api_url("projects/{}".format(project_luid))
+            self.send_delete_request(url)
+        self.end_log_block()

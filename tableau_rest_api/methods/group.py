@@ -1,4 +1,5 @@
 from .rest_api_base import *
+
 class GroupMethods(TableauRestApiBase):
     def query_groups(self) -> etree.Element:
         self.start_log_block()
@@ -133,3 +134,141 @@ class GroupMethods(TableauRestApiBase):
             self.end_log_block()
             group = response.findall('.//t:group', self.ns_map)
             return group[0].get('id')
+
+    # Take a single user_luid string or a collection of luid_strings
+    def add_users_to_group(self, username_or_luid_s: List[str], group_name_or_luid: str) -> etree.Element:
+        self.start_log_block()
+        group_luid = self.query_group_luid(group_name_or_luid)
+
+        users = self.to_list(username_or_luid_s)
+        for user in users:
+            user_luid = self.query_user_luid(user)
+
+            tsr = etree.Element("tsRequest")
+            u = etree.Element("user")
+            u.set("id", user_luid)
+            tsr.append(u)
+
+            url = self.build_api_url("groups/{}/users/".format(group_luid))
+            try:
+                self.log("Adding username ID {} to group ID {}".format(user_luid, group_luid))
+                result = self.send_add_request(url, tsr)
+                return result
+            except RecoverableHTTPException as e:
+                self.log("Recoverable HTTP exception {} with Tableau Error Code {}, skipping".format(str(e.http_code), e.tableau_error_code))
+        self.end_log_block()
+
+    # Local Authentication update group
+    def update_group(self, name_or_luid, new_group_name):
+        """
+        :type name_or_luid: unicode
+        :type new_group_name: unicode
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if self.is_luid(name_or_luid):
+            group_luid = name_or_luid
+        else:
+            group_luid = self.query_group_luid(name_or_luid)
+
+        tsr = etree.Element("tsRequest")
+        g = etree.Element("group")
+        g.set("name", new_group_name)
+        tsr.append(g)
+
+        url = self.build_api_url("groups/{}".format(group_luid))
+        response = self.send_update_request(url, tsr)
+        self.end_log_block()
+        return response
+
+    # AD group sync. Must specify the domain and the default site role for imported users
+    def sync_ad_group(self, group_name_or_luid, ad_group_name, ad_domain, default_site_role, sync_as_background=True):
+        """
+        :type group_name_or_luid: unicode
+        :type ad_group_name: unicode
+        :type ad_domain: unicode
+        :type default_site_role: unicode
+        :type sync_as_background: unicode
+        :rtype: unicode
+        """
+        self.start_log_block()
+        if sync_as_background not in [True, False]:
+            error = "'{}' passed for sync_as_background. Use True or False".format(str(sync_as_background).lower())
+            raise InvalidOptionException(error)
+
+        if default_site_role not in self._site_roles:
+            raise InvalidOptionException("'{}' is not a valid site role in Tableau".format(default_site_role))
+        # Check that the group exists
+        self.query_group(group_name_or_luid)
+        tsr = etree.Element('tsRequest')
+        g = etree.Element('group')
+        g.set('name', ad_group_name)
+        i = etree.Element('import')
+        i.set('source', 'ActiveDirectory')
+        i.set('domainName', ad_domain)
+        i.set('siteRole', default_site_role)
+        g.append(i)
+        tsr.append(g)
+
+        if self.is_luid(group_name_or_luid):
+            group_luid = group_name_or_luid
+        else:
+            group_luid = self.query_group_luid(group_name_or_luid)
+        url = self.build_api_url(
+            "groups/{}".format(group_luid) + "?asJob={}".format(str(sync_as_background)).lower())
+        response = self.send_update_request(url, tsr)
+        # Response is different from immediate to background update. job ID lets you track progress on background
+        if sync_as_background is True:
+            job = response.findall('.//t:job', self.ns_map)
+            self.end_log_block()
+            return job[0].get('id')
+        if sync_as_background is False:
+            group = response.findall('.//t:group', self.ns_map)
+            self.end_log_block()
+            return group[0].get('id')
+
+    def delete_groups(self, group_name_or_luid_s):
+        """
+        :type group_name_or_luid_s: List[unicode] or unicode
+        :rtype:
+        """
+        self.start_log_block()
+        groups = self.to_list(group_name_or_luid_s)
+        for group_name_or_luid in groups:
+            if group_name_or_luid == 'All Users':
+                self.log('Cannot delete All Users group, skipping')
+                continue
+            if self.is_luid(group_name_or_luid):
+                group_luid = group_name_or_luid
+            else:
+                group_luid = self.query_group_luid(group_name_or_luid)
+            url = self.build_api_url("groups/{}".format(group_luid))
+            self.send_delete_request(url)
+        self.end_log_block()
+
+    # Can take collection or string user_luid string
+    def remove_users_from_group(self, username_or_luid_s, group_name_or_luid):
+        """
+        :type username_or_luid_s: List[unicode] or unicode
+        :type group_name_or_luid: unicode
+        :rtype:
+        """
+        self.start_log_block()
+        group_name = ""
+        if self.is_luid(group_name_or_luid):
+            group_luid = group_name_or_luid
+        else:
+            group_name = group_name_or_luid
+            group_luid = self.query_group_name(group_name_or_luid)
+        users = self.to_list(username_or_luid_s)
+        for user in users:
+            username = ""
+            if self.is_luid(user):
+                user_luid = user
+            else:
+                username = user
+                user_luid = self.query_user_luid(user)
+            url = self.build_api_url("groups/{}/users/{}".format(group_luid, user_luid))
+            self.log('Removing user {}, id {} from group {}, id {}'.format(username, user_luid, group_name, group_luid))
+            self.send_delete_request(url)
+        self.end_log_block()
