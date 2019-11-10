@@ -291,3 +291,54 @@ class DatasourceMethods(TableauRestApiBase):
 
         self.end_log_block()
         return save_filename
+
+    #
+    # Tags
+    #
+
+    # Tags can be scalar string or list
+    def add_tags_to_datasource(self, ds_name_or_luid, tag_s, proj_name_or_luid=None):
+        """
+        :type ds_name_or_luid: unicode
+        :type tag_s: List[unicode]
+        :type proj_name_or_luid: unicode
+        :rtype: unicode
+        """
+        self.start_log_block()
+        if self.is_luid(ds_name_or_luid):
+            ds_luid = ds_name_or_luid
+        else:
+            ds_luid = self.query_workbook_luid(ds_name_or_luid, proj_name_or_luid)
+        url = self.build_api_url("datasources/{}/tags".format(ds_luid))
+
+        tsr = etree.Element("tsRequest")
+        ts = etree.Element("tags")
+        tags = self.to_list(tag_s)
+        for tag in tags:
+            t = etree.Element("tag")
+            t.set("label", tag)
+            ts.append(t)
+        tsr.append(ts)
+
+        tag_response = self.send_update_request(url, tsr)
+        self.end_log_block()
+        return tag_response
+
+    def delete_tags_from_datasource(self, ds_name_or_luid, tag_s, proj_name_or_luid=None):
+        """
+        :type ds_name_or_luid: unicode
+        :type tag_s: List[unicode] or unicode
+        :rtype: int
+        """
+        self.start_log_block()
+        tags = self.to_list(tag_s)
+        if self.is_luid(ds_name_or_luid):
+            ds_luid = ds_name_or_luid
+        else:
+            ds_luid = self.query_datasource_luid(ds_name_or_luid, proj_name_or_luid)
+        deleted_count = 0
+        for tag in tags:
+            url = self.build_api_url("datasources/{}/tags/{}".format(ds_luid, tag))
+            deleted_count += self.send_delete_request(url)
+        self.end_log_block()
+        return deleted_count

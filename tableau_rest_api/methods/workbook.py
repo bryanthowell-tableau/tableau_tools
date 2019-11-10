@@ -254,6 +254,233 @@ class WorkbookMethods(TableauRestApiBase):
         self.end_log_block()
         return response
 
+    def query_view_image(self, view_name_or_luid, high_resolution=False, view_filter_map=None,
+                         wb_name_or_luid=None, proj_name_or_luid=None):
+        """
+        :type view_name_or_luid: unicode
+        :type high_resolution: bool
+        :type view_filter_map: dict
+        :type wb_name_or_luid: unicode
+        :type proj_name_or_luid
+        :rtype:
+        """
+        self.start_log_block()
+        image = self._query_data_file('image', view_name_or_luid=view_name_or_luid, high_resolution=high_resolution,
+                                      view_filter_map=view_filter_map, wb_name_or_luid=wb_name_or_luid,
+                                      proj_name_or_luid=proj_name_or_luid)
+        self.end_log_block()
+        return image
+
+    def save_view_image(self, wb_name_or_luid=None, view_name_or_luid=None, filename_no_extension=None,
+                        proj_name_or_luid=None, view_filter_map=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type view_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type filename_no_extension: unicode
+        :type view_filter_map: dict
+        :rtype:
+        """
+        self.start_log_block()
+        data = self.query_view_image(wb_name_or_luid=wb_name_or_luid, view_name_or_luid=view_name_or_luid,
+                                     proj_name_or_luid=proj_name_or_luid, view_filter_map=view_filter_map)
+
+        if filename_no_extension is not None:
+            if filename_no_extension.find('.png') == -1:
+                filename_no_extension += '.png'
+            try:
+                save_file = open(filename_no_extension, 'wb')
+                save_file.write(data)
+                save_file.close()
+                self.end_log_block()
+                return
+            except IOError:
+                self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension))
+                self.end_log_block()
+                raise
+        else:
+            raise InvalidOptionException(
+                'This method is for saving response to file. Must include filename_no_extension parameter')
+
+
+    def query_workbook_views(self, wb_name_or_luid, proj_name_or_luid=None, username_or_luid=None, usage=False):
+        """
+        :type wb_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type username_or_luid: unicode
+        :type usage: bool
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if usage not in [True, False]:
+            raise InvalidOptionException('Usage can only be set to True or False')
+        if self.is_luid(wb_name_or_luid):
+            wb_luid = wb_name_or_luid
+        else:
+            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
+        vws = self.query_resource("workbooks/{}/views?includeUsageStatistics={}".format(wb_luid, str(usage).lower()))
+        self.end_log_block()
+        return vws
+
+    def query_workbook_views_json(self, wb_name_or_luid, proj_name_or_luid=None, username_or_luid=None, usage=False,
+                                  page_number=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type username_or_luid: unicode
+        :type usage: bool
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+        if usage not in [True, False]:
+            raise InvalidOptionException('Usage can only be set to True or False')
+        if self.is_luid(wb_name_or_luid):
+            wb_luid = wb_name_or_luid
+        else:
+            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
+        vws = self.query_resource_json("workbooks/{}/views?includeUsageStatistics={}".format(wb_luid,
+                                                                                              str(usage).lower()),
+                                                                                              page_number=page_number)
+        self.end_log_block()
+        return vws
+
+    def query_workbook_view(self, wb_name_or_luid, view_name_or_luid=None, view_content_url=None, proj_name_or_luid=None, username_or_luid=None,
+                            usage=False):
+        """
+        :type wb_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type username_or_luid: unicode
+        :type view_name_or_luid: unicode
+        :type view_content_url: unicode
+        :type usage: bool
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if usage not in [True, False]:
+            raise InvalidOptionException('Usage can only be set to True or False')
+        if self.is_luid(wb_name_or_luid):
+            wb_luid = wb_name_or_luid
+        else:
+            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
+        vws = self.query_resource("workbooks/{}/views?includeUsageStatistics={}".format(wb_luid, str(usage).lower()))
+        if view_content_url is not None:
+            views_with_name = vws.findall('.//t:view[@contentUrl="{}"]'.format(view_content_url), self.ns_map)
+        elif self.is_luid(view_name_or_luid):
+            views_with_name = vws.findall('.//t:view[@id="{}"]'.format(view_name_or_luid), self.ns_map)
+        else:
+            views_with_name = vws.findall('.//t:view[@name="{}"]'.format(view_name_or_luid), self.ns_map)
+        if len(views_with_name) == 0:
+            self.end_log_block()
+            raise NoMatchFoundException('No view found with name {} in workbook {}').format(view_name_or_luid, wb_name_or_luid)
+        elif len(views_with_name) > 1:
+            self.end_log_block()
+            raise MultipleMatchesFoundException(
+                'More than one view found by name {} in workbook {}. Use view_content_url parameter').format(view_name_or_luid, wb_name_or_luid)
+        self.end_log_block()
+        return views_with_name
+
+    def query_workbook_view_luid(self, wb_name_or_luid, view_name=None, view_content_url=None, proj_name_or_luid=None,
+                                 username_or_luid=None, usage=False):
+        """
+        :type wb_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type username_or_luid: unicode
+        :type view_name: unicode
+        :type view_content_url: unicode
+        :type usage: bool
+        :rtype: unicode
+        """
+        self.start_log_block()
+        if usage not in [True, False]:
+            raise InvalidOptionException('Usage can only be set to True or False')
+        if self.is_luid(wb_name_or_luid):
+            wb_luid = wb_name_or_luid
+        else:
+            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
+        vws = self.query_resource("workbooks/{}/views?includeUsageStatistics={}".format(wb_luid, str(usage).lower()))
+        if view_content_url is not None:
+            views_with_name = vws.findall('.//t:view[@contentUrl="{}"]'.format(view_content_url), self.ns_map)
+        else:
+            views_with_name = vws.findall('.//t:view[@name="{}"]'.format(view_name), self.ns_map)
+        if len(views_with_name) == 0:
+            self.end_log_block()
+            raise NoMatchFoundException('No view found with name {} or content_url {} in workbook {}').format(view_name, view_content_url, wb_name_or_luid)
+        elif len(views_with_name) > 1:
+            self.end_log_block()
+            raise MultipleMatchesFoundException(
+                'More than one view found by name {} in workbook {}. Use view_content_url parameter').format(view_name, view_content_url, wb_name_or_luid)
+        view_luid = views_with_name[0].get('id')
+        self.end_log_block()
+        return view_luid
+
+    # This should be the key to updating the connections in a workbook. Seems to return
+    # LUIDs for connections and the datatypes, but no way to distinguish them
+    def query_workbook_connections(self, wb_name_or_luid, proj_name_or_luid=None, username_or_luid=None):
+        self.start_log_block()
+        if self.is_luid(wb_name_or_luid):
+            wb_luid = wb_name_or_luid
+        else:
+            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
+        conns = self.query_resource("workbooks/{}/connections".format(wb_luid))
+        self.end_log_block()
+        return conns
+
+    def query_views(self, all_fields=True, usage=False, created_at_filter=None, updated_at_filter=None,
+                    tags_filter=None, sorts=None, fields=None):
+        """
+        :type usage: bool
+        :type created_at_filter: UrlFilter
+        :type updated_at_filter: UrlFilter
+        :type tags_filter: UrlFilter
+        :type sorts: List[Sort]
+        :type fields: List[unicode]
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+
+        if fields is None:
+            if all_fields is True:
+                fields = ['_all_']
+
+        if usage not in [True, False]:
+            raise InvalidOptionException('Usage can only be set to True or False')
+        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter}
+        filters = self._check_filter_objects(filter_checks)
+
+        vws = self.query_resource("views", filters=filters, sorts=sorts, fields=fields,
+                                  additional_url_ending="includeUsageStatistics={}".format(str(usage).lower()))
+        self.end_log_block()
+        return vws
+
+    def query_views_json(self, all_fields=True, usage=False, created_at_filter=None, updated_at_filter=None,
+                    tags_filter=None, sorts=None, fields=None, page_number=None):
+        """
+        :type usage: bool
+        :type created_at_filter: UrlFilter
+        :type updated_at_filter: UrlFilter
+        :type tags_filter: UrlFilter
+        :type sorts: List[Sort]
+        :type fields: List[unicode]
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+
+        if fields is None:
+            if all_fields is True:
+                fields = ['_all_']
+
+        if usage not in [True, False]:
+            raise InvalidOptionException('Usage can only be set to True or False')
+        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter}
+        filters = self._check_filter_objects(filter_checks)
+
+        vws = self.query_resource_json("views", filters=filters, sorts=sorts, fields=fields,
+                                  additional_url_ending="includeUsageStatistics={}".format(str(usage).lower()))
+        self.end_log_block()
+        return vws
+
     # Can take collection or luid_string
     def delete_workbooks(self, wb_name_or_luid_s):
         """
