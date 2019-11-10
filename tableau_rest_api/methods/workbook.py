@@ -481,6 +481,60 @@ class WorkbookMethods(TableauRestApiBase):
         self.end_log_block()
         return vws
 
+    def query_views(self, usage=False, created_at_filter=None, updated_at_filter=None, tags_filter=None, sorts=None):
+        """
+        :type usage: bool
+        :type created_at_filter: UrlFilter
+        :type updated_at_filter: UrlFilter
+        :type tags_filter: UrlFilter
+        :type sorts: List[Sort]
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if usage not in [True, False]:
+            raise InvalidOptionException('Usage can only be set to True or False')
+        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter}
+        filters = self._check_filter_objects(filter_checks)
+
+        vws = self.query_resource("views", filters=filters, sorts=sorts,
+                                  additional_url_ending="includeUsageStatistics={}".format(str(usage).lower()))
+        self.end_log_block()
+        return vws
+
+    def query_views_json(self, usage=False, created_at_filter=None, updated_at_filter=None, tags_filter=None,
+                         sorts=None, page_number=None):
+        """
+        :type usage: bool
+        :type created_at_filter: UrlFilter
+        :type updated_at_filter: UrlFilter
+        :type tags_filter: UrlFilter
+        :type sorts: List[Sort]
+        :type page_number: int
+        :rtype: json
+        """
+        self.start_log_block()
+        if usage not in [True, False]:
+            raise InvalidOptionException('Usage can only be set to True or False')
+        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter}
+        filters = self._check_filter_objects(filter_checks)
+
+        vws = self.query_resource_json("views", filters=filters, sorts=sorts,
+                                       additional_url_ending="includeUsageStatistics={}".format(str(usage).lower()),
+                                       page_number=page_number)
+        self.end_log_block()
+        return vws
+
+    def query_view(self, vw_name_or_luid):
+        """
+        :type vw_name_or_luid:
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        vw = self.query_single_element_from_endpoint_with_filter('view', vw_name_or_luid)
+        self.end_log_block()
+        return vw
+
+
     # Can take collection or luid_string
     def delete_workbooks(self, wb_name_or_luid_s):
         """
