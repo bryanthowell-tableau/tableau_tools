@@ -1,8 +1,5 @@
 from .rest_api_base import *
 class UserMethods(TableauRestApiBase):
-    #
-    # Start User Querying Methods
-    #
 
     # The reference has this name, so for consistency adding an alias
     def get_users(self, all_fields: bool = True, last_login_filter: Optional[UrlFilter] = None,
@@ -72,11 +69,7 @@ class UserMethods(TableauRestApiBase):
         self.end_log_block()
         return user_luid
 
-    def query_username(self, user_luid):
-        """
-        :type user_luid: unicode
-        :rtype: unicode
-        """
+    def query_username(self, user_luid: str) -> str:
         self.start_log_block()
         try:
             luid_index = list(self.username_luid_cache.values()).index(user_luid)
@@ -88,30 +81,16 @@ class UserMethods(TableauRestApiBase):
         self.end_log_block()
         return username
 
-    def query_users_in_group(self, group_name_or_luid):
-        """
-        :type group_name_or_luid: unicode
-        :rtype: etree.Element
-        """
+    def query_users_in_group(self, group_name_or_luid: str) -> etree.Element:
         self.start_log_block()
         luid = self.query_group_luid(group_name_or_luid)
         users = self.query_resource("groups/{}/users".format(luid))
         self.end_log_block()
         return users
 
-    #
-    # End User Querying Methods
-    #
-    def add_user_by_username(self, username=None, site_role='Unlicensed', auth_setting=None, update_if_exists=False,
-                             direct_xml_request=None):
-        """
-        :type username: unicode
-        :type site_role: unicode
-        :type update_if_exists: bool
-        :type auth_setting: unicode
-        :type direct_xml_request: etree.Element
-        :rtype: unicode
-        """
+    def add_user_by_username(self, username: Optional[str] = None, site_role: Optional[str] = 'Unlicensed',
+                             auth_setting: Optional[str] = None, update_if_exists: Optional[bool] = False,
+                             direct_xml_request: Optional[etree.Element] = None) -> str:
         self.start_log_block()
 
         # Check to make sure role that is passed is a valid role in the API
@@ -157,20 +136,11 @@ class UserMethods(TableauRestApiBase):
 
     # This is "Add User to Site", since you must be logged into a site.
     # Set "update_if_exists" to True if you want the equivalent of an 'upsert', ignoring the exceptions
-    def add_user(self, username=None, fullname=None, site_role='Unlicensed', password=None, email=None,
-                 auth_setting=None,
-                 update_if_exists=False, direct_xml_request=None):
-        """
-        :type username: unicode
-        :type fullname: unicode
-        :type site_role: unicode
-        :type password: unicode
-        :type email: unicode
-        :type update_if_exists: bool
-        :type auth_setting: unicode
-        :type direct_xml_request: etree.Element
-        :rtype: unicode
-        """
+    def add_user(self, username: Optional[str] = None, fullname: Optional[str] = None,
+                 site_role: Optional[str] = 'Unlicensed', password: Optional[str] = None,
+                 email: Optional[str] = None, auth_setting: Optional[str] = None,
+                 update_if_exists: Optional[bool] = False, direct_xml_request: Optional[etree.Element] = None) -> str:
+
         self.start_log_block()
 
         try:
@@ -208,22 +178,12 @@ class UserMethods(TableauRestApiBase):
             self.end_log_block()
             return e.existing_luid
 
-    def update_user(self, username_or_luid, full_name=None, site_role=None, password=None,
-                    email=None, direct_xml_request=None):
-        """
-        :type username_or_luid: unicode
-        :type full_name: unicode
-        :type site_role: unicode
-        :type password: unicode
-        :type email: unicode
-        :type direct_xml_request: etree.Element
-        :rtype: etree.Element
-        """
+    def update_user(self, username_or_luid: str, full_name: Optional[str] = None, site_role: Optional[str] =None,
+                    password: Optional[str] =None,
+                    email: Optional[str] =None, direct_xml_request: Optional[etree.Element] = None) -> etree.Element:
+
         self.start_log_block()
-        if self.is_luid(username_or_luid):
-            user_luid = username_or_luid
-        else:
-            user_luid = self.query_user_luid(username_or_luid)
+        user_luid = self.query_user_luid(username_or_luid)
 
         if direct_xml_request is not None:
             tsr = direct_xml_request
@@ -246,22 +206,13 @@ class UserMethods(TableauRestApiBase):
         return response
 
     # Can take collection or single user_luid string
-    def remove_users_from_site(self, username_or_luid_s):
-        """
-        :type username_or_luid_s: List[unicode] or unicode
-        :rtype:
-        """
+    def remove_users_from_site(self, username_or_luid_s: Union[List[str], str]):
         self.start_log_block()
         users = self.to_list(username_or_luid_s)
         for user in users:
-            username = ""
-            if self.is_luid(user):
-                user_luid = user
-            else:
-                username = user
-                user_luid = self.query_user_luid(user)
+            user_luid = self.query_user_luid(user)
             url = self.build_api_url("users/{}".format(user_luid))
-            self.log('Removing user {}, id {} from site'.format(username, user_luid))
+            self.log('Removing user id {} from site'.format(user_luid))
             self.send_delete_request(url)
         self.end_log_block()
 
