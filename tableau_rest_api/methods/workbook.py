@@ -481,49 +481,6 @@ class WorkbookMethods(TableauRestApiBase):
         self.end_log_block()
         return vws
 
-    def query_views(self, usage=False, created_at_filter=None, updated_at_filter=None, tags_filter=None, sorts=None):
-        """
-        :type usage: bool
-        :type created_at_filter: UrlFilter
-        :type updated_at_filter: UrlFilter
-        :type tags_filter: UrlFilter
-        :type sorts: List[Sort]
-        :rtype: etree.Element
-        """
-        self.start_log_block()
-        if usage not in [True, False]:
-            raise InvalidOptionException('Usage can only be set to True or False')
-        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter}
-        filters = self._check_filter_objects(filter_checks)
-
-        vws = self.query_resource("views", filters=filters, sorts=sorts,
-                                  additional_url_ending="includeUsageStatistics={}".format(str(usage).lower()))
-        self.end_log_block()
-        return vws
-
-    def query_views_json(self, usage=False, created_at_filter=None, updated_at_filter=None, tags_filter=None,
-                         sorts=None, page_number=None):
-        """
-        :type usage: bool
-        :type created_at_filter: UrlFilter
-        :type updated_at_filter: UrlFilter
-        :type tags_filter: UrlFilter
-        :type sorts: List[Sort]
-        :type page_number: int
-        :rtype: json
-        """
-        self.start_log_block()
-        if usage not in [True, False]:
-            raise InvalidOptionException('Usage can only be set to True or False')
-        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter}
-        filters = self._check_filter_objects(filter_checks)
-
-        vws = self.query_resource_json("views", filters=filters, sorts=sorts,
-                                       additional_url_ending="includeUsageStatistics={}".format(str(usage).lower()),
-                                       page_number=page_number)
-        self.end_log_block()
-        return vws
-
     def query_view(self, vw_name_or_luid):
         """
         :type vw_name_or_luid:
@@ -780,3 +737,53 @@ class WorkbookMethods(TableauRestApiBase):
         self.end_log_block()
         return deleted_count
 
+    # Tags can be scalar string or list
+    def add_tags_to_view(self, view_name_or_luid, workbook_name_or_luid, tag_s, proj_name_or_luid=None):
+        """
+        :type view_name_or_luid: unicode
+        :type workbook_name_or_luid: unicode
+        :type tag_s: List[unicode]
+        :type proj_name_or_luid: unicode
+        :rtype: unicode
+        """
+        self.start_log_block()
+
+        if self.is_luid(view_name_or_luid):
+            vw_luid = view_name_or_luid
+        else:
+            vw_luid = self.query_workbook_view_luid(workbook_name_or_luid, view_name_or_luid, proj_name_or_luid)
+        url = self.build_api_url("views/{}/tags".format(vw_luid))
+
+        tsr = etree.Element("tsRequest")
+        ts = etree.Element("tags")
+        tags = self.to_list(tag_s)
+        for tag in tags:
+            t = etree.Element("tag")
+            t.set("label", tag)
+            ts.append(t)
+        tsr.append(ts)
+
+        tag_response = self.send_update_request(url, tsr)
+        self.end_log_block()
+        return tag_response
+
+    def delete_tags_from_view(self, view_name_or_luid, workbook_name_or_luid, tag_s, proj_name_or_luid=None):
+        """
+        :type view_name_or_luid: unicode
+        :type workbook_name_or_luid: unicode
+        :type tag_s: List[unicode] or unicode
+        :type proj_name_or_luid: unicode
+        :rtype: int
+        """
+        self.start_log_block()
+        tags = self.to_list(tag_s)
+        if self.is_luid(view_name_or_luid):
+            vw_luid = view_name_or_luid
+        else:
+            vw_luid = self.query_workbook_view_luid(view_name_or_luid, workbook_name_or_luid, proj_name_or_luid)
+        deleted_count = 0
+        for tag in tags:
+            url = self.build_api_url("views/{}/tags/{}".format(vw_luid, tag))
+            deleted_count += self.send_delete_request(url)
+        self.end_log_block()
+        return deleted_count
