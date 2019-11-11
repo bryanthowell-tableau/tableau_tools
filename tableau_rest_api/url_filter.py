@@ -21,11 +21,6 @@ class UrlFilter:
         url = "{}:{}:{}".format(self.field, self.operator, value_string)
         return url
 
-
-class UrlFilter23(UrlFilter):
-    def __init__(self, field, operator, values):
-        UrlFilter.__init__(self, field, operator, values)
-
     # Users, Datasources, Views, Workbooks
     @staticmethod
     def create_name_filter(name):
@@ -122,12 +117,6 @@ class UrlFilter23(UrlFilter):
         """
         return UrlFilter('tags', 'eq', [tag, ])
 
-
-class UrlFilter24(UrlFilter23):
-    def __init__(self, field, operator, values):
-        UrlFilter23.__init__(self, field, operator, values)
-    # Filtering added to Datasources and Views in 2.4
-
     # Datasources
     @staticmethod
     def create_datasource_type_filter(ds_type):
@@ -137,22 +126,9 @@ class UrlFilter24(UrlFilter23):
         """
         return UrlFilter('type', 'eq', [ds_type, ])
 
-
-class UrlFilter25(UrlFilter24):
+class UrlFilter27(UrlFilter):
     def __init__(self, field, operator, values):
-        UrlFilter24.__init__(self, field, operator, values)
-    # No changes were made in 2.5
-
-
-class UrlFilter26(UrlFilter25):
-    def __init__(self, field, operator, values):
-        UrlFilter25.__init__(self, field, operator, values)
-    # No changes in 2.6
-
-
-class UrlFilter27(UrlFilter26):
-    def __init__(self, field, operator, values):
-        UrlFilter26.__init__(self, field, operator, values)
+        UrlFilter.__init__(self, field, operator, values)
     # Some of the previous methods add in methods
 
     # Users, Datasources, Views, Workbooks
@@ -339,7 +315,7 @@ class UrlFilter31(UrlFilter30):
 
     # Jobs
     @staticmethod
-    def create_started_at_filter(operator, started_at_time):
+    def create_started_at_filter(operator, started_at_time) -> UrlFilter:
         """
         :param operator: Should be one of 'eq', 'gt', 'gte', 'lt', 'lte'
         :type operator: unicode
@@ -356,7 +332,7 @@ class UrlFilter31(UrlFilter30):
 
     # Jobs
     @staticmethod
-    def create_ended_at_filter(operator, ended_at_time):
+    def create_ended_at_filter(operator, ended_at_time) -> UrlFilter:
         """
         :param operator: Should be one of 'eq', 'gt', 'gte', 'lt', 'lte'
         :type operator: unicode
@@ -373,7 +349,7 @@ class UrlFilter31(UrlFilter30):
 
     # Jobs
     @staticmethod
-    def create_job_types_filter(job_types):
+    def create_job_types_filter(job_types) -> UrlFilter:
         """
         :type job_types: list[unicode]
         :rtype: UrlFilter
@@ -382,7 +358,7 @@ class UrlFilter31(UrlFilter30):
 
     # Jobs
     @staticmethod
-    def create_job_type_filter(job_type):
+    def create_job_type_filter(job_type) -> UrlFilter:
         """
         :type job_type: unicode
         :rtype: UrlFilter
@@ -391,7 +367,7 @@ class UrlFilter31(UrlFilter30):
 
     # Jobs
     @staticmethod
-    def create_notes_filter(notes):
+    def create_notes_filter(notes) -> UrlFilter:
         """
         :type notes: unicode
         :rtype: UrlFilter
@@ -399,7 +375,7 @@ class UrlFilter31(UrlFilter30):
         return UrlFilter('notes', 'has', [notes, ])
 
     @staticmethod
-    def create_title_equals_filter(title):
+    def create_title_equals_filter(title) -> UrlFilter:
         """
         :type title: unicode
         :rtype: UrlFilter
@@ -407,7 +383,7 @@ class UrlFilter31(UrlFilter30):
         return UrlFilter('title', 'eq', [title, ])
 
     @staticmethod
-    def create_title_has_filter(title):
+    def create_title_has_filter(title) -> UrlFilter:
         """
         :type title: unicode
         :rtype: UrlFilter
@@ -415,7 +391,7 @@ class UrlFilter31(UrlFilter30):
         return UrlFilter('title', 'has', [title, ])
 
     @staticmethod
-    def create_subtitle_equals_filter(subtitle):
+    def create_subtitle_equals_filter(subtitle) -> UrlFilter:
         """
         :type subtitle: unicode
         :rtype: UrlFilter
@@ -423,7 +399,7 @@ class UrlFilter31(UrlFilter30):
         return UrlFilter('subtitle', 'eq', [subtitle, ])
 
     @staticmethod
-    def create_subtitle_has_filter(subtitle):
+    def create_subtitle_has_filter(subtitle) -> UrlFilter:
         """
         :type subtitle: unicode
         :rtype: UrlFilter
@@ -435,7 +411,7 @@ class UrlFilter33(UrlFilter31):
         UrlFilter31.__init__(self, field, operator, values)
 
     @staticmethod
-    def create_project_name_equals_filter(project_name):
+    def create_project_name_equals_filter(project_name) -> UrlFilter:
         """
         :type subtitle: unicode
         :rtype: UrlFilter
