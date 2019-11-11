@@ -30,21 +30,11 @@ class DatasourceMethods(TableauRestApiBase):
         self.end_log_block()
         return dses
 
-    def query_datasources_json(self, project_name_or_luid=None, all_fields=True, updated_at_filter=None,
-                               created_at_filter=None, tags_filter=None, datasource_type_filter=None, sorts=None,
-                               fields=None, page_number=None):
-        """
-        :type project_name_or_luid: unicode
-        :type all_fields: bool
-        :type updated_at_filter: UrlFilter
-        :type created_at_filter: UrlFilter
-        :type tags_filter: UrlFilter
-        :type datasource_type_filter: UrlFilter
-        :type sorts: List[Sort]
-        :type fields: List[unicode]
-        :type page_number: int
-        :rtype: json
-        """
+    def query_datasources_json(self, all_fields: Optional[bool] = True, updated_at_filter: Optional[UrlFilter] = None,
+                               created_at_filter: Optional[UrlFilter] = None, tags_filter: Optional[UrlFilter] = None,
+                               datasource_type_filter: Optional[UrlFilter] = None, sorts: Optional[List[Sort]] = None,
+                               fields: Optional[List[str]] = None, page_number: Optional[int] = None) -> str:
+
         self.start_log_block()
         if fields is None:
             if all_fields is True:
@@ -61,21 +51,11 @@ class DatasourceMethods(TableauRestApiBase):
         return datasources
 
     # Tries to guess name or LUID, hope there is only one
-    def query_datasource(self, ds_name_or_luid, proj_name_or_luid=None):
-        """
-        :type ds_name_or_luid: unicode
-        :type proj_name_or_luid: unicode
-        :rtype: etree.Element
-        """
+    def query_datasource(self, ds_name_or_luid: str, proj_name_or_luid: Optional[str] = None) -> etree.Element:
         self.start_log_block()
 
-        # LUID
-        if self.is_luid(ds_name_or_luid):
-            ds = self.query_resource("datasources/{}".format(ds_name_or_luid))
-        # Name
-        else:
-            ds_luid = self.query_datasource_luid(ds_name_or_luid, proj_name_or_luid)
-            ds = self.query_resource("datasources/{}".format(ds_luid))
+        ds_luid = self.query_datasource_luid(ds_name_or_luid, proj_name_or_luid)
+        ds = self.query_resource("datasources/{}".format(ds_luid))
         self.end_log_block()
         return ds
 
@@ -83,13 +63,8 @@ class DatasourceMethods(TableauRestApiBase):
     # query_workbook and query_workbook_luid can't be improved because filtering doesn't take a Project Name/LUID
 
     # Datasources in different projects can have the same 'pretty name'.
-    def query_datasource_luid(self, datasource_name, project_name_or_luid=None, content_url=None):
-        """
-        :type datasource_name: unicode
-        :type project_name_or_luid: unicode
-        :type content_url: unicode
-        :rtype: unicode
-        """
+    def query_datasource_luid(self, datasource_name: str, project_name_or_luid: Optional[str] = None,
+                              content_url: Optional[str] = None) -> str:
         self.start_log_block()
         # This quick filters down to just those with the name
         datasources_with_name = self.query_elements_from_endpoint_with_filter('datasource', datasource_name)
@@ -104,7 +79,7 @@ class DatasourceMethods(TableauRestApiBase):
             datasources_with_content_url = datasources_with_name.findall(
                 './/t:datasource[@contentUrl="{}"]'.format(content_url), self.ns_map)
             self.end_log_block()
-            if len(datasources_with_name == 1):
+            if len(datasources_with_name) == 1:
                 return datasources_with_content_url[0].get("id")
             else:
                 raise NoMatchFoundException("No datasource found with ContentUrl {}".format(content_url))
@@ -138,12 +113,8 @@ class DatasourceMethods(TableauRestApiBase):
                     raise NoMatchFoundException(
                         "No datasource found with name {} in project {}".format(datasource_name, project_name_or_luid))
 
-    def query_datasource_content_url(self, datasource_name_or_luid, project_name_or_luid=None):
-        """
-        :type datasource_name_or_luid: unicode
-        :type project_name_or_luid: unicode
-        :rtype: unicode
-        """
+    def query_datasource_content_url(self, datasource_name_or_luid: str,
+                                     project_name_or_luid: Optional[str] = None) -> str:
         self.start_log_block()
         ds = self.query_datasource(datasource_name_or_luid, project_name_or_luid)
         content_url = ds.get('contentUrl')
@@ -157,38 +128,20 @@ class DatasourceMethods(TableauRestApiBase):
     #
 
     # Can take collection or luid_string
-    def delete_datasources(self, datasource_name_or_luid_s):
-        """
-        :type datasource_name_or_luid_s: list[unicode] or unicode
-        :rtype:
-        """
+    def delete_datasources(self, datasource_name_or_luid_s: Union[List[str], str]):
         self.start_log_block()
         datasources = self.to_list(datasource_name_or_luid_s)
         for datasource_name_or_luid in datasources:
-            if self.is_luid(datasource_name_or_luid):
-                datasource_luid = datasource_name_or_luid
-            else:
-                datasource_luid = self.query_datasource_luid(datasource_name_or_luid, None)
-
+            datasource_luid = self.query_datasource_luid(datasource_name_or_luid, None)
             url = self.build_api_url("datasources/{}".format(datasource_luid))
             self.send_delete_request(url)
         self.end_log_block()
 
-    def update_datasource(self, datasource_name_or_luid, datasource_project_name_or_luid=None,
-                          new_datasource_name=None, new_project_luid=None, new_owner_luid=None):
-        """
-        :type datasource_name_or_luid: unicode
-        :type datasource_project_name_or_luid: unicode
-        :type new_datasource_name: unicode
-        :type new_project_luid: unicode
-        :type new_owner_luid: unicode
-        :rtype: etree.Element
-        """
+    def update_datasource(self, datasource_name_or_luid: str, datasource_project_name_or_luid: Optional[str] = None,
+                          new_datasource_name: Optional[str] = None, new_project_luid: Optional[str] = None,
+                          new_owner_luid: Optional[str] = None) -> etree.Element:
         self.start_log_block()
-        if self.is_luid(datasource_name_or_luid):
-            datasource_luid = datasource_name_or_luid
-        else:
-            datasource_luid = self.query_datasource_luid(datasource_name_or_luid, datasource_project_name_or_luid)
+        datasource_luid = self.query_datasource_luid(datasource_name_or_luid, datasource_project_name_or_luid)
 
         tsr = etree.Element("tsRequest")
         d = etree.Element("datasource")
@@ -210,16 +163,10 @@ class DatasourceMethods(TableauRestApiBase):
         self.end_log_block()
         return response
 
-    def update_datasource_connection_by_luid(self, datasource_luid, new_server_address=None, new_server_port=None,
-                                             new_connection_username=None, new_connection_password=None):
-        """
-        :type datasource_luid: unicode
-        :type new_server_address: unicode
-        :type new_server_port: unicode
-        :type new_connection_username: unicode
-        :type new_connection_password: unicode
-        :rtype: etree.Element
-        """
+    def update_datasource_connection_by_luid(self, datasource_luid: str, new_server_address: Optional[str] = None,
+                                             new_server_port: Optional[str] = None,
+                                             new_connection_username: Optional[str] = None,
+                                             new_connection_password: Optional[str] = None) -> etree.Element:
         self.start_log_block()
         tsr = self.__build_connection_update_xml(new_server_address, new_server_port,
                                                             new_connection_username,
@@ -230,21 +177,12 @@ class DatasourceMethods(TableauRestApiBase):
         return response
 
     # Do not include file extension. Without filename, only returns the response
-    def download_datasource(self, ds_name_or_luid, filename_no_extension, proj_name_or_luid=None,
-                            include_extract=True):
-        """"
-        :type ds_name_or_luid: unicode
-        :type filename_no_extension: unicode
-        :type proj_name_or_luid: unicode
-        :type include_extract: bool
-        :return Filename of the saved file
-        :rtype: unicode
-        """
+    def download_datasource(self, ds_name_or_luid: str, filename_no_extension: str,
+                            proj_name_or_luid: Optional[str] = None,
+                            include_extract: Optional[bool] = True) -> str:
         self.start_log_block()
-        if self.is_luid(ds_name_or_luid):
-            ds_luid = ds_name_or_luid
-        else:
-            ds_luid = self.query_datasource_luid(ds_name_or_luid, project_name_or_luid=proj_name_or_luid)
+
+        ds_luid = self.query_datasource_luid(ds_name_or_luid, project_name_or_luid=proj_name_or_luid)
         try:
             if include_extract is False:
                 url = self.build_api_url("datasources/{}/content?includeExtract=False".format(ds_luid))
@@ -285,18 +223,11 @@ class DatasourceMethods(TableauRestApiBase):
     #
 
     # Tags can be scalar string or list
-    def add_tags_to_datasource(self, ds_name_or_luid, tag_s, proj_name_or_luid=None):
-        """
-        :type ds_name_or_luid: unicode
-        :type tag_s: List[unicode]
-        :type proj_name_or_luid: unicode
-        :rtype: unicode
-        """
+    def add_tags_to_datasource(self, ds_name_or_luid: str, tag_s: Union[List[str], str],
+                               proj_name_or_luid: Optional[str] = None) -> etree.Element:
         self.start_log_block()
-        if self.is_luid(ds_name_or_luid):
-            ds_luid = ds_name_or_luid
-        else:
-            ds_luid = self.query_workbook_luid(ds_name_or_luid, proj_name_or_luid)
+
+        ds_luid = self.query_workbook_luid(ds_name_or_luid, proj_name_or_luid)
         url = self.build_api_url("datasources/{}/tags".format(ds_luid))
 
         tsr = etree.Element("tsRequest")
@@ -312,18 +243,11 @@ class DatasourceMethods(TableauRestApiBase):
         self.end_log_block()
         return tag_response
 
-    def delete_tags_from_datasource(self, ds_name_or_luid, tag_s, proj_name_or_luid=None):
-        """
-        :type ds_name_or_luid: unicode
-        :type tag_s: List[unicode] or unicode
-        :rtype: int
-        """
+    def delete_tags_from_datasource(self, ds_name_or_luid: str, tag_s: Union[List[str], str],
+                                    proj_name_or_luid: Optional[str] = None) -> int:
         self.start_log_block()
         tags = self.to_list(tag_s)
-        if self.is_luid(ds_name_or_luid):
-            ds_luid = ds_name_or_luid
-        else:
-            ds_luid = self.query_datasource_luid(ds_name_or_luid, proj_name_or_luid)
+        ds_luid = self.query_datasource_luid(ds_name_or_luid, proj_name_or_luid)
         deleted_count = 0
         for tag in tags:
             url = self.build_api_url("datasources/{}/tags/{}".format(ds_luid, tag))
@@ -333,27 +257,15 @@ class DatasourceMethods(TableauRestApiBase):
     
 
 class DatasourceMethods27(DatasourceMethods):
-    def update_datasource(self, datasource_name_or_luid, datasource_project_name_or_luid=None,
-                          new_datasource_name=None, new_project_luid=None, new_owner_luid=None,
-                          certification_status=None, certification_note=None):
-        """
-        :type datasource_name_or_luid: unicode
-        :type datasource_project_name_or_luid: unicode
-        :type new_datasource_name: unicode
-        :type new_project_luid: unicode
-        :type new_owner_luid: unicode
-        :type certification_status: bool
-        :type certification_note: unicode
-        :rtype: etree.Element
-        """
+    def update_datasource(self, datasource_name_or_luid: str, datasource_project_name_or_luid: Optional[str] = None,
+                          new_datasource_name: Optional[str] = None, new_project_luid: Optional[str] = None,
+                          new_owner_luid: Optional[str] = None, certification_status: Optional[str] = None,
+                          certification_note: Optional[str] = None) -> etree.Element:
         self.start_log_block()
         if certification_status not in [None, False, True]:
             raise InvalidOptionException('certification_status must be None, False, or True')
 
-        if self.is_luid(datasource_name_or_luid):
-            datasource_luid = datasource_name_or_luid
-        else:
-            datasource_luid = self.query_datasource_luid(datasource_name_or_luid, datasource_project_name_or_luid)
+        datasource_luid = self.query_datasource_luid(datasource_name_or_luid, datasource_project_name_or_luid)
 
         tsr = etree.Element("tsRequest")
         d = etree.Element("datasource")
