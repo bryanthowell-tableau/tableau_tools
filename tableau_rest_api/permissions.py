@@ -4,7 +4,7 @@ from typing import Union, Any, Optional, List, Dict
 
 # Represents the Permissions from any given user or group. Equivalent to GranteeCapabilities in the API
 class Permissions(TableauBase):
-    def __init__(self, group_or_user, luid, content_type=None):
+    def __init__(self, group_or_user: str, luid: str, content_type: Optional[str] = None):
         TableauBase.__init__(self)
         if group_or_user not in ['group', 'user']:
             raise InvalidOptionException('group_or_user must be "group" or "user"')
@@ -191,7 +191,7 @@ class Permissions(TableauBase):
 
 
 class WorkbookPermissions28(Permissions):
-    def __init__(self, group_or_user, group_or_user_luid):
+    def __init__(self, group_or_user: str, group_or_user_luid: str):
         Permissions.__init__(self, group_or_user, group_or_user_luid, 'workbook')
         for cap in self.available_capabilities['2.8']['workbook']:
             if cap != 'all':
@@ -219,7 +219,7 @@ class WorkbookPermissions28(Permissions):
                 }
 
 class ProjectPermissions28(Permissions):
-    def __init__(self, group_or_user, group_or_user_luid):
+    def __init__(self, group_or_user: str, group_or_user_luid: str):
         Permissions.__init__(self, group_or_user, group_or_user_luid, 'project')
         for cap in self.available_capabilities['2.8']['project']:
             if cap != 'all':
@@ -242,7 +242,7 @@ class ProjectPermissions28(Permissions):
 
 
 class DatasourcePermissions28(Permissions):
-    def __init__(self, group_or_user, group_or_user_luid):
+    def __init__(self, group_or_user: str, group_or_user_luid: str):
         Permissions.__init__(self, group_or_user, group_or_user_luid, 'datasource')
         for cap in self.available_capabilities['2.8']['datasource']:
             if cap != 'all':
@@ -260,7 +260,7 @@ class DatasourcePermissions28(Permissions):
 
 
 class FlowPermissions33(Permissions):
-    def __init__(self, group_or_user, group_or_user_luid):
+    def __init__(self, group_or_user: str, group_or_user_luid: str):
         Permissions.__init__(self, group_or_user, group_or_user_luid, 'flow')
         for cap in self.available_capabilities['3.3']['flow']:
             if cap != 'all':
