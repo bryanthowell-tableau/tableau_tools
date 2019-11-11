@@ -2,88 +2,47 @@ from .rest_api_base import *
 
 class RevisionMethods(TableauRestApiBase):
 
-    def get_workbook_revisions(self, workbook_name_or_luid, username_or_luid=None, project_name_or_luid=None):
-        """
-        :type workbook_name_or_luid: unicode
-        :type username_or_luid: unicode
-        :type project_name_or_luid: unicode
-        :rtype: etree.Element
-        """
+    def get_workbook_revisions(self, workbook_name_or_luid: str, username_or_luid: Optional[str] = None,
+                               project_name_or_luid: Optional[str] = None) -> etree.Element:
         self.start_log_block()
-        if self.is_luid(workbook_name_or_luid):
-            wb_luid = workbook_name_or_luid
-        else:
-            wb_luid = self.query_workbook_luid(workbook_name_or_luid, project_name_or_luid, username_or_luid)
+        wb_luid = self.query_workbook_luid(workbook_name_or_luid, project_name_or_luid, username_or_luid)
         wb_revisions = self.query_resource('workbooks/{}/revisions'.format(wb_luid))
         self.end_log_block()
         return wb_revisions
 
-    def get_datasource_revisions(self, datasource_name_or_luid, project_name_or_luid=None):
-        """
-        :type datasource_name_or_luid: unicode
-        :type project_name_or_luid: unicode
-        :rtype: etree.Element
-        """
+    def get_datasource_revisions(self, datasource_name_or_luid: str,
+                                 project_name_or_luid: Optional[str] = None) -> etree.Element:
         self.start_log_block()
-        if self.is_luid(datasource_name_or_luid):
-            ds_luid = datasource_name_or_luid
-        else:
-            ds_luid = self.query_datasource_luid(datasource_name_or_luid, project_name_or_luid)
+        ds_luid = self.query_datasource_luid(datasource_name_or_luid, project_name_or_luid)
         wb_revisions = self.query_resource('workbooks/{}/revisions'.format(ds_luid))
         self.end_log_block()
         return wb_revisions
 
-    def remove_datasource_revision(self, datasource_name_or_luid, revision_number, project_name_or_luid=None):
-        """
-        :type datasource_name_or_luid: unicode
-        :type revision_number: int
-        :type project_name_or_luid: unicode
-        :rtype:
-        """
+    def remove_datasource_revision(self, datasource_name_or_luid: str, revision_number: int,
+                                   project_name_or_luid: Optional[str] = None):
         self.start_log_block()
-        if self.is_luid(datasource_name_or_luid):
-            ds_luid = datasource_name_or_luid
-        else:
-            ds_luid = self.query_datasource_luid(datasource_name_or_luid, project_name_or_luid)
+        ds_luid = self.query_datasource_luid(datasource_name_or_luid, project_name_or_luid)
         url = self.build_api_url("datasources/{}/revisions/{}".format(ds_luid, str(revision_number)))
         self.send_delete_request(url)
         self.end_log_block()
 
-    def remove_workbook_revision(self, wb_name_or_luid, revision_number,
-                                 project_name_or_luid=None, username_or_luid=None):
-        """
-        :type wb_name_or_luid: unicode
-        :type revision_number: int
-        :type project_name_or_luid: unicode
-        :type username_or_luid: unicode
-        :rtype:
-        """
+    def remove_workbook_revision(self, wb_name_or_luid: str, revision_number: int,
+                                 project_name_or_luid: Optional[str] = None, username_or_luid: Optional[str] = None):
+
         self.start_log_block()
-        if self.is_luid(wb_name_or_luid):
-            wb_luid = wb_name_or_luid
-        else:
-            wb_luid = self.query_workbook_luid(wb_name_or_luid, project_name_or_luid, username_or_luid)
+        wb_luid = self.query_workbook_luid(wb_name_or_luid, project_name_or_luid, username_or_luid)
         url = self.build_api_url("workbooks/{}/revisions/{}".format(wb_luid, str(revision_number)))
         self.send_delete_request(url)
         self.end_log_block()
 
-        # Do not include file extension. Without filename, only returns the response
-
-    def download_datasource_revision(self, ds_name_or_luid, revision_number, filename_no_extension,
-                                     proj_name_or_luid=None, include_extract=True):
-        """
-        :type ds_name_or_luid: unicode
-        :type revision_number: int
-        :type filename_no_extension: unicode
-        :type proj_name_or_luid: unicode
-        :type include_extract: bool
-        :rtype: unicode
-        """
+    # Do not include file extension. Without filename, only returns the response
+    # Rewrite to have a Download and a Save, with one giving object in memory
+    def download_datasource_revision(self, ds_name_or_luid: str, revision_number: int, filename_no_extension: str,
+                                     proj_name_or_luid: Optional[str] = None,
+                                     include_extract: Optional[bool] = True) -> str:
         self.start_log_block()
-        if self.is_luid(ds_name_or_luid):
-            ds_luid = ds_name_or_luid
-        else:
-            ds_luid = self.query_datasource_luid(ds_name_or_luid, proj_name_or_luid)
+
+        ds_luid = self.query_datasource_luid(ds_name_or_luid, proj_name_or_luid)
         try:
 
             if include_extract is False:
@@ -123,24 +82,14 @@ class RevisionMethods(TableauRestApiBase):
             self.end_log_block()
             raise
 
-        # Do not include file extension, added automatically. Without filename, only returns the response
-        # Use no_obj_return for save without opening and processing
+    # Do not include file extension, added automatically. Without filename, only returns the response
 
-    def download_workbook_revision(self, wb_name_or_luid, revision_number, filename_no_extension,
-                                   proj_name_or_luid=None, include_extract=True):
-        """
-        :type wb_name_or_luid: unicode
-        :type revision_number: int
-        :type filename_no_extension: unicode
-        :type proj_name_or_luid: unicode
-        :type include_extract: bool
-        :rtype: unicode
-        """
+    def download_workbook_revision(self, wb_name_or_luid: str, revision_number: int, filename_no_extension: str,
+                                   proj_name_or_luid: Optional[str] = None,
+                                   include_extract: Optional[bool] = True) -> str:
         self.start_log_block()
-        if self.is_luid(wb_name_or_luid):
-            wb_luid = wb_name_or_luid
-        else:
-            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
+
+        wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
         try:
             if include_extract is False:
                 url = self.build_api_url("workbooks/{}/revisions/{}/content?includeExtract=False".format(wb_luid,
