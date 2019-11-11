@@ -491,41 +491,24 @@ class WorkbookMethods(TableauRestApiBase):
         self.end_log_block()
         return vw
 
-
     # Can take collection or luid_string
-    def delete_workbooks(self, wb_name_or_luid_s):
-        """
-        :type wb_name_or_luid_s: list[unicode] or unicode
-        :rtype:
-        """
+    def delete_workbooks(self, wb_name_or_luid_s: Union[List[str], str]):
+
         self.start_log_block()
         wbs = self.to_list(wb_name_or_luid_s)
         for wb in wbs:
-            # Check if workbook_luid exists
-            if self.is_luid(wb):
-                wb_luid = wb
-            else:
-                wb_luid = self.query_workbook_luid(wb)
+            wb_luid = self.query_workbook_luid(wb)
             url = self.build_api_url("workbooks/{}".format(wb_luid))
             self.send_delete_request(url)
         self.end_log_block()
 
     # Do not include file extension, added automatically. Without filename, only returns the response
     # Use no_obj_return for save without opening and processing
-    def download_workbook(self, wb_name_or_luid, filename_no_extension, proj_name_or_luid=None, include_extract=True):
-        """
-        :type wb_name_or_luid: unicode
-        :type filename_no_extension: unicode
-        :type proj_name_or_luid: unicode
-        :type include_extract: bool
-        :return Filename of the save workbook
-        :rtype: unicode
-        """
+    def download_workbook(self, wb_name_or_luid: str, filename_no_extension: str,
+                          proj_name_or_luid: Optional[str] = None, include_extract: Optional[bool] = True) -> str:
         self.start_log_block()
-        if self.is_luid(wb_name_or_luid):
-            wb_luid = wb_name_or_luid
-        else:
-            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
+
+        wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
         try:
             if include_extract is False:
                 url = self.build_api_url("workbooks/{}/content?includeExtract=False".format(wb_luid))
@@ -569,28 +552,14 @@ class WorkbookMethods(TableauRestApiBase):
 
     # You must pass in the wb name because the endpoint needs it (although, you could potentially look up the
     # workbook LUID from the view LUID
-    def query_view_preview_image(self, wb_name_or_luid, view_name_or_luid,
-                                         proj_name_or_luid=None):
-        """
-        :type wb_name_or_luid: unicode
-        :type view_name_or_luid: unicode
-        :type proj_name_or_luid: unicode
-        :type filename_no_extension: unicode
-        :rtype: bytes
-       """
-        self.start_log_block()
-        if self.is_luid(wb_name_or_luid):
-            wb_luid = wb_name_or_luid
-        else:
-            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
+    def query_view_preview_image(self, wb_name_or_luid: str, view_name_or_luid: str,
+                                         proj_name_or_luid: Optional[str] = None) -> bytes:
 
-        if self.is_luid(view_name_or_luid):
-            view_luid = view_name_or_luid
-        else:
-            view_luid = self.query_workbook_view_luid(wb_name_or_luid, view_name=view_name_or_luid,
+        self.start_log_block()
+        wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
+        view_luid = self.query_workbook_view_luid(wb_name_or_luid, view_name=view_name_or_luid,
                                                       proj_name_or_luid=proj_name_or_luid)
         try:
-
             url = self.build_api_url("workbooks/{}/views/{}/previewImage".format(wb_luid, view_luid))
             image = self.send_binary_get_request(url)
 
@@ -606,29 +575,16 @@ class WorkbookMethods(TableauRestApiBase):
 
 
     # Do not include file extension
-
     # Just an alias but it matches the naming of the current reference guide (2019.1)
-    def save_view_preview_image(self, wb_name_or_luid, view_name_or_luid, filename_no_extension,
-                                         proj_name_or_luid=None):
-        """
-        :type wb_name_or_luid: unicode
-        :type view_name_or_luid: unicode
-        :type proj_name_or_luid: unicode
-        :type filename_no_extension: unicode
-        :rtype:
-        """
+    def save_view_preview_image(self, wb_name_or_luid: str, view_name_or_luid: str, filename_no_extension: str,
+                                         proj_name_or_luid: Optional[str] = None):
+
         self.save_workbook_view_preview_image(wb_name_or_luid, view_name_or_luid, filename_no_extension,
                                          proj_name_or_luid)
 
-    def save_workbook_view_preview_image(self, wb_name_or_luid, view_name_or_luid, filename_no_extension,
-                                         proj_name_or_luid=None):
-        """
-        :type wb_name_or_luid: unicode
-        :type view_name_or_luid: unicode
-        :type proj_name_or_luid: unicode
-        :type filename_no_extension: unicode
-        :rtype:
-        """
+    def save_workbook_view_preview_image(self, wb_name_or_luid: str, view_name_or_luid: str, filename_no_extension: str,
+                                         proj_name_or_luid: Optional[str] = None):
+
         self.start_log_block()
         image = self.query_view_preview_image(wb_name_or_luid=wb_name_or_luid, view_name_or_luid=view_name_or_luid,
                                               proj_name_or_luid=proj_name_or_luid)
@@ -645,19 +601,10 @@ class WorkbookMethods(TableauRestApiBase):
             self.end_log_block()
             raise
 
-    def query_workbook_preview_image(self, wb_name_or_luid, proj_name_or_luid=None):
-        """
-        :type wb_name_or_luid: unicode
-        :type proj_name_or_luid: unicode
-        :rtype: bytes
-        """
+    def query_workbook_preview_image(self, wb_name_or_luid: str, proj_name_or_luid: Optional[str] = None) -> bytes:
         self.start_log_block()
-        if self.is_luid(wb_name_or_luid):
-            wb_luid = wb_name_or_luid
-        else:
-            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
+        wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
         try:
-
             url = self.build_api_url("workbooks/{}/previewImage".format(wb_luid))
             image = self.send_binary_get_request(url)
             self.end_log_block()
@@ -669,16 +616,9 @@ class WorkbookMethods(TableauRestApiBase):
             self.end_log_block()
             raise
 
-
     # Do not include file extension
-    def save_workbook_preview_image(self, wb_name_or_luid, filename_no_extension, proj_name_or_luid=None):
-        """
-        :type wb_name_or_luid: unicode
-        :param filename_no_extension: Correct extension will be added automatically
-        :type filename_no_extension: unicode
-        :type proj_name_or_luid: unicode
-        :rtype:
-        """
+    def save_workbook_preview_image(self, wb_name_or_luid: str, filename_no_extension: str,
+                                    proj_name_or_luid: Optional[str] = None):
         self.start_log_block()
         image = self.query_workbook_preview_image(wb_name_or_luid=wb_name_or_luid, proj_name_or_luid=proj_name_or_luid)
         if filename_no_extension.find('.png') == -1:
@@ -718,18 +658,10 @@ class WorkbookMethods(TableauRestApiBase):
         self.end_log_block()
         return tag_response
 
-    def delete_tags_from_workbook(self, wb_name_or_luid, tag_s):
-        """
-        :type wb_name_or_luid: unicode
-        :type tag_s: List[unicode] or unicode
-        :rtype: int
-        """
+    def delete_tags_from_workbook(self, wb_name_or_luid: str, tag_s: Union[List[str], str]) -> int:
         self.start_log_block()
         tags = self.to_list(tag_s)
-        if self.is_luid(wb_name_or_luid):
-            wb_luid = wb_name_or_luid
-        else:
-            wb_luid = self.query_workbook_luid(wb_name_or_luid)
+        wb_luid = self.query_workbook_luid(wb_name_or_luid)
         deleted_count = 0
         for tag in tags:
             url = self.build_api_url("workbooks/{}/tags/{}".format(wb_luid, tag))
@@ -738,20 +670,10 @@ class WorkbookMethods(TableauRestApiBase):
         return deleted_count
 
     # Tags can be scalar string or list
-    def add_tags_to_view(self, view_name_or_luid, workbook_name_or_luid, tag_s, proj_name_or_luid=None):
-        """
-        :type view_name_or_luid: unicode
-        :type workbook_name_or_luid: unicode
-        :type tag_s: List[unicode]
-        :type proj_name_or_luid: unicode
-        :rtype: unicode
-        """
+    def add_tags_to_view(self, view_name_or_luid: str, workbook_name_or_luid: str, tag_s: List[str],
+                         proj_name_or_luid: Optional[str] = None) -> etree.Element:
         self.start_log_block()
-
-        if self.is_luid(view_name_or_luid):
-            vw_luid = view_name_or_luid
-        else:
-            vw_luid = self.query_workbook_view_luid(workbook_name_or_luid, view_name_or_luid, proj_name_or_luid)
+        vw_luid = self.query_workbook_view_luid(workbook_name_or_luid, view_name_or_luid, proj_name_or_luid)
         url = self.build_api_url("views/{}/tags".format(vw_luid))
 
         tsr = etree.Element("tsRequest")
@@ -767,14 +689,9 @@ class WorkbookMethods(TableauRestApiBase):
         self.end_log_block()
         return tag_response
 
-    def delete_tags_from_view(self, view_name_or_luid, workbook_name_or_luid, tag_s, proj_name_or_luid=None):
-        """
-        :type view_name_or_luid: unicode
-        :type workbook_name_or_luid: unicode
-        :type tag_s: List[unicode] or unicode
-        :type proj_name_or_luid: unicode
-        :rtype: int
-        """
+    def delete_tags_from_view(self, view_name_or_luid: str, workbook_name_or_luid: str, tag_s: Union[List[str], str],
+                              proj_name_or_luid: Optional[str] = None) -> int:
+
         self.start_log_block()
         tags = self.to_list(tag_s)
         if self.is_luid(view_name_or_luid):

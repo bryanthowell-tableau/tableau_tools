@@ -1,23 +1,11 @@
 from .rest_api_base import *
 class DatasourceMethods(TableauRestApiBase):
-    #
-    # Begin Datasource Querying Methods
-    #
 
-    def query_datasources(self, project_name_or_luid=None, all_fields=True, updated_at_filter=None,
-                          created_at_filter=None,
-                          tags_filter=None, datasource_type_filter=None, sorts=None, fields=None):
-        """
-        :type project_name_or_luid: unicode
-        :type all_fields: bool
-        :type updated_at_filter: UrlFilter
-        :type created_at_filter: UrlFilter
-        :type tags_filter: UrlFilter
-        :type datasource_type_filter: UrlFilter
-        :type sorts: List[Sort]
-        :type fields: List[unicode]
-        :rtype: etree.Element
-        """
+    def query_datasources(self, project_name_or_luid: Optional[str] = None, all_fields: Optional[bool] = True,
+                          updated_at_filter: Optional[UrlFilter] = None, created_at_filter: Optional[UrlFilter] = None,
+                          tags_filter: Optional[UrlFilter] = None, datasource_type_filter: Optional[UrlFilter] = None,
+                          sorts: Optional[List[Sort]] = None, fields: Optional[List[str]] = None) -> etree.Element:
+
         self.start_log_block()
         if fields is None:
             if all_fields is True:

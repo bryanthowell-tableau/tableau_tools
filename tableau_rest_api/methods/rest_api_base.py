@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-from typing import Union, Any, Optional, List
+from typing import Union, Any, Optional, List, Dict
 
 from ...tableau_base import *
 from ...tableau_documents.tableau_file import TableauFile
@@ -17,13 +17,7 @@ import copy
 
 class TableauRestApiBase(TableauBase):
     # Defines a class that represents a RESTful connection to Tableau Server. Use full URL (http:// or https://)
-    def __init__(self, server: str, username: str, password: str, site_content_url: str =""):
-        """
-        :type server: unicode
-        :type username: unicode
-        :type password: unicode
-        :type site_content_url: unicode
-        """
+    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
         TableauBase.__init__(self)
         if server.find('http') == -1:
             raise InvalidOptionException('Server URL must include http:// or https://')
@@ -628,16 +622,9 @@ class TableauRestApiBase(TableauBase):
         return self._request_obj.get_response()
 
     # Generic implementation of all the CSV/PDF/PNG requests
-    def _query_data_file(self, download_type, view_name_or_luid, high_resolution=None, view_filter_map=None,
-                         wb_name_or_luid=None, proj_name_or_luid=None):
-        """
-        :type view_name_or_luid: unicode
-        :type high_resolution: bool
-        :type view_filter_map: dict
-        :type wb_name_or_luid: unicode
-        :type proj_name_or_luid
-        :rtype:
-        """
+    def _query_data_file(self, download_type: str, view_name_or_luid: str, high_resolution: Optional[bool] = None,
+                         view_filter_map: Optional[Dict] = None,
+                         wb_name_or_luid: Optional[str] = None, proj_name_or_luid: Optional[str] = None) -> bytes:
         self.start_log_block()
         if self.is_luid(view_name_or_luid):
             view_luid = view_name_or_luid
@@ -677,7 +664,26 @@ class TableauRestApiBase(TableauBase):
             self.end_log_block()
             raise
 
+class TableauRestApiBase27(TableauRestApiBase):
+    pass
 
+class TableauRestApiBase28(TableauRestApiBase27):
+    pass
 
+class TableauRestApiBase29(TableauRestApiBase28):
+    pass
 
+class TableauRestApiBase30(TableauRestApiBase29):
+    pass
 
+class TableauRestApiBase31(TableauRestApiBase30):
+    pass
+
+class TableauRestApiBase32(TableauRestApiBase31):
+    pass
+
+class TableauRestApiBase33(TableauRestApiBase32):
+    pass
+
+class TableauRestApiBase43(TableauRestApiBase33):
+    pass
