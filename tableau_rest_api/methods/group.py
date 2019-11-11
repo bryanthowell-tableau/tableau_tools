@@ -274,15 +274,97 @@ class GroupMethods(TableauRestApiBase):
         self.end_log_block()
 
 class GroupMethods27(GroupMethods):
-    pass
+    def query_groups(self, name_filter=None, domain_name_filter=None, domain_nickname_filter=None, is_local_filter=None,
+                     user_count_filter=None, minimum_site_role_filter=None, sorts=None):
+        """
+        :type name_filter: UrlFilter
+        :type domain_name_filter: UrlFilter
+        :type domain_nickname_filter: UrlFilter
+        :type is_local_filter: UrlFilter
+        :type user_count_filter: UrlFilter
+        :type minimum_site_role_filter: UrlFilter
+        :type sorts: list[Sort]
+        :rtype: etree.Element
+        """
+        filter_checks = {'name': name_filter, 'domainName': domain_name_filter,
+                         'domainNickname': domain_nickname_filter, 'isLocal': is_local_filter,
+                         'userCount': user_count_filter, 'minimumSiteRole': minimum_site_role_filter}
+
+        filters = self._check_filter_objects(filter_checks)
+
+        self.start_log_block()
+        groups = self.query_resource("groups", filters=filters, sorts=sorts)
+        for group in groups:
+            # Add to group-name : luid cache
+            group_luid = group.get("id")
+            group_name = group.get('name')
+            self.group_name_luid_cache[group_name] = group_luid
+        self.end_log_block()
+        return groups
+
+    def query_groups_json(self, name_filter=None, domain_name_filter=None, domain_nickname_filter=None,
+                          is_local_filter=None, user_count_filter=None, minimum_site_role_filter=None,
+                          sorts=None, page_number=None):
+            """
+            :type name_filter: UrlFilter
+            :type domain_name_filter: UrlFilter
+            :type domain_nickname_filter: UrlFilter
+            :type is_local_filter: UrlFilter
+            :type user_count_filter: UrlFilter
+            :type minimum_site_role_filter: UrlFilter
+            :type sorts: list[Sort]
+            :type page_number: int
+            :rtype: etree.Element
+            """
+            filter_checks = {'name': name_filter, 'domainName': domain_name_filter,
+                             'domainNickname': domain_nickname_filter, 'isLocal': is_local_filter,
+                             'userCount': user_count_filter, 'minimumSiteRole': minimum_site_role_filter}
+
+            filters = self._check_filter_objects(filter_checks)
+
+            self.start_log_block()
+            groups = self.query_resource_json("groups", filters=filters, sorts=sorts, page_number=page_number)
+            self.end_log_block()
+            return groups
+
+        # # No basic verb for querying a single group, so run a query_groups
+
+    def query_group(self, group_name_or_luid):
+        """
+        :type group_name_or_luid: unicode
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        group = self.query_single_element_from_endpoint_with_filter('group', group_name_or_luid)
+        # Add to group_name : luid cache
+        group_luid = group.get("id")
+        group_name = group.get('name')
+        self.group_name_luid_cache[group_name] = group_luid
+
+        self.end_log_block()
+        return group
+
+        # Groups luckily cannot have the same 'pretty name' on one site
+
+    def query_group_luid(self, group_name):
+        """
+        :type group_name: unicode
+        :rtype: unicode
+        """
+        self.start_log_block()
+        if group_name in self.group_name_luid_cache:
+            group_luid = self.group_name_luid_cache[group_name]
+            self.log('Found group name {} in cache with luid {}'.format(group_name, group_luid))
+        else:
+            group_luid = self.query_single_element_luid_from_endpoint_with_filter('group', group_name)
+            self.group_name_luid_cache[group_name] = group_luid
+        self.end_log_block()
+        return group_luid
 
 class GroupMethods28(GroupMethods27):
     pass
 
-class GroupMethods29(GroupMethods28):
-    pass
-
-class GroupMethods30(GroupMethods29):
+class GroupMethods30(GroupMethods28):
     pass
 
 class GroupMethods31(GroupMethods30):

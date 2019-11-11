@@ -16,11 +16,6 @@ class TableauRestApiConnection28(WorkbookMethods28, UserMethods28, SiteMethods28
                                ExtractMethods28, DatasourceMethods28, TableauRestApiBase28):
     pass
 
-class TableauRestApiConnection29(WorkbookMethods29, UserMethods29, SiteMethods29, ServerMethods29,
-                               ScheduleMethods29, RevisionMethods29, ProjectMethods29, GroupMethods29, FavoritesMethods29,
-                               ExtractMethods29, DatasourceMethods29, TableauRestApiBase29):
-    pass
-
 class TableauRestApiConnection30(WorkbookMethods30, UserMethods30, SiteMethods30, ServerMethods30,
                                ScheduleMethods30, RevisionMethods30, ProjectMethods30, GroupMethods30, FavoritesMethods30,
                                ExtractMethods30, DatasourceMethods30, TableauRestApiBase30):

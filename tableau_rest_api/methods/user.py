@@ -275,10 +275,7 @@ class UserMethods27(UserMethods):
 class UserMethods28(UserMethods27):
     pass
 
-class UserMethods29(UserMethods28):
-    pass
-
-class UserMethods30(UserMethods29):
+class UserMethods30(UserMethods28):
     pass
 
 class UserMethods31(UserMethods30):

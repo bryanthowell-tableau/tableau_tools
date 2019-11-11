@@ -333,15 +333,57 @@ class DatasourceMethods(TableauRestApiBase):
     
 
 class DatasourceMethods27(DatasourceMethods):
-    pass
+    def update_datasource(self, datasource_name_or_luid, datasource_project_name_or_luid=None,
+                          new_datasource_name=None, new_project_luid=None, new_owner_luid=None,
+                          certification_status=None, certification_note=None):
+        """
+        :type datasource_name_or_luid: unicode
+        :type datasource_project_name_or_luid: unicode
+        :type new_datasource_name: unicode
+        :type new_project_luid: unicode
+        :type new_owner_luid: unicode
+        :type certification_status: bool
+        :type certification_note: unicode
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if certification_status not in [None, False, True]:
+            raise InvalidOptionException('certification_status must be None, False, or True')
+
+        if self.is_luid(datasource_name_or_luid):
+            datasource_luid = datasource_name_or_luid
+        else:
+            datasource_luid = self.query_datasource_luid(datasource_name_or_luid, datasource_project_name_or_luid)
+
+        tsr = etree.Element("tsRequest")
+        d = etree.Element("datasource")
+        if new_datasource_name is not None:
+            d.set('name', new_datasource_name)
+        if certification_status is not None:
+            d.set('isCertified', '{}'.format(str(certification_status).lower()))
+        if certification_note is not None:
+            d.set('certificationNote', certification_note)
+        if new_project_luid is not None:
+            p = etree.Element('project')
+            p.set('id', new_project_luid)
+            d.append(p)
+        if new_owner_luid is not None:
+            o = etree.Element('owner')
+            o.set('id', new_owner_luid)
+            d.append(o)
+
+        tsr.append(d)
+
+        url = self.build_api_url("datasources/{}".format(datasource_luid))
+        response = self.send_update_request(url, tsr)
+        self.end_log_block()
+        return response
 
 class DatasourceMethods28(DatasourceMethods27):
     pass
 
-class DatasourceMethods29(DatasourceMethods28):
-    pass
 
-class DatasourceMethods30(DatasourceMethods29):
+class DatasourceMethods30(DatasourceMethods28):
     pass
 
 class DatasourceMethods31(DatasourceMethods30):

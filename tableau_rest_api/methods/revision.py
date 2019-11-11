@@ -135,10 +135,7 @@ class RevisionMethods27(RevisionMethods):
 class RevisionMethods28(RevisionMethods27):
     pass
 
-class RevisionMethods29(RevisionMethods28):
-    pass
-
-class RevisionMethods30(RevisionMethods29):
+class RevisionMethods30(RevisionMethods28):
     pass
 
 class RevisionMethods31(RevisionMethods30):

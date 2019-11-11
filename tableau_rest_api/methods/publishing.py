@@ -265,10 +265,7 @@ class PublishingMethods27(PublishingMethods):
 class PublishingMethods28(PublishingMethods27):
     pass
 
-class PublishingMethods29(PublishingMethods28):
-    pass
-
-class PublishingMethods30(PublishingMethods29):
+class PublishingMethods30(PublishingMethods28):
     pass
 
 class PublishingMethods31(PublishingMethods30):

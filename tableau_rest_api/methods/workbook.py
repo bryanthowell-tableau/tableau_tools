@@ -668,12 +668,88 @@ class WorkbookMethods27(WorkbookMethods):
     pass
 
 class WorkbookMethods28(WorkbookMethods27):
-    pass
+    def query_view_pdf(self, wb_name_or_luid, view_name_or_luid, proj_name_or_luid=None,
+                       view_filter_map=None):
+        self.start_log_block()
+        pdf = self._query_data_file('pdf', view_name_or_luid=view_name_or_luid, wb_name_or_luid=wb_name_or_luid,
+                                    proj_name_or_luid=proj_name_or_luid, view_filter_map=view_filter_map)
+        self.end_log_block()
+        return pdf
 
-class WorkbookMethods29(WorkbookMethods28):
-    pass
+    # Do not include file extension
+    def save_view_pdf(self, wb_name_or_luid, view_name_or_luid, filename_no_extension,
+                                         proj_name_or_luid=None, view_filter_map=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type view_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type filename_no_extension: unicode
+        :type view_filter_map: dict
+        :rtype:
+        """
+        self.start_log_block()
+        pdf = self.query_view_pdf(view_name_or_luid=view_name_or_luid, wb_name_or_luid=wb_name_or_luid,
+                                  proj_name_or_luid=proj_name_or_luid, view_filter_map=view_filter_map)
 
-class WorkbookMethods30(WorkbookMethods29):
+        if filename_no_extension.find('.pdf') == -1:
+            filename_no_extension += '.pdf'
+        try:
+            save_file = open(filename_no_extension, 'wb')
+            save_file.write(pdf)
+            save_file.close()
+            self.end_log_block()
+        except IOError:
+            self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension))
+            self.end_log_block()
+            raise
+
+    def query_view_data(self, wb_name_or_luid=None, view_name_or_luid=None, proj_name_or_luid=None,
+                        view_filter_map=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type view_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type view_filter_map: dict
+        :rtype:
+        """
+        self.start_log_block()
+        csv = self._query_data_file('data', view_name_or_luid=view_name_or_luid, wb_name_or_luid=wb_name_or_luid,
+                                    proj_name_or_luid=proj_name_or_luid, view_filter_map=view_filter_map)
+        self.end_log_block()
+        return csv
+
+    def save_view_data_as_csv(self, wb_name_or_luid=None, view_name_or_luid=None, filename_no_extension=None,
+                              proj_name_or_luid=None, view_filter_map=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type view_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type filename_no_extension: unicode
+        :type view_filter_map: dict
+        :rtype:
+        """
+        self.start_log_block()
+        data = self.query_view_data(wb_name_or_luid=wb_name_or_luid, view_name_or_luid=view_name_or_luid,
+                                    proj_name_or_luid=proj_name_or_luid, view_filter_map=view_filter_map)
+
+        if filename_no_extension is not None:
+            if filename_no_extension.find('.csv') == -1:
+                filename_no_extension += '.csv'
+            try:
+                save_file = open(filename_no_extension, 'wb')
+                save_file.write(data)
+                save_file.close()
+                self.end_log_block()
+                return
+            except IOError:
+                self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension))
+                self.end_log_block()
+                raise
+        else:
+            raise InvalidOptionException(
+                'This method is for saving response to file. Must include filename_no_extension parameter')
+
+class WorkbookMethods30(WorkbookMethods28):
     pass
 
 class WorkbookMethods31(WorkbookMethods30):

@@ -122,10 +122,7 @@ class SiteMethods27(SiteMethods):
 class SiteMethods28(SiteMethods27):
     pass
 
-class SiteMethods29(SiteMethods28):
-    pass
-
-class SiteMethods30(SiteMethods29):
+class SiteMethods30(SiteMethods28):
     pass
 
 class SiteMethods31(SiteMethods30):

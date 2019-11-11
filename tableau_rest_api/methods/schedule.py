@@ -618,12 +618,71 @@ class ScheduleMethods27(ScheduleMethods):
     pass
 
 class ScheduleMethods28(ScheduleMethods27):
-    pass
+    def add_workbook_to_schedule(self, wb_name_or_luid, schedule_name_or_luid, proj_name_or_luid=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type schedule_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :return:
+        """
+        self.start_log_block()
+        if self.is_luid(wb_name_or_luid):
+            wb_luid = wb_name_or_luid
+        else:
+            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
 
-class ScheduleMethods29(ScheduleMethods28):
-    pass
+        if self.is_luid(schedule_name_or_luid):
+            schedule_luid = schedule_name_or_luid
+        else:
+            schedule_luid = self.query_schedule_luid(schedule_name_or_luid)
 
-class ScheduleMethods30(ScheduleMethods29):
+        tsr = etree.Element('tsRequest')
+        t = etree.Element('task')
+        er = etree.Element('extractRefresh')
+        w = etree.Element('workbook')
+        w.set('id', wb_luid)
+        er.append(w)
+        t.append(er)
+        tsr.append(t)
+
+        url = self.build_api_url("schedules/{}/workbooks".format(schedule_luid))
+        response = self.send_update_request(url, tsr)
+
+        self.end_log_block()
+
+    def add_datasource_to_schedule(self, ds_name_or_luid, schedule_name_or_luid, proj_name_or_luid=None):
+        """
+        :type ds_name_or_luid: unicode
+        :type schedule_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :return:
+        """
+        self.start_log_block()
+        if self.is_luid(ds_name_or_luid):
+            ds_luid = ds_name_or_luid
+        else:
+            ds_luid = self.query_workbook_luid(ds_name_or_luid, proj_name_or_luid)
+
+        if self.is_luid(schedule_name_or_luid):
+            schedule_luid = schedule_name_or_luid
+        else:
+            schedule_luid = self.query_schedule_luid(schedule_name_or_luid)
+
+        tsr = etree.Element('tsRequest')
+        t = etree.Element('task')
+        er = etree.Element('extractRefresh')
+        d = etree.Element('datasource')
+        d.set('id', ds_luid)
+        er.append(d)
+        t.append(er)
+        tsr.append(t)
+
+        url = self.build_api_url("schedules/{}/datasources".format(schedule_luid))
+        response = self.send_update_request(url, tsr)
+
+        self.end_log_block()
+
+class ScheduleMethods30(ScheduleMethods28):
     pass
 
 class ScheduleMethods31(ScheduleMethods30):

@@ -87,10 +87,7 @@ class ServerMethods27(ServerMethods):
 class ServerMethods28(ServerMethods27):
     pass
 
-class ServerMethods29(ServerMethods28):
-    pass
-
-class ServerMethods30(ServerMethods29):
+class ServerMethods30(ServerMethods28):
     pass
 
 class ServerMethods31(ServerMethods30):

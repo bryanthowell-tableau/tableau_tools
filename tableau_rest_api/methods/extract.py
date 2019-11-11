@@ -118,12 +118,68 @@ class ExtractMethods27(ExtractMethods):
     pass
 
 class ExtractMethods28(ExtractMethods27):
-    pass
+    def update_datasource_now(self, ds_name_or_luid, project_name_or_luid=False):
+        """
+        :type ds_name_or_luid: unicode
+        :type project_name_or_luid: unicode
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if self.is_luid(ds_name_or_luid) is False:
+            ds_luid = self.query_datasource_luid(ds_name_or_luid, project_name_or_luid=project_name_or_luid)
+        else:
+            ds_luid = ds_name_or_luid
 
-class ExtractMethods29(ExtractMethods28):
-    pass
+        # Has an empty request but is POST because it makes a
+        tsr = etree.Element('tsRequest')
 
-class ExtractMethods30(ExtractMethods29):
+        url = self.build_api_url('datasources/{}/refresh'.format(ds_luid))
+        response = self.send_add_request(url, tsr)
+
+        self.end_log_block()
+        return response
+
+    def update_workbook_now(self, wb_name_or_luid, project_name_or_luid=False):
+        """
+        :type wb_name_or_luid: unicode
+        :type project_name_or_luid: unicode
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if self.is_luid(wb_name_or_luid) is False:
+            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid=project_name_or_luid)
+        else:
+            wb_luid = wb_name_or_luid
+
+        # Has an empty request but is POST because it makes a
+        tsr = etree.Element('tsRequest')
+
+        url = self.build_api_url('workbooks/{}/refresh'.format(wb_luid))
+        response = self.send_add_request(url, tsr)
+
+        self.end_log_block()
+        return response
+
+    def run_extract_refresh_for_workbook(self, wb_name_or_luid, proj_name_or_luid=None, username_or_luid=None):
+        """
+        :type wb_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :type username_or_luid: unicode
+        :return:
+        """
+        return self.update_workbook_now(wb_name_or_luid, proj_name_or_luid)
+
+    # Use the specific refresh rather than the schedule task in 2.8
+    def run_extract_refresh_for_datasource(self, ds_name_or_luid, proj_name_or_luid=None):
+        """
+        :type ds_name_or_luid: unicode
+        :type proj_name_or_luid: unicode
+        :rtype: etree.Element
+        """
+        return self.update_datasource_now(ds_name_or_luid, proj_name_or_luid)
+
+
+class ExtractMethods30(ExtractMethods28):
     pass
 
 class ExtractMethods31(ExtractMethods30):

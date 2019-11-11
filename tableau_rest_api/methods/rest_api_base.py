@@ -670,10 +670,7 @@ class TableauRestApiBase27(TableauRestApiBase):
 class TableauRestApiBase28(TableauRestApiBase27):
     pass
 
-class TableauRestApiBase29(TableauRestApiBase28):
-    pass
-
-class TableauRestApiBase30(TableauRestApiBase29):
+class TableauRestApiBase30(TableauRestApiBase28):
     pass
 
 class TableauRestApiBase31(TableauRestApiBase30):

@@ -188,10 +188,8 @@ class FavoritesMethods27(FavoritesMethods):
 class FavoritesMethods28(FavoritesMethods27):
     pass
 
-class FavoritesMethods29(FavoritesMethods28):
-    pass
 
-class FavoritesMethods30(FavoritesMethods29):
+class FavoritesMethods30(FavoritesMethods28):
     pass
 
 class FavoritesMethods31(FavoritesMethods30):
