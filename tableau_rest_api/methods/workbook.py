@@ -663,3 +663,27 @@ class WorkbookMethods(TableauRestApiBase):
             deleted_count += self.send_delete_request(url)
         self.end_log_block()
         return deleted_count
+
+class WorkbookMethods27(WorkbookMethods):
+    pass
+
+class WorkbookMethods28(WorkbookMethods27):
+    pass
+
+class WorkbookMethods29(WorkbookMethods28):
+    pass
+
+class WorkbookMethods30(WorkbookMethods29):
+    pass
+
+class WorkbookMethods31(WorkbookMethods30):
+    pass
+
+class WorkbookMethods32(WorkbookMethods31):
+    pass
+
+class WorkbookMethods33(WorkbookMethods32):
+    pass
+
+class WorkbookMethods34(WorkbookMethods33):
+    pass

@@ -80,3 +80,27 @@ class ServerMethods(TableauRestApiBase):
 
         url = self.build_api_url('')[:-1]
         return self.send_publish_request(url, publish_request, None, boundary_string)
+
+class ServerMethods27(ServerMethods):
+    pass
+
+class ServerMethods28(ServerMethods27):
+    pass
+
+class ServerMethods29(ServerMethods28):
+    pass
+
+class ServerMethods30(ServerMethods29):
+    pass
+
+class ServerMethods31(ServerMethods30):
+    pass
+
+class ServerMethods32(ServerMethods31):
+    pass
+
+class ServerMethods33(ServerMethods32):
+    pass
+
+class ServerMethods34(ServerMethods33):
+    pass

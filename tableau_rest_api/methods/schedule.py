@@ -614,4 +614,26 @@ class SubscriptionMethods(TableauRestApiBase):
             self.send_delete_request(url)
         self.end_log_block()
 
+class ScheduleMethods27(ScheduleMethods):
+    pass
 
+class ScheduleMethods28(ScheduleMethods27):
+    pass
+
+class ScheduleMethods29(ScheduleMethods28):
+    pass
+
+class ScheduleMethods30(ScheduleMethods29):
+    pass
+
+class ScheduleMethods31(ScheduleMethods30):
+    pass
+
+class ScheduleMethods32(ScheduleMethods31):
+    pass
+
+class ScheduleMethods33(ScheduleMethods32):
+    pass
+
+class ScheduleMethods34(ScheduleMethods33):
+    pass

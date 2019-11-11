@@ -113,3 +113,27 @@ class ExtractMethods(TableauRestApiBase):
         job = self.query_resource("jobs/{}".format(job_luid))
         self.end_log_block()
         return job
+    
+class ExtractMethods27(ExtractMethods):
+    pass
+
+class ExtractMethods28(ExtractMethods27):
+    pass
+
+class ExtractMethods29(ExtractMethods28):
+    pass
+
+class ExtractMethods30(ExtractMethods29):
+    pass
+
+class ExtractMethods31(ExtractMethods30):
+    pass
+
+class ExtractMethods32(ExtractMethods31):
+    pass
+
+class ExtractMethods33(ExtractMethods32):
+    pass
+
+class ExtractMethods34(ExtractMethods33):
+    pass

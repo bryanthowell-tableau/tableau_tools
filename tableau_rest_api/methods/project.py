@@ -157,3 +157,27 @@ class ProjectMethods(TableauRestApiBase):
             url = self.build_api_url("projects/{}".format(project_luid))
             self.send_delete_request(url)
         self.end_log_block()
+
+class ProjectMethods27(ProjectMethods):
+    pass
+
+class ProjectMethods28(ProjectMethods27):
+    pass
+
+class ProjectMethods29(ProjectMethods28):
+    pass
+
+class ProjectMethods30(ProjectMethods29):
+    pass
+
+class ProjectMethods31(ProjectMethods30):
+    pass
+
+class ProjectMethods32(ProjectMethods31):
+    pass
+
+class ProjectMethods33(ProjectMethods32):
+    pass
+
+class ProjectMethods34(ProjectMethods33):
+    pass

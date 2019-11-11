@@ -258,3 +258,27 @@ class PublishingMethods(TableauRestApiBase):
         publish_request += "\r\n--{}--".format(boundary_string)
         url = self.build_api_url("fileUploads/{}".format(upload_session_id))
         self.send_append_request(url, publish_request, boundary_string)
+
+class PublishingMethods27(PublishingMethods):
+    pass
+
+class PublishingMethods28(PublishingMethods27):
+    pass
+
+class PublishingMethods29(PublishingMethods28):
+    pass
+
+class PublishingMethods30(PublishingMethods29):
+    pass
+
+class PublishingMethods31(PublishingMethods30):
+    pass
+
+class PublishingMethods32(PublishingMethods31):
+    pass
+
+class PublishingMethods33(PublishingMethods32):
+    pass
+
+class PublishingMethods34(PublishingMethods33):
+    pass

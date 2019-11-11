@@ -330,3 +330,28 @@ class DatasourceMethods(TableauRestApiBase):
             deleted_count += self.send_delete_request(url)
         self.end_log_block()
         return deleted_count
+    
+
+class DatasourceMethods27(DatasourceMethods):
+    pass
+
+class DatasourceMethods28(DatasourceMethods27):
+    pass
+
+class DatasourceMethods29(DatasourceMethods28):
+    pass
+
+class DatasourceMethods30(DatasourceMethods29):
+    pass
+
+class DatasourceMethods31(DatasourceMethods30):
+    pass
+
+class DatasourceMethods32(DatasourceMethods31):
+    pass
+
+class DatasourceMethods33(DatasourceMethods32):
+    pass
+
+class DatasourceMethods34(DatasourceMethods33):
+    pass

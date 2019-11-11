@@ -115,3 +115,27 @@ class SiteMethods(TableauRestApiBase):
         url = self.build_api_url("sites/{}".format(self.site_luid), server_level=True)
         self.send_delete_request(url)
         self.end_log_block()
+
+class SiteMethods27(SiteMethods):
+    pass
+
+class SiteMethods28(SiteMethods27):
+    pass
+
+class SiteMethods29(SiteMethods28):
+    pass
+
+class SiteMethods30(SiteMethods29):
+    pass
+
+class SiteMethods31(SiteMethods30):
+    pass
+
+class SiteMethods32(SiteMethods31):
+    pass
+
+class SiteMethods33(SiteMethods32):
+    pass
+
+class SiteMethods34(SiteMethods33):
+    pass

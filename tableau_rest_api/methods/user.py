@@ -268,3 +268,27 @@ class UserMethods(TableauRestApiBase):
             self.log('Removing user {}, id {} from site'.format(username, user_luid))
             self.send_delete_request(url)
         self.end_log_block()
+
+class UserMethods27(UserMethods):
+    pass
+
+class UserMethods28(UserMethods27):
+    pass
+
+class UserMethods29(UserMethods28):
+    pass
+
+class UserMethods30(UserMethods29):
+    pass
+
+class UserMethods31(UserMethods30):
+    pass
+
+class UserMethods32(UserMethods31):
+    pass
+
+class UserMethods33(UserMethods32):
+    pass
+
+class UserMethods34(UserMethods33):
+    pass

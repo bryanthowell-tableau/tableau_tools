@@ -181,3 +181,27 @@ class FavoritesMethods(TableauRestApiBase):
             url = self.build_api_url("favorites/{}/datasources/{}".format(user_luid, ds_luid))
             self.send_delete_request(url)
         self.end_log_block()
+
+class FavoritesMethods27(FavoritesMethods):
+    pass
+
+class FavoritesMethods28(FavoritesMethods27):
+    pass
+
+class FavoritesMethods29(FavoritesMethods28):
+    pass
+
+class FavoritesMethods30(FavoritesMethods29):
+    pass
+
+class FavoritesMethods31(FavoritesMethods30):
+    pass
+
+class FavoritesMethods32(FavoritesMethods31):
+    pass
+
+class FavoritesMethods33(FavoritesMethods32):
+    pass
+
+class FavoritesMethods34(FavoritesMethods33):
+    pass

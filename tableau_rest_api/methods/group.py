@@ -272,3 +272,27 @@ class GroupMethods(TableauRestApiBase):
             self.log('Removing user {}, id {} from group {}, id {}'.format(username, user_luid, group_name, group_luid))
             self.send_delete_request(url)
         self.end_log_block()
+
+class GroupMethods27(GroupMethods):
+    pass
+
+class GroupMethods28(GroupMethods27):
+    pass
+
+class GroupMethods29(GroupMethods28):
+    pass
+
+class GroupMethods30(GroupMethods29):
+    pass
+
+class GroupMethods31(GroupMethods30):
+    pass
+
+class GroupMethods32(GroupMethods31):
+    pass
+
+class GroupMethods33(GroupMethods32):
+    pass
+
+class GroupMethods34(GroupMethods33):
+    pass

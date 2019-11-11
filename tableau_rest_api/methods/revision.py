@@ -179,3 +179,27 @@ class RevisionMethods(TableauRestApiBase):
             self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
             self.end_log_block()
             raise
+
+class RevisionMethods27(RevisionMethods):
+    pass
+
+class RevisionMethods28(RevisionMethods27):
+    pass
+
+class RevisionMethods29(RevisionMethods28):
+    pass
+
+class RevisionMethods30(RevisionMethods29):
+    pass
+
+class RevisionMethods31(RevisionMethods30):
+    pass
+
+class RevisionMethods32(RevisionMethods31):
+    pass
+
+class RevisionMethods33(RevisionMethods32):
+    pass
+
+class RevisionMethods34(RevisionMethods33):
+    pass

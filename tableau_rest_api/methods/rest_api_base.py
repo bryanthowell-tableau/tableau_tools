@@ -685,5 +685,5 @@ class TableauRestApiBase32(TableauRestApiBase31):
 class TableauRestApiBase33(TableauRestApiBase32):
     pass
 
-class TableauRestApiBase43(TableauRestApiBase33):
+class TableauRestApiBase34(TableauRestApiBase33):
     pass
