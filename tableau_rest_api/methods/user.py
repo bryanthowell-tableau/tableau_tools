@@ -62,11 +62,7 @@ class UserMethods(TableauRestApiBase):
         self.end_log_block()
         return user
 
-    def query_user_luid(self, username):
-        """
-        :type username: unicode
-        :rtype: unicode
-        """
+    def query_user_luid(self, username: str) -> str:
         self.start_log_block()
         if username in self.username_luid_cache:
             user_luid = self.username_luid_cache[username]

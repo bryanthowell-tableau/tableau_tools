@@ -2,16 +2,14 @@ from .rest_api_base import *
 
 class ServerMethods(TableauRestApiBase):
 
-    def query_server_info(self):
-        """
-        :rtype: etree.Element
-        """
+    def query_server_info(self) -> etree.Element:
         self.start_log_block()
         server_info = self.query_resource("serverinfo", server_level=True)
         self.end_log_block()
         return server_info
 
-    def query_server_version(self):
+    # UNFINISHED
+    def query_server_version(self) -> str:
         """
         :rtype:
         """
@@ -19,16 +17,13 @@ class ServerMethods(TableauRestApiBase):
         server_info = self.query_server_info()
         # grab the server number
 
+    # UNFINISHED
     def query_api_version(self):
         self.start_log_block()
         server_info = self.query_server_info()
         # grab api version number
 
-    def update_online_site_logo(self, image_filename):
-        """
-        :type image_filename: unicode
-        :rtype:
-        """
+    def update_online_site_logo(self, image_filename: str):
         # Request type is mixed and require a boundary
         boundary_string = self.generate_boundary_string()
         for ending in ['.png', ]:
@@ -65,10 +60,6 @@ class ServerMethods(TableauRestApiBase):
         return self.send_publish_request(url, publish_request, None, boundary_string)
 
     def restore_online_site_logo(self):
-        """
-        :rtype:
-        """
-        # Request type is mixed and require a boundary
         boundary_string = self.generate_boundary_string()
 
         # Create the initial XML portion of the request
