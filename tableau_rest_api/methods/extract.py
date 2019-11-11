@@ -183,7 +183,40 @@ class ExtractMethods30(ExtractMethods28):
     pass
 
 class ExtractMethods31(ExtractMethods30):
-    pass
+    def query_jobs(self, progress_filter=None, job_type_filter=None, created_at_filter=None, started_at_filter=None,
+                   ended_at_filter=None, title_filter=None, subtitle_filter=None, notes_filter=None):
+        """
+        :type progress_filter: UrlFilter
+        :type job_type_filter: UrlFilter
+        :type created_at_filter: UrlFilter
+        :type started_at_filter: UrlFilter
+        :type title_filter: UrlFilter
+        :type notes_filter: UrlFilter
+        :type subtitle_filter: UrlFilter
+        :type ended_at_filter: UrlFilter
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        filter_checks = {'progress': progress_filter, 'jobType': job_type_filter,
+                         'createdAt': created_at_filter, 'title': title_filter,
+                         'notes': notes_filter, 'endedAt': ended_at_filter,
+                         'subtitle': subtitle_filter, 'startedAt': started_at_filter}
+        filters = self._check_filter_objects(filter_checks)
+
+        jobs = self.query_resource("jobs", filters=filters)
+        self.log('Found {} jobs'.format(str(len(jobs))))
+        self.end_log_block()
+        return jobs
+
+    def cancel_job(self, job_luid):
+        """
+        :type job_luid: unicode
+        :return:
+        """
+        self.start_log_block()
+        url = self.build_api_url("jobs/{}".format(job_luid))
+        self.send_update_request(url, None)
+        self.end_log_block()
 
 class ExtractMethods32(ExtractMethods31):
     pass

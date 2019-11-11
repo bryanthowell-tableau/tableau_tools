@@ -671,7 +671,46 @@ class TableauRestApiBase28(TableauRestApiBase27):
     pass
 
 class TableauRestApiBase30(TableauRestApiBase28):
-    pass
+    @staticmethod
+    def build_site_request_xml(site_name=None, content_url=None, admin_mode=None, tier_creator_capacity=None,
+                               tier_explorer_capacity=None, tier_viewer_capacity=None, storage_quota=None,
+                               disable_subscriptions=None, state=None):
+        """
+        :type site_name: unicode
+        :type content_url: unicode
+        :type admin_mode: unicode
+        :type tier_creator_capacity: unicode
+        :type tier_explorer_capacity: unicode
+        :type tier_viewer_capacity: unicode
+        :type storage_quota: unicode
+        :type disable_subscriptions: bool
+        :type state: unicode
+        :rtype: unicode
+        """
+        tsr = etree.Element("tsRequest")
+        s = etree.Element('site')
+
+        if site_name is not None:
+            s.set('name', site_name)
+        if content_url is not None:
+            s.set('contentUrl', content_url)
+        if admin_mode is not None:
+            s.set('adminMode', admin_mode)
+        if tier_creator_capacity is not None:
+            s.set('tierCreatorCapacity', str(tier_creator_capacity))
+        if tier_explorer_capacity is not None:
+            s.set('tierExplorerCapacity', str(tier_explorer_capacity))
+        if tier_viewer_capacity is not None:
+            s.set('tierViewerCapacity', str(tier_viewer_capacity))
+        if state is not None:
+            s.set('state', state)
+        if storage_quota is not None:
+            s.set('storageQuota', str(storage_quota))
+        if disable_subscriptions is not None:
+            s.set('disableSubscriptions', str(disable_subscriptions).lower())
+
+        tsr.append(s)
+        return tsr
 
 class TableauRestApiBase31(TableauRestApiBase30):
     pass
@@ -683,4 +722,52 @@ class TableauRestApiBase33(TableauRestApiBase32):
     pass
 
 class TableauRestApiBase34(TableauRestApiBase33):
-    pass
+    # Generic implementation of all the CSV/PDF/PNG requests
+    def _query_data_file(self, download_type, view_name_or_luid, high_resolution=None, view_filter_map=None,
+                         wb_name_or_luid=None, proj_name_or_luid=None, max_age_minutes=None):
+        """
+        :type view_name_or_luid: unicode
+        :type high_resolution: bool
+        :type view_filter_map: dict
+        :type wb_name_or_luid: unicode
+        :type proj_name_or_luid
+        :type max_age_minutes: int
+        :rtype:
+        """
+        self.start_log_block()
+        if self.is_luid(view_name_or_luid):
+            view_luid = view_name_or_luid
+        else:
+            view_luid = self.query_workbook_view_luid(wb_name_or_luid, view_name=view_name_or_luid,
+                                                      proj_name_or_luid=proj_name_or_luid)
+
+        if view_filter_map is not None:
+            final_filter_map = {}
+            for key in view_filter_map:
+                new_key = "vf_{}".format(key)
+                # Check if this just a string
+                if isinstance(view_filter_map[key], str):
+                    value = view_filter_map[key]
+                else:
+                    value = ",".join(map(str,view_filter_map[key]))
+                final_filter_map[new_key] = value
+
+            additional_url_params = "?" + urllib.parse.urlencode(final_filter_map)
+            if high_resolution is True:
+                additional_url_params += "&resolution=high"
+
+        else:
+            additional_url_params = ""
+            if high_resolution is True:
+                additional_url_params += "?resolution=high"
+        try:
+
+            url = self.build_api_url("views/{}/{}{}".format(view_luid, download_type, additional_url_params))
+            binary_result = self.send_binary_get_request(url)
+
+            self.end_log_block()
+            return binary_result
+        except RecoverableHTTPException as e:
+            self.log("Attempt to request results in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
+            self.end_log_block()
+            raise

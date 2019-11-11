@@ -123,7 +123,63 @@ class SiteMethods28(SiteMethods27):
     pass
 
 class SiteMethods30(SiteMethods28):
-    pass
+    # Both SiteName and ContentUrl must be unique to add a site
+    def create_site(self, new_site_name, new_content_url, admin_mode=None, tier_creator_capacity=None,
+                    tier_explorer_capacity=None, tier_viewer_capacity=None, storage_quota=None,
+                    disable_subscriptions=None):
+        """
+        :type new_site_name: unicode
+        :type new_content_url: unicode
+        :type admin_mode: unicode
+        :type tier_creator_capacity: unicode
+        :type tier_explorer_capacity: unicode
+        :type tier_viewer_capacity: unicode
+        :type storage_quota: unicode
+        :type disable_subscriptions: bool
+        :rtype: unicode
+        """
+
+        add_request = self.build_site_request_xml(new_site_name, new_content_url, admin_mode, tier_creator_capacity,
+                                                  tier_explorer_capacity, tier_viewer_capacity, storage_quota,
+                                                  disable_subscriptions)
+        url = self.build_api_url("sites/",
+                                 server_level=True)  # Site actions drop back out of the site ID hierarchy like login
+        try:
+            new_site = self.send_add_request(url, add_request)
+            return new_site.findall('.//t:site', self.ns_map)[0].get("id")
+        except RecoverableHTTPException as e:
+            if e.http_code == 409:
+                self.log("Site with content_url {} already exists".format(new_content_url))
+                self.end_log_block()
+                raise AlreadyExistsException("Site with content_url {} already exists".format(new_content_url),
+                                             new_content_url)
+
+    # Can only update the site you are signed into, so take site_luid from the object
+    def update_site(self, site_name=None, content_url=None, admin_mode=None, tier_creator_capacity=None,
+                    tier_explorer_capacity=None, tier_viewer_capacity=None, storage_quota=None,
+                    disable_subscriptions=None, state=None, revision_history_enabled=None, revision_limit=None):
+        """
+        :type site_name: unicode
+        :type content_url: unicode
+        :type admin_mode: unicode
+        :type tier_creator_capacity: unicode
+        :type tier_explorer_capacity: unicode
+        :type tier_viewer_capacity: unicode
+        :type storage_quota: unicode
+        :type disable_subscriptions: bool
+        :type state: unicode
+        :type revision_history_enabled: bool
+        :type revision_limit: unicode
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        tsr = self.build_site_request_xml(site_name, content_url, admin_mode, tier_creator_capacity,
+                                          tier_explorer_capacity, tier_viewer_capacity, storage_quota,
+                                          disable_subscriptions, state)
+        url = self.build_api_url("")
+        response = self.send_update_request(url, tsr)
+        self.end_log_block()
+        return response
 
 class SiteMethods31(SiteMethods30):
     pass

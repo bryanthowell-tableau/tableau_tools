@@ -762,4 +762,20 @@ class WorkbookMethods33(WorkbookMethods32):
     pass
 
 class WorkbookMethods34(WorkbookMethods33):
-    pass
+    def query_view_image(self, view_name_or_luid, high_resolution=False, view_filter_map=None,
+                         wb_name_or_luid=None, proj_name_or_luid=None, max_age_minutes=None):
+        """
+        :type view_name_or_luid: unicode
+        :type high_resolution: bool
+        :type view_filter_map: dict
+        :type wb_name_or_luid: unicode
+        :type proj_name_or_luid
+        :type max_age_minutes: int
+        :rtype:
+        """
+        self.start_log_block()
+        image = self._query_data_file('image', view_name_or_luid=view_name_or_luid, high_resolution=high_resolution,
+                                      view_filter_map=view_filter_map, wb_name_or_luid=wb_name_or_luid,
+                                      proj_name_or_luid=proj_name_or_luid, max_age_minutes=max_age_minutes)
+        self.end_log_block()
+        return image

@@ -188,12 +188,55 @@ class FavoritesMethods27(FavoritesMethods):
 class FavoritesMethods28(FavoritesMethods27):
     pass
 
-
 class FavoritesMethods30(FavoritesMethods28):
     pass
 
 class FavoritesMethods31(FavoritesMethods30):
-    pass
+    def add_project_to_user_favorites(self, favorite_name, proj_name_or_luid=None):
+        """
+        :type favorite_name: unicode
+        :type proj_name_or_luid: unicode
+        :rtype: etree.Element
+        """
+        self.start_log_block()
+        if self.is_luid(proj_name_or_luid):
+            proj_luid = proj_name_or_luid
+        else:
+            proj_luid = self.query_project_luid(proj_name_or_luid)
+
+        tsr = etree.Element('tsRequest')
+        f = etree.Element('favorite')
+        f.set('label', favorite_name)
+        w = etree.Element('project')
+        w.set('id', proj_luid)
+        f.append(w)
+        tsr.append(f)
+
+        url = self.build_api_url("favorites/{}".format(proj_luid))
+        update_response = self.send_update_request(url, tsr)
+        self.end_log_block()
+        return update_response
+
+    def delete_projects_from_user_favorites(self, proj_name_or_luid_s, username_or_luid):
+        """
+        :type proj_name_or_luid_s: list[unicode] or unicode
+        :type username_or_luid: unicode
+        :rtype:
+        """
+        self.start_log_block()
+        projs = self.to_list(proj_name_or_luid_s)
+        if self.is_luid(username_or_luid):
+            user_luid = username_or_luid
+        else:
+            user_luid = self.query_user_luid(username_or_luid)
+        for proj in projs:
+            if self.is_luid(proj):
+                proj_luid = proj
+            else:
+                proj_luid = self.query_project_luid(proj)
+            url = self.build_api_url("favorites/{}/projects/{}".format(user_luid, proj_luid))
+            self.send_delete_request(url)
+        self.end_log_block()
 
 class FavoritesMethods32(FavoritesMethods31):
     pass

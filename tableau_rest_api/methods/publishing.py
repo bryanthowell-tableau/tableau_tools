@@ -266,16 +266,129 @@ class PublishingMethods28(PublishingMethods27):
     pass
 
 class PublishingMethods30(PublishingMethods28):
-    pass
+    def publish_workbook(self, workbook_filename, workbook_name, project_obj, overwrite=False, async_publish=False, connection_username=None,
+                         connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=True,
+                         oauth_flag=False):
+        """
+        :type workbook_filename: unicode
+        :type workbook_name: unicode
+        :type project_obj: Project20 or Project21
+        :type overwrite: bool
+        :type connection_username: unicode
+        :type connection_password: unicode
+        :type save_credentials: bool
+        :type show_tabs: bool
+        :param check_published_ds: Set to False to improve publish speed if you KNOW there are no published data sources
+        :type check_published_ds: bool
+        :type oauth_flag: bool
+        :rtype: unicode
+        """
+
+        project_luid = project_obj.luid
+        xml = self.publish_content('workbook', workbook_filename, workbook_name, project_luid,
+                                   {"overwrite": overwrite, "asJob": async_publish}, connection_username,
+                                   connection_password, save_credentials, show_tabs=show_tabs,
+                                   check_published_ds=check_published_ds, oauth_flag=oauth_flag)
+        if async_publish is True:
+            job = xml.findall('.//t:job', self.ns_map)
+            return job[0].get('id')
+        else:
+            workbook = xml.findall('.//t:workbook', self.ns_map)
+            return workbook[0].get('id')
 
 class PublishingMethods31(PublishingMethods30):
     pass
 
 class PublishingMethods32(PublishingMethods31):
-    pass
+    # In 3.2, you can hide views from publishing
+    def publish_workbook(self, workbook_filename, workbook_name, project_obj, overwrite=False, async_publish=False, connection_username=None,
+                         connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=True,
+                         oauth_flag=False, views_to_hide_list=None):
+        """
+        :type workbook_filename: unicode
+        :type workbook_name: unicode
+        :type project_obj: Project20 or Project21
+        :type overwrite: bool
+        :type connection_username: unicode
+        :type connection_password: unicode
+        :type save_credentials: bool
+        :type show_tabs: bool
+        :param check_published_ds: Set to False to improve publish speed if you KNOW there are no published data sources
+        :type check_published_ds: bool
+        :type oauth_flag: bool:
+        :type views_to_hide_list: list[unicode]
+        :
+        :rtype: unicode
+        """
+
+        project_luid = project_obj.luid
+        xml = self.publish_content('workbook', workbook_filename, workbook_name, project_luid,
+                                   {"overwrite": overwrite, "asJob": async_publish}, connection_username,
+                                   connection_password, save_credentials, show_tabs=show_tabs,
+                                   check_published_ds=check_published_ds, oauth_flag=oauth_flag,
+                                   views_to_hide_list=views_to_hide_list)
+        if async_publish is True:
+            job = xml.findall('.//t:job', self.ns_map)
+            return job[0].get('id')
+        else:
+            workbook = xml.findall('.//t:workbook', self.ns_map)
+            return workbook[0].get('id')
 
 class PublishingMethods33(PublishingMethods32):
-    pass
+    def publish_workbook(self, workbook_filename, workbook_name, project_obj, overwrite=False, async_publish=False,
+                         connection_username=None,
+                         connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=True,
+                         oauth_flag=False, views_to_hide_list=None, generate_thumbnails_as_username_or_luid=None):
+        """
+        :type workbook_filename: unicode
+        :type workbook_name: unicode
+        :type project_obj: Project20 or Project21
+        :type overwrite: bool
+        :type connection_username: unicode
+        :type connection_password: unicode
+        :type save_credentials: bool
+        :type show_tabs: bool
+        :param check_published_ds: Set to False to improve publish speed if you KNOW there are no published data sources
+        :type check_published_ds: bool
+        :type oauth_flag: bool:
+        :type generate_thumbnails_as_username_or_luid: unicode
+        :rtype: unicode
+        """
+
+        project_luid = project_obj.luid
+        xml = self.publish_content('workbook', workbook_filename, workbook_name, project_luid,
+                                   {"overwrite": overwrite, "asJob": async_publish}, connection_username,
+                                   connection_password, save_credentials, show_tabs=show_tabs,
+                                   check_published_ds=check_published_ds, oauth_flag=oauth_flag,
+                                   views_to_hide_list=views_to_hide_list,
+                                   generate_thumbnails_as_username_or_luid=generate_thumbnails_as_username_or_luid)
+        if async_publish is True:
+            job = xml.findall('.//t:job', self.ns_map)
+            return job[0].get('id')
+        else:
+            workbook = xml.findall('.//t:workbook', self.ns_map)
+            return workbook[0].get('id')
+
+    def publish_flow(self, flow_filename, flow_name, project_obj, overwrite=False, connection_username=None,
+                     connection_password=None, save_credentials=True, description=None, oauth_flag=False):
+        """
+        :type flow_filename: unicode
+        :type flow_name: unicode
+        :type project_obj: Project20 or Project21 or Project28
+        :type overwrite: bool
+        :type connection_username: unicode
+        :type connection_password: unicode
+        :type save_credentials: bool
+        :type description: unicode
+        :type oauth_flag: bool
+        :rtype: unicode
+        """
+        project_luid = project_obj.luid
+        xml = self.publish_content('flow', flow_filename, flow_name, project_luid, {"overwrite": overwrite},
+                                   connection_username, connection_password, save_credentials, oauth_flag=oauth_flag,
+                                   description=description)
+        flow = xml.findall('.//t:flow', self.ns_map)
+        return flow[0].get('id')
 
 class PublishingMethods34(PublishingMethods33):
     pass

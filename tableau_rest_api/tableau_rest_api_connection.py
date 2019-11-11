@@ -27,16 +27,19 @@ class TableauRestApiConnection31(WorkbookMethods31, UserMethods31, SiteMethods31
     pass
 
 class TableauRestApiConnection32(WorkbookMethods32, UserMethods32, SiteMethods32, ServerMethods32,
-                               ScheduleMethods32, RevisionMethods32, ProjectMethods32, GroupMethods32, FavoritesMethods32,
-                               ExtractMethods32, DatasourceMethods32, TableauRestApiBase32):
+                                 ScheduleMethods32, RevisionMethods32, ProjectMethods32, GroupMethods32,
+                                 FavoritesMethods32, ExtractMethods32, DatasourceMethods32, AlertMethods32,
+                                 TableauRestApiBase32):
     pass
 
 class TableauRestApiConnection33(WorkbookMethods33, UserMethods33, SiteMethods33, ServerMethods33,
-                               ScheduleMethods33, RevisionMethods33, ProjectMethods33, GroupMethods33, FavoritesMethods33,
-                               ExtractMethods33, DatasourceMethods33, TableauRestApiBase33):
+                                 ScheduleMethods33, RevisionMethods33, ProjectMethods33, GroupMethods33, FlowMethods33,
+                                 FavoritesMethods33, ExtractMethods33, DatasourceMethods33, AlertMethods33,
+                                 TableauRestApiBase33):
     pass
 
 class TableauRestApiConnection34(WorkbookMethods34, UserMethods34, SiteMethods34, ServerMethods34,
-                               ScheduleMethods34, RevisionMethods34, ProjectMethods34, GroupMethods34, FavoritesMethods34,
-                               ExtractMethods34, DatasourceMethods34, TableauRestApiBase34):
+                                 ScheduleMethods34, RevisionMethods34, ProjectMethods34, GroupMethods34, FlowtMethods34,
+                                 FavoritesMethods34, ExtractMethods34, DatasourceMethods34, AlertMethods34,
+                                 TableauRestApiBase34):
     pass
