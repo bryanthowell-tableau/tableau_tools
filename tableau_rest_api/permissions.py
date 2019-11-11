@@ -225,43 +225,6 @@ class Permissions(TableauBase):
                 self.set_capability_to_unspecified(cap)
 
 
-class WorkbookPermissions20(Permissions):
-    def __init__(self, group_or_user, group_or_user_luid):
-        Permissions.__init__(self, group_or_user, group_or_user_luid, 'workbook')
-        for cap in self.available_capabilities['2.0']['workbook']:
-            if cap != 'all':
-                self.capabilities[cap] = None
-
-
-class WorkbookPermissions21(Permissions):
-    def __init__(self, group_or_user, group_or_user_luid):
-        Permissions.__init__(self, group_or_user, group_or_user_luid, 'workbook')
-        for cap in self.available_capabilities['2.1']['workbook']:
-            if cap != 'all':
-                self.capabilities[cap] = None
-        self.role_set = {
-                    "Viewer": {
-                        'all': None,
-                        'View': 'Allow',
-                        'Export Image': 'Allow',
-                        'View Summary Data': 'Allow',
-                        'View Comments': 'Allow',
-                        'Add Comment': 'Allow'
-                    },
-                    "Interactor": {
-                        'all': 'Allow',
-                        'Download': None,
-                        'Move': None,
-                        'Delete': None,
-                        'Set Permissions': None,
-                        'Save': None
-                    },
-                    "Editor": {
-                        'all': 'Allow'
-                    }
-                }
-
-
 class WorkbookPermissions28(Permissions):
     def __init__(self, group_or_user, group_or_user_luid):
         Permissions.__init__(self, group_or_user, group_or_user_luid, 'workbook')
@@ -290,37 +253,6 @@ class WorkbookPermissions28(Permissions):
                     }
                 }
 
-class ProjectPermissions20(Permissions):
-    def __init__(self, group_or_user, group_or_user_luid):
-        Permissions.__init__(self, group_or_user, group_or_user_luid, 'project')
-        for cap in self.available_capabilities['2.0']['project']:
-            if cap != 'all':
-                self.capabilities[cap] = None
-
-
-class ProjectPermissions21(Permissions):
-    def __init__(self, group_or_user, group_or_user_luid):
-        Permissions.__init__(self, group_or_user, group_or_user_luid, 'project')
-        for cap in self.available_capabilities['2.1']['project']:
-            if cap != 'all':
-                self.capabilities[cap] = None
-        self.role_set = {
-            "Viewer": {
-                'all': None,
-                "View": "Allow"
-            },
-            "Publisher": {
-                'all': None,
-                "View": "Allow",
-                "Save": "Allow"
-            },
-            "Project Leader": {
-                'all': None,
-                "Project Leader": "Allow"
-            }
-        }
-
-
 class ProjectPermissions28(Permissions):
     def __init__(self, group_or_user, group_or_user_luid):
         Permissions.__init__(self, group_or_user, group_or_user_luid, 'project')
@@ -340,32 +272,6 @@ class ProjectPermissions28(Permissions):
             "Project Leader": {
                 'all': None,
                 "Project Leader": "Allow"
-            }
-        }
-
-
-class DatasourcePermissions20(Permissions):
-    def __init__(self, group_or_user, group_or_user_luid):
-        Permissions.__init__(self, group_or_user, group_or_user_luid, 'datasource')
-        for cap in self.available_capabilities['2.0']['datasource']:
-            if cap != 'all':
-                self.capabilities[cap] = None
-
-
-class DatasourcePermissions21(Permissions):
-    def __init__(self, group_or_user, group_or_user_luid):
-        Permissions.__init__(self, group_or_user, group_or_user_luid, 'datasource')
-        for cap in self.available_capabilities['2.1']['datasource']:
-            if cap != 'all':
-                self.capabilities[cap] = None
-        self.role_set = {
-            "Connector": {
-                'all': None,
-                'View': 'Allow',
-                'Connect': 'Allow'
-            },
-            "Editor": {
-                'all': 'Allow'
             }
         }
 

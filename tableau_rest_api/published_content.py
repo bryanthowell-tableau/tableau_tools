@@ -2,7 +2,7 @@ from ..tableau_base import *
 from ..tableau_exceptions import *
 from .permissions import *
 import copy
-
+from typing import Union, Any, Optional, List, Dict
 
 # Represents a published workbook, project or datasource
 class PublishedContent(TableauBase):
@@ -507,13 +507,22 @@ class PublishedContent(TableauBase):
         self.end_log_block()
 
 
-class Project20(PublishedContent):
+class Project(PublishedContent):
     def __init__(self, luid, tableau_rest_api_obj, tableau_server_version, logger_obj=None,
                  content_xml_obj=None):
         PublishedContent.__init__(self, luid, "project", tableau_rest_api_obj, tableau_server_version,
                                   logger_obj=logger_obj, content_xml_obj=content_xml_obj)
-        self.log("Passing tableau_server_version {}".format(tableau_server_version))
+        # projects in 9.2 have child workbook and datasource permissions
+        self._workbook_defaults = Workbook(self.luid, self.t_rest_api,
+                                           tableau_server_version=tableau_server_version,
+                                           default=True, logger_obj=logger_obj)
+        self._datasource_defaults = Datasource(self.luid, self.t_rest_api,
+                                               tableau_server_version=tableau_server_version,
+                                               default=True, logger_obj=logger_obj)
+
         self.__available_capabilities = self.available_capabilities[self.api_version]["project"]
+        self.permissions_locked = None
+        self.permissions_locked = self.are_permissions_locked()
 
     @property
     def luid(self):
@@ -526,134 +535,6 @@ class Project20(PublishedContent):
         else:
             luid = self.t_rest_api.query_project_luid(name_or_luid)
         self._luid = luid
-
-    def _get_permissions_object(self, group_or_user, name_or_luid, obj_type, role=None):
-
-        if self.is_luid(name_or_luid):
-            luid = name_or_luid
-        else:
-            if group_or_user == 'group':
-                luid = self.t_rest_api.query_group_luid(name_or_luid)
-            elif group_or_user == 'user':
-                luid = self.t_rest_api.query_user_luid(name_or_luid)
-            else:
-                raise InvalidOptionException('group_or_user must be group or user')
-
-        if obj_type == 'project':
-            perms_obj = ProjectPermissions20(group_or_user, luid)
-        elif obj_type == 'workbook':
-            perms_obj = WorkbookPermissions20(group_or_user, luid)
-        elif obj_type == 'datasource':
-            perms_obj = DatasourcePermissions20(group_or_user, luid)
-        else:
-            raise InvalidOptionException('obj_type must be project, workbook or datasource')
-        if role is not None:
-            perms_obj.set_capabilities_to_match_role(role)
-        return perms_obj
-
-    def convert_capabilities_xml_into_obj_list(self, xml_obj):
-        """
-        :type xml_obj: etree.Element
-        :rtype: list[ProjectPermissions20]
-        """
-        self.start_log_block()
-        obj_list = []
-        xml = xml_obj.findall('.//t:granteeCapabilities', self.ns_map)
-        if len(xml) == 0:
-            self.end_log_block()
-            return []
-        else:
-            for gcaps in xml:
-                for tags in gcaps:
-                    # Namespace fun
-                    if tags.tag == '{}group'.format(self.ns_prefix):
-                        luid = tags.get('id')
-                        perms_obj = ProjectPermissions20('group', luid)
-                        self.log('group {}'.format(luid))
-                    elif tags.tag == '{}user'.format(self.ns_prefix):
-                        luid = tags.get('id')
-                        perms_obj = ProjectPermissions20('user', luid)
-                        self.log('user {}'.format(luid))
-                    elif tags.tag == '{}capabilities'.format(self.ns_prefix):
-                        for caps in tags:
-                            self.log(caps.get('name') + ' : ' + caps.get('mode'))
-                            perms_obj.set_capability(caps.get('name'), caps.get('mode'))
-                obj_list.append(perms_obj)
-            self.log('Permissions object list has {} items'.format(str(len(obj_list))))
-            self.end_log_block()
-            return obj_list
-
-    def create_project_permissions_object_for_group(self, group_name_or_luid, role=None):
-        """
-        :type group_name_or_luid: unicode
-        :type role: unicode
-        :param role: Optional role from Tableau Server. Shortcut to set_capabilities_to_match_role
-        :return: ProjectPermissions20
-        """
-        return self._get_permissions_object('group', group_name_or_luid, 'project', role)
-
-    def create_project_permissions_object_for_user(self, username_or_luid, role=None):
-        """
-        :type username_or_luid: unicode
-        :type role: unicode
-        :param role: Optional role from Tableau Server. Shortcut to set_capabilities_to_match_role
-        :return: ProjectPermissions20
-        """
-        return self._get_permissions_object('user', username_or_luid, 'project', role)
-
-    def create_workbook_permissions_object_for_group(self, group_name_or_luid, role=None):
-        """
-        :type group_name_or_luid: unicode
-        :type role: unicode
-        :param role: Optional role from Tableau Server. Shortcut to set_capabilities_to_match_role
-        :return: WorkbookPermissions20
-        """
-        return self._get_permissions_object('group', group_name_or_luid, 'workbook', role)
-
-    def create_workbook_permissions_object_for_user(self, username_or_luid, role=None):
-        """
-        :type username_or_luid: unicode
-        :type role: unicode
-        :param role: Optional role from Tableau Server. Shortcut to set_capabilities_to_match_role
-        :return: WorkbookPermissions20
-        """
-        return self._get_permissions_object('user', username_or_luid, 'workbook', role)
-
-    def create_datasource_permissions_object_for_group(self, group_name_or_luid, role=None):
-        """
-        :type group_name_or_luid: unicode
-        :type role: unicode
-        :param role: Optional role from Tableau Server. Shortcut to set_capabilities_to_match_role
-        :return: DatasourcePermissions20
-        """
-        return self._get_permissions_object('group', group_name_or_luid, 'datasource', role)
-
-    def create_datasource_permissions_object_for_user(self, username_or_luid, role=None):
-        """
-        :type username_or_luid: unicode
-        :type role: unicode
-        :param role: Optional role from Tableau Server. Shortcut to set_capabilities_to_match_role
-        :return: DatasourcePermissions20
-        """
-        return self._get_permissions_object('user', username_or_luid, 'datasource', role)
-
-
-class Project21(Project20):
-    def __init__(self, luid, tableau_rest_api_obj, tableau_server_version, logger_obj=None,
-                 content_xml_obj=None):
-        Project20.__init__(self, luid, tableau_rest_api_obj, tableau_server_version, logger_obj=logger_obj,
-                           content_xml_obj=content_xml_obj)
-        # projects in 9.2 have child workbook and datasource permissions
-        self._workbook_defaults = Workbook(self.luid, self.t_rest_api,
-                                           tableau_server_version=tableau_server_version,
-                                           default=True, logger_obj=logger_obj)
-        self._datasource_defaults = Datasource(self.luid, self.t_rest_api,
-                                               tableau_server_version=tableau_server_version,
-                                               default=True, logger_obj=logger_obj)
-
-        self.__available_capabilities = self.available_capabilities[self.api_version]["project"]
-        self.permissions_locked = None
-        self.permissions_locked = self.are_permissions_locked()
 
     def convert_capabilities_xml_into_obj_list(self, xml_obj):
         """
@@ -959,10 +840,10 @@ class Project21(Project20):
         return final_list
 
 
-class Project28(Project21):
+class Project28(Project):
     def __init__(self, luid, tableau_rest_api_obj, tableau_server_version, logger_obj=None,
                  content_xml_obj=None, parent_project_luid=None):
-        Project21.__init__(self, luid, tableau_rest_api_obj, tableau_server_version, logger_obj=logger_obj,
+        Project.__init__(self, luid, tableau_rest_api_obj, tableau_server_version, logger_obj=logger_obj,
                            content_xml_obj=content_xml_obj)
         self._parent_project_luid = parent_project_luid
 
@@ -980,11 +861,7 @@ class Project28(Project21):
         self.end_log_block()
         return child_projects
 
-    def convert_capabilities_xml_into_obj_list(self, xml_obj):
-        """
-        :type xml_obj: etree.Element
-        :rtype: list[ProjectPermissions21]
-        """
+    def convert_capabilities_xml_into_obj_list(self, xml_obj: etree.Element) -> list[ProjectPermissions21]:
         self.start_log_block()
         obj_list = []
         xml = xml_obj.findall('.//t:granteeCapabilities', self.ns_map)
@@ -1012,17 +889,13 @@ class Project28(Project21):
             self.end_log_block()
             return obj_list
 
-    def _get_permissions_object(self, group_or_user, name_or_luid, obj_type, role=None):
-
-        if self.is_luid(name_or_luid):
-            luid = name_or_luid
+    def _get_permissions_object(self, group_or_user: str, name_or_luid: str, obj_type: str, role: Optional[str] = None):
+        if group_or_user == 'group':
+            luid = self.t_rest_api.query_group_luid(name_or_luid)
+        elif group_or_user == 'user':
+            luid = self.t_rest_api.query_user_luid(name_or_luid)
         else:
-            if group_or_user == 'group':
-                luid = self.t_rest_api.query_group_luid(name_or_luid)
-            elif group_or_user == 'user':
-                luid = self.t_rest_api.query_user_luid(name_or_luid)
-            else:
-                raise InvalidOptionException('group_or_user must be group or user')
+            raise InvalidOptionException('group_or_user must be group or user')
 
         if obj_type == 'project':
             perms_obj = ProjectPermissions28(group_or_user, luid)
@@ -1047,22 +920,16 @@ class Workbook(PublishedContent):
         self.log("Workbook object initiating")
 
     @property
-    def luid(self):
+    def luid(self) -> str:
         return self._luid
 
     @luid.setter
-    def luid(self, name_or_luid):
-        if self.is_luid(name_or_luid):
-            luid = name_or_luid
-        else:
-            luid = self.t_rest_api.query_workbook_luid(name_or_luid)
+    def luid(self, name_or_luid: str):
+        luid = self.t_rest_api.query_workbook_luid(name_or_luid)
         self._luid = luid
 
-    def convert_capabilities_xml_into_obj_list(self, xml_obj):
-        """
-        :type xml_obj: etree.Element
-        :rtype: list[WorkbookPermissions21]
-        """
+    def convert_capabilities_xml_into_obj_list(self, xml_obj: etree.Element) -> List[WorkbookPermissions21]:
+
         self.start_log_block()
         obj_list = []
         xml = xml_obj.findall('.//t:granteeCapabilities', self.ns_map)
@@ -1099,22 +966,15 @@ class Datasource(PublishedContent):
         self.__available_capabilities = self.available_capabilities[self.api_version]["datasource"]
 
     @property
-    def luid(self):
+    def luid(self) -> str:
         return self._luid
 
     @luid.setter
-    def luid(self, name_or_luid):
-        if self.is_luid(name_or_luid):
-            luid = name_or_luid
-        else:
-            luid = self.t_rest_api.query_datasource_luid(name_or_luid)
-        self._luid = luid
+    def luid(self, name_or_luid: str):
+        ds_luid = self.t_rest_api.query_datasource_luid(name_or_luid)
+        self._luid = ds_luid
 
-    def convert_capabilities_xml_into_obj_list(self, xml_obj):
-        """
-        :type xml_obj: etree.Element
-        :rtype: list[DatasourcePermissions21]
-        """
+    def convert_capabilities_xml_into_obj_list(self, xml_obj: etree.Element) -> List[DatasourcePermissions21]:
         self.start_log_block()
         obj_list = []
         xml = xml_obj.findall('.//t:granteeCapabilities', self.ns_map)
@@ -1152,19 +1012,15 @@ class View(PublishedContent):
         self.log("View object initiating")
 
     @property
-    def luid(self):
+    def luid(self) -> str:
         return self._luid
 
     @luid.setter
-    def luid(self, luid):
+    def luid(self, luid: str):
         # Maybe implement a search at some point
         self._luid = luid
 
-    def convert_capabilities_xml_into_obj_list(self, xml_obj):
-        """
-        :type xml_obj: etree.Element
-        :rtype: list[WorkbookPermissions21]
-        """
+    def convert_capabilities_xml_into_obj_list(self, xml_obj: etree.Element) -> List[WorkbookPermissions21]:
         self.start_log_block()
         obj_list = []
         xml = xml_obj.findall('.//t:granteeCapabilities', self.ns_map)
