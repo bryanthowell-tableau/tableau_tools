@@ -1,6 +1,6 @@
 from ..tableau_base import TableauBase
 from ..tableau_exceptions import *
-
+from typing import Union, Any, Optional, List, Dict
 
 # Represents the Permissions from any given user or group. Equivalent to GranteeCapabilities in the API
 class Permissions(TableauBase):
@@ -93,15 +93,8 @@ class Permissions(TableauBase):
             raise InvalidOptionException('Must set to either group or user')
         self.obj_type = group_or_user
 
-    def set_capability(self, capability_name, mode):
-        """
-        :param capability_name: You can input the names from the REST API or what you see in Tableau Server
-        :type capability_name: unicode
-        :param mode: Can only be Allow or Deny. Use set_capability_to_unspecified to set to Unspecified
-        :type mode: unicode
-        :return:
-        """
-
+    # Just use the direct "to_allow" and "to_deny" methods
+    def set_capability(self, capability_name: str, mode: str):
         if capability_name not in list(self.__server_to_rest_capability_map.values()):
             # If it's the Tableau UI naming, translate it over
             if capability_name in self.__server_to_rest_capability_map:
@@ -115,32 +108,13 @@ class Permissions(TableauBase):
                 raise InvalidOptionException('"{}" is not a capability in REST API or Server'.format(capability_name))
         self.capabilities[capability_name] = mode
 
-    # This exists specifically to allow the setting of read-only permissions
-    def _set_capability_from_published_content(self, capability_name, mode):
-        """
-        :param capability_name: You can input the names from the REST API or what you see in Tableau Server
-        :type capability_name: unicode
-        :param mode: Can only be Allow or Deny. Use set_capability_to_unspecified to set to Unspecified
-        :type mode: unicode
-        :return:
-        """
+    def set_capability_to_allow(self, capability_name: str):
+        self.set_capability(capability_name=capability_name, mode="Allow")
 
-        if capability_name not in list(self.__server_to_rest_capability_map.values()):
-            # If it's the Tableau UI naming, translate it over
-            if capability_name in self.__server_to_rest_capability_map:
-                if capability_name != 'all':
-                    capability_name = self.__server_to_rest_capability_map[capability_name]
-            else:
-                raise InvalidOptionException('"{}" is not a capability in REST API or Server'.format(capability_name))
-        self.capabilities[capability_name] = mode
+    def set_capability_to_deny(self, capability_name: str):
+        self.set_capability(capability_name=capability_name, mode="Deny")
 
-
-    def set_capability_to_unspecified(self, capability_name):
-        """
-        :param capability_name: You can input the names from the REST API or what you see in Tableau Server
-        :type capability_name: unicode
-        :return:
-        """
+    def set_capability_to_unspecified(self, capability_name: str):
         if capability_name not in self.capabilities:
             # If it's the Tableau UI naming, translate it over
             if capability_name in self.__server_to_rest_capability_map:
@@ -153,31 +127,30 @@ class Permissions(TableauBase):
                 raise InvalidOptionException('"{}" is not a capability in REST API or Server'.format(capability_name))
         self.capabilities[capability_name] = None
 
-    def get_capabilities_dict(self):
-        """
-        :rtype: dict
-        """
+    # This exists specifically to allow the setting of read-only permissions
+    def _set_capability_from_published_content(self, capability_name: str, mode: str):
+        if capability_name not in list(self.__server_to_rest_capability_map.values()):
+            # If it's the Tableau UI naming, translate it over
+            if capability_name in self.__server_to_rest_capability_map:
+                if capability_name != 'all':
+                    capability_name = self.__server_to_rest_capability_map[capability_name]
+            else:
+                raise InvalidOptionException('"{}" is not a capability in REST API or Server'.format(capability_name))
+        self.capabilities[capability_name] = mode
+
+    def get_capabilities_dict(self) -> Dict:
         return self.capabilities
 
-    def get_content_type(self):
-        """
-        :return: Will be 'project', 'workbook' or 'datasource'
-        :rtype unicode
-        """
+    def get_content_type(self) -> str:
+
         return self.content_type
 
     def set_all_to_deny(self):
-        """
-        :return:
-        """
         for cap in self.capabilities:
             if cap != 'all':
                 self.capabilities[cap] = 'Deny'
 
     def set_all_to_allow(self):
-        """
-        :return:
-        """
         for cap in self.capabilities:
             if cap == 'InheritedProjectLeader':
                 continue
@@ -185,21 +158,13 @@ class Permissions(TableauBase):
                 self.capabilities[cap] = 'Allow'
 
     def set_all_to_unspecified(self):
-        """
-        :return:
-        """
         for cap in self.capabilities:
             if cap == 'InheritedProjectLeader':
                 continue
             if cap != 'all':
                 self.capabilities[cap] = None
 
-    def set_capabilities_to_match_role(self, role):
-        """
-        :param role: One of the named Roles you see in the Tableau Server UI when setting permissions
-        :type role: unicode
-        :return:
-        """
+    def set_capabilities_to_match_role(self, role: str):
         if role not in self.role_set:
             raise InvalidOptionException('{} is not a recognized role'.format(role))
 
