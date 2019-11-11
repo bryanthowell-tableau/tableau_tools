@@ -6,19 +6,11 @@ class WorkbookMethods(TableauRestApiBase):
 
     # Filtering implemented for workbooks in 2.2
     # This uses the logged in username for convenience by default
-    def query_workbooks(self, username_or_luid=None, project_name_or_luid=None, all_fields=True, created_at_filter=None, updated_at_filter=None,
-                        owner_name_filter=None, tags_filter=None, sorts=None, fields=None):
-        """
-        :type username_or_luid: unicode
-        :type all_fields: bool
-        :type created_at_filter: UrlFilter
-        :type updated_at_filter: UrlFilter
-        :type owner_name_filter: UrlFilter
-        :type tags_filter: UrlFilter
-        :type sorts: List[Sort]
-        :type fields: List[unicode]
-        :rtype: etree.Element
-        """
+    def query_workbooks(self, username_or_luid: Optional[str] = None, project_name_or_luid: Optional[str] = None,
+                        all_fields: Optional[bool] = True, created_at_filter: Optional[UrlFilter] = None,
+                        updated_at_filter: Optional[UrlFilter] = None, owner_name_filter: Optional[UrlFilter] = None,
+                        tags_filter: Optional[UrlFilter] = None, sorts: Optional[List[Sort]] = None,
+                        fields: Optional[List[str]] = None) -> etree.Element:
         self.start_log_block()
         if fields is None:
             if all_fields is True:
@@ -26,8 +18,6 @@ class WorkbookMethods(TableauRestApiBase):
 
         if username_or_luid is None:
             user_luid = self.user_luid
-        elif self.is_luid(username_or_luid):
-            user_luid = username_or_luid
         else:
             user_luid = self.query_user_luid(username_or_luid)
 
@@ -41,10 +31,8 @@ class WorkbookMethods(TableauRestApiBase):
             wbs = self.query_resource("workbooks".format(user_luid), sorts=sorts, filters=filters, fields=fields)
 
         if project_name_or_luid is not None:
-            if self.is_luid(project_name_or_luid):
-                project_luid = project_name_or_luid
-            else:
-                project_luid = self.query_project_luid(project_name_or_luid)
+
+            project_luid = self.query_project_luid(project_name_or_luid)
             wbs_in_project = wbs.findall('.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
             wbs = etree.Element(self.ns_prefix + 'workbooks')
             for wb in wbs_in_project:
@@ -52,31 +40,18 @@ class WorkbookMethods(TableauRestApiBase):
         self.end_log_block()
         return wbs
 
-    def query_workbooks_for_user(self, username_or_luid):
-        """
-        :type username_or_luid: unicode
-        :rtype: etree.Element
-        """
+    def query_workbooks_for_user(self, username_or_luid: str) -> etree.Element:
         self.start_log_block()
         wbs = self.query_workbooks(username_or_luid)
         self.end_log_block()
         return wbs
 
-    def query_workbooks_json(self, username_or_luid=None, project_name_or_luid=None, all_fields=True,
-                             created_at_filter=None, updated_at_filter=None, owner_name_filter=None,
-                             tags_filter=None, sorts=None, fields=None, page_number=None):
-        """
-        :type username_or_luid: unicode
-        :type all_fields: bool
-        :type created_at_filter: UrlFilter
-        :type updated_at_filter: UrlFilter
-        :type owner_name_filter: UrlFilter
-        :type tags_filter: UrlFilter
-        :type sorts: List[Sort]
-        :type fields: List[unicode]
-        :type page_number: int
-        :rtype: json
-        """
+    def query_workbooks_json(self, username_or_luid: Optional[str] = None, all_fields: Optional[bool] = True,
+                             created_at_filter: Optional[UrlFilter] = None,
+                             updated_at_filter: Optional[UrlFilter] = None,
+                             owner_name_filter: Optional[UrlFilter] = None,
+                             tags_filter: Optional[UrlFilter] = None, sorts: Optional[List[Sort]] = None,
+                             fields: Optional[List[str]] = None, page_number: Optional[int] = None) -> str:
         self.start_log_block()
         if fields is None:
             if all_fields is True:
@@ -84,8 +59,6 @@ class WorkbookMethods(TableauRestApiBase):
 
         if username_or_luid is None:
             user_luid = self.user_luid
-        elif self.is_luid(username_or_luid):
-            user_luid = username_or_luid
         else:
             user_luid = self.query_user_luid(username_or_luid)
 
@@ -104,13 +77,8 @@ class WorkbookMethods(TableauRestApiBase):
         return wbs
 
     # Because a workbook can have the same pretty name in two projects, requires more logic
-    def query_workbook(self, wb_name_or_luid, proj_name_or_luid=None, username_or_luid=None):
-        """
-        :type wb_name_or_luid: unicode
-        :type proj_name_or_luid: unicode
-        :type username_or_luid: unicode
-        :rtype: etree.Element
-        """
+    def query_workbook(self, wb_name_or_luid: str, proj_name_or_luid: Optional[str] = None,
+                       username_or_luid: Optional[str] = None) -> etree.Element:
         self.start_log_block()
         workbooks = self.query_workbooks(username_or_luid)
         if self.is_luid(wb_name_or_luid):
@@ -142,13 +110,8 @@ class WorkbookMethods(TableauRestApiBase):
             self.end_log_block()
             return wb
 
-    def query_workbook_luid(self, wb_name, proj_name_or_luid=None, username_or_luid=None):
-        """
-        :type username_or_luid: unicode
-        :type wb_name: unicode
-        :type proj_name_or_luid: unicode
-        :rtype:
-        """
+    def query_workbook_luid(self, wb_name: str, proj_name_or_luid: Optional[str] = None,
+                            username_or_luid: Optional[str] = None) -> str:
         self.start_log_block()
         if username_or_luid is None:
             username_or_luid = self.user_luid
@@ -176,16 +139,12 @@ class WorkbookMethods(TableauRestApiBase):
             self.end_log_block()
             raise MultipleMatchesFoundException('More than one workbook found by name {} without a project specified').format(wb_name)
 
-    def query_workbooks_in_project(self, project_name_or_luid, username_or_luid=None):
+    def query_workbooks_in_project(self, project_name_or_luid: str, username_or_luid: Optional[str] = None):
         self.start_log_block()
-        if self.is_luid(project_name_or_luid):
-            project_luid = project_name_or_luid
-        else:
-            project_luid = self.query_project_luid(project_name_or_luid)
+
+        project_luid = self.query_project_luid(project_name_or_luid)
         if username_or_luid is None:
             user_luid = self.user_luid
-        elif self.is_luid(username_or_luid):
-            user_luid = username_or_luid
         else:
             user_luid = self.query_user_luid(username_or_luid)
         workbooks = self.query_workbooks(user_luid)
