@@ -159,17 +159,9 @@ class GroupMethods(TableauRestApiBase):
         self.end_log_block()
 
     # Local Authentication update group
-    def update_group(self, name_or_luid, new_group_name):
-        """
-        :type name_or_luid: unicode
-        :type new_group_name: unicode
-        :rtype: etree.Element
-        """
+    def update_group(self, name_or_luid: str, new_group_name: str) -> etree.Element:
         self.start_log_block()
-        if self.is_luid(name_or_luid):
-            group_luid = name_or_luid
-        else:
-            group_luid = self.query_group_luid(name_or_luid)
+        group_luid = self.query_group_luid(name_or_luid)
 
         tsr = etree.Element("tsRequest")
         g = etree.Element("group")
@@ -182,15 +174,8 @@ class GroupMethods(TableauRestApiBase):
         return response
 
     # AD group sync. Must specify the domain and the default site role for imported users
-    def sync_ad_group(self, group_name_or_luid, ad_group_name, ad_domain, default_site_role, sync_as_background=True):
-        """
-        :type group_name_or_luid: unicode
-        :type ad_group_name: unicode
-        :type ad_domain: unicode
-        :type default_site_role: unicode
-        :type sync_as_background: unicode
-        :rtype: unicode
-        """
+    def sync_ad_group(self, group_name_or_luid: str, ad_group_name: str, ad_domain: str, default_site_role: str,
+                      sync_as_background: Optional[bool] = True) -> str:
         self.start_log_block()
         if sync_as_background not in [True, False]:
             error = "'{}' passed for sync_as_background. Use True or False".format(str(sync_as_background).lower())
@@ -210,10 +195,7 @@ class GroupMethods(TableauRestApiBase):
         g.append(i)
         tsr.append(g)
 
-        if self.is_luid(group_name_or_luid):
-            group_luid = group_name_or_luid
-        else:
-            group_luid = self.query_group_luid(group_name_or_luid)
+        group_luid = self.query_group_luid(group_name_or_luid)
         url = self.build_api_url(
             "groups/{}".format(group_luid) + "?asJob={}".format(str(sync_as_background)).lower())
         response = self.send_update_request(url, tsr)
@@ -227,11 +209,7 @@ class GroupMethods(TableauRestApiBase):
             self.end_log_block()
             return group[0].get('id')
 
-    def delete_groups(self, group_name_or_luid_s):
-        """
-        :type group_name_or_luid_s: List[unicode] or unicode
-        :rtype:
-        """
+    def delete_groups(self, group_name_or_luid_s: Union[List[str], str]):
         self.start_log_block()
         groups = self.to_list(group_name_or_luid_s)
         for group_name_or_luid in groups:
@@ -246,13 +224,7 @@ class GroupMethods(TableauRestApiBase):
             self.send_delete_request(url)
         self.end_log_block()
 
-    # Can take collection or string user_luid string
-    def remove_users_from_group(self, username_or_luid_s, group_name_or_luid):
-        """
-        :type username_or_luid_s: List[unicode] or unicode
-        :type group_name_or_luid: unicode
-        :rtype:
-        """
+    def remove_users_from_group(self, username_or_luid_s: Union[List[str], str], group_name_or_luid: str):
         self.start_log_block()
         group_name = ""
         if self.is_luid(group_name_or_luid):
