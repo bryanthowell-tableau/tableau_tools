@@ -3,6 +3,10 @@ from .rest_api_base import *
 # These find LUIDs from real names or other aspects. They get added to the RestApiBase class because methods on
 # almost any different object might need a LUID from any of the others
 class LookupMethods():
+    # This just helps with completion, unclear whether it's really needed for the composition
+    def __getattr__(self, attr):
+        return getattr(self.rest_api_base, attr)
+
     def query_user_luid(self, username: str) -> str:
         self.start_log_block()
         if username in self.username_luid_cache:
@@ -109,3 +113,32 @@ class LookupMethods():
         view_luid = views_with_name[0].get('id')
         self.end_log_block()
         return view_luid
+
+    def query_workbook_luid(self, wb_name: str, proj_name_or_luid: Optional[str] = None,
+                            username_or_luid: Optional[str] = None) -> str:
+        self.start_log_block()
+        if username_or_luid is None:
+            username_or_luid = self.user_luid
+        workbooks = self.query_workbooks(username_or_luid)
+        workbooks_with_name = workbooks.findall('.//t:workbook[@name="{}"]'.format(wb_name), self.ns_map)
+        if len(workbooks_with_name) == 0:
+            self.end_log_block()
+            raise NoMatchFoundException("No workbook found for username '{}' named {}".format(username_or_luid, wb_name))
+        elif len(workbooks_with_name) == 1:
+            wb_luid = workbooks_with_name[0].get("id")
+            self.end_log_block()
+            return wb_luid
+        elif len(workbooks_with_name) > 1 and proj_name_or_luid is not None:
+            if self.is_luid(proj_name_or_luid):
+                wb_in_proj = workbooks.findall('.//t:workbook[@name="{}"]/t:project[@id="{}"]/..'.format(wb_name, proj_name_or_luid), self.ns_map)
+            else:
+                wb_in_proj = workbooks.findall('.//t:workbook[@name="{}"]/t:project[@name="{}"]/..'.format(wb_name, proj_name_or_luid), self.ns_map)
+            if len(wb_in_proj) == 0:
+                self.end_log_block()
+                raise NoMatchFoundException('No workbook found with name {} in project {}').format(wb_name, proj_name_or_luid)
+            wb_luid = wb_in_proj[0].get("id")
+            self.end_log_block()
+            return wb_luid
+        else:
+            self.end_log_block()
+            raise MultipleMatchesFoundException('More than one workbook found by name {} without a project specified').format(wb_name)

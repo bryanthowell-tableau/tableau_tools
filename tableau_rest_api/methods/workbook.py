@@ -115,34 +115,7 @@ class WorkbookMethods():
             self.end_log_block()
             return wb
 
-    def query_workbook_luid(self, wb_name: str, proj_name_or_luid: Optional[str] = None,
-                            username_or_luid: Optional[str] = None) -> str:
-        self.start_log_block()
-        if username_or_luid is None:
-            username_or_luid = self.user_luid
-        workbooks = self.query_workbooks(username_or_luid)
-        workbooks_with_name = workbooks.findall('.//t:workbook[@name="{}"]'.format(wb_name), self.ns_map)
-        if len(workbooks_with_name) == 0:
-            self.end_log_block()
-            raise NoMatchFoundException("No workbook found for username '{}' named {}".format(username_or_luid, wb_name))
-        elif len(workbooks_with_name) == 1:
-            wb_luid = workbooks_with_name[0].get("id")
-            self.end_log_block()
-            return wb_luid
-        elif len(workbooks_with_name) > 1 and proj_name_or_luid is not None:
-            if self.is_luid(proj_name_or_luid):
-                wb_in_proj = workbooks.findall('.//t:workbook[@name="{}"]/t:project[@id="{}"]/..'.format(wb_name, proj_name_or_luid), self.ns_map)
-            else:
-                wb_in_proj = workbooks.findall('.//t:workbook[@name="{}"]/t:project[@name="{}"]/..'.format(wb_name, proj_name_or_luid), self.ns_map)
-            if len(wb_in_proj) == 0:
-                self.end_log_block()
-                raise NoMatchFoundException('No workbook found with name {} in project {}').format(wb_name, proj_name_or_luid)
-            wb_luid = wb_in_proj[0].get("id")
-            self.end_log_block()
-            return wb_luid
-        else:
-            self.end_log_block()
-            raise MultipleMatchesFoundException('More than one workbook found by name {} without a project specified').format(wb_name)
+
 
     def query_workbooks_in_project(self, project_name_or_luid: str, username_or_luid: Optional[str] = None):
         self.start_log_block()
