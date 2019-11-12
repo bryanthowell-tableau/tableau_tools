@@ -2,7 +2,7 @@ from .methods import *
 
 # This is a now a composite class that brings together all the different methods under one roof, but compatible with
 # older scripts (easy upgrade)
-class TableauRestApiConnection(WorkbookMethods, UserMethods, SiteMethods,
+class TableauRestApiConnection(WorkbookMethods, UserMethods, SubscriptionMethods, SiteMethods,
                                ScheduleMethods, RevisionMethods, PublishingMethods,
                                ProjectMethods, GroupMethods, FavoritesMethods,
                                ExtractMethods, DatasourceMethods, TableauRestApiBase):
@@ -12,58 +12,58 @@ class TableauRestApiConnection(WorkbookMethods, UserMethods, SiteMethods,
         self.rest_api_base = self
         #self.user_methods = UserMethods(self.rest_api_base)
 
-class TableauRestApiConnection27(WorkbookMethods27, UserMethods27, SiteMethods27,
+class TableauRestApiConnection27(WorkbookMethods27, UserMethods27, SubscriptionMethods27, SiteMethods27,
                                ScheduleMethods27, RevisionMethods27, PublishingMethods27, ProjectMethods27, GroupMethods27, FavoritesMethods27,
                                ExtractMethods27, DatasourceMethods27, TableauRestApiBase27):
     pass
 
-class TableauRestApiConnection28(WorkbookMethods28, UserMethods28, SiteMethods28,
+class TableauRestApiConnection28(WorkbookMethods28, UserMethods28, SubscriptionMethods28, SiteMethods28,
                                ScheduleMethods28, RevisionMethods28, PublishingMethods28, ProjectMethods28,
                                GroupMethods28, FavoritesMethods28,
                                ExtractMethods28, DatasourceMethods28, TableauRestApiBase28):
     pass
 
-class TableauRestApiConnection30(WorkbookMethods30, UserMethods30, SiteMethods30,
+class TableauRestApiConnection30(WorkbookMethods30, UserMethods30, SubscriptionMethods30, SiteMethods30,
                                ScheduleMethods30, RevisionMethods30, PublishingMethods30, ProjectMethods30,
                                  GroupMethods30, FavoritesMethods30,
                                ExtractMethods30, DatasourceMethods30, TableauRestApiBase30):
     pass
 
-class TableauRestApiConnection31(WorkbookMethods31, UserMethods31, SiteMethods31,
+class TableauRestApiConnection31(WorkbookMethods31, UserMethods31, SubscriptionMethods31, SiteMethods31,
                                ScheduleMethods31, RevisionMethods31, PublishingMethods31, ProjectMethods31,
                                  GroupMethods31, FavoritesMethods31,
                                ExtractMethods31, DatasourceMethods31, TableauRestApiBase31):
     pass
 
-class TableauRestApiConnection32(WorkbookMethods32, UserMethods32, SiteMethods32,
+class TableauRestApiConnection32(WorkbookMethods32, UserMethods32, SubscriptionMethods32, SiteMethods32,
                                  ScheduleMethods32, RevisionMethods32, PublishingMethods32,
                                  ProjectMethods32, GroupMethods32,
                                  FavoritesMethods32, ExtractMethods32, DatasourceMethods32, AlertMethods32,
                                  TableauRestApiBase32):
     pass
 
-class TableauRestApiConnection33(WorkbookMethods33, UserMethods33, SiteMethods33,
+class TableauRestApiConnection33(WorkbookMethods33, UserMethods33, SubscriptionMethods33, SiteMethods33,
                                  ScheduleMethods33, RevisionMethods33, PublishingMethods33, ProjectMethods33,
                                  GroupMethods33, FlowMethods33,
                                  FavoritesMethods33, ExtractMethods33, DatasourceMethods33, AlertMethods33,
                                  TableauRestApiBase33):
     pass
 
-class TableauRestApiConnection34(WorkbookMethods34, UserMethods34, SiteMethods34,
+class TableauRestApiConnection34(WorkbookMethods34, UserMethods34, SubscriptionMethods34, SiteMethods34,
                                  ScheduleMethods34, RevisionMethods34, PublishingMethods34, ProjectMethods34,
                                  GroupMethods34, FlowMethods34,
                                  FavoritesMethods34, ExtractMethods34, DatasourceMethods34, AlertMethods34,
                                  TableauRestApiBase34):
     pass
 
-class TableauRestApiConnection35(WorkbookMethods35, UserMethods35, SiteMethods35,
+class TableauRestApiConnection35(WorkbookMethods35, UserMethods35, SubscriptionMethods35, SiteMethods35,
                                  ScheduleMethods35, RevisionMethods35, PublishingMethods35, ProjectMethods35,
                                  GroupMethods35, FlowMethods35,
                                  FavoritesMethods35, ExtractMethods35, DatasourceMethods35, AlertMethods35,
                                  TableauRestApiBase35):
     pass
 
-class TableauRestApiConnection36(WorkbookMethods36, UserMethods36, SiteMethods36,
+class TableauRestApiConnection36(WorkbookMethods36, UserMethods36, SubscriptionMethods36, SiteMethods36,
                                  ScheduleMethods36, RevisionMethods36, PublishingMethods36, ProjectMethods36,
                                  GroupMethods36, FlowMethods36,
                                  FavoritesMethods36, ExtractMethods36, DatasourceMethods36, AlertMethods36,
@@ -89,6 +89,7 @@ class TableauServerRest(TableauRestApiBase):
         self.revisions: RevisionMethods = RevisionMethods(self.rest_api_base)
         self.schedules: ScheduleMethods = ScheduleMethods(self.rest_api_base)
         self.sites: SiteMethods = SiteMethods(self.rest_api_base)
+        self.subscriptions: SubscriptionMethods = SubscriptionMethods(self.rest_api_base)
         self.users: UserMethods = UserMethods(self.rest_api_base)
         self.workbooks: WorkbookMethods = WorkbookMethods(self.rest_api_base)
 
@@ -107,6 +108,7 @@ class TableauServerRest27(TableauRestApiBase27):
         self.revisions: RevisionMethods27 = RevisionMethods27(self.rest_api_base)
         self.schedules: ScheduleMethods27 = ScheduleMethods27(self.rest_api_base)
         self.sites: SiteMethods = SiteMethods27(self.rest_api_base)
+        self.subscriptions: SubscriptionMethods27 = SubscriptionMethods27(self.rest_api_base)
         self.users: UserMethods27 = UserMethods27(self.rest_api_base)
         self.workbooks: WorkbookMethods27 = WorkbookMethods27(self.rest_api_base)
         
@@ -125,6 +127,7 @@ class TableauServerRest28(TableauRestApiBase28):
         self.revisions: RevisionMethods28 = RevisionMethods28(self.rest_api_base)
         self.schedules: ScheduleMethods28 = ScheduleMethods28(self.rest_api_base)
         self.sites: SiteMethods = SiteMethods28(self.rest_api_base)
+        self.subscriptions: SubscriptionMethods28 = SubscriptionMethods28(self.rest_api_base)
         self.users: UserMethods28 = UserMethods28(self.rest_api_base)
         self.workbooks: WorkbookMethods28 = WorkbookMethods28(self.rest_api_base)
 
@@ -143,6 +146,7 @@ class TableauServerRest30(TableauRestApiBase30):
         self.revisions: RevisionMethods30 = RevisionMethods30(self.rest_api_base)
         self.schedules: ScheduleMethods30 = ScheduleMethods30(self.rest_api_base)
         self.sites: SiteMethods = SiteMethods30(self.rest_api_base)
+        self.subscriptions: SubscriptionMethods30 = SubscriptionMethods30(self.rest_api_base)
         self.users: UserMethods30 = UserMethods30(self.rest_api_base)
         self.workbooks: WorkbookMethods30 = WorkbookMethods30(self.rest_api_base)
 
@@ -161,6 +165,7 @@ class TableauServerRest31(TableauRestApiBase31):
         self.revisions: RevisionMethods31 = RevisionMethods31(self.rest_api_base)
         self.schedules: ScheduleMethods31 = ScheduleMethods31(self.rest_api_base)
         self.sites: SiteMethods = SiteMethods31(self.rest_api_base)
+        self.subscriptions: SubscriptionMethods31 = SubscriptionMethods31(self.rest_api_base)
         self.users: UserMethods31 = UserMethods31(self.rest_api_base)
         self.workbooks: WorkbookMethods31 = WorkbookMethods31(self.rest_api_base)
 
@@ -180,6 +185,7 @@ class TableauServerRest32(TableauRestApiBase32):
         self.revisions: RevisionMethods32 = RevisionMethods32(self.rest_api_base)
         self.schedules: ScheduleMethods32 = ScheduleMethods32(self.rest_api_base)
         self.sites: SiteMethods = SiteMethods32(self.rest_api_base)
+        self.subscriptions: SubscriptionMethods32 = SubscriptionMethods32(self.rest_api_base)
         self.users: UserMethods32 = UserMethods32(self.rest_api_base)
         self.workbooks: WorkbookMethods32 = WorkbookMethods32(self.rest_api_base)
 
@@ -200,6 +206,7 @@ class TableauServerRest33(TableauRestApiBase33):
         self.revisions: RevisionMethods33 = RevisionMethods33(self.rest_api_base)
         self.schedules: ScheduleMethods33 = ScheduleMethods33(self.rest_api_base)
         self.sites: SiteMethods = SiteMethods33(self.rest_api_base)
+        self.subscriptions: SubscriptionMethods33 = SubscriptionMethods33(self.rest_api_base)
         self.users: UserMethods33 = UserMethods33(self.rest_api_base)
         self.workbooks: WorkbookMethods33 = WorkbookMethods33(self.rest_api_base)
 
@@ -220,6 +227,7 @@ class TableauServerRest34(TableauRestApiBase34):
         self.revisions: RevisionMethods34 = RevisionMethods34(self.rest_api_base)
         self.schedules: ScheduleMethods34 = ScheduleMethods34(self.rest_api_base)
         self.sites: SiteMethods = SiteMethods34(self.rest_api_base)
+        self.subscriptions: SubscriptionMethods34 = SubscriptionMethods34(self.rest_api_base)
         self.users: UserMethods34 = UserMethods34(self.rest_api_base)
         self.workbooks: WorkbookMethods34 = WorkbookMethods34(self.rest_api_base)
 
@@ -240,6 +248,7 @@ class TableauServerRest35(TableauRestApiBase35):
         self.revisions: RevisionMethods35 = RevisionMethods35(self.rest_api_base)
         self.schedules: ScheduleMethods35 = ScheduleMethods35(self.rest_api_base)
         self.sites: SiteMethods = SiteMethods35(self.rest_api_base)
+        self.subscriptions: SubscriptionMethods35 = SubscriptionMethods35(self.rest_api_base)
         self.users: UserMethods35 = UserMethods35(self.rest_api_base)
         self.workbooks: WorkbookMethods35 = WorkbookMethods35(self.rest_api_base)
 
@@ -262,5 +271,6 @@ class TableauServerRest36(TableauRestApiBase36):
         self.revisions: RevisionMethods36 = RevisionMethods36(self.rest_api_base)
         self.schedules: ScheduleMethods36 = ScheduleMethods36(self.rest_api_base)
         self.sites: SiteMethods = SiteMethods36(self.rest_api_base)
+        self.subscriptions: SubscriptionMethods36 = SubscriptionMethods36(self.rest_api_base)
         self.users: UserMethods36 = UserMethods36(self.rest_api_base)
         self.workbooks: WorkbookMethods36 = WorkbookMethods36(self.rest_api_base)

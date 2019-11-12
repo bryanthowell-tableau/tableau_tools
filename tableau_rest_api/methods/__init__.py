@@ -11,6 +11,7 @@ from .publishing import *
 from .revision import *
 from .schedule import *
 from .site import *
+from .subscription import *
 from .user import *
 from .workbook import *
 
