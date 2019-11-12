@@ -770,3 +770,114 @@ class TableauRestApiBase34(TableauRestApiBase33):
             self.log("Attempt to request results in HTTP error {}, Tableau Code {}".format(e.http_code, e.tableau_error_code))
             self.end_log_block()
             raise
+
+# NEED TO IMPLEMENT
+class TableauRestApiBase35(TableauRestApiBase34):
+    pass
+
+class TableauRestApiBase36(TableauRestApiBase35):
+    def __init__(self, server: str, username: Optional[str] = None, password: Optional[str] = None,
+                 pat_name: Optional[str] = None, pat_secret: Optional[str] = None,
+                 site_content_url: Optional[str] = ""):
+        TableauBase.__init__(self)
+        if server.find('http') == -1:
+            raise InvalidOptionException('Server URL must include http:// or https://')
+
+        etree.register_namespace('t', self.ns_map['t'])
+        self.server: str = server
+        self.site_content_url: str = site_content_url
+        self.username: str = username
+        self._password: str = password
+        self._pat_name: str = pat_name
+        self._pat_secret: str = pat_secret
+        self._token: str = ""  # Holds the login token from the Sign In call
+        self.site_luid: str = ""
+        self.user_luid: str = ""
+        self._login_as_user_id: str = ""
+        self._last_error = None
+        self.logger: Optional[Logger] = None
+        self._last_response_content_type = None
+
+        self._request_obj: Optional[RestXmlRequest] = None
+        self._request_json_obj: Optional[RestJsonRequest] = None
+
+        # All defined in TableauBase superclass
+        self._site_roles = self.site_roles
+        self._permissionable_objects = self.permissionable_objects
+        self._server_to_rest_capability_map = self.server_to_rest_capability_map
+
+        # Lookup caches to minimize calls
+        self.username_luid_cache = {}
+        self.group_name_luid_cache = {}
+
+        # For working around SSL issues
+        self.verify_ssl_cert = True
+
+        self.set_tableau_server_version("2019.4")
+
+    def signin(self, user_luid_to_impersonate: Optional[str] = None):
+        self.start_log_block()
+        tsr = etree.Element("tsRequest")
+        c = etree.Element("credentials")
+        if self._pat_name is not None:
+            if self._pat_secret is not None:
+                c.set('personalAccessTokenName', self._pat_name)
+                c.set('personalAccessTokenSecret', self._pat_secret)
+            else:
+                raise InvalidOptionException('Must include both pat_name and pat_secret to use PAT for login')
+        else:
+            if self.username is not None:
+                if self._password is not None:
+                    c.set("name", self.username)
+                    c.set("password", self._password)
+                else:
+                    raise InvalidOptionException('Must include both username and password to login without PAT')
+        s = etree.Element("site")
+        if self.site_content_url.lower() not in ['default', '']:
+            s.set("contentUrl", self.site_content_url)
+
+        c.append(s)
+
+
+        if user_luid_to_impersonate is not None:
+            if self._pat_name is not None:
+                raise InvalidOptionException('Impersonation is not available when using PAT login')
+            else:
+                u = etree.Element('user')
+                u.set('id', user_luid_to_impersonate)
+                c.append(u)
+
+        tsr.append(c)
+
+        url = self.build_api_url("auth/signin", server_level=True)
+
+        self.log('Logging in via: {}'.format(url))
+
+        # Create the RestXmlRequest to be used throughout
+
+        self._request_obj = RestXmlRequest(url, self.token, self.logger, ns_map_url=self.ns_map['t'],
+                                           verify_ssl_cert=self.verify_ssl_cert)
+        self._request_obj.xml_request = tsr
+        self._request_obj.http_verb = 'post'
+        self.log('Login payload is\n {}'.format(etree.tostring(tsr)))
+
+        self._request_obj.request_from_api(0)
+        # self.log(api.get_raw_response())
+        xml = self._request_obj.get_response()
+
+        credentials_element = xml.findall('.//t:credentials', self.ns_map)
+        self.token = credentials_element[0].get("token")
+        self.log("Token is " + self.token)
+        self._request_obj.token = self.token
+        self.site_luid = credentials_element[0].findall(".//t:site", self.ns_map)[0].get("id")
+        self.user_luid = credentials_element[0].findall(".//t:user", self.ns_map)[0].get("id")
+        self.log("Site ID is " + self.site_luid)
+        self._request_obj.url = None
+        self._request_obj.xml_request = None
+        self.end_log_block()
+
+# New composite class with reorganization
+class TableauRestApi():
+    def __init__(self, server: str, site_content_url: str, pat: Optional[str], username: Optional[str],
+                 password: Optional[str]):
+        self._rest_base = TableauRestApiBase(server=server, site_content_url=site_content_url)
