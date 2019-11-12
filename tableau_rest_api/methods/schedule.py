@@ -353,16 +353,10 @@ class ScheduleMethods():
         self.end_log_block()
         return luid
 
-    def delete_schedule(self, schedule_name_or_luid):
-        """
-        :type schedule_name_or_luid: unicode
-        :rtype:
-        """
+    def delete_schedule(self, schedule_name_or_luid: str):
+
         self.start_log_block()
-        if self.is_luid(schedule_name_or_luid):
-            schedule_luid = schedule_name_or_luid
-        else:
-            schedule_luid = self.query_schedule_luid(schedule_name_or_luid)
+        schedule_luid = self.query_schedule_luid(schedule_name_or_luid)
         url = self.build_api_url("schedules/{}".format(schedule_luid), server_level=True)
         self.send_delete_request(url)
 
@@ -529,28 +523,28 @@ class SubscriptionMethods(TableauRestApiBase):
         self.end_log_block()
         return luid
 
-    def update_subscription(self, subscription_luid, subject=None, schedule_luid=None):
+    def update_subscription(self, subscription_luid: str, subject: Optional[str] = None,
+                            schedule_luid: Optional[str] = None) -> etree.Element:
         if subject is None and schedule_luid is None:
             raise InvalidOptionException("You must pass one of subject or schedule_luid, or both")
-        request = '<tsRequest>'
-        request += '<subscripotion '
+        tsr = etree.Element('tsRequest')
+        s = etree.Element('subscription')
+
         if subject is not None:
-            request += 'subject="{}" '.format(subject)
-        request += '>'
+            s.set('subject', subject)
+
         if schedule_luid is not None:
-            request += '<schedule id="{}" />'.format(schedule_luid)
-        request += '</tsRequest>'
+            sch = etree.Element('schedule')
+            sch.set('id', schedule_luid)
+            s.append(sch)
+        tsr.append(s)
 
         url = self.build_api_url("subscriptions/{}".format(subscription_luid))
-        response = self.send_update_request(url, request)
+        response = self.send_update_request(url, tsr)
         self.end_log_block()
         return response
 
-    def delete_subscriptions(self, subscription_luid_s):
-        """
-        :param subscription_luid_s:
-        :rtype:
-        """
+    def delete_subscriptions(self, subscription_luid_s: Union[List[str], str]):
         self.start_log_block()
         subscription_luids = self.to_list(subscription_luid_s)
         for subscription_luid in subscription_luids:
