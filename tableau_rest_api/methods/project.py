@@ -62,16 +62,9 @@ class ProjectMethods():
         self.end_log_block()
         return proj_xml
 
-    def create_project(self, project_name=None, project_desc=None, locked_permissions=True, no_return=False,
-                       direct_xml_request=None):
-        """
-        :type project_name: unicode
-        :type project_desc: unicode
-        :type locked_permissions: bool
-        :type no_return: bool
-        :type direct_xml_request: etree.Element
-        :rtype: Project
-        """
+    def create_project(self, project_name: Optional[str] = None, project_desc: Optional[str] = None,
+                       locked_permissions: Optional[bool] = True, no_return: Optional[bool] = False,
+                       direct_xml_request: Optional[etree.Element] = None) -> Project:
         self.start_log_block()
         if direct_xml_request is not None:
             tsr = direct_xml_request
@@ -101,21 +94,10 @@ class ProjectMethods():
                 if no_return is False:
                     return self.get_published_project_object(project_name_or_luid=project_name)
 
-    #
-    # End Project Querying Methods
-    #
 
-    # Simplest method
-    def update_project(self, name_or_luid, new_project_name=None, new_project_description=None,
-                       locked_permissions=None, publish_samples=False):
-        """
-        :type name_or_luid: unicode
-        :type new_project_name: unicode
-        :type new_project_description: unicode
-        :type locked_permissions: bool
-        :type publish_samples: bool
-        :rtype: Project
-        """
+    def update_project(self, name_or_luid: str, new_project_name: Optional[str] = None,
+                       new_project_description: Optional[str] = None,
+                       locked_permissions: Optional[bool] = None, publish_samples: Optional[bool] = False) -> Project:
         self.start_log_block()
         project_luid = self.query_project_luid(name_or_luid)
 
@@ -140,18 +122,11 @@ class ProjectMethods():
         self.end_log_block()
         return self.get_published_project_object(project_luid, response)
 
-    def delete_projects(self, project_name_or_luid_s):
-        """
-        :type project_name_or_luid_s: List[unicode] or unicode
-        :rtype:
-        """
+    def delete_projects(self, project_name_or_luid_s: Union[List[str], str]):
         self.start_log_block()
         projects = self.to_list(project_name_or_luid_s)
         for project_name_or_luid in projects:
-            if self.is_luid(project_name_or_luid):
-                project_luid = project_name_or_luid
-            else:
-                project_luid = self.query_project_luid(project_name_or_luid)
+            project_luid = self.query_project_luid(project_name_or_luid)
             url = self.build_api_url("projects/{}".format(project_luid))
             self.send_delete_request(url)
         self.end_log_block()
@@ -160,19 +135,10 @@ class ProjectMethods27(ProjectMethods):
     def __init__(self, rest_api_base: TableauRestApiBase27):
         self.rest_api_base = rest_api_base
 
-
-    def query_projects(self, name_filter=None, owner_name_filter=None, updated_at_filter=None, created_at_filter=None,
-                       owner_domain_filter=None, owner_email_filter=None, sorts=None):
-        """
-        :type name_filter: UrlFilter
-        :type owner_name_filter: UrlFilter
-        :type updated_at_filter: UrlFilter
-        :type created_at_filter: UrlFilter
-        :type owner_domain_filter: UrlFilter
-        :type owner_email_filter: UrlFilter
-        :type sorts: list[Sort]
-        :rtype: etree.Element
-        """
+    def query_projects(self, name_filter: Optional[UrlFilter] = None, owner_name_filter: Optional[UrlFilter] = None,
+                       updated_at_filter: Optional[UrlFilter] = None, created_at_filter: Optional[UrlFilter] = None,
+                       owner_domain_filter: Optional[UrlFilter] = None, owner_email_filter: Optional[UrlFilter] = None,
+                       sorts: Optional[List[Sort]] = None) -> etree.Element:
         filter_checks = {'name': name_filter, 'ownerName': owner_name_filter,
                          'updatedAt': updated_at_filter, 'createdAt': created_at_filter,
                          'ownerDomain': owner_domain_filter, 'ownerEmail': owner_email_filter}
@@ -184,20 +150,13 @@ class ProjectMethods27(ProjectMethods):
         self.end_log_block()
         return projects
 
-    def query_projects_json(self, name_filter=None, owner_name_filter=None, updated_at_filter=None,
-                            created_at_filter=None, owner_domain_filter=None, owner_email_filter=None, sorts=None,
-                            page_number=None):
-        """
-        :type name_filter: UrlFilter
-        :type owner_name_filter: UrlFilter
-        :type updated_at_filter: UrlFilter
-        :type created_at_filter: UrlFilter
-        :type owner_domain_filter: UrlFilter
-        :type owner_email_filter: UrlFilter
-        :type sorts: list[Sort]
-        :type page_number: int
-        :rtype: etree.Element
-        """
+    def query_projects_json(self, name_filter: Optional[UrlFilter] = None,
+                            owner_name_filter: Optional[UrlFilter] = None,
+                            updated_at_filter: Optional[UrlFilter] = None,
+                            created_at_filter: Optional[UrlFilter] = None,
+                            owner_domain_filter: Optional[UrlFilter] = None,
+                            owner_email_filter: Optional[UrlFilter] = None, sorts: Optional[List[Sort]] = None,
+                            page_number: Optional[int] = None) -> str:
         filter_checks = {'name': name_filter, 'ownerName': owner_name_filter,
                          'updatedAt': updated_at_filter, 'createdAt': created_at_filter,
                          'ownerDomain': owner_domain_filter, 'ownerEmail': owner_email_filter}
@@ -209,42 +168,18 @@ class ProjectMethods27(ProjectMethods):
         self.end_log_block()
         return projects
 
-    def query_project_luid(self, project_name):
-        """
-        :type project_name: unicode
-        :rtype: unicode
-        """
-        self.start_log_block()
-        project_luid = self.query_single_element_luid_from_endpoint_with_filter('project', project_name)
-        self.end_log_block()
-        return project_luid
 
-    def query_project(self, project_name_or_luid):
-        """
-        :type project_name_or_luid: unicode
-        :rtype: Project21
-        """
+    def query_project(self, project_name_or_luid: str) -> Project:
         self.start_log_block()
-        if self.is_luid(project_name_or_luid):
-            luid = project_name_or_luid
-        else:
-            luid = self.query_project_luid(project_name_or_luid)
+        luid = self.query_project_luid(project_name_or_luid)
         proj = self.get_published_project_object(luid, self.query_single_element_from_endpoint_with_filter('project',
                                                                                                            project_name_or_luid))
-
         self.end_log_block()
         return proj
 
-    def query_project_xml_object(self, project_name_or_luid):
-        """
-        :param project_name_or_luid: unicode
-        :rtype: etree.Element
-        """
+    def query_project_xml_object(self, project_name_or_luid: str) -> etree.Element:
         self.start_log_block()
-        if self.is_luid(project_name_or_luid):
-            luid = project_name_or_luid
-        else:
-            luid = self.query_project_luid(project_name_or_luid)
+        luid = self.query_project_luid(project_name_or_luid)
         proj_xml = self.query_single_element_from_endpoint_with_filter('project', luid)
         self.end_log_block()
         return proj_xml
@@ -253,18 +188,10 @@ class ProjectMethods28(ProjectMethods27):
     def __init__(self, rest_api_base: TableauRestApiBase28):
         self.rest_api_base = rest_api_base
 
+    def get_published_project_object(self, project_name_or_luid: str,
+                                     project_xml_obj: Optional[etree.Element] = None) -> Project28:
 
-
-    def get_published_project_object(self, project_name_or_luid, project_xml_obj=None):
-        """
-        :type project_name_or_luid: unicode
-        :type project_xml_obj: project_xml_obj
-        :rtype: Project28
-        """
-        if self.is_luid(project_name_or_luid):
-            luid = project_name_or_luid
-        else:
-            luid = self.query_project_luid(project_name_or_luid)
+        luid = self.query_project_luid(project_name_or_luid)
 
         parent_project_luid = None
         if project_xml_obj.get('parentProjectId'):
@@ -274,18 +201,11 @@ class ProjectMethods28(ProjectMethods27):
                              parent_project_luid=parent_project_luid)
         return proj_obj
 
-    def create_project(self, project_name=None, parent_project_name_or_luid=None, project_desc=None, locked_permissions=True,
-                       publish_samples=False, no_return=False, direct_xml_request=None):
-        """
-        :type project_name: unicode
-        :type project_desc: unicode
-        :type locked_permissions: bool
-        :type publish_samples: bool
-        :type no_return: bool
-        :type parent_project_name_or_luid: unicode
-        :type direct_xml_request: etree.Element
-        :rtype: Project21
-        """
+    def create_project(self, project_name: Optional[str] = None, parent_project_name_or_luid: Optional[str] = None,
+                       project_desc: Optional[str] = None, locked_permissions: Optional[bool] = True,
+                       publish_samples: Optional[bool] = False, no_return: Optional[bool] = False,
+                       direct_xml_request: Optional[etree.Element] = None) -> Project28:
+
         self.start_log_block()
         if direct_xml_request is not None:
             tsr = direct_xml_request
@@ -300,10 +220,7 @@ class ProjectMethods28(ProjectMethods27):
                 p.set('contentPermissions', "LockedToProject")
 
             if parent_project_name_or_luid is not None:
-                if self.is_luid(parent_project_name_or_luid):
-                    parent_project_luid = parent_project_name_or_luid
-                else:
-                    parent_project_luid = self.query_project_luid(parent_project_name_or_luid)
+                parent_project_luid = self.query_project_luid(parent_project_name_or_luid)
                 p.set('parentProjectId', parent_project_luid)
             tsr.append(p)
 
@@ -325,22 +242,12 @@ class ProjectMethods28(ProjectMethods27):
                 if no_return is False:
                     return self.query_project(project_name)
 
-    def update_project(self, name_or_luid, parent_project_name_or_luid=None, new_project_name=None,
-                       new_project_description=None, locked_permissions=None, publish_samples=False):
-        """
-        :type name_or_luid: unicode
-        :type parent_project_name_or_luid: unicode
-        :type new_project_name: unicode
-        :type new_project_description: unicode
-        :type locked_permissions: bool
-        :type publish_samples: bool
-        :rtype: Project28
-        """
+    def update_project(self, name_or_luid: str, parent_project_name_or_luid: Optional[str] = None,
+                       new_project_name: Optional[str] = None, new_project_description: Optional[str] = None,
+                       locked_permissions: Optional[bool] = None, publish_samples: Optional[bool] = False) -> Project28:
+
         self.start_log_block()
-        if self.is_luid(name_or_luid):
-            project_luid = name_or_luid
-        else:
-            project_luid = self.query_project_luid(name_or_luid)
+        project_luid = self.query_project_luid(name_or_luid)
 
         tsr = etree.Element("tsRequest")
         p = etree.Element("project")
@@ -349,10 +256,7 @@ class ProjectMethods28(ProjectMethods27):
         if new_project_description is not None:
             p.set('description', new_project_description)
         if parent_project_name_or_luid is not None:
-            if self.is_luid(parent_project_name_or_luid):
-                parent_project_luid = parent_project_name_or_luid
-            else:
-                parent_project_luid = self.query_project_luid(parent_project_name_or_luid)
+            parent_project_luid = self.query_project_luid(parent_project_name_or_luid)
             p.set('parentProjectId', parent_project_luid)
         if locked_permissions is True:
             p.set('contentPermissions', "LockedToProject")
@@ -369,19 +273,12 @@ class ProjectMethods28(ProjectMethods27):
         self.end_log_block()
         return self.get_published_project_object(project_luid, response)
 
-    def query_project(self, project_name_or_luid):
-        """
-        :type project_name_or_luid: unicode
-        :rtype: Project28
-        """
+    def query_project(self, project_name_or_luid: str) -> Project28:
+
         self.start_log_block()
-        if self.is_luid(project_name_or_luid):
-            luid = project_name_or_luid
-        else:
-            luid = self.query_project_luid(project_name_or_luid)
+        luid = self.query_project_luid(project_name_or_luid)
         proj = self.get_published_project_object(luid, self.query_single_element_from_endpoint_with_filter('project',
                                                                                                project_name_or_luid))
-
         self.end_log_block()
         return proj
 
