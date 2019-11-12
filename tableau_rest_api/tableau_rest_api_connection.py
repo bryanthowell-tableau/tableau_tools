@@ -44,3 +44,4 @@ class TableauRestApiConnection34(WorkbookMethods34, UserMethods34, SiteMethods34
                                  FavoritesMethods34, ExtractMethods34, DatasourceMethods34, AlertMethods34,
                                  TableauRestApiBase34):
     pass
+

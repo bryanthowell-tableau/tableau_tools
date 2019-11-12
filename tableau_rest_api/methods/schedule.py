@@ -1,100 +1,57 @@
 from .rest_api_base import *
 class ScheduleMethods(TableauRestApiBase):
-    def query_schedules(self):
-        """
-        :rtype: etree.Element
-        """
+    def query_schedules(self) -> etree.Element:
         self.start_log_block()
         schedules = self.query_resource("schedules", server_level=True)
         self.end_log_block()
         return schedules
 
-    def query_schedules_json(self, page_number=None):
-        """
-        :type page_number: int
-        :rtype: json
-        """
+    def query_schedules_json(self, page_number: Optional[int] = None)-> str:
         self.start_log_block()
         schedules = self.query_resource_json("schedules", server_level=True, page_number=page_number)
         self.end_log_block()
         return schedules
 
-    def query_extract_schedules(self):
-        """
-        :rtype: etree.Element
-        """
+    def query_extract_schedules(self) -> etree.Element:
         self.start_log_block()
         schedules = self.query_schedules()
         extract_schedules = schedules.findall('.//t:schedule[@type="Extract"]', self.ns_map)
         self.end_log_block()
         return extract_schedules
 
-    def query_subscription_schedules(self):
-        """
-        :rtype: etree.Element
-        """
+    def query_subscription_schedules(self) -> etree.Element:
         self.start_log_block()
         schedules = self.query_schedules()
         subscription_schedules = schedules.findall('.//t:schedule[@type="Subscription"]', self.ns_map)
         self.end_log_block()
         return subscription_schedules
 
-    def query_schedule_luid(self, schedule_name):
-        """
-        :type schedule_name: unicode
-        :rtype: unicode
-        """
+    def query_schedule_luid(self, schedule_name: str) -> str:
+
         self.start_log_block()
         luid = self.query_single_element_luid_by_name_from_endpoint('schedule', schedule_name, server_level=True)
         self.end_log_block()
         return luid
 
-    def query_schedule(self, schedule_name_or_luid):
-        """
-        :type schedule_name_or_luid: unicode
-        :rtype: unicode
-        """
+    def query_schedule(self, schedule_name_or_luid: str) -> etree.Element:
         self.start_log_block()
-        luid = self.query_single_element_from_endpoint('schedule', schedule_name_or_luid, server_level=True)
+        schedule = self.query_single_element_from_endpoint('schedule', schedule_name_or_luid, server_level=True)
         self.end_log_block()
-        return luid
+        return schedule
 
-    def query_extract_refresh_tasks_by_schedule(self, schedule_name_or_luid):
-        """
-        :type schedule_name_or_luid: unicode
-        :rtype: etree.Element
-        """
+    def query_extract_refresh_tasks_by_schedule(self, schedule_name_or_luid: str) -> etree.Element:
         self.start_log_block()
-        if self.is_luid(schedule_name_or_luid):
-            luid = schedule_name_or_luid
-        else:
-            luid = self.query_schedule_luid(schedule_name_or_luid)
+        luid = self.query_schedule_luid(schedule_name_or_luid)
         tasks = self.query_resource("schedules/{}/extracts".format(luid))
         self.end_log_block()
         return tasks
 
-    #
-    # End Scheduler Querying Methods
-    #
-
-
-
-    def create_schedule(self, name=None, extract_or_subscription=None, frequency=None, parallel_or_serial=None,
-                        priority=None, start_time=None, end_time=None, interval_value_s=None,
-                        interval_hours_minutes=None, direct_xml_request=None):
-        """
-        :type name: unicode
-        :type extract_or_subscription: unicode
-        :type frequency: unicode
-        :type parallel_or_serial: unicode
-        :type priority: int
-        :type start_time: unicode
-        :type end_time: unicode
-        :type interval_value_s: unicode or list[unicode]
-        :type interval_hours_minutes: unicode
-        :type direct_xml_request: etree.Element
-        :rtype:
-        """
+    def create_schedule(self, name: Optional[str] = None, extract_or_subscription: Optional[str] = None,
+                        frequency: Optional[str] = None, parallel_or_serial: Optional[str] = None,
+                        priority: Optional[int] = None, start_time: Optional[str] = None,
+                        end_time: Optional[str] = None, interval_value_s: Optional[Union[List[str], str]] = None,
+                        interval_hours_minutes: Optional[int] = None,
+                        direct_xml_request: Optional[etree.Element] = None) -> str:
         self.start_log_block()
         if direct_xml_request is not None:
             tsr = direct_xml_request
@@ -152,21 +109,12 @@ class ScheduleMethods(TableauRestApiBase):
             if e.tableau_error_code == '409021':
                 raise AlreadyExistsException('Schedule Already exists on the server', None)
 
-    def update_schedule(self, schedule_name_or_luid, new_name=None, frequency=None, parallel_or_serial=None,
-                        priority=None, start_time=None, end_time=None, interval_value_s=None,
-                        interval_hours_minutes=None, direct_xml_request=None):
-        """
-        :type schedule_name_or_luid: unicode
-        :type new_name: unicode
-        :type frequency: unicode
-        :type parallel_or_serial: unicode
-        :type priority: int
-        :type start_time: unicode
-        :type end_time: unicode
-        :type interval_value_s: unicode or list[unicode]
-        :type interval_hours_minutes: unicode
-        :rtype:
-        """
+    def update_schedule(self, schedule_name_or_luid: str, new_name: Optional[str] = None,
+                        frequency: Optional[str] = None, parallel_or_serial: Optional[str] = None,
+                        priority: Optional[int] = None, start_time: Optional[str] = None,
+                        end_time: Optional[str] = None, interval_value_s: Optional[Union[List[str], str]] = None,
+                        interval_hours_minutes: Optional[int] = None,
+                        direct_xml_request: Optional[etree.Element] = None) -> etree.Element:
         self.start_log_block()
         if self.is_luid(schedule_name_or_luid):
             luid = schedule_name_or_luid
@@ -221,15 +169,13 @@ class ScheduleMethods(TableauRestApiBase):
 
         # Schedule requests happen at the server rather than site level, like a login
         url = self.build_api_url("schedules/{}".format(luid), server_level=True)
-        self.send_update_request(url, tsr)
+        response = self.send_update_request(url, tsr)
         self.end_log_block()
+        return response
 
-    def disable_schedule(self, schedule_name_or_luid):
+    def disable_schedule(self, schedule_name_or_luid: str):
         self.start_log_block()
-        if self.is_luid(schedule_name_or_luid):
-            luid = schedule_name_or_luid
-        else:
-            luid = self.query_schedule_luid(schedule_name_or_luid)
+        luid = self.query_schedule_luid(schedule_name_or_luid)
 
         tsr = etree.Element('tsRequest')
         s = etree.Element('schedule')
@@ -240,12 +186,9 @@ class ScheduleMethods(TableauRestApiBase):
         self.send_update_request(url, tsr)
         self.end_log_block()
 
-    def enable_schedule(self, schedule_name_or_luid):
+    def enable_schedule(self, schedule_name_or_luid: str):
         self.start_log_block()
-        if self.is_luid(schedule_name_or_luid):
-            luid = schedule_name_or_luid
-        else:
-            luid = self.query_schedule_luid(schedule_name_or_luid)
+        luid = self.query_schedule_luid(schedule_name_or_luid)
 
         tsr = etree.Element('tsRequest')
         s = etree.Element('schedule')
