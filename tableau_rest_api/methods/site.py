@@ -10,20 +10,13 @@ class SiteMethods():
     #
 
     # Site queries don't have the site portion of the URL, so login option gets correct format
-    def query_sites(self):
-        """
-        :rtype: etree.Element
-        """
+    def query_sites(self) -> etree.Element:
         self.start_log_block()
         sites = self.query_resource("sites", server_level=True)
         self.end_log_block()
         return sites
 
-    def query_sites_json(self, page_number=None):
-        """
-        :type page_number: int
-        :rtype: json
-        """
+    def query_sites_json(self, page_number: Optional[int] = None) -> str:
         self.start_log_block()
         sites = self.query_resource_json("sites", server_level=True, page_number=page_number)
         self.end_log_block()
@@ -32,10 +25,7 @@ class SiteMethods():
     # Methods for getting info about the sites, since you can only query a site when you are signed into it
 
     # Return list of all site contentUrls
-    def query_all_site_content_urls(self):
-        """
-        :rtype: List[unicode]
-        """
+    def query_all_site_content_urls(self) -> List[str]:
         self.start_log_block()
         sites = self.query_sites()
         site_content_urls = []
@@ -45,36 +35,26 @@ class SiteMethods():
         return site_content_urls
 
     # You can only query a site you have logged into this way. Better to use methods that run through query_sites
-    def query_current_site(self):
-        """
-        :rtype: etree.Element
-        """
+    def query_current_site(self) -> etree.Element:
         self.start_log_block()
         site = self.query_resource("sites/{}".format(self.site_luid), server_level=True)
         self.end_log_block()
         return site
 
-    #
-    # End Site Querying Methods
-    #
     # Both SiteName and ContentUrl must be unique to add a site
-    def create_site(self, new_site_name, new_content_url, admin_mode=None, user_quota=None, storage_quota=None,
-                    disable_subscriptions=None, direct_xml_request=None):
-        """
-        :type new_site_name: unicode
-        :type new_content_url: unicode
-        :type admin_mode: unicode
-        :type user_quota: unicode
-        :type storage_quota: unicode
-        :type disable_subscriptions: bool
-        :type direct_xml_request: etree.Element
-        :rtype: unicode
-        """
+    def create_site(self, new_site_name: str, new_content_url: str, admin_mode: Optional[str] = None,
+                    user_quota: Optional[str] = None, storage_quota: Optional[str] = None,
+                    disable_subscriptions: Optional[bool] = None, revision_history_enabled: Optional[bool] = None,
+                    revision_limit: Optional[str] = None,
+                    direct_xml_request: Optional[etree.Element] = None) -> str:
+
         if direct_xml_request is not None:
             add_request = direct_xml_request
         else:
             add_request = self.build_site_request_xml(new_site_name, new_content_url, admin_mode, user_quota,
-                                                      storage_quota, disable_subscriptions)
+                                                      storage_quota, disable_subscriptions,
+                                                      revision_history_enabled=revision_history_enabled,
+                                                      revision_limit=revision_limit)
         url = self.build_api_url("sites/",
                                  server_level=True)  # Site actions drop back out of the site ID hierarchy like login
         try:
@@ -88,24 +68,14 @@ class SiteMethods():
                                              new_content_url)
 
     # Can only update the site you are signed into, so take site_luid from the object
-    def update_site(self, site_name=None, content_url=None, admin_mode=None, user_quota=None,
-                    storage_quota=None, disable_subscriptions=None, state=None, revision_history_enabled=None,
-                    revision_limit=None):
-        """
-        :type site_name: unicode
-        :type content_url: unicode
-        :type admin_mode: unicode
-        :type user_quota: unicode
-        :type storage_quota: unicode
-        :type disable_subscriptions: bool
-        :type state: unicode
-        :type revision_history_enabled: bool
-        :type revision_limit: unicode
-        :rtype: etree.Element
-        """
+    def update_site(self, site_name: Optional[str] = None, content_url: Optional[str] = None,
+                    admin_mode: Optional[str] = None, user_quota: Optional[str] = None,
+                    storage_quota: Optional[str] = None, disable_subscriptions: Optional[bool] = None,
+                    state: Optional[str] = None, revision_history_enabled: Optional[bool] = None,
+                    revision_limit: Optional[str] = None) -> etree.Element:
         self.start_log_block()
         tsr = self.build_site_request_xml(site_name, content_url, admin_mode, user_quota, storage_quota,
-                                          disable_subscriptions, state)
+                                          disable_subscriptions, state, revision_limit=revision_limit)
         url = self.build_api_url("")
         response = self.send_update_request(url, tsr)
         self.end_log_block()
@@ -113,9 +83,6 @@ class SiteMethods():
 
     # Can only delete a site that you have signed into
     def delete_current_site(self):
-        """
-        :rtype:
-        """
         self.start_log_block()
         url = self.build_api_url("sites/{}".format(self.site_luid), server_level=True)
         self.send_delete_request(url)
@@ -134,24 +101,17 @@ class SiteMethods30(SiteMethods28):
         self.rest_api_base = rest_api_base
 
     # Both SiteName and ContentUrl must be unique to add a site
-    def create_site(self, new_site_name, new_content_url, admin_mode=None, tier_creator_capacity=None,
-                    tier_explorer_capacity=None, tier_viewer_capacity=None, storage_quota=None,
-                    disable_subscriptions=None):
-        """
-        :type new_site_name: unicode
-        :type new_content_url: unicode
-        :type admin_mode: unicode
-        :type tier_creator_capacity: unicode
-        :type tier_explorer_capacity: unicode
-        :type tier_viewer_capacity: unicode
-        :type storage_quota: unicode
-        :type disable_subscriptions: bool
-        :rtype: unicode
-        """
-
+    def create_site(self, new_site_name: str, new_content_url: str, admin_mode: Optional[str] = None,
+                    tier_creator_capacity=None, tier_explorer_capacity=None, tier_viewer_capacity=None,
+                    storage_quota: Optional[str] = None,
+                    disable_subscriptions: Optional[bool] = None, revision_history_enabled: Optional[bool] = None,
+                    revision_limit: Optional[str] = None,
+                    direct_xml_request: Optional[etree.Element] = None) -> str:
         add_request = self.build_site_request_xml(new_site_name, new_content_url, admin_mode, tier_creator_capacity,
                                                   tier_explorer_capacity, tier_viewer_capacity, storage_quota,
-                                                  disable_subscriptions)
+                                                  disable_subscriptions,
+                                                  revision_history_enabled=revision_history_enabled,
+                                                  revision_limit=revision_limit)
         url = self.build_api_url("sites/",
                                  server_level=True)  # Site actions drop back out of the site ID hierarchy like login
         try:
@@ -165,23 +125,13 @@ class SiteMethods30(SiteMethods28):
                                              new_content_url)
 
     # Can only update the site you are signed into, so take site_luid from the object
-    def update_site(self, site_name=None, content_url=None, admin_mode=None, tier_creator_capacity=None,
-                    tier_explorer_capacity=None, tier_viewer_capacity=None, storage_quota=None,
-                    disable_subscriptions=None, state=None, revision_history_enabled=None, revision_limit=None):
-        """
-        :type site_name: unicode
-        :type content_url: unicode
-        :type admin_mode: unicode
-        :type tier_creator_capacity: unicode
-        :type tier_explorer_capacity: unicode
-        :type tier_viewer_capacity: unicode
-        :type storage_quota: unicode
-        :type disable_subscriptions: bool
-        :type state: unicode
-        :type revision_history_enabled: bool
-        :type revision_limit: unicode
-        :rtype: etree.Element
-        """
+    def update_site(self, site_name: Optional[str] = None, content_url: Optional[str] = None,
+                    admin_mode: Optional[str] = None,
+                    tier_creator_capacity=None, tier_explorer_capacity=None, tier_viewer_capacity=None,
+                    storage_quota: Optional[str] = None,
+                    disable_subscriptions: Optional[bool] = None, revision_history_enabled: Optional[bool] = None,
+                    revision_limit: Optional[str] = None, state: Optional[str] = None,
+                    direct_xml_request: Optional[etree.Element] = None) -> etree.Element:
         self.start_log_block()
         tsr = self.build_site_request_xml(site_name, content_url, admin_mode, tier_creator_capacity,
                                           tier_explorer_capacity, tier_viewer_capacity, storage_quota,
