@@ -213,6 +213,9 @@ class DatasourceMethods():
     
 
 class DatasourceMethods27(DatasourceMethods):
+    def __init__(self, rest_api_base: TableauRestApiBase27):
+        self.rest_api_base = rest_api_base
+
     def update_datasource(self, datasource_name_or_luid: str, datasource_project_name_or_luid: Optional[str] = None,
                           new_datasource_name: Optional[str] = None, new_project_luid: Optional[str] = None,
                           new_owner_luid: Optional[str] = None, certification_status: Optional[str] = None,
@@ -248,26 +251,33 @@ class DatasourceMethods27(DatasourceMethods):
         return response
 
 class DatasourceMethods28(DatasourceMethods27):
-    pass
-
+    def __init__(self, rest_api_base: TableauRestApiBase28):
+        self.rest_api_base = rest_api_base
 
 class DatasourceMethods30(DatasourceMethods28):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase30):
+        self.rest_api_base = rest_api_base
 
 class DatasourceMethods31(DatasourceMethods30):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase31):
+        self.rest_api_base = rest_api_base
 
 class DatasourceMethods32(DatasourceMethods31):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase32):
+        self.rest_api_base = rest_api_base
 
 class DatasourceMethods33(DatasourceMethods32):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase33):
+        self.rest_api_base = rest_api_base
 
 class DatasourceMethods34(DatasourceMethods33):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase34):
+        self.rest_api_base = rest_api_base
 
 class DatasourceMethods35(DatasourceMethods34):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase35):
+        self.rest_api_base = rest_api_base
 
 class DatasourceMethods36(DatasourceMethods35):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase36):
+        self.rest_api_base = rest_api_base

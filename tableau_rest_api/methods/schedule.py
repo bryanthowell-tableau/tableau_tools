@@ -559,9 +559,13 @@ class SubscriptionMethods(TableauRestApiBase):
         self.end_log_block()
 
 class ScheduleMethods27(ScheduleMethods):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase27):
+        self.rest_api_base = rest_api_base
 
 class ScheduleMethods28(ScheduleMethods27):
+    def __init__(self, rest_api_base: TableauRestApiBase28):
+        self.rest_api_base = rest_api_base
+
     def add_workbook_to_schedule(self, wb_name_or_luid, schedule_name_or_luid, proj_name_or_luid=None):
         """
         :type wb_name_or_luid: unicode
@@ -627,22 +631,29 @@ class ScheduleMethods28(ScheduleMethods27):
         self.end_log_block()
 
 class ScheduleMethods30(ScheduleMethods28):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase30):
+        self.rest_api_base = rest_api_base
 
 class ScheduleMethods31(ScheduleMethods30):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase31):
+        self.rest_api_base = rest_api_base
 
 class ScheduleMethods32(ScheduleMethods31):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase32):
+        self.rest_api_base = rest_api_base
 
 class ScheduleMethods33(ScheduleMethods32):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase33):
+        self.rest_api_base = rest_api_base
 
 class ScheduleMethods34(ScheduleMethods33):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase34):
+        self.rest_api_base = rest_api_base
 
 class ScheduleMethods35(ScheduleMethods34):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase35):
+        self.rest_api_base = rest_api_base
 
 class ScheduleMethods36(ScheduleMethods35):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase36):
+        self.rest_api_base = rest_api_base

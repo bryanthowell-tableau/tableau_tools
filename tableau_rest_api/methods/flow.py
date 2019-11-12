@@ -359,13 +359,14 @@ class FlowMethods33():
         self.end_log_block()
         return save_filename
 
-
-
 class FlowMethods34(FlowMethods33):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase34):
+        self.rest_api_base = rest_api_base
 
 class FlowMethods35(FlowMethods34):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase35):
+        self.rest_api_base = rest_api_base
 
 class FlowMethods36(FlowMethods35):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase36):
+        self.rest_api_base = rest_api_base

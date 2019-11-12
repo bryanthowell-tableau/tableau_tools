@@ -76,9 +76,13 @@ class ExtractMethods():
         return job
     
 class ExtractMethods27(ExtractMethods):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase27):
+        self.rest_api_base = rest_api_base
 
 class ExtractMethods28(ExtractMethods27):
+    def __init__(self, rest_api_base: TableauRestApiBase28):
+        self.rest_api_base = rest_api_base
+
     def update_datasource_now(self, ds_name_or_luid: str,
                               project_name_or_luid: Optional[str] = None) -> etree.Element:
 
@@ -118,9 +122,13 @@ class ExtractMethods28(ExtractMethods27):
 
 
 class ExtractMethods30(ExtractMethods28):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase30):
+        self.rest_api_base = rest_api_base
 
 class ExtractMethods31(ExtractMethods30):
+    def __init__(self, rest_api_base: TableauRestApiBase31):
+        self.rest_api_base = rest_api_base
+
     def query_jobs(self, progress_filter: Optional[UrlFilter] = None, job_type_filter: Optional[UrlFilter] = None,
                    created_at_filter: Optional[UrlFilter] = None, started_at_filter: Optional[UrlFilter] = None,
                    ended_at_filter: Optional[UrlFilter] = None, title_filter: Optional[UrlFilter] = None,
@@ -145,16 +153,21 @@ class ExtractMethods31(ExtractMethods30):
         self.end_log_block()
 
 class ExtractMethods32(ExtractMethods31):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase32):
+        self.rest_api_base = rest_api_base
 
 class ExtractMethods33(ExtractMethods32):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase33):
+        self.rest_api_base = rest_api_base
 
 class ExtractMethods34(ExtractMethods33):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase34):
+        self.rest_api_base = rest_api_base
 
 class ExtractMethods35(ExtractMethods34):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase35):
+        self.rest_api_base = rest_api_base
 
 class ExtractMethods36(ExtractMethods35):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase36):
+        self.rest_api_base = rest_api_base

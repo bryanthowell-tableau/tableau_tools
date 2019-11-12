@@ -216,28 +216,37 @@ class UserMethods():
         self.end_log_block()
 
 class UserMethods27(UserMethods):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase27):
+        self.rest_api_base = rest_api_base
 
 class UserMethods28(UserMethods27):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase28):
+        self.rest_api_base = rest_api_base
 
 class UserMethods30(UserMethods28):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase30):
+        self.rest_api_base = rest_api_base
 
 class UserMethods31(UserMethods30):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase31):
+        self.rest_api_base = rest_api_base
 
 class UserMethods32(UserMethods31):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase32):
+        self.rest_api_base = rest_api_base
 
 class UserMethods33(UserMethods32):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase33):
+        self.rest_api_base = rest_api_base
 
 class UserMethods34(UserMethods33):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase34):
+        self.rest_api_base = rest_api_base
 
 class UserMethods35(UserMethods34):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase35):
+        self.rest_api_base = rest_api_base
 
 class UserMethods36(UserMethods35):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase36):
+        self.rest_api_base = rest_api_base

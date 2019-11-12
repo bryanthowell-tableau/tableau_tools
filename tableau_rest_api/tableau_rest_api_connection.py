@@ -75,7 +75,8 @@ class TableauRestApiConnection36(WorkbookMethods36, UserMethods36, SiteMethods36
 # Reorg'd new classes
 #
 class TableauServerRest(TableauRestApiBase):
-    def __init__(self, server, username, password, site_content_url):
+    def __init__(self, server: str, username: str, password: str,
+                 site_content_url: Optional[str] = ""):
         TableauRestApiBase.__init__(self, server, username, password, site_content_url)
         self.rest_api_base = self
 
@@ -92,7 +93,8 @@ class TableauServerRest(TableauRestApiBase):
         self.workbooks: WorkbookMethods = WorkbookMethods(self.rest_api_base)
 
 class TableauServerRest27(TableauRestApiBase27):
-    def __init__(self, server, username, password, site_content_url):
+    def __init__(self, server: str, username: str, password: str,
+                 site_content_url: Optional[str] = ""):
         TableauRestApiBase27.__init__(self, server, username, password, site_content_url)
         self.rest_api_base = self
 
@@ -109,7 +111,8 @@ class TableauServerRest27(TableauRestApiBase27):
         self.workbooks: WorkbookMethods27 = WorkbookMethods27(self.rest_api_base)
         
 class TableauServerRest28(TableauRestApiBase28):
-    def __init__(self, server, username, password, site_content_url):
+    def __init__(self, server: str, username: str, password: str,
+                 site_content_url: Optional[str] = ""):
         TableauRestApiBase28.__init__(self, server, username, password, site_content_url)
         self.rest_api_base = self
 
@@ -126,7 +129,8 @@ class TableauServerRest28(TableauRestApiBase28):
         self.workbooks: WorkbookMethods28 = WorkbookMethods28(self.rest_api_base)
 
 class TableauServerRest30(TableauRestApiBase30):
-    def __init__(self, server, username, password, site_content_url):
+    def __init__(self, server: str, username: str, password: str,
+                 site_content_url: Optional[str] = ""):
         TableauRestApiBase30.__init__(self, server, username, password, site_content_url)
         self.rest_api_base = self
 
@@ -143,7 +147,8 @@ class TableauServerRest30(TableauRestApiBase30):
         self.workbooks: WorkbookMethods30 = WorkbookMethods30(self.rest_api_base)
 
 class TableauServerRest31(TableauRestApiBase31):
-    def __init__(self, server, username, password, site_content_url):
+    def __init__(self, server: str, username: str, password: str,
+                 site_content_url: Optional[str] = ""):
         TableauRestApiBase31.__init__(self, server, username, password, site_content_url)
         self.rest_api_base = self
 
@@ -160,7 +165,8 @@ class TableauServerRest31(TableauRestApiBase31):
         self.workbooks: WorkbookMethods31 = WorkbookMethods31(self.rest_api_base)
 
 class TableauServerRest32(TableauRestApiBase32):
-    def __init__(self, server, username, password, site_content_url):
+    def __init__(self, server: str, username: str, password: str,
+                 site_content_url: Optional[str] = ""):
         TableauRestApiBase32.__init__(self, server, username, password, site_content_url)
         self.rest_api_base = self
 
@@ -178,7 +184,8 @@ class TableauServerRest32(TableauRestApiBase32):
         self.workbooks: WorkbookMethods32 = WorkbookMethods32(self.rest_api_base)
 
 class TableauServerRest33(TableauRestApiBase33):
-    def __init__(self, server, username, password, site_content_url):
+    def __init__(self, server: str, username: str, password: str,
+                 site_content_url: Optional[str] = ""):
         TableauRestApiBase33.__init__(self, server, username, password, site_content_url)
         self.rest_api_base = self
 
@@ -197,7 +204,8 @@ class TableauServerRest33(TableauRestApiBase33):
         self.workbooks: WorkbookMethods33 = WorkbookMethods33(self.rest_api_base)
 
 class TableauServerRest34(TableauRestApiBase34):
-    def __init__(self, server, username, password, site_content_url):
+    def __init__(self, server: str, username: str, password: str,
+                 site_content_url: Optional[str] = ""):
         TableauRestApiBase34.__init__(self, server, username, password, site_content_url)
         self.rest_api_base = self
 
@@ -216,7 +224,8 @@ class TableauServerRest34(TableauRestApiBase34):
         self.workbooks: WorkbookMethods34 = WorkbookMethods34(self.rest_api_base)
 
 class TableauServerRest35(TableauRestApiBase35):
-    def __init__(self, server, username, password, site_content_url):
+    def __init__(self, server: str, username: str, password: str,
+                 site_content_url: Optional[str] = ""):
         TableauRestApiBase35.__init__(self, server, username, password, site_content_url)
         self.rest_api_base = self
 
@@ -235,8 +244,11 @@ class TableauServerRest35(TableauRestApiBase35):
         self.workbooks: WorkbookMethods35 = WorkbookMethods35(self.rest_api_base)
 
 class TableauServerRest36(TableauRestApiBase36):
-    def __init__(self, server, username, password, site_content_url):
-        TableauRestApiBase36.__init__(self, server, username, password, site_content_url)
+    def __init__(self, server: str, username: Optional[str] = None, password: Optional[str] = None,
+                 site_content_url: Optional[str] = "", pat_name: Optional[str] = None,
+                 pat_secret: Optional[str] = None):
+        TableauRestApiBase36.__init__(self, server=server, username=username, password=password,
+                                      site_content_url=site_content_url, pat_name=pat_name, pat_secret=pat_secret)
         self.rest_api_base = self
 
         self.alerts: AlertMethods36 = AlertMethods36(self.rest_api_base)

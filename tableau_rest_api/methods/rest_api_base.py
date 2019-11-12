@@ -947,10 +947,3 @@ class TableauRestApiBase36(TableauRestApiBase35):
         self._request_obj.url = None
         self._request_obj.xml_request = None
         self.end_log_block()
-
-# New composite class with reorganization
-class TableauRestApi36():
-    def __init__(self, server: str, site_content_url: str, username: Optional[str],
-                 password: Optional[str], pat_name: Optional[str], pat_secret: Optional[str]):
-        self._rest_base = TableauRestApiBase36(server=server, site_content_url=site_content_url, username=username,
-                                             password=password, pat_name=pat_name, pat_secret=pat_secret)

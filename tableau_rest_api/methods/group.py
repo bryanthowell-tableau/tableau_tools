@@ -252,6 +252,9 @@ class GroupMethods():
         self.end_log_block()
 
 class GroupMethods27(GroupMethods):
+    def __init__(self, rest_api_base: TableauRestApiBase27):
+        self.rest_api_base = rest_api_base
+
     def query_groups(self, name_filter=None, domain_name_filter=None, domain_nickname_filter=None, is_local_filter=None,
                      user_count_filter=None, minimum_site_role_filter=None, sorts=None):
         """
@@ -323,25 +326,33 @@ class GroupMethods27(GroupMethods):
 
 
 class GroupMethods28(GroupMethods27):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase28):
+        self.rest_api_base = rest_api_base
 
 class GroupMethods30(GroupMethods28):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase30):
+        self.rest_api_base = rest_api_base
 
 class GroupMethods31(GroupMethods30):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase31):
+        self.rest_api_base = rest_api_base
 
 class GroupMethods32(GroupMethods31):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase32):
+        self.rest_api_base = rest_api_base
 
 class GroupMethods33(GroupMethods32):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase33):
+        self.rest_api_base = rest_api_base
 
 class GroupMethods34(GroupMethods33):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase34):
+        self.rest_api_base = rest_api_base
 
 class GroupMethods35(GroupMethods34):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase35):
+        self.rest_api_base = rest_api_base
 
 class GroupMethods36(GroupMethods35):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase36):
+        self.rest_api_base = rest_api_base

@@ -265,12 +265,17 @@ class PublishingMethods():
         self.send_append_request(url, publish_request, boundary_string)
 
 class PublishingMethods27(PublishingMethods):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase27):
+        self.rest_api_base = rest_api_base
 
 class PublishingMethods28(PublishingMethods27):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase28):
+        self.rest_api_base = rest_api_base
 
 class PublishingMethods30(PublishingMethods28):
+    def __init__(self, rest_api_base: TableauRestApiBase30):
+        self.rest_api_base = rest_api_base
+
     def publish_workbook(self, workbook_filename, workbook_name, project_obj, overwrite=False, async_publish=False, connection_username=None,
                          connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=True,
                          oauth_flag=False):
@@ -302,9 +307,13 @@ class PublishingMethods30(PublishingMethods28):
             return workbook[0].get('id')
 
 class PublishingMethods31(PublishingMethods30):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase31):
+        self.rest_api_base = rest_api_base
 
 class PublishingMethods32(PublishingMethods31):
+    def __init__(self, rest_api_base: TableauRestApiBase32):
+        self.rest_api_base = rest_api_base
+
     # In 3.2, you can hide views from publishing
     def publish_workbook(self, workbook_filename, workbook_name, project_obj, overwrite=False, async_publish=False, connection_username=None,
                          connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=True,
@@ -340,6 +349,9 @@ class PublishingMethods32(PublishingMethods31):
             return workbook[0].get('id')
 
 class PublishingMethods33(PublishingMethods32):
+    def __init__(self, rest_api_base: TableauRestApiBase33):
+        self.rest_api_base = rest_api_base
+
     def publish_workbook(self, workbook_filename, workbook_name, project_obj, overwrite=False, async_publish=False,
                          connection_username=None,
                          connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=True,
@@ -396,10 +408,13 @@ class PublishingMethods33(PublishingMethods32):
         return flow[0].get('id')
 
 class PublishingMethods34(PublishingMethods33):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase34):
+        self.rest_api_base = rest_api_base
 
 class PublishingMethods35(PublishingMethods34):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase35):
+        self.rest_api_base = rest_api_base
 
 class PublishingMethods36(PublishingMethods35):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase36):
+        self.rest_api_base = rest_api_base

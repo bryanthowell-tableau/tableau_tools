@@ -136,15 +136,21 @@ class FavoritesMethods():
         self.end_log_block()
 
 class FavoritesMethods27(FavoritesMethods):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase27):
+        self.rest_api_base = rest_api_base
 
 class FavoritesMethods28(FavoritesMethods27):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase28):
+        self.rest_api_base = rest_api_base
 
 class FavoritesMethods30(FavoritesMethods28):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase30):
+        self.rest_api_base = rest_api_base
 
 class FavoritesMethods31(FavoritesMethods30):
+    def __init__(self, rest_api_base: TableauRestApiBase31):
+        self.rest_api_base = rest_api_base
+
     def add_project_to_user_favorites(self, favorite_name: str, proj_name_or_luid: str) -> etree.Element:
         self.start_log_block()
         proj_luid = self.query_project_luid(proj_name_or_luid)
@@ -174,16 +180,21 @@ class FavoritesMethods31(FavoritesMethods30):
         self.end_log_block()
 
 class FavoritesMethods32(FavoritesMethods31):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase32):
+        self.rest_api_base = rest_api_base
 
 class FavoritesMethods33(FavoritesMethods32):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase33):
+        self.rest_api_base = rest_api_base
 
 class FavoritesMethods34(FavoritesMethods33):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase34):
+        self.rest_api_base = rest_api_base
 
 class FavoritesMethods35(FavoritesMethods34):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase35):
+        self.rest_api_base = rest_api_base
 
 class FavoritesMethods36(FavoritesMethods35):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase36):
+        self.rest_api_base = rest_api_base

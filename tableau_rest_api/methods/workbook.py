@@ -638,9 +638,13 @@ class WorkbookMethods():
         return deleted_count
 
 class WorkbookMethods27(WorkbookMethods):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase27):
+        self.rest_api_base = rest_api_base
 
 class WorkbookMethods28(WorkbookMethods27):
+    def __init__(self, rest_api_base: TableauRestApiBase28):
+        self.rest_api_base = rest_api_base
+
     def query_view_pdf(self, wb_name_or_luid, view_name_or_luid, proj_name_or_luid=None,
                        view_filter_map=None):
         self.start_log_block()
@@ -723,18 +727,25 @@ class WorkbookMethods28(WorkbookMethods27):
                 'This method is for saving response to file. Must include filename_no_extension parameter')
 
 class WorkbookMethods30(WorkbookMethods28):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase30):
+        self.rest_api_base = rest_api_base
 
 class WorkbookMethods31(WorkbookMethods30):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase31):
+        self.rest_api_base = rest_api_base
 
 class WorkbookMethods32(WorkbookMethods31):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase32):
+        self.rest_api_base = rest_api_base
 
 class WorkbookMethods33(WorkbookMethods32):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase33):
+        self.rest_api_base = rest_api_base
 
 class WorkbookMethods34(WorkbookMethods33):
+    def __init__(self, rest_api_base: TableauRestApiBase34):
+        self.rest_api_base = rest_api_base
+
     def query_view_image(self, view_name_or_luid, high_resolution=False, view_filter_map=None,
                          wb_name_or_luid=None, proj_name_or_luid=None, max_age_minutes=None):
         """
@@ -754,7 +765,9 @@ class WorkbookMethods34(WorkbookMethods33):
         return image
 
 class WorkbookMethods35(WorkbookMethods34):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase35):
+        self.rest_api_base = rest_api_base
 
 class WorkbookMethods36(WorkbookMethods35):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase36):
+        self.rest_api_base = rest_api_base

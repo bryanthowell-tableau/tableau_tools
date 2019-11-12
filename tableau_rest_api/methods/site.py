@@ -122,12 +122,17 @@ class SiteMethods():
         self.end_log_block()
 
 class SiteMethods27(SiteMethods):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase27):
+        self.rest_api_base = rest_api_base
 
 class SiteMethods28(SiteMethods27):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase28):
+        self.rest_api_base = rest_api_base
 
 class SiteMethods30(SiteMethods28):
+    def __init__(self, rest_api_base: TableauRestApiBase30):
+        self.rest_api_base = rest_api_base
+
     # Both SiteName and ContentUrl must be unique to add a site
     def create_site(self, new_site_name, new_content_url, admin_mode=None, tier_creator_capacity=None,
                     tier_explorer_capacity=None, tier_viewer_capacity=None, storage_quota=None,
@@ -187,19 +192,25 @@ class SiteMethods30(SiteMethods28):
         return response
 
 class SiteMethods31(SiteMethods30):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase31):
+        self.rest_api_base = rest_api_base
 
 class SiteMethods32(SiteMethods31):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase32):
+        self.rest_api_base = rest_api_base
 
 class SiteMethods33(SiteMethods32):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase33):
+        self.rest_api_base = rest_api_base
 
 class SiteMethods34(SiteMethods33):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase34):
+        self.rest_api_base = rest_api_base
 
 class SiteMethods35(SiteMethods34):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase35):
+        self.rest_api_base = rest_api_base
 
 class SiteMethods36(SiteMethods35):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase36):
+        self.rest_api_base = rest_api_base
