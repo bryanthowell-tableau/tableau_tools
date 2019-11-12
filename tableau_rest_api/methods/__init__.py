@@ -7,9 +7,9 @@ from .favorites import *
 from .flow import *
 from .group import *
 from .project import *
+from .publishing import *
 from .revision import *
 from .schedule import *
-from .server import *
 from .site import *
 from .user import *
 from .workbook import *

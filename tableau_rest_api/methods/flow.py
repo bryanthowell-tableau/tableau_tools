@@ -361,5 +361,5 @@ class FlowMethods33():
 
 
 
-class FlowtMethods34(FlowMethods33):
+class FlowMethods34(FlowMethods33):
     pass
