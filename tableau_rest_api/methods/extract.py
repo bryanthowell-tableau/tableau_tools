@@ -1,5 +1,11 @@
 from .rest_api_base import *
-class ExtractMethods(TableauRestApiBase):
+class ExtractMethods():
+    def __init__(self, rest_api_base: TableauRestApiBase):
+        self.rest_api_base = rest_api_base
+
+    def __getattr__(self, attr):
+        return getattr(self.rest_api_base, attr)
+
     def get_extract_refresh_tasks(self) -> etree.Element:
         self.start_log_block()
         extract_tasks = self.query_resource('tasks/extractRefreshes')

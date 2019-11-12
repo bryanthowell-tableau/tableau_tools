@@ -1,8 +1,10 @@
 from .rest_api_base import *
-class ProjectMethods(TableauRestApiBase):
-    #
-    # Start Project Querying methods
-    #
+class ProjectMethods():
+    def __init__(self, rest_api_base: TableauRestApiBase):
+        self.rest_api_base = rest_api_base
+
+    def __getattr__(self, attr):
+        return getattr(self.rest_api_base, attr)
 
     def query_projects(self) -> etree.Element:
         self.start_log_block()
@@ -19,7 +21,7 @@ class ProjectMethods(TableauRestApiBase):
     def create_project(self, project_name: Optional[str] = None, project_desc: Optional[str] = None,
                        locked_permissions: bool = True, publish_samples: bool = False,
                        no_return: Optional[bool] = False,
-                       direct_xml_request: Optional[etree.Element] = None) -> Project21:
+                       direct_xml_request: Optional[etree.Element] = None) -> Project:
         self.start_log_block()
         if direct_xml_request is not None:
             tsr = direct_xml_request
@@ -68,7 +70,7 @@ class ProjectMethods(TableauRestApiBase):
         :type locked_permissions: bool
         :type no_return: bool
         :type direct_xml_request: etree.Element
-        :rtype: Project21
+        :rtype: Project
         """
         self.start_log_block()
         if direct_xml_request is not None:
@@ -112,7 +114,7 @@ class ProjectMethods(TableauRestApiBase):
         :type new_project_description: unicode
         :type locked_permissions: bool
         :type publish_samples: bool
-        :rtype: Project21
+        :rtype: Project
         """
         self.start_log_block()
         project_luid = self.query_project_luid(name_or_luid)
@@ -155,6 +157,10 @@ class ProjectMethods(TableauRestApiBase):
         self.end_log_block()
 
 class ProjectMethods27(ProjectMethods):
+    def __init__(self, rest_api_base: TableauRestApiBase27):
+        self.rest_api_base = rest_api_base
+
+
     def query_projects(self, name_filter=None, owner_name_filter=None, updated_at_filter=None, created_at_filter=None,
                        owner_domain_filter=None, owner_email_filter=None, sorts=None):
         """
@@ -244,6 +250,10 @@ class ProjectMethods27(ProjectMethods):
         return proj_xml
 
 class ProjectMethods28(ProjectMethods27):
+    def __init__(self, rest_api_base: TableauRestApiBase28):
+        self.rest_api_base = rest_api_base
+
+
 
     def get_published_project_object(self, project_name_or_luid, project_xml_obj=None):
         """
@@ -376,16 +386,25 @@ class ProjectMethods28(ProjectMethods27):
         return proj
 
 class ProjectMethods30(ProjectMethods28):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase30):
+        self.rest_api_base = rest_api_base
+
 
 class ProjectMethods31(ProjectMethods30):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase31):
+        self.rest_api_base = rest_api_base
+
 
 class ProjectMethods32(ProjectMethods31):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase32):
+        self.rest_api_base = rest_api_base
+
 
 class ProjectMethods33(ProjectMethods32):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase33):
+        self.rest_api_base = rest_api_base
+
 
 class ProjectMethods34(ProjectMethods33):
-    pass
+    def __init__(self, rest_api_base: TableauRestApiBase34):
+        self.rest_api_base = rest_api_base

@@ -1,6 +1,12 @@
 from .rest_api_base import *
 
-class GroupMethods(TableauRestApiBase):
+class GroupMethods():
+    def __init__(self, rest_api_base: TableauRestApiBase):
+        self.rest_api_base = rest_api_base
+
+    def __getattr__(self, attr):
+        return getattr(self.rest_api_base, attr)
+
     def query_groups(self) -> etree.Element:
         self.start_log_block()
         groups = self.query_resource("groups")

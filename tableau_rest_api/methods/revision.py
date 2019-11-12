@@ -1,6 +1,11 @@
 from .rest_api_base import *
 
-class RevisionMethods(TableauRestApiBase):
+class RevisionMethods():
+    def __init__(self, rest_api_base: TableauRestApiBase):
+        self.rest_api_base = rest_api_base
+
+    def __getattr__(self, attr):
+        return getattr(self.rest_api_base, attr)
 
     def get_workbook_revisions(self, workbook_name_or_luid: str, username_or_luid: Optional[str] = None,
                                project_name_or_luid: Optional[str] = None) -> etree.Element:

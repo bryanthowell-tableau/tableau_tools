@@ -1,5 +1,10 @@
 from .rest_api_base import *
-class DatasourceMethods(TableauRestApiBase):
+class DatasourceMethods():
+    def __init__(self, rest_api_base: TableauRestApiBase):
+        self.rest_api_base = rest_api_base
+
+    def __getattr__(self, attr):
+        return getattr(self.rest_api_base, attr)
 
     def query_datasources(self, project_name_or_luid: Optional[str] = None, all_fields: Optional[bool] = True,
                           updated_at_filter: Optional[UrlFilter] = None, created_at_filter: Optional[UrlFilter] = None,

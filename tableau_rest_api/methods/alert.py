@@ -1,7 +1,13 @@
 from .rest_api_base import *
 
 # First Alert Methods appear in API 3.2
-class AlertMethods32(TableauRestApiBase32):
+class AlertMethods32():
+    def __init__(self, rest_api_base: TableauRestApiBase32):
+        self.rest_api_base = rest_api_base
+
+    def __getattr__(self, attr):
+        return getattr(self.rest_api_base, attr)
+
     def query_data_driven_alerts(self) -> etree.Element:
         self.start_log_block()
         alerts = self.query_resource("dataAlerts")

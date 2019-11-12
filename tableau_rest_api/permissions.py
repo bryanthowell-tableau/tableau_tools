@@ -189,6 +189,33 @@ class Permissions(TableauBase):
             elif role_capabilities[cap] is None:
                 self.set_capability_to_unspecified(cap)
 
+class WorkbookPermissions21(Permissions):
+    def __init__(self, group_or_user, group_or_user_luid):
+        Permissions.__init__(self, group_or_user, group_or_user_luid, u'workbook')
+        for cap in self.available_capabilities[u'2.1'][u'workbook']:
+            if cap != u'all':
+                self.capabilities[cap] = None
+        self.role_set = {
+                    u"Viewer": {
+                        u'all': None,
+                        u'View': u'Allow',
+                        u'Export Image': u'Allow',
+                        u'View Summary Data': u'Allow',
+                        u'View Comments': u'Allow',
+                        u'Add Comment': u'Allow'
+                    },
+                    u"Interactor": {
+                        u'all': u'Allow',
+                        u'Download': None,
+                        u'Move': None,
+                        u'Delete': None,
+                        u'Set Permissions': None,
+                        u'Save': None
+                    },
+                    u"Editor": {
+                        u'all': u'Allow'
+                    }
+                }
 
 class WorkbookPermissions28(Permissions):
     def __init__(self, group_or_user: str, group_or_user_luid: str):
@@ -218,6 +245,29 @@ class WorkbookPermissions28(Permissions):
                     }
                 }
 
+class ProjectPermissions21(Permissions):
+    def __init__(self, group_or_user, group_or_user_luid):
+        Permissions.__init__(self, group_or_user, group_or_user_luid, u'project')
+        for cap in self.available_capabilities[u'2.1'][u'project']:
+            if cap != u'all':
+                self.capabilities[cap] = None
+        self.role_set = {
+            u"Viewer": {
+                u'all': None,
+                u"View": u"Allow"
+            },
+            u"Publisher": {
+                u'all': None,
+                u"View": u"Allow",
+                u"Save": u"Allow"
+            },
+            u"Project Leader": {
+                u'all': None,
+                u"Project Leader": u"Allow"
+            }
+        }
+
+
 class ProjectPermissions28(Permissions):
     def __init__(self, group_or_user: str, group_or_user_luid: str):
         Permissions.__init__(self, group_or_user, group_or_user_luid, 'project')
@@ -240,6 +290,22 @@ class ProjectPermissions28(Permissions):
             }
         }
 
+class DatasourcePermissions21(Permissions):
+    def __init__(self, group_or_user, group_or_user_luid):
+        Permissions.__init__(self, group_or_user, group_or_user_luid, u'datasource')
+        for cap in self.available_capabilities[u'2.1'][u'datasource']:
+            if cap != u'all':
+                self.capabilities[cap] = None
+        self.role_set = {
+            u"Connector": {
+                u'all': None,
+                u'View': u'Allow',
+                u'Connect': u'Allow'
+            },
+            u"Editor": {
+                u'all': u'Allow'
+            }
+        }
 
 class DatasourcePermissions28(Permissions):
     def __init__(self, group_or_user: str, group_or_user_luid: str):

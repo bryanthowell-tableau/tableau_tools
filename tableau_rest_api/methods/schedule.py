@@ -1,5 +1,11 @@
 from .rest_api_base import *
-class ScheduleMethods(TableauRestApiBase):
+class ScheduleMethods():
+    def __init__(self, rest_api_base: TableauRestApiBase):
+        self.rest_api_base = rest_api_base
+
+    def __getattr__(self, attr):
+        return getattr(self.rest_api_base, attr)
+
     def query_schedules(self) -> etree.Element:
         self.start_log_block()
         schedules = self.query_resource("schedules", server_level=True)

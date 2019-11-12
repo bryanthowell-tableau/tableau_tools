@@ -1,6 +1,11 @@
 from .rest_api_base import *
 
-class PublishingMethods(TableauRestApiBase):
+class PublishingMethods():
+    def __init__(self, rest_api_base: TableauRestApiBase):
+        self.rest_api_base = rest_api_base
+
+    def __getattr__(self, attr):
+        return getattr(self.rest_api_base, attr)
     #
     # Start Publish methods -- workbook, datasources, file upload
     #

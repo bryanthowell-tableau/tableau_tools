@@ -2,7 +2,7 @@ from .rest_api_base import *
 
 # These find LUIDs from real names or other aspects. They get added to the RestApiBase class because methods on
 # almost any different object might need a LUID from any of the others
-class LookupMethods(TableauRestApiBase):
+class LookupMethods():
     def query_user_luid(self, username: str) -> str:
         self.start_log_block()
         if username in self.username_luid_cache:

@@ -1,6 +1,12 @@
 from .rest_api_base import *
 
-class FavoritesMethods(TableauRestApiBase):
+class FavoritesMethods():
+    def __init__(self, rest_api_base: TableauRestApiBase):
+        self.rest_api_base = rest_api_base
+
+    def __getattr__(self, attr):
+        return getattr(self.rest_api_base, attr)
+
     def add_workbook_to_user_favorites(self, favorite_name: str, wb_name_or_luid: str,
                                        username_or_luid: str, proj_name_or_luid: Optional[str] = None) -> etree.Element:
         self.start_log_block()

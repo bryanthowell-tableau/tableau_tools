@@ -54,6 +54,9 @@ class TableauRestApiBase(LookupMethods, TableauBase):
         # Starting in version 5 of tableau_tools, 10.3 is the lowest supported version
         self.set_tableau_server_version("10.3")
 
+        # Try to see if this gets the composition right
+        self.rest_api_base = self
+
     @property
     def token(self) -> str:
         return self._token
@@ -178,12 +181,12 @@ class TableauRestApiBase(LookupMethods, TableauBase):
     # Factory methods for PublishedContent and Permissions objects
     #
     def get_published_project_object(self, project_name_or_luid: str,
-                                     project_xml_obj: Optional[etree.Element] = None) -> Project21:
+                                     project_xml_obj: Optional[etree.Element] = None) -> Project:
         if self.is_luid(project_name_or_luid):
             luid = project_name_or_luid
         else:
             luid = self.query_project_luid(project_name_or_luid)
-        proj_obj = Project21(luid, self, self.version, self.logger, content_xml_obj=project_xml_obj)
+        proj_obj = Project(luid, self, self.version, self.logger, content_xml_obj=project_xml_obj)
         return proj_obj
 
     def get_published_workbook_object(self, workbook_name_or_luid: str,
@@ -877,7 +880,8 @@ class TableauRestApiBase36(TableauRestApiBase35):
         self.end_log_block()
 
 # New composite class with reorganization
-class TableauRestApi():
-    def __init__(self, server: str, site_content_url: str, pat: Optional[str], username: Optional[str],
-                 password: Optional[str]):
-        self._rest_base = TableauRestApiBase(server=server, site_content_url=site_content_url)
+class TableauRestApi36():
+    def __init__(self, server: str, site_content_url: str, username: Optional[str],
+                 password: Optional[str], pat_name: Optional[str], pat_secret: Optional[str]):
+        self._rest_base = TableauRestApiBase36(server=server, site_content_url=site_content_url, username=username,
+                                             password=password, pat_name=pat_name, pat_secret=pat_secret)

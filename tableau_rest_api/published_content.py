@@ -861,7 +861,7 @@ class Project28(Project):
         self.end_log_block()
         return child_projects
 
-    def convert_capabilities_xml_into_obj_list(self, xml_obj: etree.Element) -> list[ProjectPermissions21]:
+    def convert_capabilities_xml_into_obj_list(self, xml_obj: etree.Element) -> List[ProjectPermissions21]:
         self.start_log_block()
         obj_list = []
         xml = xml_obj.findall('.//t:granteeCapabilities', self.ns_map)

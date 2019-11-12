@@ -5,7 +5,11 @@ from .methods import *
 class TableauRestApiConnection(WorkbookMethods, UserMethods, SiteMethods, ServerMethods,
                                ScheduleMethods, RevisionMethods, ProjectMethods, GroupMethods, FavoritesMethods,
                                ExtractMethods, DatasourceMethods, TableauRestApiBase):
-    pass
+    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
+        TableauRestApiBase.__init__(self, server=server, username=username, password=password,
+                                    site_content_url=site_content_url)
+        self.rest_api_base = self
+        #self.user_methods = UserMethods(self.rest_api_base)
 
 class TableauRestApiConnection27(WorkbookMethods27, UserMethods27, SiteMethods27, ServerMethods27,
                                ScheduleMethods27, RevisionMethods27, ProjectMethods27, GroupMethods27, FavoritesMethods27,
@@ -45,3 +49,9 @@ class TableauRestApiConnection34(WorkbookMethods34, UserMethods34, SiteMethods34
                                  TableauRestApiBase34):
     pass
 
+
+class NewAccess(TableauRestApiBase):
+    def __init__(self, server, username, password, site_content_url):
+        TableauRestApiBase.__init__(self, server, username, password, site_content_url)
+        self.rest_api_base = self
+        self.user: UserMethods = UserMethods(self.rest_api_base)

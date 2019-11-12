@@ -1,6 +1,13 @@
 from .rest_api_base import *
-class UserMethods(TableauRestApiBase):
 
+
+class UserMethods():
+    def __init__(self, rest_api_base: TableauRestApiBase):
+        self.rest_api_base = rest_api_base
+    
+    def __getattr__(self, attr):
+        return getattr(self.rest_api_base, attr)
+    
     # The reference has this name, so for consistency adding an alias
     def get_users(self, all_fields: bool = True, last_login_filter: Optional[UrlFilter] = None,
                   site_role_filter: Optional[UrlFilter] = None, sorts: Optional[List[Sort]] = None,
@@ -29,7 +36,7 @@ class UserMethods(TableauRestApiBase):
                        site_role_filter: Optional[UrlFilter] = None, username_filter: Optional[UrlFilter] = None,
                        sorts: Optional[List[Sort]] = None, fields: Optional[List[str] ] =None,
                        page_number: Optional[int] = None) -> str:
-        return self.query_users_json(all_fields=all_fields, last_login_filter=last_login_filter,
+        return  self.query_users_json(all_fields=all_fields, last_login_filter=last_login_filter,
                                      site_role_filter=site_role_filter, username_filter=username_filter, sorts=sorts,
                                      fields=fields, page_number=page_number)
 
@@ -107,7 +114,7 @@ class UserMethods(TableauRestApiBase):
         url = self.build_api_url('users')
         try:
             new_user = self.send_add_request(url, tsr)
-            new_user_luid = new_user.findall('.//t:user', self.ns_map)[0].get("id")
+            new_user_luid = new_user.findall('.//t:user',  self.ns_map)[0].get("id")
             self.end_log_block()
             return new_user_luid
         # If already exists, update site role unless overridden.
@@ -121,7 +128,7 @@ class UserMethods(TableauRestApiBase):
                     return self.query_user_luid(username)
                 else:
                     self.end_log_block()
-                    raise AlreadyExistsException('Username already exists ', self.query_user_luid(username))
+                    raise AlreadyExistsException('Username already exists ',  self.query_user_luid(username))
         except:
             self.end_log_block()
             raise
@@ -171,11 +178,11 @@ class UserMethods(TableauRestApiBase):
             return e.existing_luid
 
     def update_user(self, username_or_luid: str, full_name: Optional[str] = None, site_role: Optional[str] =None,
-                    password: Optional[str] =None,
-                    email: Optional[str] =None, direct_xml_request: Optional[etree.Element] = None) -> etree.Element:
+                    password: Optional[str] = None,
+                    email: Optional[str] = None, direct_xml_request: Optional[etree.Element] = None) -> etree.Element:
 
         self.start_log_block()
-        user_luid = self.query_user_luid(username_or_luid)
+        user_luid =  self.query_user_luid(username_or_luid)
 
         if direct_xml_request is not None:
             tsr = direct_xml_request
@@ -198,7 +205,7 @@ class UserMethods(TableauRestApiBase):
         return response
 
     # Can take collection or single user_luid string
-    def remove_users_from_site(self, username_or_luid_s: Union[List[str], str]):
+    def remove_users_from_site(self,  username_or_luid_s: Union[List[str], str]):
         self.start_log_block()
         users = self.to_list(username_or_luid_s)
         for user in users:

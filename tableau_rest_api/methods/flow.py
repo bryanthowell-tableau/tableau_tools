@@ -1,7 +1,12 @@
 from .rest_api_base import *
 
 # First Flow Methods appear in API 3.3
-class FlowMethods33(TableauRestApiBase33):
+class FlowMethods33():
+    def __init__(self, rest_api_base: TableauRestApiBase33):
+        self.rest_api_base = rest_api_base
+
+    def __getattr__(self, attr):
+        return getattr(self.rest_api_base, attr)
 
     def query_flow_luid(self, flow_name, project_name_or_luid=None):
         """
