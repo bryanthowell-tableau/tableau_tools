@@ -62,39 +62,6 @@ class ProjectMethods():
         self.end_log_block()
         return proj_xml
 
-    def create_project(self, project_name: Optional[str] = None, project_desc: Optional[str] = None,
-                       locked_permissions: Optional[bool] = True, no_return: Optional[bool] = False,
-                       direct_xml_request: Optional[etree.Element] = None) -> Project:
-        self.start_log_block()
-        if direct_xml_request is not None:
-            tsr = direct_xml_request
-        else:
-            tsr = etree.Element("tsRequest")
-            p = etree.Element("project")
-            p.set("name", project_name)
-
-            if project_desc is not None:
-                p.set('description', project_desc)
-            if locked_permissions is not False:
-                p.set('contentPermissions', "LockedToProject")
-            tsr.append(p)
-
-        url = self.build_api_url("projects")
-        try:
-            new_project = self.send_add_request(url, tsr)
-            self.end_log_block()
-            project_luid = new_project.findall('.//t:project', self.ns_map)[0].get("id")
-            if no_return is False:
-                return self.get_published_project_object(project_luid, new_project)
-        except RecoverableHTTPException as e:
-            if e.http_code == 409:
-                self.log('Project named {} already exists, finding and returning the Published Project Object'.format(
-                    project_name))
-                self.end_log_block()
-                if no_return is False:
-                    return self.get_published_project_object(project_name_or_luid=project_name)
-
-
     def update_project(self, name_or_luid: str, new_project_name: Optional[str] = None,
                        new_project_description: Optional[str] = None,
                        locked_permissions: Optional[bool] = None, publish_samples: Optional[bool] = False) -> Project:
@@ -130,6 +97,7 @@ class ProjectMethods():
             url = self.build_api_url("projects/{}".format(project_luid))
             self.send_delete_request(url)
         self.end_log_block()
+
 
 class ProjectMethods27(ProjectMethods):
     def __init__(self, rest_api_base: TableauRestApiBase27):
