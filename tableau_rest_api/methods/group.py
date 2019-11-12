@@ -21,10 +21,6 @@ class GroupMethods():
     # # No basic verb for querying a single group, so run a query_groups
 
     def query_groups_json(self, page_number: Optional[int]=None) -> str:
-        """
-        :type page_number: int
-        :rtype: json
-        """
         self.start_log_block()
         groups = self.query_resource_json("groups", page_number=page_number)
         #for group in groups:
@@ -75,12 +71,7 @@ class GroupMethods():
         return group_name
 
     # Returns the LUID of an existing group if one already exists
-    def create_group(self, group_name=None, direct_xml_request=None):
-        """
-        :type group_name: unicode
-        :type direct_xml_request: etree.Element
-        :rtype: unicode
-        """
+    def create_group(self, group_name: Optional[str] = None, direct_xml_request: Optional[etree.Element] = None) -> str:
         self.start_log_block()
 
         if direct_xml_request is not None:
@@ -105,15 +96,9 @@ class GroupMethods():
 
     # Creating a synced ad group is completely different, use this method
     # The luid is only available in the Response header if bg sync. Nothing else is passed this way -- how to expose?
-    def create_group_from_ad_group(self, ad_group_name, ad_domain_name, default_site_role='Unlicensed',
-                                   sync_as_background=True):
-        """
-        :type ad_group_name: unicode
-        :type ad_domain_name: unicode
-        :type default_site_role: bool
-        :type sync_as_background:
-        :rtype: unicode
-        """
+    def create_group_from_ad_group(self, ad_group_name: str, ad_domain_name: str,
+                                   default_site_role: Optional[str] = 'Unlicensed',
+                                   sync_as_background: Optional[bool] = True) -> str:
         self.start_log_block()
         if default_site_role not in self._site_roles:
             raise InvalidOptionException('"{}" is not an acceptable site role'.format(default_site_role))
@@ -255,18 +240,12 @@ class GroupMethods27(GroupMethods):
     def __init__(self, rest_api_base: TableauRestApiBase27):
         self.rest_api_base = rest_api_base
 
-    def query_groups(self, name_filter=None, domain_name_filter=None, domain_nickname_filter=None, is_local_filter=None,
-                     user_count_filter=None, minimum_site_role_filter=None, sorts=None):
-        """
-        :type name_filter: UrlFilter
-        :type domain_name_filter: UrlFilter
-        :type domain_nickname_filter: UrlFilter
-        :type is_local_filter: UrlFilter
-        :type user_count_filter: UrlFilter
-        :type minimum_site_role_filter: UrlFilter
-        :type sorts: list[Sort]
-        :rtype: etree.Element
-        """
+    def query_groups(self, name_filter: Optional[UrlFilter] = None, domain_name_filter: Optional[UrlFilter] = None,
+                     domain_nickname_filter: Optional[UrlFilter] = None, is_local_filter: Optional[UrlFilter] = None,
+                     user_count_filter: Optional[UrlFilter] = None,
+                     minimum_site_role_filter: Optional[UrlFilter] = None,
+                     sorts: Optional[List[Sort]] = None) -> etree.Element:
+
         filter_checks = {'name': name_filter, 'domainName': domain_name_filter,
                          'domainNickname': domain_nickname_filter, 'isLocal': is_local_filter,
                          'userCount': user_count_filter, 'minimumSiteRole': minimum_site_role_filter}
@@ -283,20 +262,12 @@ class GroupMethods27(GroupMethods):
         self.end_log_block()
         return groups
 
-    def query_groups_json(self, name_filter=None, domain_name_filter=None, domain_nickname_filter=None,
-                          is_local_filter=None, user_count_filter=None, minimum_site_role_filter=None,
-                          sorts=None, page_number=None):
-            """
-            :type name_filter: UrlFilter
-            :type domain_name_filter: UrlFilter
-            :type domain_nickname_filter: UrlFilter
-            :type is_local_filter: UrlFilter
-            :type user_count_filter: UrlFilter
-            :type minimum_site_role_filter: UrlFilter
-            :type sorts: list[Sort]
-            :type page_number: int
-            :rtype: etree.Element
-            """
+    def query_groups_json(self, name_filter: Optional[UrlFilter] = None, domain_name_filter: Optional[UrlFilter] = None,
+                     domain_nickname_filter: Optional[UrlFilter] = None, is_local_filter: Optional[UrlFilter] = None,
+                     user_count_filter: Optional[UrlFilter] = None,
+                     minimum_site_role_filter: Optional[UrlFilter] = None,
+                     sorts: Optional[List[Sort]] = None, page_number: Optional[int] = None) -> str:
+
             filter_checks = {'name': name_filter, 'domainName': domain_name_filter,
                              'domainNickname': domain_nickname_filter, 'isLocal': is_local_filter,
                              'userCount': user_count_filter, 'minimumSiteRole': minimum_site_role_filter}
@@ -320,9 +291,6 @@ class GroupMethods27(GroupMethods):
 
         self.end_log_block()
         return group
-
-        # Groups luckily cannot have the same 'pretty name' on one site
-
 
 
 class GroupMethods28(GroupMethods27):
