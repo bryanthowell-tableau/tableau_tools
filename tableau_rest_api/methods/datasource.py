@@ -66,9 +66,6 @@ class DatasourceMethods():
 
     # Filtering implemented in 2.2
     # query_workbook and query_workbook_luid can't be improved because filtering doesn't take a Project Name/LUID
-
-
-
     def query_datasource_content_url(self, datasource_name_or_luid: str,
                                      project_name_or_luid: Optional[str] = None) -> str:
         self.start_log_block()
@@ -77,13 +74,6 @@ class DatasourceMethods():
         self.end_log_block()
         return content_url
 
-    # query_datasource and query_datasource_luid can't be improved because filtering doesn't take a Project Name/LUID
-
-    #
-    # End Datasource Query Methods
-    #
-
-    # Can take collection or luid_string
     def delete_datasources(self, datasource_name_or_luid_s: Union[List[str], str]):
         self.start_log_block()
         datasources = self.to_list(datasource_name_or_luid_s)

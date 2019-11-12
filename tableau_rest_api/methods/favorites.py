@@ -54,26 +54,17 @@ class FavoritesMethods():
         self.end_log_block()
         return update_response
 
-    #
-    # End Add methods
-    #
-
     def query_user_favorites(self, username_or_luid: str) -> etree.Element:
-
         self.start_log_block()
-
         user_luid = self.query_user_luid(username_or_luid)
         favorites = self.query_resource("favorites/{}/".format(user_luid))
-
         self.end_log_block()
         return favorites
 
     def query_user_favorites_json(self, username_or_luid: str, page_number: Optional[int] = None) -> str:
         self.start_log_block()
-
         user_luid = self.query_user_luid(username_or_luid)
         favorites = self.query_resource_json("favorites/{}/".format(user_luid), page_number=page_number)
-
         self.end_log_block()
         return favorites
 

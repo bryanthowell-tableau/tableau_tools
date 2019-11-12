@@ -8,12 +8,7 @@ class FlowMethods33():
     def __getattr__(self, attr):
         return getattr(self.rest_api_base, attr)
 
-    def query_flow_luid(self, flow_name, project_name_or_luid=None):
-        """
-        :type flow_name: unicode
-        :type project_name_or_luid: unicode
-        :rtype: unicode
-        """
+    def query_flow_luid(self, flow_name: str, project_name_or_luid: Optional[str] = None) -> str:
         self.start_log_block()
 
         flow_name_filter = UrlFilter33.create_name_filter(flow_name)
@@ -28,20 +23,12 @@ class FlowMethods33():
             self.end_log_block()
             raise NoMatchFoundException("No {} found with name {}".format(flows, flow_name))
 
-    def query_flows_for_a_site(self, project_name_or_luid=None, all_fields=True, updated_at_filter=None,
-                               created_at_filter=None, flow_name_filter=None, owner_name_filter=None, sorts=None,
-                               fields=None):
-        """
-        :type project_name_or_luid: unicode
-        :type all_fields: bool
-        :type updated_at_filter: UrlFilter
-        :type created_at_filter: UrlFilter
-        :type flow_name_filter: UrlFilter
-        :type owner_name_filter: UrlFilter
-        :type sorts: list[Sort]
-        :type fields: list[unicode]
-        :rtype: etree.Element
-        """
+    def query_flows_for_a_site(self, project_name_or_luid: Optional[str] = None, all_fields: Optional[bool] = True,
+                               updated_at_filter: Optional[UrlFilter] = None,
+                               created_at_filter: Optional[UrlFilter] = None,
+                               flow_name_filter: Optional[UrlFilter] = None,
+                               owner_name_filter: Optional[UrlFilter] = None, sorts: Optional[List[Sort]] = None,
+                               fields: Optional[List[str]] = None) -> etree.Element:
         self.start_log_block()
         if fields is None:
             if all_fields is True:
@@ -66,17 +53,9 @@ class FlowMethods33():
         self.end_log_block()
         return flows
 
-    def query_flows_for_a_user(self, username_or_luid, is_owner_flag=False):
-        """
-        :type username_or_luid: unicode
-        :type is_owner_flag: bool
-        :rtype: etree.Element
-        """
+    def query_flows_for_a_user(self, username_or_luid: str, is_owner_flag: Optional[bool] = False) -> etree.Element:
         self.start_log_block()
-        if self.is_luid(username_or_luid):
-            user_luid = username_or_luid
-        else:
-            user_luid = self.query_user_luid(username_or_luid)
+        user_luid = self.query_user_luid(username_or_luid)
         additional_url_params = ""
         if is_owner_flag is True:
             additional_url_params += "?ownedBy=true"
@@ -85,66 +64,37 @@ class FlowMethods33():
         self.end_log_block()
         return flows
 
-    def query_flow(self, flow_name_or_luid, project_name_or_luid=None):
-        """
-        :type flow_name_or_luid: unicode
-        :type project_name_or_luid: unicode
-        :rtype: etree.Element
-        """
+    def query_flow(self, flow_name_or_luid: str, project_name_or_luid: Optional[str] = None) -> etree.Element:
         self.start_log_block()
-        if self.is_luid(flow_name_or_luid):
-            flow_luid = flow_name_or_luid
-        else:
-            flow_luid = self.query_flow_luid(flow_name_or_luid, project_name_or_luid=project_name_or_luid)
+        flow_luid = self.query_flow_luid(flow_name_or_luid, project_name_or_luid=project_name_or_luid)
 
         flow = self.query_resource('flows/{}'.format(flow_luid))
 
         self.end_log_block()
         return flow
 
-    def query_flow_connections(self, flow_name_or_luid, project_name_or_luid=None):
-        """
-        :type flow_name_or_luid: unicode
-        :type project_name_or_luid: unicode
-        :rtype: etree.Element
-        """
+    def query_flow_connections(self, flow_name_or_luid: str,
+                               project_name_or_luid: Optional[str] = None) -> etree.Element:
         self.start_log_block()
-        if self.is_luid(flow_name_or_luid):
-            flow_luid = flow_name_or_luid
-        else:
-            flow_luid = self.query_flow_luid(flow_name_or_luid, project_name_or_luid=project_name_or_luid)
-
+        flow_luid = self.query_flow_luid(flow_name_or_luid, project_name_or_luid=project_name_or_luid)
         connections = self.query_resource('flows/{}/connections'.format(flow_luid))
-
         self.end_log_block()
         return connections
 
 
-    def get_flow_run_tasks(self):
-        """
-        :rtype: etree.Element
-        """
+    def get_flow_run_tasks(self) -> etree.Element:
         self.start_log_block()
         tasks = self.query_resource('tasks/runFlow')
         self.end_log_block()
         return tasks
 
-    def get_flow_run_task(self, task_luid):
-        """
-        :type task_luid: unicode
-        :rtype: unicode
-        """
+    def get_flow_run_task(self, task_luid: str) -> etree.Element:
         self.start_log_block()
         task = self.query_resource('tasks/runFlow/{}'.format(task_luid))
         self.end_log_block()
         return task
 
-    def run_flow_now(self, flow_name_or_luid, flow_output_step_ids=None):
-        """
-        :type flow_name_or_luid: unicode
-        :type flow_output_step_ids: list[unicode]
-        :rtype unicode
-        """
+    def run_flow_now(self, flow_name_or_luid: str, flow_output_step_ids: Optional[List[str]] = None) -> str:
         self.start_log_block()
         if self.is_luid(flow_name_or_luid):
             flow_luid = flow_name_or_luid
@@ -163,11 +113,7 @@ class FlowMethods33():
         self.end_log_block()
         return job_luid
 
-    def run_flow_task(self, task_luid):
-        """
-        :type task_luid: unicode
-        :rtype: etree.Element
-        """
+    def run_flow_task(self, task_luid: str) -> etree.Element:
         self.start_log_block()
         url = self.build_api_url('tasks/runFlow/{}/runNow'.format(task_luid))
         response = self.send_post_request(url)
@@ -175,38 +121,25 @@ class FlowMethods33():
         return response
 
 
-    def update_flow(self, flow_name_or_luid, project_name_or_luid=None, owner_username_or_luid=None):
-        """
-        :type flow_name_or_luid: unicode
-        :type project_name_or_luid: unicode
-        :type owner_username_or_luid: unicode
-        :return:
-        """
+    def update_flow(self, flow_name_or_luid: str, project_name_or_luid: Optional[str] = None,
+                    owner_username_or_luid: Optional[str] = None) -> etree.Element:
         self.start_log_block()
         if project_name_or_luid is None and owner_username_or_luid is None:
             raise InvalidOptionException('Must include at least one change, either project or owner or both')
 
         if self.is_luid(flow_name_or_luid):
-            flow_luid = flow_name_or_luid
-        else:
             flow_luid = self.query_flow_luid(flow_name_or_luid)
 
         tsr = etree.Element('tsRequest')
         f = etree.Element('flow')
         if project_name_or_luid is not None:
-            if self.is_luid(project_name_or_luid):
-                proj_luid = project_name_or_luid
-            else:
-                proj_luid = self.query_project_luid(project_name_or_luid)
+            proj_luid = self.query_project_luid(project_name_or_luid)
             p = etree.Element('project')
             p.set('id', proj_luid)
             f.append(p)
 
         if owner_username_or_luid is not None:
-            if self.is_luid(owner_username_or_luid):
-                owner_luid = owner_username_or_luid
-            else:
-                owner_luid = self.query_user_luid(owner_username_or_luid)
+            owner_luid = self.query_user_luid(owner_username_or_luid)
 
             o = etree.Element('owner')
             o.set('id', owner_luid)
@@ -220,18 +153,10 @@ class FlowMethods33():
         self.end_log_block()
         return response
 
-    def update_flow_connection(self, flow_luid, flow_connection_luid,  server_address=None, port=None, connection_username=None,
-                               connection_password=None, embed_password=False):
-        """
-        :type flow_luid: unicode
-        :type flow_connection_luid: unicode
-        :type server_address: unicode
-        :type port: unicode
-        :type connection_username: unicode
-        :type connection_password: unicode
-        :type embed_password: unicode
-        :rtype: etree.Element
-        """
+    def update_flow_connection(self, flow_luid: str, flow_connection_luid: str,  server_address: Optional[str] = None,
+                               port: Optional[str] = None, connection_username: Optional[str] = None,
+                               connection_password: Optional[str] = None,
+                               embed_password: Optional[bool] = False) -> etree.Element:
         self.start_log_block()
 
         tsr = etree.Element('tsRequest')
@@ -254,7 +179,7 @@ class FlowMethods33():
             updates_count += 1
 
         if updates_count == 0:
-            return InvalidOptionException('Must specify at least one element to update')
+            raise InvalidOptionException('Must specify at least one element to update')
 
         tsr.append(c)
         url = self.build_api_url('flows/{}/connections/{}'.format(flow_luid, flow_connection_luid))
@@ -263,36 +188,17 @@ class FlowMethods33():
         self.end_log_block()
         return response
 
-    def delete_flow(self, flow_name_or_luid):
-        """
-        :type flow_name_or_luid: unicode
-        :return:
-        """
+    def delete_flow(self, flow_name_or_luid: str):
         self.start_log_block()
-        if self.is_luid(flow_name_or_luid):
-            flow_luid = flow_name_or_luid
-        else:
-            flow_luid = self.query_flow_luid(flow_name_or_luid)
+        flow_luid = self.query_flow_luid(flow_name_or_luid)
         url = self.build_api_url("flows/{}".format(flow_luid))
         self.send_delete_request(url)
         self.end_log_block()
 
-    def add_flow_task_to_schedule(self, flow_name_or_luid, schedule_name_or_luid):
-        """
-        :type flow_name_or_luid: unicode
-        :type schedule_name_or_luid: unicode
-        :rtype: etree.Element
-        """
+    def add_flow_task_to_schedule(self, flow_name_or_luid: str, schedule_name_or_luid: str) -> str:
         self.start_log_block()
-        if self.is_luid(flow_name_or_luid):
-            flow_luid = flow_name_or_luid
-        else:
-            flow_luid = self.query_flow_luid(flow_name_or_luid)
-
-        if self.is_luid(schedule_name_or_luid):
-            sched_luid = schedule_name_or_luid
-        else:
-            sched_luid = self.query_schedule_luid(schedule_name_or_luid)
+        flow_luid = self.query_flow_luid(flow_name_or_luid)
+        sched_luid = self.query_schedule_luid(schedule_name_or_luid)
 
         tsr = etree.Element('tsRequest')
         t = etree.Element('task')
@@ -311,19 +217,10 @@ class FlowMethods33():
 
     # Do not include file extension, added automatically. Without filename, only returns the response
     # Use no_obj_return for save without opening and processing
-    def download_flow(self, flow_name_or_luid, filename_no_extension, proj_name_or_luid=None):
-        """
-        :type flow_name_or_luid: unicode
-        :type filename_no_extension: unicode
-        :type proj_name_or_luid: unicode
-        :return Filename of the save workbook
-        :rtype: unicode
-        """
+    def download_flow(self, flow_name_or_luid: str, filename_no_extension: str,
+                      proj_name_or_luid: Optional[str] = None) -> str:
         self.start_log_block()
-        if self.is_luid(flow_name_or_luid):
-            flow_luid = flow_name_or_luid
-        else:
-            flow_luid = self.query_workbook_luid(flow_name_or_luid, proj_name_or_luid)
+        flow_luid = self.query_workbook_luid(flow_name_or_luid, proj_name_or_luid)
         try:
 
             url = self.build_api_url("flows/{}/content".format(flow_luid))
