@@ -152,3 +152,9 @@ class ExtractMethods33(ExtractMethods32):
 
 class ExtractMethods34(ExtractMethods33):
     pass
+
+class ExtractMethods35(ExtractMethods34):
+    pass
+
+class ExtractMethods36(ExtractMethods35):
+    pass

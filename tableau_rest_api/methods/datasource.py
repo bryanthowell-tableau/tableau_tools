@@ -265,3 +265,9 @@ class DatasourceMethods33(DatasourceMethods32):
 
 class DatasourceMethods34(DatasourceMethods33):
     pass
+
+class DatasourceMethods35(DatasourceMethods34):
+    pass
+
+class DatasourceMethods36(DatasourceMethods35):
+    pass

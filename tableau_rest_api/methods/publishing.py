@@ -397,3 +397,9 @@ class PublishingMethods33(PublishingMethods32):
 
 class PublishingMethods34(PublishingMethods33):
     pass
+
+class PublishingMethods35(PublishingMethods34):
+    pass
+
+class PublishingMethods36(PublishingMethods35):
+    pass

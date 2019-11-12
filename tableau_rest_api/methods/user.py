@@ -235,3 +235,9 @@ class UserMethods33(UserMethods32):
 
 class UserMethods34(UserMethods33):
     pass
+
+class UserMethods35(UserMethods34):
+    pass
+
+class UserMethods36(UserMethods35):
+    pass

@@ -640,3 +640,9 @@ class ScheduleMethods33(ScheduleMethods32):
 
 class ScheduleMethods34(ScheduleMethods33):
     pass
+
+class ScheduleMethods35(ScheduleMethods34):
+    pass
+
+class ScheduleMethods36(ScheduleMethods35):
+    pass

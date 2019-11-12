@@ -154,3 +154,9 @@ class RevisionMethods33(RevisionMethods32):
 
 class RevisionMethods34(RevisionMethods33):
     pass
+
+class RevisionMethods35(RevisionMethods34):
+    pass
+
+class RevisionMethods36(RevisionMethods35):
+    pass

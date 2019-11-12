@@ -181,3 +181,9 @@ class FavoritesMethods33(FavoritesMethods32):
 
 class FavoritesMethods34(FavoritesMethods33):
     pass
+
+class FavoritesMethods35(FavoritesMethods34):
+    pass
+
+class FavoritesMethods36(FavoritesMethods35):
+    pass

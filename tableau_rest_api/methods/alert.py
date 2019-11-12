@@ -85,3 +85,9 @@ class AlertMethods33(AlertMethods32):
 
 class AlertMethods34(AlertMethods33):
     pass
+
+class AlertMethods35(AlertMethods34):
+    pass
+
+class AlertMethods36(AlertMethods35):
+    pass

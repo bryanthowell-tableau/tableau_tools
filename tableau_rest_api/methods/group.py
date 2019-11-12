@@ -339,3 +339,9 @@ class GroupMethods33(GroupMethods32):
 
 class GroupMethods34(GroupMethods33):
     pass
+
+class GroupMethods35(GroupMethods34):
+    pass
+
+class GroupMethods36(GroupMethods35):
+    pass

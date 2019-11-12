@@ -752,3 +752,9 @@ class WorkbookMethods34(WorkbookMethods33):
                                       proj_name_or_luid=proj_name_or_luid, max_age_minutes=max_age_minutes)
         self.end_log_block()
         return image
+
+class WorkbookMethods35(WorkbookMethods34):
+    pass
+
+class WorkbookMethods36(WorkbookMethods35):
+    pass

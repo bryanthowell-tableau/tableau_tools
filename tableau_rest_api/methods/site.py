@@ -197,3 +197,9 @@ class SiteMethods33(SiteMethods32):
 
 class SiteMethods34(SiteMethods33):
     pass
+
+class SiteMethods35(SiteMethods34):
+    pass
+
+class SiteMethods36(SiteMethods35):
+    pass
