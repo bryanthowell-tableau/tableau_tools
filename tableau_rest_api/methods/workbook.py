@@ -339,39 +339,7 @@ class WorkbookMethods(TableauRestApiBase):
         self.end_log_block()
         return views_with_name
 
-    def query_workbook_view_luid(self, wb_name_or_luid, view_name=None, view_content_url=None, proj_name_or_luid=None,
-                                 username_or_luid=None, usage=False):
-        """
-        :type wb_name_or_luid: unicode
-        :type proj_name_or_luid: unicode
-        :type username_or_luid: unicode
-        :type view_name: unicode
-        :type view_content_url: unicode
-        :type usage: bool
-        :rtype: unicode
-        """
-        self.start_log_block()
-        if usage not in [True, False]:
-            raise InvalidOptionException('Usage can only be set to True or False')
-        if self.is_luid(wb_name_or_luid):
-            wb_luid = wb_name_or_luid
-        else:
-            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
-        vws = self.query_resource("workbooks/{}/views?includeUsageStatistics={}".format(wb_luid, str(usage).lower()))
-        if view_content_url is not None:
-            views_with_name = vws.findall('.//t:view[@contentUrl="{}"]'.format(view_content_url), self.ns_map)
-        else:
-            views_with_name = vws.findall('.//t:view[@name="{}"]'.format(view_name), self.ns_map)
-        if len(views_with_name) == 0:
-            self.end_log_block()
-            raise NoMatchFoundException('No view found with name {} or content_url {} in workbook {}').format(view_name, view_content_url, wb_name_or_luid)
-        elif len(views_with_name) > 1:
-            self.end_log_block()
-            raise MultipleMatchesFoundException(
-                'More than one view found by name {} in workbook {}. Use view_content_url parameter').format(view_name, view_content_url, wb_name_or_luid)
-        view_luid = views_with_name[0].get('id')
-        self.end_log_block()
-        return view_luid
+
 
     # This should be the key to updating the connections in a workbook. Seems to return
     # LUIDs for connections and the datatypes, but no way to distinguish them

@@ -4,6 +4,7 @@ import os
 from typing import Union, Any, Optional, List, Dict
 
 from ...tableau_base import *
+from ._lookups import LookupMethods
 from ...tableau_documents.tableau_file import TableauFile
 from ...tableau_documents.tableau_workbook import TableauWorkbook
 from ...tableau_documents.tableau_datasource import TableauDatasource
@@ -15,7 +16,7 @@ from ..url_filter import *
 from ..sort import *
 import copy
 
-class TableauRestApiBase(TableauBase):
+class TableauRestApiBase(LookupMethods, TableauBase):
     # Defines a class that represents a RESTful connection to Tableau Server. Use full URL (http:// or https://)
     def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
         TableauBase.__init__(self)
@@ -508,8 +509,6 @@ class TableauRestApiBase(TableauBase):
         else:
             self.end_log_block()
             raise NoMatchFoundException("No {} found with name or luid {}".format(element_name, name_or_luid))
-
-
 
     def send_post_request(self, url: str) -> etree.Element:
         self.start_log_block()

@@ -1,4 +1,5 @@
 from .rest_api_base import *
+from ._lookups import *
 from .alert import *
 from .datasource import *
 from .extract import *

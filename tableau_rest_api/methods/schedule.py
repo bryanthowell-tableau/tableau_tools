@@ -26,12 +26,7 @@ class ScheduleMethods(TableauRestApiBase):
         self.end_log_block()
         return subscription_schedules
 
-    def query_schedule_luid(self, schedule_name: str) -> str:
 
-        self.start_log_block()
-        luid = self.query_single_element_luid_by_name_from_endpoint('schedule', schedule_name, server_level=True)
-        self.end_log_block()
-        return luid
 
     def query_schedule(self, schedule_name_or_luid: str) -> etree.Element:
         self.start_log_block()

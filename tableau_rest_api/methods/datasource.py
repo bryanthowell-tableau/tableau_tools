@@ -62,56 +62,7 @@ class DatasourceMethods(TableauRestApiBase):
     # Filtering implemented in 2.2
     # query_workbook and query_workbook_luid can't be improved because filtering doesn't take a Project Name/LUID
 
-    # Datasources in different projects can have the same 'pretty name'.
-    def query_datasource_luid(self, datasource_name: str, project_name_or_luid: Optional[str] = None,
-                              content_url: Optional[str] = None) -> str:
-        self.start_log_block()
-        # This quick filters down to just those with the name
-        datasources_with_name = self.query_elements_from_endpoint_with_filter('datasource', datasource_name)
 
-        # Throw exception if nothing found
-        if len(datasources_with_name) == 0:
-            self.end_log_block()
-            raise NoMatchFoundException("No datasource found with name {} in any project".format(datasource_name))
-
-        # Search for ContentUrl which should be unique, return
-        if content_url is not None:
-            datasources_with_content_url = datasources_with_name.findall(
-                './/t:datasource[@contentUrl="{}"]'.format(content_url), self.ns_map)
-            self.end_log_block()
-            if len(datasources_with_name) == 1:
-                return datasources_with_content_url[0].get("id")
-            else:
-                raise NoMatchFoundException("No datasource found with ContentUrl {}".format(content_url))
-        # If no ContentUrl search, find any with the name
-        else:
-            # If no match, exception
-
-            # If no Project Name is specified, but only one match, return, otherwise throw MultipleMatchesException
-            if project_name_or_luid is None:
-                if len(datasources_with_name) == 1:
-                    self.end_log_block()
-                    return datasources_with_name[0].get("id")
-                # If no project is declared, and more than one match
-                else:
-                    raise MultipleMatchesFoundException(
-                        'More than one datasource found by name {} without a project specified'.format(datasource_name))
-            # If Project_name is specified was filtered above, so find the name
-            else:
-                if self.is_luid(project_name_or_luid):
-                    ds_in_proj = datasources_with_name.findall('.//t:project[@id="{}"]/..'.format(project_name_or_luid),
-                                                               self.ns_map)
-                else:
-                    ds_in_proj = datasources_with_name.findall(
-                        './/t:project[@name="{}"]/..'.format(project_name_or_luid),
-                        self.ns_map)
-                if len(ds_in_proj) == 1:
-                    self.end_log_block()
-                    return ds_in_proj[0].get("id")
-                else:
-                    self.end_log_block()
-                    raise NoMatchFoundException(
-                        "No datasource found with name {} in project {}".format(datasource_name, project_name_or_luid))
 
     def query_datasource_content_url(self, datasource_name_or_luid: str,
                                      project_name_or_luid: Optional[str] = None) -> str:

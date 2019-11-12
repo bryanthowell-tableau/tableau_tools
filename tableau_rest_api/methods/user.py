@@ -8,7 +8,6 @@ class UserMethods(TableauRestApiBase):
         return self.query_users(all_fields=all_fields, last_login_filter=last_login_filter,
                                 site_role_filter=site_role_filter, sorts=sorts, fields=fields)
 
-
     def query_users(self, all_fields: bool = True, last_login_filter: Optional[UrlFilter] = None,
                     site_role_filter: Optional[UrlFilter] = None, username_filter: Optional[UrlFilter] = None,
                     sorts: Optional[List[Sort]] = None, fields: Optional[List[str] ] =None) -> etree.Element:
@@ -27,14 +26,17 @@ class UserMethods(TableauRestApiBase):
 
     # The reference has this name, so for consistency adding an alias
     def get_users_json(self, all_fields: bool = True, last_login_filter: Optional[UrlFilter] = None,
-                       site_role_filter: Optional[UrlFilter] = None, sorts: Optional[List[Sort]] = None,
-                       fields: Optional[List[str] ] =None, page_number: Optional[int] = None) -> str:
+                       site_role_filter: Optional[UrlFilter] = None, username_filter: Optional[UrlFilter] = None,
+                       sorts: Optional[List[Sort]] = None, fields: Optional[List[str] ] =None,
+                       page_number: Optional[int] = None) -> str:
         return self.query_users_json(all_fields=all_fields, last_login_filter=last_login_filter,
-                                     site_role_filter=site_role_filter, sorts=sorts, fields=fields, page_number=page_number)
+                                     site_role_filter=site_role_filter, username_filter=username_filter, sorts=sorts,
+                                     fields=fields, page_number=page_number)
 
     def query_users_json(self, all_fields: bool = True, last_login_filter: Optional[UrlFilter] = None,
-                         site_role_filter: Optional[UrlFilter] = None, sorts: Optional[List[Sort]] = None,
-                         fields: Optional[List[str] ] =None, page_number: Optional[int] = None) -> str:
+                         site_role_filter: Optional[UrlFilter] = None, username_filter: Optional[UrlFilter] = None,
+                         sorts: Optional[List[Sort]] = None, fields: Optional[List[str]] = None,
+                         page_number: Optional[int] = None) -> str:
 
         self.start_log_block()
         if fields is None:
@@ -58,16 +60,6 @@ class UserMethods(TableauRestApiBase):
         self.username_luid_cache[username] = user_luid
         self.end_log_block()
         return user
-
-    def query_user_luid(self, username: str) -> str:
-        self.start_log_block()
-        if username in self.username_luid_cache:
-            user_luid = self.username_luid_cache[username]
-        else:
-            user_luid = self.query_luid_from_name(content_type="user", name=username)
-            self.username_luid_cache[username] = user_luid
-        self.end_log_block()
-        return user_luid
 
     def query_username(self, user_luid: str) -> str:
         self.start_log_block()

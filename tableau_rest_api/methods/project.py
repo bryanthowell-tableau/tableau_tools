@@ -51,11 +51,7 @@ class ProjectMethods(TableauRestApiBase):
                 if no_return is False:
                     return self.get_published_project_object(project_name_or_luid=project_name)
 
-    def query_project_luid(self, project_name: str) -> str:
-        self.start_log_block()
-        project_luid = self.query_luid_from_name(content_type='project', name=project_name)
-        self.end_log_block()
-        return project_luid
+
 
     def query_project_xml_object(self, project_name_or_luid: str) -> etree.Element:
         self.start_log_block()

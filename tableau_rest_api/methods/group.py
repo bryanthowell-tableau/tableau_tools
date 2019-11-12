@@ -314,16 +314,7 @@ class GroupMethods27(GroupMethods):
 
         # Groups luckily cannot have the same 'pretty name' on one site
 
-    def query_group_luid(self, group_name: str) -> str:
-        self.start_log_block()
-        if group_name in self.group_name_luid_cache:
-            group_luid = self.group_name_luid_cache[group_name]
-            self.log('Found group name {} in cache with luid {}'.format(group_name, group_luid))
-        else:
-            group_luid = self.query_single_element_luid_from_endpoint_with_filter('group', group_name)
-            self.group_name_luid_cache[group_name] = group_luid
-        self.end_log_block()
-        return group_luid
+
 
 class GroupMethods28(GroupMethods27):
     pass
