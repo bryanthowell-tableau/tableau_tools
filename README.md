@@ -52,6 +52,7 @@ The TableauDatasource class uses the `TDEFileGenerator` and/or the `HyperFileGen
 * 4.7.0: Dropping API 2.0 (Tableau 9.0) compatibility. Any method that is overwritten in a later version will not be updated in the TableauRestApiConnection class going forward. Also implemented a direct_xml_request parameter for Add and Update methods, allowing direct submission of an ElementTree.Element request to the endpoints, particularly for replication.
 * 4.8.0 Introduces the RestJsonRequest object and _json plural querying methods for passing JSON responses to other systems
 * 4.9.0 API 3.3 (2019.1) compatibility, as well as ability to swap in static files using TableauDocument and other bug fixes.
+* 5.0.0 Python 3.6 native rewrite. Completely re-organized in the backend, with two models for accessing Rest API methods: TableauRestApiConnection (backwards-compatible) and TableauServerRest, with subclasses grouping the methods.
 ## --- Table(au) of Contents ---
 ------
 
@@ -133,23 +134,29 @@ The TableauDatasource class uses the `TDEFileGenerator` and/or the `HyperFileGen
 ### 0.0 tableau_tools Library Structure
 tableau_tools
 * tableau_rest_api
+    * methods
+        * _lookups
+        * alert
+        * datasource
+        * extract
+        * favorites
+        * flow
+        * group
+        * project
+        * publishing
+        * rest_api_base
+        * revision
+        * schedule
+        * site
+        * subscription
+        * user
+        * workbook
     * permissions
     * published_content (Project, Workbook, Datasource)
     * rest_xml_request
     * rest_json_request
     * sort
     * tableau_rest_api_server_connection
-    * tableau_rest_api_server_connection21
-    * tableau_rest_api_server_connection22
-    * tableau_rest_api_server_connection23
-    * tableau_rest_api_server_connection24
-    * tableau_rest_api_server_connection25
-    * tableau_rest_api_server_connection26
-    * tableau_rest_api_server_connection27
-    * tableau_rest_api_server_connection28
-    * tableau_rest_api_server_connection30
-    * tableau_rest_api_server_connection31
-    * tableau_rest_api_server_connection32
     * url_filter
 * tableau_documents
     * tableau_connection
@@ -209,22 +216,15 @@ is implemented as a method using the same name. For example, the action listed a
 
 
 ### 1.1 Connecting
-#### 1.1.1 TableauRestApiConnection classes
-tableau_tools 4.0+ implements the different versions of the Tableau Server REST API as descendent classes from the parent TableauRestApiConnection class. TableauRestApiConnection implements the 2.0 version of the API, equivalent to Tableau 9.0 and 9.1. TableauRestApiConnection21 implements the 2.1 version of the API, and so forth. New versions of Tableau Server support older versions of the API, so this allows you to keep your scripts the same even when moving to a new release of Tableau Server, and then you can try new functionality by simply changing to the new TableauRestApiConnection version.
+#### 1.1.1 TableauRestApiConnection & TableauServerRest classes
+tableau_tools 5.0+ implements two object types for accessing the methods of the Tableau Server REST API: TableauRestApiConnection and TableauServerRest.
 
-`TableauRestApiConnection(server, username, password, site_content_url=""): 9.0 and 9.1`
+The base TableauRestApiConnection and TableauServerRest classes implements the 2.6 version of the REST API, equivalent to Tableau 10. If you are using a version of Tableau older than this, please look into upgrading as soon as possible, as they are out of support. Then later versions of the API are represented by appending the API version to the class name. For example, if you want to use the API for Tableau Server 2018.1 (API Version 3.0), you would instantiate a TableauRestApiConnection30 or TableauServerRest30 object. In general, you can always use an older version of the API with a newer version of Tableau Server, unless you know of a major change in how something behaves, or want to use the latest features.
 
-`TableauRestApiConnection21: 9.2`
+The first set of objects, which are compatible with scripts from the 4.0 series of tableau_tools, are the TableauRestApiConnection classes. These implement all methods directly on the TableauRestApiConnection class.
 
-`TableauRestApiConnection22: 9.3`
 
-`TableauRestApiConnection23: 10.0`
-
-`TableauRestApiConnection24: 10.1`
-
-`TableauRestApiConnection25: 10.2`
-
-`TableauRestApiConnection26: 10.3`
+`TableauRestApiConnection(server, username, password, site_content_url=""): 10.3`
 
 `TableauRestApiConnection27: 10.4`
 
@@ -236,25 +236,64 @@ tableau_tools 4.0+ implements the different versions of the Tableau Server REST 
 
 `TableauRestApiConnection32: 2018.3`
 
-You need to initialize at least one object of this class. 
+`TableauRestApiConnection33: 2019.1`
+
+`TableauRestApiConnection34: 2019.2`
+
+`TableauRestApiConnection35: 2019.3`
+
+`TableauRestApiConnection36(server, username=None, password=None, site_content_url="", pat_name=None, pat_secret=None): 2019.4`
+
+The second set of objects, new in tableau_tools 5.0, are the TableauServerRest objects. These group the available methods into related sub-objects, for ease of organization. Basic functionalities, including the translation between real names and LUIDs, are still on the base class itself. For example, you still use `TableauServerRest.signin()` , but you would use `TableauServerRest.projects.update_project()` rather than `TableauRestApiConnection.update_project()` . 
+
+
+
+`TableauRestApiConnection(server, username, password, site_content_url=""): 10.3`
+
+`TableauServerRest27: 10.4`
+
+`TableauServerRest28: 10.5`
+
+`TableauServerRest30: 2018.1`
+
+`TableauServerRest31: 2018.2`
+
+`TableauServerRest32: 2018.3`
+
+`TableauServerRest33: 2019.1`
+
+`TableauServerRest34: 2019.2`
+
+`TableauServerRest35: 2019.3`
+
+`TableauServerRest36(server, username=None, password=None, site_content_url="", pat_name=None, pat_secret=None): 2019.4`
+
+You need to initialize at least one object of either of the two class types. 
 Ex.:
 
-    t = TableauRestApiConnection26(u"http://127.0.0.1", u"admin", u"adminsp@ssw0rd", site_content_url=u"site1")
+    t = TableauRestApiConnection33("http://127.0.0.1", "admin", "adminsp@ssw0rd", site_content_url="site1")
     
+    # or 
+    
+    t = TableauServerRest36(server="http://127.0.0.1", pat_name="ripFatPat", pat_secret="qlE1g9MMh9vbrjjg==:rZTHhPpP2tUW1kfn4tjg8", site_content_url="fifth_ward")
+    
+The actual methods, whether attached directly or as sub-classes, are implemented in the same class files. This means that the two object types are equivalent -- they are calling the same code in the end, and yo'll ever have to choose between the two styles to get a particular feature.
 
 #### 1.1.2 Enabling logging for TableauRestApiConnection classes
 
-    logger = Logger(u"log_file.txt")
-    TableauRestApiConnection.enable_logging(logger)
+    logger = Logger("log_file.txt")
+    TableauRestApiConnection.enable_logging(logger) 
+    # or 
+    TableauServerRest.enable_logging(logger)
 
 #### 1.1.3 Signing in
 The TableauRestApiConnection doesn't actually sign in and create a session until you make a `signin()` call
 
 Ex.
 
-    t = TableauRestApiConnection26(u"http://127.0.0.1", u"admin", u"adminsp@ssw0rd", site_content_url=u"site1")
+    t = TableauRestApiConnection26("http://127.0.0.1", "admin", "adminsp@ssw0rd", site_content_url="site1")
     t.signin()
-    logger = Logger(u"log_file.txt")
+    logger = Logger("log_file.txt")
     t.enable_logging(logger)
 
 Now that you are signed-in, the `TableauRestApiConnection` object will hold all of the session state information and can be used to make any number of calls to that Site. 
@@ -266,12 +305,12 @@ The Tableau REST API only allows a session to a single Site at a time. To deal w
 
 returns an list that can be iterated over. You must sign in to one site first to get this list however. So if you wanted to do an action to all sites, do the following:
 
-    default = TableauRestApiConnection26(u"http://127.0.0.1", u"admin", u"adminsp@ssw0rd")
+    default = TableauRestApiConnection26("http://127.0.0.1", "admin", "adminsp@ssw0rd")
     default.signin()
     site_content_urls = default.query_all_site_content_urls()
     
     for site_content_url in site_content_urls:
-        t = TableauRestApiConnection26(u"http://127.0.0.1", u"admin", u"adminsp@ssw0rd", site_content_url=site_content_url)
+        t = TableauRestApiConnection26("http://127.0.0.1", "admin", "adminsp@ssw0rd", site_content_url=site_content_url)
         t.signin()
         ...
     
@@ -303,7 +342,7 @@ These will all return an ElementTree object representing the results from the RE
 
 Ex.
 
-    default = TableauRestApiConnection25(u"http://127.0.0.1", u"admin", u"adminsp@ssw0rd")
+    default = TableauRestApiConnection25("http://127.0.0.1", "admin", "adminsp@ssw0rd")
     default.signin()
     groups = default.query_groups()
     groups_dict = default.convert_xml_list_to_name_id_dict(groups)
@@ -400,9 +439,9 @@ Note that times must be specified with a full ISO 8601 format as shown below;
 
 Ex. 
 
-    bryant_filter = UrlFilter27.create_owner_name_filter(u'Bryant')
-    t_filter = UrlFilter27.create_tags_filter([u'sales', u'sandbox'])
-    ca_filter = UrlFilter27.create_created_at_filter(u'gte', u'2016-01-01T00:00:00:00Z')
+    bryant_filter = UrlFilter27.create_owner_name_filter('Bryant')
+    t_filter = UrlFilter27.create_tags_filter(['sales', 'sandbox'])
+    ca_filter = UrlFilter27.create_created_at_filter('gte', '2016-01-01T00:00:00:00Z')
     t.query_workbooks(owner_name_filter=bryant_filter, tags_filter=t_filter, created_at_filter=ca_filter)
 
 There is also a Sort object, which can just be initialized with the right parameters
@@ -412,7 +451,7 @@ where direction can be `'asc'` or `'desc'`
 
 Sorts can be passed as a list to those methods that can accept them like the following:
 
-    s = Sort(u'name', 'asc')
+    s = Sort('name', 'asc')
     t.query_workbooks(owner_name_filter=bryant_filter, tags_filter=t_filter, sorts=[s,])
 
 ##### 1.2.2.2 Fields (API 2.5+)
@@ -432,7 +471,7 @@ For example, the definition of `query_users()` looks like this starting in 2.5:
 
 You can use like this to specify specific fields only to come back:
 
-    t_site.query_users(fields=[u'name', u'id', u'lastLogin')
+    t_site.query_users(fields=['name', 'id', 'lastLogin')
 
 (This is a lot more useful on something like `query_workbooks` which has additional info about the owner and the project which are not included in the defaults).
 
@@ -459,7 +498,7 @@ Most methods follow this pattern:
 
 `TableauRestApiConnection.query_workbook(wb_name_or_luid, p_name_or_luid=None, username_or_luid=None)`
 
-You'll notice that `query_workbook` and `query_datasource` include parameters for the project (and the username for workbooks). This is because workbook and datasource names are only unique within a Project of a Site, not within a Site. If you search without the project specified, the method will return a workbook if only one is found, but if multiple are found, it will throw a `MultipleMatchesFoundException` .
+Yo'll notice that `query_workbook` and `query_datasource` include parameters for the project (and the username for workbooks). This is because workbook and datasource names are only unique within a Project of a Site, not within a Site. If you search without the project specified, the method will return a workbook if only one is found, but if multiple are found, it will throw a `MultipleMatchesFoundException` .
 
 Starting in tableau_tools 4.0, `query_project` returns a `Project` object, which is necessary when setting Permissions.
 
@@ -488,11 +527,11 @@ Published content (workbooks and datasources) and thumbnails can all be queried,
 #### 1.3.1 Adding Users
 There are two separate actions in the Tableau REST API to add a new user. First, the user is created, and then additional details are set using an update command. `tableau_rest_api` implements these two together as: 
 
-`TableauRestApiConnection.add_user(username, fullname, site_role=u'Unlicensed', password=None, email=None, update_if_exists=False)`
+`TableauRestApiConnection.add_user(username, fullname, site_role='Unlicensed', password=None, email=None, update_if_exists=False)`
 
 If you just want to do the basic add, without the update, then do:
 
-`TableauRestApiConnection.add_user_by_username(username, site_role=u'Unlicensed', update_if_exists=False)`
+`TableauRestApiConnection.add_user_by_username(username, site_role='Unlicensed', update_if_exists=False)`
 
 The update_if_exists flag allows for the role to be changed even if the user already exists when set to True.
 
@@ -506,11 +545,11 @@ The other methods for adding content start with `"create_"`. Each of these will 
 
 `TableauRestApiConnection.create_group(self, group_name)`
 
-`TableauRestApiConnection.create_group_from_ad_group(self, ad_group_name, ad_domain_name, default_site_role=u'Unlicensed', sync_as_background=True)`
+`TableauRestApiConnection.create_group_from_ad_group(self, ad_group_name, ad_domain_name, default_site_role='Unlicensed', sync_as_background=True)`
 
 Ex.
 
-    new_luid = t.create_group(u"Awesome People")
+    new_luid = t.create_group("Awesome People")
 
 #### 1.3.3 Adding users to a Group
 Once users have been created, they can be added into a group via the following method, which can take either a single string or a list/tuple set. Anywhere you see the `"luid_s"` pattern in a parameter, it means you can pass a unicode string or a list of unicode strings to make the action happen to all of those in the list. 
@@ -519,17 +558,17 @@ Once users have been created, they can be added into a group via the following m
 
 Ex.
 
-    usernames_to_add = [u"user1@example.com", u"user2@example.com", u"user3@example.com"]
+    usernames_to_add = ["user1@example.com", "user2@example.com", "user3@example.com"]
     users_luids = []
     for username in usernames_to_add:
-        new_luid = t.add_user_by_username(username, site_role=u"Interactor")
+        new_luid = t.add_user_by_username(username, site_role="Interactor")
         users_luids.append(new_luid)
     
-    new_group_luid = t.create_group(u"Awesome People")
+    new_group_luid = t.create_group("Awesome People")
     t.add_users_to_group_by_luid(users_luids, new_group_luid)
 
 #### 1.3.4 Update Methods
-If you want to make a change to an existing piece of content on the server, there are methods that start with `"update_"`. Many of these use optional keyword arguments, so that you only need to specify what you'd like to change.
+If you want to make a change to an existing piece of content on the server, there are methods that start with `"update_"`. Many of these use optional keyword arguments, so that you only need to specify what yo'd like to change.
 
 Here's an example for updating a datasource:
 `TableauRestApiConnection.update_datasource(name_or_luid, new_datasource_name=None, new_project_luid=None,
@@ -562,7 +601,7 @@ If you are testing a script that creates a new site, you might use the following
     d.signin()
     d.enable_logging(logger)
     
-    new_site_content_url = u"my_site_name"
+    new_site_content_url = "my_site_name"
     try:
         print("Attempting to create site {}".format(new_site_content_url))
         d.create_site(new_site_content_url, new_site_content_url)
@@ -584,21 +623,21 @@ If you are testing a script that creates a new site, you might use the following
 #### 1.3.7 Schedules (Extract and Subscriptions)
 Starting with TableauRestApiConnection23 , you can add or delete schedules for extracts and subscriptions. While there is a generic TableauRestApiConnection23.create_schedule() method , the unique aspects of each type schedule make it better to use the helper factory methods that specifically create the type of schedule you want:
 
-`TableauRestApiConnection23.create_daily_extract_schedule(name, start_time, priority=1, parallel_or_serial=u'Parallel')`
+`TableauRestApiConnection23.create_daily_extract_schedule(name, start_time, priority=1, parallel_or_serial='Parallel')`
 
-`TableauRestApiConnection23.create_daily_subscription_schedule(name, start_time, priority=1, parallel_or_serial=u'Parallel')`
+`TableauRestApiConnection23.create_daily_subscription_schedule(name, start_time, priority=1, parallel_or_serial='Parallel')`
     
-`TableauRestApiConnection23.create_weekly_extract_schedule(name, weekday_s, start_time, priority=1, parallel_or_serial=u'Parallel')`
+`TableauRestApiConnection23.create_weekly_extract_schedule(name, weekday_s, start_time, priority=1, parallel_or_serial='Parallel')`
 
-`TableauRestApiConnection23.create_weekly_subscription_schedule(name, weekday_s, start_time, priority=1, parallel_or_serial=u'Parallel')`
+`TableauRestApiConnection23.create_weekly_subscription_schedule(name, weekday_s, start_time, priority=1, parallel_or_serial='Parallel')`
   
-`TableauRestApiConnection23.create_monthly_extract_schedule(name, day_of_month, start_time, priority=1, parallel_or_serial=u'Parallel')`
+`TableauRestApiConnection23.create_monthly_extract_schedule(name, day_of_month, start_time, priority=1, parallel_or_serial='Parallel')`
 
-`TableauRestApiConnection23.create_monthly_subscription_schedule(name, day_of_month, start_time, priority=1, parallel_or_serial=u'Parallel')`
+`TableauRestApiConnection23.create_monthly_subscription_schedule(name, day_of_month, start_time, priority=1, parallel_or_serial='Parallel')`
 
-`TableauRestApiConnection23.create_hourly_extract_schedule(name, interval_hours_or_minutes, interval, start_time, end_time, priority=1, parallel_or_serial=u'Parallel')`
+`TableauRestApiConnection23.create_hourly_extract_schedule(name, interval_hours_or_minutes, interval, start_time, end_time, priority=1, parallel_or_serial='Parallel')`
 
-`TableauRestApiConnection23.create_hourly_subscription_schedule(name, interval_hours_or_minutes, interval, start_time, end_time, priority=1, parallel_or_serial=u'Parallel')`
+`TableauRestApiConnection23.create_hourly_subscription_schedule(name, interval_hours_or_minutes, interval, start_time, end_time, priority=1, parallel_or_serial='Parallel')`
 
 The format for start_time and end_time is `'HH:MM:SS'` like '13:15:30'. Interval can actually take a list, because Weekly schedules can run on multiple days. Priority is an integer between 1 and 100
 
@@ -620,33 +659,33 @@ One use case for updating schedules is to enable or disable the schedule. There 
 
 If you want to create a new schedule and then disable it, combine the two commands:
 
-    sched_luid = t_site.create_daily_extract_schedule(u'Afternoon Delight', start_time=u'13:00:00')
+    sched_luid = t_site.create_daily_extract_schedule('Afternoon Delight', start_time='13:00:00')
     t_site.disable_schedule(sched_luid)
 
 
 Ex. 
 
     try:
-        t_site.log(u'Creating a daily extract schedule')
-        t_site.create_daily_extract_schedule(u'Afternoon Delight', start_time=u'13:00:00')
+        t_site.log('Creating a daily extract schedule')
+        t_site.create_daily_extract_schedule('Afternoon Delight', start_time='13:00:00')
 
-        t_site.log(u'Creating a monthly subscription schedule')
-        new_monthly_luid = t_site.create_monthly_subscription_schedule(u'First of the Month', u'1',
-                                                                       start_time=u'03:00:00', parallel_or_serial=u'Serial')
-        t_site.log(u'Creating a monthly extract schedule')
-        t_site.create_monthly_extract_schedule(u'Last Day of Month', u'LastDay', start_time=u'03:00:00', priority=25)
-        t_site.log(u'Creating a monthly extract schedule')
-        weekly_luid = t_site.create_weekly_subscription_schedule(u'Mon Wed Fri', [u'Monday', u'Wednesday', u'Friday'],
-                                                   start_time=u'05:00:00')
+        t_site.log('Creating a monthly subscription schedule')
+        new_monthly_luid = t_site.create_monthly_subscription_schedule('First of the Month', '1',
+                                                                       start_time='03:00:00', parallel_or_serial='Serial')
+        t_site.log('Creating a monthly extract schedule')
+        t_site.create_monthly_extract_schedule('Last Day of Month', 'LastDay', start_time='03:00:00', priority=25)
+        t_site.log('Creating a monthly extract schedule')
+        weekly_luid = t_site.create_weekly_subscription_schedule('Mon Wed Fri', ['Monday', 'Wednesday', 'Friday'],
+                                                   start_time='05:00:00')
         time.sleep(4)
-        t_site.log(u'Deleting monthly subscription schedule LUID {}'.format(new_monthly_luid))
+        t_site.log('Deleting monthly subscription schedule LUID {}'.format(new_monthly_luid))
         t_site.delete_schedule(new_monthly_luid)
 
-        t_site.log(u'Updating schedule with LUID {}'.format(weekly_luid))
-        t_site.update_schedule(weekly_luid, new_name=u'Wed Fri', interval_value_s=[u'Wednesday', u'Friday'])
+        t_site.log('Updating schedule with LUID {}'.format(weekly_luid))
+        t_site.update_schedule(weekly_luid, new_name='Wed Fri', interval_value_s=['Wednesday', 'Friday'])
 
     except AlreadyExistsException as e:
-        t_site.log(u'Skipping the add since it already exists')
+        t_site.log('Skipping the add since it already exists')
 
 When looking for Schedules to use for Subscriptions and Extracts, there are the following querying methods
 
@@ -676,13 +715,13 @@ You can update a subscription with
 
 `TableauRestApiConnection23.delete_subscriptions(subscription_luid_s)`
 
-You'll note that the update and delete subscriptions methods only take LUIDs, unlike most other methods in tableau_tools. This is because Subscriptions do not have a reasonbly unique identifier -- to find the LUID, you would use a combination of things to filter on.
+Yo'll note that the update and delete subscriptions methods only take LUIDs, unlike most other methods in tableau_tools. This is because Subscriptions do not have a reasonbly unique identifier -- to find the LUID, you would use a combination of things to filter on.
 
 This brings us to how to find subscriptions to do things to via `query_subscriptions`
 
 `TableauRestApiConnection23.query_subscriptions(username_or_luid=None, schedule_name_or_luid=None, subscription_subject=None,view_or_workbook=None, content_name_or_luid=None, project_name_or_luid=None, wb_name_or_luid=None)`
 
-You don't have to pass anything to `query_subscriptions()`, and you'll get all of them in the system. However, if you want to filter down to a subset, you can pass any of the parameters, and the filters will be applied successively.
+You don't have to pass anything to `query_subscriptions()`, and yo'll get all of them in the system. However, if you want to filter down to a subset, you can pass any of the parameters, and the filters will be applied successively.
 
 
 ### 1.4 Permissions
@@ -695,7 +734,7 @@ Additionally, there is no "update" functionality for permissions capabilities --
 The most efficient algorithm for sending an update is thus:
 
     a. For the given user or group to be updated, see if there are any existing permissions for that user or group
-    b. If the existing permissions match exactly, do not make any changes (Otherwise, you'd have to delete out every permission only to reset it exactly as it was before)
+    b. If the existing permissions match exactly, do not make any changes (Otherwise, yo'd have to delete out every permission only to reset it exactly as it was before)
     c. If the permissions do not match exactly, delete all of the existing permissions for that user or group (and only those that are set, therefore saving wasted deletion calls)
     d. Set the new permissions for that user or group
 
@@ -780,14 +819,14 @@ This `ProjectXX` object should be acquired by querying or creating a project, re
 
 Ex. 
 
-    proj = t.query_project(u'My Project')
-    best_group_perms_obj = proj.get_workbook_permissions_object_for_group(u'Best Group')
-    second_best_group_perms_obh = proj.get_workbook_permissions_object_for_group(u'Second Best Group', role=u'Interactor')
+    proj = t.query_project('My Project')
+    best_group_perms_obj = proj.get_workbook_permissions_object_for_group('Best Group')
+    second_best_group_perms_obh = proj.get_workbook_permissions_object_for_group('Second Best Group', role='Interactor')
 
 #### 1.4.2 Setting Capabilities
 The Permissions classes have methods for setting capabilities individually, or matching the selectable "roles" in the Tableau Server UI. 
 
-The two allowable modes are u"Allow" and u"Deny", whereas setting unspecified has its own method.
+The two allowable modes are "Allow" and "Deny", whereas setting unspecified has its own method.
 
 `Permissions.set_capability(capability_name, mode)`
 
@@ -805,11 +844,11 @@ There is also a method to match the roles from the Tableau Server UI. It is awar
 
 Ex. 
     
-    proj = t.query_project(u'My Project')
-    best_group_perms_obj = proj.create_workbook_permissions_object_for_group(u'Best Group')
-    best_group_perms_obj.set_capabilities_to_match_role(u"Publisher")
+    proj = t.query_project('My Project')
+    best_group_perms_obj = proj.create_workbook_permissions_object_for_group('Best Group')
+    best_group_perms_obj.set_capabilities_to_match_role("Publisher")
     # alternatively, you can set this in the factory method
-    # best_group_perms_obj = proj.create_workbook_permissions_object_for_group(u'Best Group', role=u'Publisher')
+    # best_group_perms_obj = proj.create_workbook_permissions_object_for_group('Best Group', role='Publisher')
 
 #### 1.4.2 Permissions Setting
 All of the PublishedContent classes (Workbook, ProjectXX and Datasource) inherit the following method for setting permissions:
@@ -828,18 +867,18 @@ This method does all of the necessary checks to send the simplest set of calls t
 
 Ex.
 
-        proj = t.query_project(u'My Project')
-        best_group_perms_obj = proj.create_project_permissions_object_for_group(u'Best Group')
-        best_group_perms_obj.set_capabilities_to_match_role(u"Publisher")
+        proj = t.query_project('My Project')
+        best_group_perms_obj = proj.create_project_permissions_object_for_group('Best Group')
+        best_group_perms_obj.set_capabilities_to_match_role("Publisher")
         proj.set_permissions_by_permissions_obj_list([best_group_perms_obj, ]) # Note creating a list for singular item
     
     # Setting default permissions for workbook
-    best_group_perms_obj = proj.create_workbook_permissions_object_for_group(u'Best Group')
-    best_group_perms_obj.set_capabilities_to_match_role(u"Interactor")
+    best_group_perms_obj = proj.create_workbook_permissions_object_for_group('Best Group')
+    best_group_perms_obj.set_capabilities_to_match_role("Interactor")
     proj.workbook_defaults.set_permissions_by_permissions_obj_list([best_group_perms_obj, ])
     
     # Setting default permissions for data source
-    best_group_perms_obj = proj.create_datasource_permissions_object_for_group(u'Best Group', role=u'Editor')
+    best_group_perms_obj = proj.create_datasource_permissions_object_for_group('Best Group', role='Editor')
     proj.datasource_defaults.set_permissions_by_permissions_obj_list([best_group_perms_obj, ])
 
 #### 1.4.3 Reusing Permissions Objects
@@ -851,11 +890,11 @@ If you have a Permissions object that represents a set of permissions you want t
 
 Ex.
 
-    best_group_perms_obj = proj.create_datasource_permissions_object_for_group(u'Best Group', role=u'Editor')
-    second_best_group_perms_obj = proj.copy_permissions_obj_for_group(best_group_perms_obj, u'Second Best Group')
+    best_group_perms_obj = proj.create_datasource_permissions_object_for_group('Best Group', role='Editor')
+    second_best_group_perms_obj = proj.copy_permissions_obj_for_group(best_group_perms_obj, 'Second Best Group')
     
     # Transform to user from group
-    my_user_perms_obj = proj.copy_permissions_obj_for_user(second_best_group_perms_obj, u'My User Name')
+    my_user_perms_obj = proj.copy_permissions_obj_for_user(second_best_group_perms_obj, 'My User Name')
     
     # Set on proj
     proj.clear_all_permissions()
@@ -866,7 +905,7 @@ Ex.
 The PublishedContent class has a method called 
 PublishedContent.convert_permissions_obj_list_from_orig_site_to_current_site(permissions_obj_list, orig_site)
 
-orig_site is a TableauRestApiConnection class object that is a signed-in connection to the original site. This allows the method to translate the names of Groups and Users from the Originating Site to the site where the PublishedContent lives. In most cases, you'll do this on a Project object. The method returns a list of Permissions objects, which can be put directly into set_permissions_by_permissions_obj_list
+orig_site is a TableauRestApiConnection class object that is a signed-in connection to the original site. This allows the method to translate the names of Groups and Users from the Originating Site to the site where the PublishedContent lives. In most cases, yo'll do this on a Project object. The method returns a list of Permissions objects, which can be put directly into set_permissions_by_permissions_obj_list
 
 Ex.
 
@@ -918,15 +957,15 @@ The example code to do this process correctly is included in the template_publis
 
 Here is an example of using that function
 
-    orig_server = u'http://'
-    orig_username = u''
-    orig_password = u''
-    orig_site = u'default'
+    orig_server = 'http://'
+    orig_username = ''
+    orig_password = ''
+    orig_site = 'default'
     
-    dest_server = u''
-    dest_username = u''
-    dest_password = u''
-    dest_site = u'publish_test'
+    dest_server = ''
+    dest_username = ''
+    dest_password = ''
+    dest_site = 'publish_test'
     
     o = TableauRestApiConnection28(server=orig_server, username=orig_username, password=orig_password,
                                    site_content_url=orig_site)
@@ -938,9 +977,9 @@ Here is an example of using that function
     d.signin()
     d.enable_logging(logger)
     
-    wbs_to_replicate = [u'Workbook Connected to Published DS', u'Connected to Second DS']
-    o_wb_project = u'Default'
-    d_wb_project = u'Default'
+    wbs_to_replicate = ['Workbook Connected to Published DS', 'Connected to Second DS']
+    o_wb_project = 'Default'
+    d_wb_project = 'Default'
     
     replicate_workbooks_with_published_dses(o, d, wbs_to_replicate, o_wb_project, d_wb_project)
 
@@ -982,19 +1021,19 @@ It appears when the publish completes, the progress attribute goes to 100, and t
 
 Here's an example of an async publish, then polling every second to see if it has finished:
 
-    proj_obj = t.query_project(u'Default')
-    job_id = t.publish_workbook(u'A Big Workbook.twbx', u'Big Published Workbook & Stuff', proj_obj, overwrite=True, async_publish=True)
-    print(u'Published async using job {}'.format(job_id))
+    proj_obj = t.query_project('Default')
+    job_id = t.publish_workbook('A Big Workbook.twbx', 'Big Published Workbook & Stuff', proj_obj, overwrite=True, async_publish=True)
+    print('Published async using job {}'.format(job_id))
     
     progress = 0
     while progress < 100:
         job_obj = t.query_job(job_id)
-        job = job_obj.findall(u'.//t:job', t.ns_map)
+        job = job_obj.findall('.//t:job', t.ns_map)
         # When updating our while loop variable, need to cast progress attribute to int
-        progress = int(job[0].get(u'progress'))
+        progress = int(job[0].get('progress'))
         print('Progress is {}'.format(progress))
         time.sleep(1)
-    print(u'Finished publishing')
+    print('Finished publishing')
 
 ### 1.6 Refreshing Extracts (Tableau 10.3+ / API 2.6)
 
@@ -1056,9 +1095,9 @@ The TableauRepository class has a method for accomplishing the necessary insert.
 
 ex. 
 
-    new_wb_luid = t.publish_workbook(new_filename, u'My Awesome TWBX Workbook', default_proj, overwrite=True, save_credentials=True)
-    tab_rep = TableauRepository(u'https://tableauserver', repository_username=u'$superUserYouBetterKnow', repository_password=u'')
-    tab_rep.set_workbook_on_schedule(new_wb_luid, u'Saturday night')
+    new_wb_luid = t.publish_workbook(new_filename, 'My Awesome TWBX Workbook', default_proj, overwrite=True, save_credentials=True)
+    tab_rep = TableauRepository('https://tableauserver', repository_username='$superUserYouBetterKnow', repository_password='')
+    tab_rep.set_workbook_on_schedule(new_wb_luid, 'Saturday night')
 
 As mentioned, this requires have super access to the Tableau repository, including its password, which could be dangerous. If you can at all, update to Tableau 10.5+ and use the REST API methods from above.
 
@@ -1069,7 +1108,7 @@ Starting in API 3.2 (2018.3+), you can manage Data Driven Alerts via the APIs. T
 tableau_documents implements some features that go beyond the Tableau REST API, but are extremely useful when dealing with a large number of workbooks or datasources, particularly for multi-tenented Sites. These methods actually allow unsupported changes to the Tableau workbook or datasource XML. If something breaks with them, blame the author of the library and not Tableau Support, who won't help you with them.
 
 ### 2.1 Document classes
-The tableau_documents library is a hierarchical set of classes which model Tableau's files and the data structures within them. The model looks slightly different whether a workbook or a datasource, because workbooks can embed multiple datasources:
+The tableau_documents library is a hierarchical set of classes which model Tablea's files and the data structures within them. The model looks slightly different whether a workbook or a datasource, because workbooks can embed multiple datasources:
 
 Datasource:
 
@@ -1090,17 +1129,17 @@ Workbook:
 ### 2.2 TableauFile Class
 The TableauFile class represents an actual existing Tableau file on the local storage (.tds, .tdsx, .twb, .twbx). It is initialized with:
 
-`TableauFile(filename, logger_obj=None, create_new=False, ds_version=u'10')`
+`TableauFile(filename, logger_obj=None, create_new=False, ds_version='10')`
 
 TableauFile determines what type of file has been opened, and if it is a packaged workbook or datasource, it extracts the embedded TWB or TDS file temporarily to disk so that it can be accessed as a file. All of this is done to disk so that everything is not loaded and kept in memory.      
 
-TableauFile.file_type property  returns one of `[u'twb', u'twbx, u'tds', u'tdsx']`, which allows you to determine a particular set of actions to take depending on the file type. 
+TableauFile.file_type property  returns one of `['twb', 'twbx, 'tds', 'tdsx']`, which allows you to determine a particular set of actions to take depending on the file type. 
 
 `TableauFile.tableau_document` property retrieves the `TableauDocument` object within. This will actually be either a `TableauWorkbook` or `TableauDatasource` object, which is why the file_type is useful. 
 
 TableauFile also allows you to create a new datasource from scratch. To implement, initialize without a file name like:
 
-    tf = TableauFile(None, logger_obj, create_new=True, ds_version=u'10') # ds_version=u'9' for a 9.0 style datasource
+    tf = TableauFile(None, logger_obj, create_new=True, ds_version='10') # ds_version='9' for a 9.0 style datasource
 
 The `TableauFile.tableau_document` object will be a new `TableauDatasource` object, ready to be set built up.
 
@@ -1114,13 +1153,13 @@ If a file is found on disk with the same name, a number will be appended to the 
 
 ex.
 
-    tf = TableauFile(u'A Workbook.twb')
-    file_1 = tf.save_new_file(u'A Workbook')
-    file_2 = tf.save_new_file(u'A Workbook')
+    tf = TableauFile('A Workbook.twb')
+    file_1 = tf.save_new_file('A Workbook')
+    file_2 = tf.save_new_file('A Workbook')
     print(file_1)
-    # u'A Workbook (1).twb'
+    # 'A Workbook (1).twb'
     print(file_2)
-    # u'A Workbook (2).twb'
+    # 'A Workbook (2).twb'
 
 #### 2.2.1 Replacing Static Data Files
 `TableauFile` has an optional argument on the save_new_file method to allow swapping in new data files (CSV, XLS or Hyper) into an existing TWBX or TDSX. 
@@ -1142,7 +1181,7 @@ You should be able to find the exact naming of the data file you want to replace
 ### 2.3 TableauDocument Class
 The TableauDocument class helps map the differences between `TableauWorkbook` and `TableauDatasource`. It only implements two properties:
 
-`TableauDocument.document_type  : return either [u'datasource', u'workbook']`. More generic than `TableauFile.file_type`
+`TableauDocument.document_type  : return either ['datasource', 'workbook']`. More generic than `TableauFile.file_type`
 
 `TableauDocument.datasources` : returns an array of TableauDatasource objects. 
 
@@ -1169,9 +1208,9 @@ If you are opening a TDS file, you should use `TableauFile` to open it, where th
 ex. 
 
     logger = Logger('ds_log.txt')
-    new_ds = TableauDatasource(ds_version=u'10', logger_obj=logger)
+    new_ds = TableauDatasource(ds_version='10', logger_obj=logger)
     
-    ds_version takes either u'9' or u'10, because it is more on basic structure and the individual point numbers don't matter.
+    ds_version takes either '9' or '10, because it is more on basic structure and the individual point numbers don't matter.
 
 #### 2.5.6 TableauColumns Class
 A TableauDatasource will have a set of column tags, which define the visible aliases that the end user sees and how those map to the actual columns in the overall datasource. Calculations are also defined as a column, with an additional calculation tag within. These tags to do not have any sort of columns tag that contains them; they are simply appended near the end of the datasources node, after all the connections node section.
@@ -1192,16 +1231,16 @@ The dictionary should be a simple mapping of the caption from the template to th
     dses = tab_file.tableau_document.datasources  #type: list[TableauDatasource]
     for ds in dses:
         ds.columns.translate_captions(english_dict)
-    new_eng_filename = tab_file.save_new_file(u'English Version')
+    new_eng_filename = tab_file.save_new_file('English Version')
     # Reload template again
     tab_file = TableauFile('template_file.tds')
     dses = tab_file.tableau_document.datasources  #type: list[TableauDatasource]
     for ds in dses:
         ds.columns.translate_captions(german_dict)
-    new_ger_filename = tab_file.save_new_file(u'German Version')
+    new_ger_filename = tab_file.save_new_file('German Version')
 
 ### 2.6 TableauConnection Class
-In a u'9' version `TableauDatasource`, there is only `connections[0]` because there was only one connection. A u'10' version can have any number of federated connections in this array. If you are creating connections from scratch, I highly recommend doing single connections. There hasn't been any work to make sure federated connections work correctly with modifications.
+In a '9' version `TableauDatasource`, there is only `connections[0]` because there was only one connection. A '10' version can have any number of federated connections in this array. If you are creating connections from scratch, I highly recommend doing single connections. There hasn't been any work to make sure federated connections work correctly with modifications.
 
 The TableauConnection class represents the connection to the datasource, whether it is a database, a text file. It should be created automatically for you through the `TableauDatasource` object. 
 
@@ -1221,7 +1260,7 @@ You can access and set all of the relevant properties for a connection, using th
 
 `TableauConnection.authentication`
 
-If you are changing the dbname/schema on certain datasource types (Oracle and Teradata for sure, but possibly others), Tableau saves a reference to the database/schema name in the table name identifier as well. This attribute is actually stored in the relations tags in the datasource object directly (above the level of the connection), so you'll want to also call the following method:
+If you are changing the dbname/schema on certain datasource types (Oracle and Teradata for sure, but possibly others), Tableau saves a reference to the database/schema name in the table name identifier as well. This attribute is actually stored in the relations tags in the datasource object directly (above the level of the connection), so yo'll want to also call the following method:
 
 `TableauDatasource.update_tables_with_new_database_or_schema(original_db_or_schema, new_db_or_schema)`
 
@@ -1229,18 +1268,18 @@ When you set using these properties, the connection XML will be changed when the
 
 ex.
 
-    twb = TableauFile(u'My TWB.twb')
+    twb = TableauFile('My TWB.twb')
     dses = twb.tableau_document.datasources
     for ds in dses:
         if ds.published is not True:  # See next section on why you should check for published datasources
-            ds.update_tables_with_new_database_or_schema(u'test_db', u'production_db')  # For systems where db/schema is referenced in the table identifier
+            ds.update_tables_with_new_database_or_schema('test_db', 'production_db')  # For systems where db/schema is referenced in the table identifier
             for conn in ds.connections:
-                if conn.dbname == u'test_db':
-                    conn.dbname = u'production_db'
-                    conn.port = u'5128'
+                if conn.dbname == 'test_db':
+                    conn.dbname = 'production_db'
+                    conn.port = '5128'
     
                     
-    twb.save_new_file(u'Modified Workbook')
+    twb.save_new_file('Modified Workbook')
 
 
 ### 2.7 Published Datasources in a Workbook
@@ -1253,13 +1292,13 @@ If published is True, you can get or set the Site of the published DS. This was 
 
 ex.
 
-    twb = TableauFile(u'My TWB.twb')
+    twb = TableauFile('My TWB.twb')
     dses = twb.tableau_document.datasources
     for ds in dses:
         if ds.published is True:
             print ds.published_ds_site
             # Change the ds_site
-            ds.published_ds_site = u'new_site'  # Remember to use content_url rather than the pretty site name
+            ds.published_ds_site = 'new_site'  # Remember to use content_url rather than the pretty site name
 
 
 \*\*\*NOTE: From this point on, things become increasingly experimental and less supported. However, I can assure you that many Tableau customers do these very things, and we are constantly working to improve the functionality for making datasources dynamically.
@@ -1285,57 +1324,57 @@ If there is an existing extract, an AlreadyExistsException will be raised.
 
 ex.
 
-    twb = TableauFile(u'My TWB.twb')
+    twb = TableauFile('My TWB.twb')
     dses = twb.tableau_document.datasources  #type list[TableauDatasource]
     i = 1
     for ds in dses:
         try:
-            ds.add_extract(u'Extract {}.tde'.format(i))
+            ds.add_extract('Extract {}.tde'.format(i))
             i += 1
         except AlreadyExistsException as e:
             # Skip any existing extracts in the workbook
             continue
-    new_filename = twb.save_new_file(u'Extract Workbooks')
+    new_filename = twb.save_new_file('Extract Workbooks')
     print(new_filename)  # Extract Workbooks.twbx
 
 If you add filters to the extract, they are similar to the Data Source Filter functions described below in section 2.9.
 
-`TableauDatasource.add_dimension_extract_filter(column_name, values, include_or_exclude=u'include', custom_value_list=False)`
+`TableauDatasource.add_dimension_extract_filter(column_name, values, include_or_exclude='include', custom_value_list=False)`
 
 `TableauDatasource.add_continuous_extract_filter(column_name, min_value=None, max_value=None, date=False)`
 
-`TableauDatasource.add_relative_date_extract_filter(column_name, period_type, number_of_periods=None, previous_next_current=u'previous', to_date=False)`
+`TableauDatasource.add_relative_date_extract_filter(column_name, period_type, number_of_periods=None, previous_next_current='previous', to_date=False)`
 
 ### 2.9 Adding Data Source Filters to an Existing Data Source
 There are many situations where programmatically setting the values in a Data Source filter can be useful -- particularly if you are publishing data sources to different sites which are filtered per customer, but actually all connect to a common data warehouse table. Even with Row Level Security in place, it's a nice extra security layer to have a Data Source filter that insures the customer will only ever see their data, no matter what.
 
 The `TableauDatasource` class has methods for adding the three different types of data sources.
 
-`TableauDatasource.add_dimension_datasource_filter(column_name, values, include_or_exclude=u'include', custom_value_list=False)`
+`TableauDatasource.add_dimension_datasource_filter(column_name, values, include_or_exclude='include', custom_value_list=False)`
 
 `TableauDatasource.add_continuous_datasource_filter(column_name, min_value=None, max_value=None, date=False)`
 
-`TableauDatasource.add_relative_date_datasource_filter(column_name, period_type, number_of_periods=None, previous_next_current=u'previous', to_date=False)`
+`TableauDatasource.add_relative_date_datasource_filter(column_name, period_type, number_of_periods=None, previous_next_current='previous', to_date=False)`
 
 One thing to consider is that column_name needs to be the True Database Column name, not the fancy "alias" that is visible in Tableau Desktop. You can see what this field name is in Desktop by right clicking on a field and choosing "Describe" - the "Remote Column Name" will tell you the actual name. You do not need to pass in the square brackets [] around the column_name, this will be done automatically for you.
 
-Values takes a Python list of values, so to send a single value us the [u'value', ] syntax
+Values takes a Python list of values, so to send a single value us the ['value', ] syntax
 
 Here is an examples of setting many dimension filters:
 
-    existing_tableau_file = TableauFile(u'Desktop DS.tds')
+    existing_tableau_file = TableauFile('Desktop DS.tds')
     doc = existing_tableau_file.tableau_document
     # This syntax gets you correct type hinting
     dses = doc.datasources  #type: list[TableauDatasource]
     ds = dses[0]
-    ds.add_dimension_datasource_filter(column_name=u"call_category",
-                                                      values=[u"Account Status", u"Make Payment"])
-    ds.add_dimension_datasource_filter(column_name=u"customer_name", values=[u"Customer A", ])
-    ds.add_dimension_datasource_filter(column_name=u"state", values=[u"Hawaii", u"Alaska"], include_or_exclude=u'exclude')
-    mod_filename = existing_tableau_file.save_new_file(u'Modified from Desktop')
+    ds.add_dimension_datasource_filter(column_name="call_category",
+                                                      values=["Account Status", "Make Payment"])
+    ds.add_dimension_datasource_filter(column_name="customer_name", values=["Customer A", ])
+    ds.add_dimension_datasource_filter(column_name="state", values=["Hawaii", "Alaska"], include_or_exclude='exclude')
+    mod_filename = existing_tableau_file.save_new_file('Modified from Desktop')
 
 ### 2.10 Defining Calculated Fields Programmatically
-For certain filters, you made need to define a calculation in the data source itself, that the filter can reference. This is particularly useful for row level security type filters. You'll note that there are a lot of particulars to declare with a given calculation. If you are wondering what values you might need, it might be advised to create the calculation in Tableau Desktop, then save the TDS file and open it in a text editor to take a look.
+For certain filters, you made need to define a calculation in the data source itself, that the filter can reference. This is particularly useful for row level security type filters. Yo'll note that there are a lot of particulars to declare with a given calculation. If you are wondering what values you might need, it might be advised to create the calculation in Tableau Desktop, then save the TDS file and open it in a text editor to take a look.
 
 `TableauDatasource.add_calculation(calculation, calculation_name, dimension_or_measure, discrete_or_continuous, datatype)`
 
@@ -1344,7 +1383,7 @@ The add_calculation method returns the internally defined name for the calculati
 The following is an example:
 
     # Add a calculation (this one does row level security
-    calc_id = ds.add_calculation(u'IIF([salesperson_user_id]=USERNAME(),1,0) ', u'Row Level Security', u'dimension', u'discrete', u'integer')
+    calc_id = ds.add_calculation('IIF([salesperson_user_id]=USERNAME(),1,0) ', 'Row Level Security', 'dimension', 'discrete', 'integer')
     
     # Create a data source filter that references the calculation
     ds.add_dimension_datasource_filter(calc_id, [1, ], custom_value_list=True)
@@ -1362,28 +1401,28 @@ which is a standard `ElementTree.Element object`.
 
 To determine the type, use:
 
-`TableauDatasource.main_table_relation.get(u'type')`
+`TableauDatasource.main_table_relation.get('type')`
 
-which should return either `u'table', u'stored-proc' or u'text'` (which represents Custom SQL)
+which should return either `'table', 'stored-proc' or 'text'` (which represents Custom SQL)
 
 #### 2.11.1 Database Table Relations
-If the type is u'table', then unsurprisingly this relation represents a real table or view in the database. The actual table name in the database is stored in the 'table' attribute, with brackets around the name (regardless of the database type).
+If the type is 'table', then unsurprisingly this relation represents a real table or view in the database. The actual table name in the database is stored in the 'table' attribute, with brackets around the name (regardless of the database type).
 
 Access it via:
-`TableauDatasource.main_table_relation.get(u'table')`
+`TableauDatasource.main_table_relation.get('table')`
 
 Set it via:
-`TableauDatasource.main_table_relation.set(u'table', table_name_in_brackets)`
+`TableauDatasource.main_table_relation.set('table', table_name_in_brackets)`
 
 Ex.
 
     for ds in dses:
-        if ds.main_table_relation.get(u'type') == u'table':
-            if ds.main_table_relation.get(u'table') == u'[Test Table]':
-                ds.main_table_relation.set(u'table',u'[Real Data]'
+        if ds.main_table_relation.get('type') == 'table':
+            if ds.main_table_relation.get('table') == '[Test Table]':
+                ds.main_table_relation.set('table','[Real Data]'
 
 #### 2.11.2 Custom SQL Relations
-Custom SQL relations are stored with a type of u'text' (don't ask me, I didn't come up with it). The text of the query is stored as the actual text value of the relation tag in the XML, which is also unusual for the Tableau XML files.
+Custom SQL relations are stored with a type of 'text' (don't ask me, I didn't come up with it). The text of the query is stored as the actual text value of the relation tag in the XML, which is also unusual for the Tableau XML files.
 
 To retrieve the Custom SQL itself, use:
 
@@ -1396,8 +1435,8 @@ And to set it, use:
 Ex.
 
     for ds in dses:
-        if ds.main_table_relation.get(u'type') == u'text':
-            ds.main_table_relation.text = u'SELECT * FROM my_cool_table'
+        if ds.main_table_relation.get('type') == 'text':
+            ds.main_table_relation.text = 'SELECT * FROM my_cool_table'
 
 #### 2.11.3 Stored Procedure Relations
 Stored Procedures are thankfully referred to as 'stored-proc' types in the XML, so they are easy to find. Stored Procedures differ from the other relation types by having parameters for the input values of the Stored Procedure. They also can only connect to that one Stored Procedure (no JOINing of other tables or Custom SQL). This means that a Stored Procedure Data Source only has one relation, the `main_table_relation`.
@@ -1410,17 +1449,17 @@ To see the current value of a Stored Procedure Parameter, use (remember to searc
 To set the value:
 `TableauDatasource.set_stored_proc_parameter_value_by_name(parameter_name, parameter_value)`
 
-For time or datetime values, it is best to pass in a `datetime.date` or `datetime.datetime` variable, but you can also pass in unicode text in the exact format that Tableau's XML uses:
+For time or datetime values, it is best to pass in a `datetime.date` or `datetime.datetime` variable, but you can also pass in unicode text in the exact format that Tablea's XML uses:
 
-datetime: u'#YYYY-MM-DD HH:MM:SS#'
-date: u'#YYYY-MM-DD#'
+datetime: '#YYYY-MM-DD HH:MM:SS#'
+date: '#YYYY-MM-DD#'
 
 Ex.
 
     for ds in dses:
-        if ds.main_table_relation.get(u'type') == u'stored-proc':
-            ds.set_stored_proc_parameter_value_by_name(u'@StartDate', datetime.date(2018, 1, 1))
-            ds.set_stored_proc_parameter_value_by_name(u'@EndDate', u"#2019-01-01#")
+        if ds.main_table_relation.get('type') == 'stored-proc':
+            ds.set_stored_proc_parameter_value_by_name('@StartDate', datetime.date(2018, 1, 1))
+            ds.set_stored_proc_parameter_value_by_name('@EndDate', "#2019-01-01#")
 
 
 ### 2.12 Creating a TableauDatasource from Scratch
@@ -1432,7 +1471,7 @@ https://tableauandbehold.com/2016/06/29/defining-a-tableau-data-source-programma
 
 which probably needs to be updated at this point. What is essential is understanding the concept of the tables and the Relations.
 
-To create a "from scratch" data source, construct a `TableauFile` object with a ".tds" filename (this file won't actually be created, but the .tds tells the TableauFile constructor you are building a datasource). Set the `"create_new"` parameter to True, and declare the ds_version you are using (this will be just a standard Tableau Version number -- u"10.2" or u"10.5").
+To create a "from scratch" data source, construct a `TableauFile` object with a ".tds" filename (this file won't actually be created, but the .tds tells the TableauFile constructor you are building a datasource). Set the `"create_new"` parameter to True, and declare the ds_version you are using (this will be just a standard Tableau Version number -- "10.2" or "10.5").
 
 The `tableau_document` will be a new `TableauDatasource` which has an empty datasource root node. Now you can use the data source creation functions.
 
@@ -1444,30 +1483,30 @@ The first step is creating a "first table", which all other relations will attac
 
 Example of a single table:
 
-    new_tableau_file = TableauFile("test.tds", logger_obj=logger, create_new=True, ds_version=u'10.3')
+    new_tableau_file = TableauFile("test.tds", logger_obj=logger, create_new=True, ds_version='10.3')
     new_tableau_document = new_tableau_file.tableau_document
     
     dses = new_tableau_document.datasources  # type: list[TableauDatasource]
     ds = dses[0]
-    ds.add_new_connection(ds_type=u'postgres', server=u'pgdb.your.domain',
-                                         db_or_schema_name=u'my_pg_schema')
-    ds.set_first_table(db_table_name=u'fact_table', table_alias=u'Table of Facts',
+    ds.add_new_connection(ds_type='postgres', server='pgdb.your.domain',
+                                         db_or_schema_name='my_pg_schema')
+    ds.set_first_table(db_table_name='fact_table', table_alias='Table of Facts',
                        connection=ds.connections[0].connection_name)
-    new_tableau_document.save_file(u'New TDS')
+    new_tableau_document.save_file('New TDS')
     
 
 Example of a single table using Custom SQL:
 
-    new_tableau_file = TableauFile("test.tds", logger_obj=logger, create_new=True, ds_version=u'10.3')
+    new_tableau_file = TableauFile("test.tds", logger_obj=logger, create_new=True, ds_version='10.3')
     new_tableau_document = new_tableau_file.tableau_document
     
     dses = new_tableau_document.datasources  # type: list[TableauDatasource]
     ds = dses[0]
-    ds.add_new_connection(ds_type=u'postgres', server=u'pgdb.your.domain',
-                                         db_or_schema_name=u'my_pg_schema')
-    ds.set_first_custom_sql(u"SELECT * FROM table_a a INNER JOIN table_b b ON a.key = b.key WHERE b.customer ='Customer A'" ,
+    ds.add_new_connection(ds_type='postgres', server='pgdb.your.domain',
+                                         db_or_schema_name='my_pg_schema')
+    ds.set_first_custom_sql("SELECT * FROM table_a a INNER JOIN table_b b ON a.key = b.key WHERE b.customer ='Customer A'" ,
                        connection=ds.connections[0].connection_name)
-    new_tableau_document.save_file(u'New TDS')
+    new_tableau_document.save_file('New TDS')
 
 
 Creating single table connections is fairly well tested and should work in most cases. To define multiple tables that work together requires a two step process. These tables are the equivalent of the tables in the JOIN clause of an SQL query. However, you must define the ON clauses first, then pass the ON clauses as a list to the join_table method:
@@ -1476,16 +1515,16 @@ Creating single table connections is fairly well tested and should work in most 
 
 `TableauDatasource.join_table(join_type, db_table_name, table_alias, join_on_clauses, custom_sql=None)`
 
-You'll notice there are parameters with "alias" in both functions. The real name of the table in the database is referenced as `"db_table_name"`. Tableau gives an internal name to a given table, which is the `"table_alias"` from the `set_first_table` and `join_table methods`. The `define_join_on_clause method` only uses these aliases, but you need to decide on the first, which doesn't happen until the join_table method. This is a little bit backwards, but once you see the example it should make a bit more sense.
+Yo'll notice there are parameters with "alias" in both functions. The real name of the table in the database is referenced as `"db_table_name"`. Tableau gives an internal name to a given table, which is the `"table_alias"` from the `set_first_table` and `join_table methods`. The `define_join_on_clause method` only uses these aliases, but you need to decide on the first, which doesn't happen until the join_table method. This is a little bit backwards, but once you see the example it should make a bit more sense.
 
 `define_join_on_clause` returns a JOIN ON data structure, which should be passed in as part of a list in the `join_on_clauses` parameter of the join_table method.
 
 
 Example:
 
-    ds.set_first_table(u'agency_sales', u'Super Store')
-    join_on = ds.define_join_on_clause(u'Super Store', u'region', u'=', u'Entitled People', u'region')
-    ds.join_table(u'Inner', u'superstore_entitlements', u'Entitled People', [join_on, ])
+    ds.set_first_table('agency_sales', 'Super Store')
+    join_on = ds.define_join_on_clause('Super Store', 'region', '=', 'Entitled People', 'region')
+    ds.join_table('Inner', 'superstore_entitlements', 'Entitled People', [join_on, ])
 
 
 ### 2.13 Creating and Modifying Parameters
@@ -1503,7 +1542,7 @@ The parameters themselves are represented via `TableauParameter` objects. Becaus
 
 `TableauParameters.create_parameter(name=None, datatype=None, current_value=None)  # Returns a TableauParameter object`
 
-You'll need to explicitly add the newly create parameter object back using:
+Yo'll need to explicitly add the newly create parameter object back using:
 
 `TableauParameters.add_parameter(parameter)    # parameter is a TableauParameter object`
 
@@ -1521,13 +1560,13 @@ If you want to change the name of a parameter, you should delete the existing pa
 
 Ex.
 
-    t_file = TableauFile(u'Workbook with Parameters.twb', logger)
-        if t_file.tableau_document.document_type == u'workbook':
+    t_file = TableauFile('Workbook with Parameters.twb', logger)
+        if t_file.tableau_document.document_type == 'workbook':
             parameters = t_file.tableau_document.parameters  # type: TableauParameters
-            p1 = parameters.get_parameter_by_name(u'Parameter 1')
+            p1 = parameters.get_parameter_by_name('Parameter 1')
             print(p1.current_value)
-            p1.current_value = u'All'
-            new_param = parameters.create_new_parameter(u'Choose a Number', u'integer', 1111)
+            p1.current_value = 'All'
+            new_param = parameters.create_new_parameter('Choose a Number', 'integer', 1111)
             parameters.add_parameter(new_param)
 
 
@@ -1540,7 +1579,7 @@ The properties you can set are:
 
 `TableauParameter.name`
 
-`TableauParameter.datatype  # u'string', u'integer', u'datetime', u'date', u'real', u'boolean'`
+`TableauParameter.datatype  # 'string', 'integer', 'datetime', 'date', 'real', 'boolean'`
 
 `TableauParameter.current_value  # Use the alias i.e. the value that is visible to the end user`
 
@@ -1563,14 +1602,14 @@ When using `set_allowable_values_to_list()`, the data structure that is expected
 Ex.
 
     tab_params = wb.parameters
-    param = tab_params.create_parameter(u'Semester', u'string')
+    param = tab_params.create_parameter('Semester', 'string')
     # Alternatively:
     # param = tab_params.create_parameter()
-    # param.name = u'Semester'
-    # param.datatype = u'string'
-    allowable_values = [ { u"Spring 2018" : u"2018-02-01"} , { u"Fall 2018" : u"2018-09-01" } ]
+    # param.name = 'Semester'
+    # param.datatype = 'string'
+    allowable_values = [ { "Spring 2018" : "2018-02-01"} , { "Fall 2018" : "2018-09-01" } ]
     param.set_allowable_values_to_list(allowable_values)
-    param.set_current_value(u'Spring 2018')
+    param.set_current_value('Spring 2018')
 
 ### 2.14 HyperFileGenerator and TDEFileGenerator Classes
 The "add extract" functionality in tableau_tools uses the Extract API/Tableau SDK (they are the same thing, the names changed back and forth over time). The HyperFileGenerator and TDEFileGenerator classes are replicas of one another, but HyperFileGenerator uses the Extract API 2.0, which is capable of creating Hyper files. 
@@ -1592,7 +1631,7 @@ However, you can use the a pyodbc cursor to the same effect, which basically let
 This will return the TableDefinition object from the Extract API, but it also sets the internal table_definition for the particular instance of the HyperFileGenerator object so you don't need to do anything other than run this method and anything afterward you do will take the current TableDefinition.
 
 To generate the extract:
-`HyperFileGenerator.create_extract(tde_filename, append=False, table_name=u'Extract', pyodbc_cursor=None)`
+`HyperFileGenerator.create_extract(tde_filename, append=False, table_name='Extract', pyodbc_cursor=None)`
 
 You do need to specify an actual filename for it to write to, because the Extract API always works on a file on disk. You can specify multiple tables within this file by giving different table names, and you can even append by specifying append=True while using the same table_name that previously has been created within the file. The pyodbc_cursor= optional parameter will run through all of the rows from the cursor and add them to the Extract. 
 
@@ -1611,13 +1650,13 @@ You have to provide the folder\directory where tabcmd lives on the local compute
 
 Ex.
 
-    tabcmd_dir = u"C:\\tabcmd\\Command Line Utility\\"
-    tabcmd_config_location = u'C:\\Users\\{}\\AppData\\Local\\Tableau\\Tabcmd\\'
+    tabcmd_dir = "C:\\tabcmd\\Command Line Utility\\"
+    tabcmd_config_location = 'C:\\Users\\{}\\AppData\\Local\\Tableau\\Tabcmd\\'
     
-    server = u'http://127.0.0.1'
-    site_content_url = u'default'
-    username = u'{}'
-    password = u'{}'
+    server = 'http://127.0.0.1'
+    site_content_url = 'default'
+    username = '{}'
+    password = '{}'
     
     tabcmd = Tabcmd(tabcmd_dir, server, username, password, site=site_content_url, tabcmd_config_location=tabcmd_config_location)
 
@@ -1650,7 +1689,7 @@ You initiate a `TableauRepository` object using:
 
 `TableauRepository(tableau_server_url, repository_password, repository_username='readonly')`
 
-`"repository_username"` can also be "tableau" (although "readonly" has higher access) or `"tblwgadmin"` if you need to make updates or have access to hidden tables. It is highly suggested you only ever sign-in with tblwgadmin for the minimal amount of commands you need to send from that privledged user, then close that connection and reconnect as readonly.
+`"repository_username"` can also be "tablea" (although "readonly" has higher access) or `"tblwgadmin"` if you need to make updates or have access to hidden tables. It is highly suggested you only ever sign-in with tblwgadmin for the minimal amount of commands you need to send from that privledged user, then close that connection and reconnect as readonly.
 
 ### 4.2 query() Method
 `TableauRepository.query(sql, sql_parameter_list=None)`
@@ -1701,7 +1740,7 @@ Ex.
 
     t = TableauRestApiConnection27(server, username, password, site_content_url)
     t_rep = TableauRepository(server, repository_password=rep_pw)
-    sessions_for_username = t_rep.query_sessions(username=u'some_username')
+    sessions_for_username = t_rep.query_sessions(username='some_username')
     for row in sessions_for_username:
         t.signout(row[0])
 
