@@ -112,33 +112,18 @@ class SubscriptionMethods():
             self.end_log_block()
             raise e
 
-    def create_subscription_to_workbook(self, subscription_subject, wb_name_or_luid, schedule_name_or_luid,
-                                        username_or_luid, project_name_or_luid=None):
-        """
-        :type subscription_subject: unicode
-        :type wb_name_or_luid: unicode
-        :type schedule_name_or_luid: unicode
-        :type username_or_luid: unicode
-        :type project_name_or_luid: unicode
-        :rtype: unicode
-        """
+    def create_subscription_to_workbook(self, subscription_subject: str, wb_name_or_luid: str, 
+                                        schedule_name_or_luid: str, username_or_luid: str, 
+                                        project_name_or_luid: Optional[str] = None) -> str:
         self.start_log_block()
         luid = self.create_subscription(subscription_subject, 'Workbook', wb_name_or_luid, schedule_name_or_luid,
                                         username_or_luid, project_name_or_luid=project_name_or_luid)
         self.end_log_block()
         return luid
 
-    def create_subscription_to_view(self, subscription_subject, view_name_or_luid, schedule_name_or_luid,
-                                    username_or_luid, wb_name_or_luid=None, project_name_or_luid=None):
-        """
-        :type subscription_subject: unicode
-        :type view_name_or_luid: unicode
-        :type schedule_name_or_luid:
-        :type username_or_luid: unicode
-        :type wb_name_or_luid: unicode
-        :type project_name_or_luid: unicode
-        :rtype: unicode
-        """
+    def create_subscription_to_view(self, subscription_subject: str, view_name_or_luid: str, schedule_name_or_luid: str,
+                                    username_or_luid: str, wb_name_or_luid: Optional[str] = None, 
+                                    project_name_or_luid: Optional[str] = None) -> str:
         self.start_log_block()
         luid = self.create_subscription(subscription_subject, 'View', view_name_or_luid, schedule_name_or_luid,
                                         username_or_luid, wb_name_or_luid=wb_name_or_luid, project_name_or_luid=project_name_or_luid)
@@ -173,3 +158,39 @@ class SubscriptionMethods():
             url = self.build_api_url("subscriptions/{}".format(subscription_luid))
             self.send_delete_request(url)
         self.end_log_block()
+
+class SubscriptionMethods27(SubscriptionMethods):
+    def __init__(self, rest_api_base: TableauRestApiBase28):
+        self.rest_api_base = rest_api_base
+        
+class SubscriptionMethods28(SubscriptionMethods27):
+    def __init__(self, rest_api_base: TableauRestApiBase28):
+        self.rest_api_base = rest_api_base
+
+class SubscriptionMethods30(SubscriptionMethods28):
+    def __init__(self, rest_api_base: TableauRestApiBase30):
+        self.rest_api_base = rest_api_base
+
+class SubscriptionMethods31(SubscriptionMethods30):
+    def __init__(self, rest_api_base: TableauRestApiBase31):
+        self.rest_api_base = rest_api_base
+
+class SubscriptionMethods32(SubscriptionMethods31):
+    def __init__(self, rest_api_base: TableauRestApiBase32):
+        self.rest_api_base = rest_api_base
+
+class SubscriptionMethods33(SubscriptionMethods32):
+    def __init__(self, rest_api_base: TableauRestApiBase33):
+        self.rest_api_base = rest_api_base
+
+class SubscriptionMethods34(SubscriptionMethods33):
+    def __init__(self, rest_api_base: TableauRestApiBase34):
+        self.rest_api_base = rest_api_base
+
+class SubscriptionMethods35(SubscriptionMethods34):
+    def __init__(self, rest_api_base: TableauRestApiBase35):
+        self.rest_api_base = rest_api_base
+
+class SubscriptionMethods36(SubscriptionMethods35):
+    def __init__(self, rest_api_base: TableauRestApiBase36):
+        self.rest_api_base = rest_api_base
