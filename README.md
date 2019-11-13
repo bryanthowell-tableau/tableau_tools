@@ -781,68 +781,69 @@ There is also a `get_published_project_object` method, but the standard `query_p
 
 `TableauRestApiConnection.get_published_project_object(project_name_or_luid, project_xml_obj=None)`
 
-`Project20` represents the 9.0 and 9.1 style `Project` without default permissions.
-`Project21` represents all 9.2+ server versions with Default Permissions and locking content permissions to project.
+`Project` represents the Project objects from API 2.1 onward, which have workbook and datasouce defaults, as well as locking and unlocking.
 
-The `TableauRestApiConnectionXX` class will give you the right `Project20/Project21` object for its version.
+The `TableauRestApiConnectionXX` class will give you the right `Project object for its version.
 
+`Project.lock_permissions()`
 
-`Project21` implements the lock and unlock methods that only work in API Version 2.1+
+`Project.unlock_permission()`
 
-`Project21.lock_permissions()`
-
-`Project21.unlock_permission()`
-
-`Project21.are_permissions_locked()`
+`Project.are_permissions_locked()`
 
 You access the default permissions objects with the following, which are Workbook or Datasource object:
 
-`Project21.workbook_defaults`
+`Project.workbook_defaults`
 
-`Project21.datasource_defaults`
+`Project.datasource_defaults`
+
+Project28 expands the project definition to include a Parent Project LUID
+
+Project33 expands the project defintion to include a `.flow_defaults` sub-object for setting Default Permissions for Flows.
 
 #### 1.4.2 Permissions Classes
 Any time you want to set or change permissions, you should instantiate one of the `Permissions` classes to represent that set of permissions/capabilities available.
 
-`WorkbookPermissions20(group_or_user, group_or_user_luid)`
 
 `WorkbookPermissions21(group_or_user, group_or_user_luid)`
 
-`DatasourcePermissions20(group_or_user, group_or_user_luid)`
-
 `DatasourcePermissions21(group_or_user, group_or_user_luid)`
-
-`ProjectPermissions20(group_or_user, group_or_user_luid)`
 
 `ProjectPermissions21(group_or_user, group_or_user_luid)`
 
-You can get the correct permissions object through factory methods on the `Project20` and `Project21` classes. The option role parameter sets the permissions to match one of the named roles in Tableau Server. It is a shortcut to the `set_capabilities_to_match_role` method:
+`WorkbookPermissions28(group_or_user, group_or_user_luid)`
 
-`Project20.create_datasource_permissions_object_for_group(group_name_or_luid, role=None)`
+`DatasourcePermissions28(group_or_user, group_or_user_luid)`
 
-`Project20.create_workbook_permissions_object_for_group(group_name_or_luid, role=None)`
+`ProjectPermissions28(group_or_user, group_or_user_luid)`
 
-`Project20.create_project_permissions_object_for_group(group_name_or_luid, role=None)`
+`FlowPermission33(group_or_user, group_or_user_luid)`
 
-`Project20.create_datasource_permissions_object_for_user(username_or_luid, role=None)`
+You can get the correct permissions object through factory methods on the `Project` classes. The option role parameter sets the permissions to match one of the named roles in Tableau Server. It is a shortcut to the `set_capabilities_to_match_role` method:
 
-`Project20.create_workbook_permissions_object_for_user(username_or_luid, role=None)`
+`Project.create_datasource_permissions_object_for_group(group_name_or_luid, role=None)`
 
-`Project20.create_project_permissions_object_for_user(username_or_luid, role=None)`
-    
-`Project21.create_datasource_permissions_object_for_group(group_name_or_luid, role=None)`    
+`Project.create_workbook_permissions_object_for_group(group_name_or_luid, role=None)`
 
-`Project21.create_workbook_permissions_object_for_group(group_name_or_luid, role=None)`
+`Project.create_project_permissions_object_for_group(group_name_or_luid, role=None)`
 
-`Project21.create_project_permissions_object_for_group(group_name_or_luid, role=None)`
+`Project.create_datasource_permissions_object_for_user(username_or_luid, role=None)`
 
-`Project21.create_datasource_permissions_object_for_user(username_or_luid, role=None)`
+`Project.create_workbook_permissions_object_for_user(username_or_luid, role=None)`
 
-`Project21.create_workbook_permissions_object_for_user(username_or_luid, role=None)`
+`Project.create_project_permissions_object_for_user(username_or_luid, role=None)`
 
-`Project21.create_project_permissions_object_for_user(username_or_luid, role=None)`
 
-This `ProjectXX` object should be acquired by querying or creating a project, returning the correct `Project` object. You shouldn't ever need to contruct any of them manually.
+Project28 has the same methods as above.
+
+Project33 has the same methods, with the addition of:
+
+`Project33.create_flow_permissions_object_for_group(group_name_or_luid, role=None)`
+
+`Project33.create_flow_permissions_object_for_user(username_or_luid, role=None)`
+
+
+This `ProjectXX` object should be acquired by querying or creating a project, returning the correct `Project` object. You shouldn't ever need to construct any of them manually.
 
 Ex. 
 
@@ -853,16 +854,18 @@ Ex.
 #### 1.4.2 Setting Capabilities
 The Permissions classes have methods for setting capabilities individually, or matching the selectable "roles" in the Tableau Server UI. 
 
-The two allowable modes are "Allow" and "Deny", whereas setting unspecified has its own method.
-
+There are actually three states: "Allow", "Deny" and "Unspecified". While there is an underlying method for setting them:
 `Permissions.set_capability(capability_name, mode)`
 
+You are better off using the specific methods: 
+
+`Permissions.set_capability_to_allow(capability_name)`
+`Permissions.set_capability_to_deny(capability_name)`
 `Permissions.set_capability_to_unspecified(capability_name)`
 
 There are two quick methods for all to allow or all to deny:
 
 `Permissions.set_all_to_deny()`
-
 `Permissions.set_all_to_allow()`
 
 There is also a method to match the roles from the Tableau Server UI. It is aware of both the api version and the content_type, and will give you an error if you choose a role that is not available for that content type ("Project Leader" on a Workbook, for example)
@@ -886,9 +889,9 @@ There is also a method to clear all permissions for a given object:
 
 `PublishedContent.clear_all_permissions()`
 
-Project21 has an additional optional parameter to control if the defaults should be cleared as well:
+Project(28, 33) has an additional optional parameter to control if the defaults should be cleared as well:
 
-`Project21.clear_all_permissions(clear_defaults=True)`
+`Project.clear_all_permissions(clear_defaults=True)`
 
 This method does all of the necessary checks to send the simplest set of calls to update the content object. It takes a list of Permissions objects and compares against any existing permissions to add or update as necessary.
 
@@ -966,6 +969,8 @@ If a workbook references a published data source, that data source must be publi
 #### 1.5.1 Publishing a Workbook or Datasource
 The publish methods must upload directly from disk. If you are manipulating a workbook or datasource using the TableauFile / TableauDocument classes, please save the file prior to publishing. Also note that you specify a Project object rather than the LUID.
 
+These live under `TableauServerRest.publishing` when using those classes.
+
 `TableauRestApiConnection.publish_workbook(workbook_filename, workbook_name, project_obj, overwrite=False, connection_username=None, connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=True)`
 
 `TableauRestApiConnection.publish_datasource(ds_filename, ds_name, project_obj, overwrite=False, connection_username=None, connection_password=None, save_credentials=True)`
@@ -1010,8 +1015,8 @@ Here is an example of using that function
     
     replicate_workbooks_with_published_dses(o, d, wbs_to_replicate, o_wb_project, d_wb_project)
 
-#### 1.5.2 Workbook and Datasource Revisions (2.3+)
-Starting in API Version 2.3, revision history can be turned on for a site, allowing you to see the changes that are made to workbooks over time. Workbook and datasource revisions are identified by a number that counts up starting from 1. So if there has only ever been one publish action, there is only revision 1.
+#### 1.5.2 Workbook and Datasource Revisions
+If revision history is turned on for a site, allowing you to see the changes that are made to workbooks over time. Workbook and datasource revisions are identified by a number that counts up starting from 1. So if there has only ever been one publish action, there is only revision 1.
 
 The REST API does not have a method for "promote to current". This means to restore to a particular revision you have two options:
     1) Delete all revisions that come after the one you want to be the current published workbook or datasource
@@ -1019,21 +1024,24 @@ The REST API does not have a method for "promote to current". This means to rest
     
 To see the existing revisions, use
 
-`TableauRestApiConnection23.get_workbook_revisions(workbook_name_or_luid, username_or_luid=None, project_name_or_luid=None)`
+`TableauRestApiConnection.get_workbook_revisions(workbook_name_or_luid, username_or_luid=None, project_name_or_luid=None)`
 
-`TableauRestApiConnection23.get_datasource_revisions(datasource_name_or_luid, project_name_or_luid=None)`
+`TableauRestApiConnection.get_datasource_revisions(datasource_name_or_luid, project_name_or_luid=None)`
 
 You can remove revisions via 
 
-`TableauRestApiConnection23.remove_workbook_revision(wb_name_or_luid, revision_number, project_name_or_luid=None, username_or_luid=None)`
+`TableauRestApiConnection.remove_workbook_revision(wb_name_or_luid, revision_number, project_name_or_luid=None, username_or_luid=None)`
 
-`TableauRestApiConnection23.remove_datasource_revision(datasource_name_or_luid, revision_number, project_name_or_luid=None)`
+`TableauRestApiConnection.remove_datasource_revision(datasource_name_or_luid, revision_number, project_name_or_luid=None)`
 
 You can download any revision as a file using methods that mirror the standard download workbook and datasource methods.
 
-`TableauRestApiConnection23.download_datasource_revision(ds_name_or_luid, revision_number, filename_no_extension, proj_name_or_luid=None)`
+`TableauRestApiConnection.download_datasource_revision(ds_name_or_luid, revision_number, filename_no_extension, proj_name_or_luid=None)`
 
-`TableauRestApiConnection23.download_workbook_revision(wb_name_or_luid, revision_number, filename_no_extension, proj_name_or_luid=None)`
+`TableauRestApiConnection.download_workbook_revision(wb_name_or_luid, revision_number, filename_no_extension, proj_name_or_luid=None)`
+
+All of the revision methods live under
+`TableauServerRest.revisions`
 
 #### 1.5.3 Asynchronous Publishing (API 3.0+)
 In API 3.0+ (Tableau 2018.1 and above), you can publish workbooks asychronously, so you can move on to other actions after you have pushed up the bits to the server.
@@ -1067,26 +1075,26 @@ Here's an example of an async publish, then polling every second to see if it ha
 #### 1.6.1 Running an Extract Refresh Schedule (Tableau 10.3+ / API 2.6)
 The TableauRestApiConnection26 class, representing the API for Tableau 10.3, includes methods for triggering extract refreshes via the REST API.
 
-`TableauRestApiConnection26.run_all_extract_refreshes_for_schedule(schedule_name_or_luid) `
+`TableauRestApiConnection.run_all_extract_refreshes_for_schedule(schedule_name_or_luid) `
 
 runs through all extract tasks related to a given schedule and sets them to run.
 
 If you want to run one task individually, use
 
-`TableauRestApiConnection26.run_extract_refresh_for_workbook(wb_name_or_luid, proj_name_or_luid=None, username_or_luid=None)`
+`TableauRestApiConnection.run_extract_refresh_for_workbook(wb_name_or_luid, proj_name_or_luid=None, username_or_luid=None)`
 
-`TableauRestApiConnection26.run_extract_refresh_for_datasource(ds_name_or_luid, proj_name_or_luid=None, username_or_luid=None)`
+`TableauRestApiConnection.run_extract_refresh_for_datasource(ds_name_or_luid, proj_name_or_luid=None, username_or_luid=None)`
 
 You can get all extract refresh tasks on the server using
 
-`TableauRestApiConnection26.get_extract_refresh_tasks()`
+`TableauRestApiConnection.get_extract_refresh_tasks()`
 
 although if you simply want to set all of the extract schedules to run, use
 
-`TableauRestApiConnection22.query_extract_schedules()`
+`TableauRestApiConnection.query_extract_schedules()`
 
 There is equivalent for for subscription schedules:
-`TableauRestApiConnection22.query_subscription_schedules()`
+`TableauRestApiConnection.query_subscription_schedules()`
 
 Ex.
 
@@ -1110,26 +1118,12 @@ Starting in Tableau 10.5 (API 2.8), you can put a workbook or datasource on an E
 
 
 #### 1.6.4 Putting published content on an Extract Schedule Prior to 10.5 (high risk)
-Prior to Tableau 10.5, there was no REST API method for putting a given workbook or datasource on an extract schedule.
-
-This could be accomplished by making a direct entry into the Tableau PostgreSQL Repository using the superuser. You must be running your script FROM the Tableau Server machine to have access to connect to the repository (you may be able to modify firewall and other things per https://onlinehelp.tableau.com/current/server/en-us/perf_collect_server_repo.htm but it's easiest just to be on the Server itself)
-
-The TableauRepository class has a method for accomplishing the necessary insert.
-
-`TableauRepository.set_workbook_on_schedule(workbook_luid, schedule_name)`
-
-`TableauRepository.set_datasource_on_schedule(datsource_luid, schedule_name)`
-
-ex. 
-
-    new_wb_luid = t.publish_workbook(new_filename, 'My Awesome TWBX Workbook', default_proj, overwrite=True, save_credentials=True)
-    tab_rep = TableauRepository('https://tableauserver', repository_username='$superUserYouBetterKnow', repository_password='')
-    tab_rep.set_workbook_on_schedule(new_wb_luid, 'Saturday night')
-
-As mentioned, this requires have super access to the Tableau repository, including its password, which could be dangerous. If you can at all, update to Tableau 10.5+ and use the REST API methods from above.
+Just upgrade your server at this point, that is a long long time to go without an upgrade
 
 ### 1.7 Data Driven Alerts (2018.3+)
 Starting in API 3.2 (2018.3+), you can manage Data Driven Alerts via the APIs. The methods for this functionality follows the exact naming pattern of the REST API Reference.
+
+These methods live under `TableauServerRest.alerts` when using `TableauServerRest`
     
 ## 2 tableau_documents: Modifying Tableau Documents (for Template Publishing)
 tableau_documents implements some features that go beyond the Tableau REST API, but are extremely useful when dealing with a large number of workbooks or datasources, particularly for multi-tenented Sites. These methods actually allow unsupported changes to the Tableau workbook or datasource XML. If something breaks with them, blame the author of the library and not Tableau Support, who won't help you with them.

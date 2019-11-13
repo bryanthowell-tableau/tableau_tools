@@ -906,6 +906,13 @@ class Project28(Project):
             perms_obj.set_capabilities_to_match_role(role)
         return perms_obj
 
+class Project33(Project28):
+    def __init__(self, luid, tableau_rest_api_obj, tableau_server_version, logger_obj=None,
+                 content_xml_obj=None, parent_project_luid=None):
+        Project28.__init__(self, luid, tableau_rest_api_obj, tableau_server_version, logger_obj=logger_obj,
+                           content_xml_obj=content_xml_obj, parent_project_luid=parent_project_luid)
+        self.flow_defaults = Flow(self.luid, self.t_rest_api, tableau_server_version=tableau_server_version,
+                                  default=True, logger_obj=logger_obj)
 
 class Workbook(PublishedContent):
     def __init__(self, luid, tableau_rest_api_obj, tableau_server_version, default=False, logger_obj=None,
