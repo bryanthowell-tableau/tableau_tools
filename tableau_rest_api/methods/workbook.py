@@ -5,11 +5,7 @@ class WorkbookMethods():
 
     def __getattr__(self, attr):
         return getattr(self.rest_api_base, attr)
-    #
-    # Start Workbook Querying Methods
-    #
 
-    # Filtering implemented for workbooks in 2.2
     # This uses the logged in username for convenience by default
     def query_workbooks(self, username_or_luid: Optional[str] = None, project_name_or_luid: Optional[str] = None,
                         all_fields: Optional[bool] = True, created_at_filter: Optional[UrlFilter] = None,
@@ -163,16 +159,9 @@ class WorkbookMethods():
         self.end_log_block()
         return response
 
-    def query_view_image(self, view_name_or_luid, high_resolution=False, view_filter_map=None,
-                         wb_name_or_luid=None, proj_name_or_luid=None):
-        """
-        :type view_name_or_luid: unicode
-        :type high_resolution: bool
-        :type view_filter_map: dict
-        :type wb_name_or_luid: unicode
-        :type proj_name_or_luid
-        :rtype:
-        """
+    def query_view_image(self, view_name_or_luid: Optional[str] = None,
+                         high_resolution: Optional[bool] = False, view_filter_map: Optional[Dict] = None,
+                         wb_name_or_luid: Optional[str] = None, proj_name_or_luid: Optional[str] = None) -> bytes:
         self.start_log_block()
         image = self._query_data_file('image', view_name_or_luid=view_name_or_luid, high_resolution=high_resolution,
                                       view_filter_map=view_filter_map, wb_name_or_luid=wb_name_or_luid,
@@ -180,16 +169,10 @@ class WorkbookMethods():
         self.end_log_block()
         return image
 
-    def save_view_image(self, wb_name_or_luid=None, view_name_or_luid=None, filename_no_extension=None,
-                        proj_name_or_luid=None, view_filter_map=None):
-        """
-        :type wb_name_or_luid: unicode
-        :type view_name_or_luid: unicode
-        :type proj_name_or_luid: unicode
-        :type filename_no_extension: unicode
-        :type view_filter_map: dict
-        :rtype:
-        """
+    def save_view_image(self, wb_name_or_luid: Optional[str] = None, view_name_or_luid: Optional[str] = None,
+                        filename_no_extension: Optional[str] = None,
+                        proj_name_or_luid: Optional[str] = None, view_filter_map: Optional[Dict] = None) -> str:
+
         self.start_log_block()
         data = self.query_view_image(wb_name_or_luid=wb_name_or_luid, view_name_or_luid=view_name_or_luid,
                                      proj_name_or_luid=proj_name_or_luid, view_filter_map=view_filter_map)
@@ -202,7 +185,7 @@ class WorkbookMethods():
                 save_file.write(data)
                 save_file.close()
                 self.end_log_block()
-                return
+                return filename_no_extension
             except IOError:
                 self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension))
                 self.end_log_block()
@@ -235,25 +218,16 @@ class WorkbookMethods():
         self.end_log_block()
         return vws
 
-    def query_workbook_view(self, wb_name_or_luid, view_name_or_luid=None, view_content_url=None, proj_name_or_luid=None, username_or_luid=None,
-                            usage=False):
-        """
-        :type wb_name_or_luid: unicode
-        :type proj_name_or_luid: unicode
-        :type username_or_luid: unicode
-        :type view_name_or_luid: unicode
-        :type view_content_url: unicode
-        :type usage: bool
-        :rtype: etree.Element
-        """
+    def query_workbook_view(self, wb_name_or_luid, view_name_or_luid: Optional[str] = None,
+                            view_content_url: Optional[str] = None, proj_name_or_luid: Optional[str] = None,
+                            username_or_luid: Optional[str] = None, usage: Optional[bool] = False) -> etree.Element:
+
         self.start_log_block()
         if usage not in [True, False]:
             raise InvalidOptionException('Usage can only be set to True or False')
-        if self.is_luid(wb_name_or_luid):
-            wb_luid = wb_name_or_luid
-        else:
-            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
+        wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
         vws = self.query_resource("workbooks/{}/views?includeUsageStatistics={}".format(wb_luid, str(usage).lower()))
+
         if view_content_url is not None:
             views_with_name = vws.findall('.//t:view[@contentUrl="{}"]'.format(view_content_url), self.ns_map)
         elif self.is_luid(view_name_or_luid):
@@ -262,15 +236,13 @@ class WorkbookMethods():
             views_with_name = vws.findall('.//t:view[@name="{}"]'.format(view_name_or_luid), self.ns_map)
         if len(views_with_name) == 0:
             self.end_log_block()
-            raise NoMatchFoundException('No view found with name {} in workbook {}').format(view_name_or_luid, wb_name_or_luid)
+            raise NoMatchFoundException('No view found with name {} in workbook {}'.format(view_name_or_luid, wb_name_or_luid))
         elif len(views_with_name) > 1:
             self.end_log_block()
             raise MultipleMatchesFoundException(
-                'More than one view found by name {} in workbook {}. Use view_content_url parameter').format(view_name_or_luid, wb_name_or_luid)
+                'More than one view found by name {} in workbook {}. Use view_content_url parameter'.format(view_name_or_luid, wb_name_or_luid))
         self.end_log_block()
         return views_with_name
-
-
 
     # This should be the key to updating the connections in a workbook. Seems to return
     # LUIDs for connections and the datatypes, but no way to distinguish them
@@ -282,17 +254,10 @@ class WorkbookMethods():
         self.end_log_block()
         return conns
 
-    def query_views(self, all_fields=True, usage=False, created_at_filter=None, updated_at_filter=None,
-                    tags_filter=None, sorts=None, fields=None):
-        """
-        :type usage: bool
-        :type created_at_filter: UrlFilter
-        :type updated_at_filter: UrlFilter
-        :type tags_filter: UrlFilter
-        :type sorts: List[Sort]
-        :type fields: List[unicode]
-        :rtype: etree.Element
-        """
+    def query_views(self, all_fields: Optional[bool] = True, usage: Optional[bool] = False,
+                         created_at_filter: Optional[UrlFilter] = None, updated_at_filter: Optional[UrlFilter] = None,
+                         tags_filter: Optional[UrlFilter] = None, sorts: Optional[UrlFilter] = None,
+                         fields: Optional[UrlFilter] = None) -> etree.Element:
         self.start_log_block()
 
         if fields is None:
@@ -309,18 +274,10 @@ class WorkbookMethods():
         self.end_log_block()
         return vws
 
-    def query_views_json(self, all_fields=True, usage=False, created_at_filter=None, updated_at_filter=None,
-                    tags_filter=None, sorts=None, fields=None, page_number=None):
-        """
-        :type usage: bool
-        :type created_at_filter: UrlFilter
-        :type updated_at_filter: UrlFilter
-        :type tags_filter: UrlFilter
-        :type sorts: List[Sort]
-        :type fields: List[unicode]
-        :type page_number: int
-        :rtype: json
-        """
+    def query_views_json(self, all_fields: Optional[bool] = True, usage: Optional[bool] = False,
+                         created_at_filter: Optional[UrlFilter] = None, updated_at_filter: Optional[UrlFilter] = None,
+                         tags_filter: Optional[UrlFilter] = None, sorts: Optional[UrlFilter] = None,
+                         fields: Optional[UrlFilter] = None, page_number: Optional[int] = None) -> str:
         self.start_log_block()
 
         if fields is None:
@@ -333,7 +290,8 @@ class WorkbookMethods():
         filters = self._check_filter_objects(filter_checks)
 
         vws = self.query_resource_json("views", filters=filters, sorts=sorts, fields=fields,
-                                  additional_url_ending="includeUsageStatistics={}".format(str(usage).lower()))
+                                       additional_url_ending="includeUsageStatistics={}".format(str(usage).lower()),
+                                       page_number=page_number)
         self.end_log_block()
         return vws
 
@@ -572,16 +530,8 @@ class WorkbookMethods28(WorkbookMethods27):
         return pdf
 
     # Do not include file extension
-    def save_view_pdf(self, wb_name_or_luid, view_name_or_luid, filename_no_extension,
-                                         proj_name_or_luid=None, view_filter_map=None):
-        """
-        :type wb_name_or_luid: unicode
-        :type view_name_or_luid: unicode
-        :type proj_name_or_luid: unicode
-        :type filename_no_extension: unicode
-        :type view_filter_map: dict
-        :rtype:
-        """
+    def save_view_pdf(self, wb_name_or_luid: str, view_name_or_luid: str, filename_no_extension: str,
+                      proj_name_or_luid: Optional[str] = None, view_filter_map: Optional[Dict] = None) -> str:
         self.start_log_block()
         pdf = self.query_view_pdf(view_name_or_luid=view_name_or_luid, wb_name_or_luid=wb_name_or_luid,
                                   proj_name_or_luid=proj_name_or_luid, view_filter_map=view_filter_map)
@@ -593,36 +543,24 @@ class WorkbookMethods28(WorkbookMethods27):
             save_file.write(pdf)
             save_file.close()
             self.end_log_block()
+            return filename_no_extension
         except IOError:
             self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension))
             self.end_log_block()
             raise
 
-    def query_view_data(self, wb_name_or_luid=None, view_name_or_luid=None, proj_name_or_luid=None,
-                        view_filter_map=None):
-        """
-        :type wb_name_or_luid: unicode
-        :type view_name_or_luid: unicode
-        :type proj_name_or_luid: unicode
-        :type view_filter_map: dict
-        :rtype:
-        """
+    def query_view_data(self, wb_name_or_luid: Optional[str] = None, view_name_or_luid: Optional[str] = None,
+                        proj_name_or_luid: Optional[str] = None, view_filter_map: Optional[Dict] = None) -> bytes:
         self.start_log_block()
         csv = self._query_data_file('data', view_name_or_luid=view_name_or_luid, wb_name_or_luid=wb_name_or_luid,
                                     proj_name_or_luid=proj_name_or_luid, view_filter_map=view_filter_map)
         self.end_log_block()
         return csv
 
-    def save_view_data_as_csv(self, wb_name_or_luid=None, view_name_or_luid=None, filename_no_extension=None,
-                              proj_name_or_luid=None, view_filter_map=None):
-        """
-        :type wb_name_or_luid: unicode
-        :type view_name_or_luid: unicode
-        :type proj_name_or_luid: unicode
-        :type filename_no_extension: unicode
-        :type view_filter_map: dict
-        :rtype:
-        """
+    def save_view_data_as_csv(self, wb_name_or_luid: Optional[str] = None, view_name_or_luid: Optional[str] = None,
+                              filename_no_extension: Optional[str] = None, proj_name_or_luid: Optional[str] = None,
+                              view_filter_map: Optional[Dict] = None) -> str:
+
         self.start_log_block()
         data = self.query_view_data(wb_name_or_luid=wb_name_or_luid, view_name_or_luid=view_name_or_luid,
                                     proj_name_or_luid=proj_name_or_luid, view_filter_map=view_filter_map)
@@ -635,7 +573,7 @@ class WorkbookMethods28(WorkbookMethods27):
                 save_file.write(data)
                 save_file.close()
                 self.end_log_block()
-                return
+                return filename_no_extension
             except IOError:
                 self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension))
                 self.end_log_block()
@@ -664,17 +602,9 @@ class WorkbookMethods34(WorkbookMethods33):
     def __init__(self, rest_api_base: TableauRestApiBase34):
         self.rest_api_base = rest_api_base
 
-    def query_view_image(self, view_name_or_luid, high_resolution=False, view_filter_map=None,
-                         wb_name_or_luid=None, proj_name_or_luid=None, max_age_minutes=None):
-        """
-        :type view_name_or_luid: unicode
-        :type high_resolution: bool
-        :type view_filter_map: dict
-        :type wb_name_or_luid: unicode
-        :type proj_name_or_luid
-        :type max_age_minutes: int
-        :rtype:
-        """
+    def query_view_image(self, view_name_or_luid: Optional[str] = None, high_resolution: Optional[bool] = False,
+                         view_filter_map: Optional[Dict] = None, wb_name_or_luid: Optional[str] = None,
+                         proj_name_or_luid: Optional[str] = None,  max_age_minutes: Optional[int] = None) -> bytes:
         self.start_log_block()
         image = self._query_data_file('image', view_name_or_luid=view_name_or_luid, high_resolution=high_resolution,
                                       view_filter_map=view_filter_map, wb_name_or_luid=wb_name_or_luid,
