@@ -911,20 +911,29 @@ class TableauRestApiBase(LookupMethods, TableauBase):
         self.end_log_block()
         return server_info
 
-    # UNFINISHED
     def query_server_version(self) -> str:
-        """
-        :rtype:
-        """
         self.start_log_block()
         server_info = self.query_server_info()
         # grab the server number
+        for t in server_info:
+            if t.tag.find('restApiVersion') != -1:
+                return t.text
 
-    # UNFINISHED
+    def query_build_number(self) -> str:
+        self.start_log_block()
+        server_info = self.query_server_info()
+        # grab the server number
+        for t in server_info:
+            if t.tag.find('restApiVersion') != -1:
+                return t.get('build')
+
     def query_api_version(self):
         self.start_log_block()
         server_info = self.query_server_info()
         # grab api version number
+        for t in server_info:
+            if t.tag.find('productVersion') != -1:
+                return t.text
 
     def update_online_site_logo(self, image_filename: str):
         # Request type is mixed and require a boundary
