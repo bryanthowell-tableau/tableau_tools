@@ -21,10 +21,7 @@ class WorkbookMethods():
             if all_fields is True:
                 fields = ['_all_']
 
-        if username_or_luid is None:
-            user_luid = self.user_luid
-        else:
-            user_luid = self.query_user_luid(username_or_luid)
+        user_luid = self.query_user_luid(username_or_luid)
 
         filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter,
                          'ownerName': owner_name_filter}
@@ -36,7 +33,6 @@ class WorkbookMethods():
             wbs = self.query_resource("workbooks".format(user_luid), sorts=sorts, filters=filters, fields=fields)
 
         if project_name_or_luid is not None:
-
             project_luid = self.query_project_luid(project_name_or_luid)
             wbs_in_project = wbs.findall('.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
             wbs = etree.Element(self.ns_prefix + 'workbooks')
@@ -62,10 +58,7 @@ class WorkbookMethods():
             if all_fields is True:
                 fields = ['_all_']
 
-        if username_or_luid is None:
-            user_luid = self.user_luid
-        else:
-            user_luid = self.query_user_luid(username_or_luid)
+        user_luid = self.query_user_luid(username_or_luid)
 
         filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter,
                          'ownerName': owner_name_filter}
@@ -115,16 +108,11 @@ class WorkbookMethods():
             self.end_log_block()
             return wb
 
-
-
     def query_workbooks_in_project(self, project_name_or_luid: str, username_or_luid: Optional[str] = None):
         self.start_log_block()
 
         project_luid = self.query_project_luid(project_name_or_luid)
-        if username_or_luid is None:
-            user_luid = self.user_luid
-        else:
-            user_luid = self.query_user_luid(username_or_luid)
+        user_luid = self.query_user_luid(username_or_luid)
         workbooks = self.query_workbooks(user_luid)
         # This brings back the workbook itself
         wbs_in_project = workbooks.findall('.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
@@ -134,22 +122,13 @@ class WorkbookMethods():
         self.end_log_block()
         return wbs
 
-    def update_workbook(self, workbook_name_or_luid, workbook_project_name_or_luid, new_project_luid=None,
-                        new_owner_luid=None, show_tabs=True):
-        """
-        :type workbook_name_or_luid: unicode
-        :type workbook_project_name_or_luid: unicode
-        :type new_project_luid: unicode
-        :type new_owner_luid: unicode
-        :type show_tabs: bool
-        :rtype: etree.Element
-        """
+    def update_workbook(self, workbook_name_or_luid: str, workbook_project_name_or_luid: str,
+                        new_project_name_or_luid: Optional[str] = None, new_owner_username_or_luid: Optional[str] = None,
+                        show_tabs: Optional[bool] = True) -> etree.Element:
         self.start_log_block()
-        if self.is_luid(workbook_name_or_luid):
-            workbook_luid = workbook_name_or_luid
-        else:
-            workbook_luid = self.query_workbook_luid(workbook_name_or_luid, workbook_project_name_or_luid,
-                                                     self.username)
+        workbook_luid = self.query_workbook_luid(workbook_name_or_luid, workbook_project_name_or_luid, self.username)
+        new_owner_luid = self.query_user_luid(new_owner_username_or_luid)
+        new_project_luid = self.query_project_luid(new_project_name_or_luid)
         tsr = etree.Element("tsRequest")
         w = etree.Element("workbook")
         w.set('showTabs', str(show_tabs).lower())
@@ -171,18 +150,11 @@ class WorkbookMethods():
 
     # To do this, you need the workbook's connection_luid. Seems to only come from "Query Workbook Connections",
     # which does not return any names, just types and LUIDs
-    def update_workbook_connection_by_luid(self, wb_luid, connection_luid, new_server_address=None,
-                                           new_server_port=None,
-                                           new_connection_username=None, new_connection_password=None):
-        """
-        :type wb_luid: unicode
-        :type connection_luid: unicode
-        :type new_server_address: unicode
-        :type new_server_port: unicode
-        :type new_connection_username: unicode
-        :type new_connection_password: unicode
-        :rtype: etree.Element
-        """
+    def update_workbook_connection_by_luid(self, wb_luid: str, connection_luid: str,
+                                           new_server_address: Optional[str] = None,
+                                           new_server_port: Optional[str] = None,
+                                           new_connection_username: Optional[str] = None,
+                                           new_connection_password: Optional[str] = None) -> etree.Element:
         self.start_log_block()
         tsr = self.__build_connection_update_xml(new_server_address, new_server_port, new_connection_username,
                                                  new_connection_password)
@@ -240,45 +212,26 @@ class WorkbookMethods():
                 'This method is for saving response to file. Must include filename_no_extension parameter')
 
 
-    def query_workbook_views(self, wb_name_or_luid, proj_name_or_luid=None, username_or_luid=None, usage=False):
-        """
-        :type wb_name_or_luid: unicode
-        :type proj_name_or_luid: unicode
-        :type username_or_luid: unicode
-        :type usage: bool
-        :rtype: etree.Element
-        """
+    def query_workbook_views(self, wb_name_or_luid: str, proj_name_or_luid: Optional[str] = None,
+                             username_or_luid: Optional[str] = None, usage: Optional[bool] = False) -> etree.Element:
         self.start_log_block()
         if usage not in [True, False]:
             raise InvalidOptionException('Usage can only be set to True or False')
-        if self.is_luid(wb_name_or_luid):
-            wb_luid = wb_name_or_luid
-        else:
-            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
+        wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
         vws = self.query_resource("workbooks/{}/views?includeUsageStatistics={}".format(wb_luid, str(usage).lower()))
         self.end_log_block()
         return vws
 
-    def query_workbook_views_json(self, wb_name_or_luid, proj_name_or_luid=None, username_or_luid=None, usage=False,
-                                  page_number=None):
-        """
-        :type wb_name_or_luid: unicode
-        :type proj_name_or_luid: unicode
-        :type username_or_luid: unicode
-        :type usage: bool
-        :type page_number: int
-        :rtype: json
-        """
+    def query_workbook_views_json(self, wb_name_or_luid: str, proj_name_or_luid: Optional[str] = None,
+                                  username_or_luid: Optional[str] = None, usage: Optional[bool] = False,
+                                  page_number: Optional[int] = None) -> str:
         self.start_log_block()
         if usage not in [True, False]:
             raise InvalidOptionException('Usage can only be set to True or False')
-        if self.is_luid(wb_name_or_luid):
-            wb_luid = wb_name_or_luid
-        else:
-            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
-        vws = self.query_resource_json("workbooks/{}/views?includeUsageStatistics={}".format(wb_luid,
-                                                                                              str(usage).lower()),
-                                                                                              page_number=page_number)
+        wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
+        url_params = self.rest_api_base.build_url_parameter_string(map_dict={'includeUsageStatistics': str(usage).lower()})
+        vws = self.query_resource_json("workbooks/{}/views".format(wb_luid),
+                                       additional_url_ending=url_params, page_number=page_number)
         self.end_log_block()
         return vws
 
@@ -321,12 +274,10 @@ class WorkbookMethods():
 
     # This should be the key to updating the connections in a workbook. Seems to return
     # LUIDs for connections and the datatypes, but no way to distinguish them
-    def query_workbook_connections(self, wb_name_or_luid, proj_name_or_luid=None, username_or_luid=None):
+    def query_workbook_connections(self, wb_name_or_luid: str, proj_name_or_luid: Optional[str] = None,
+                                   username_or_luid: Optional[str] = None) -> etree.Element:
         self.start_log_block()
-        if self.is_luid(wb_name_or_luid):
-            wb_luid = wb_name_or_luid
-        else:
-            wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
+        wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
         conns = self.query_resource("workbooks/{}/connections".format(wb_luid))
         self.end_log_block()
         return conns
@@ -386,11 +337,7 @@ class WorkbookMethods():
         self.end_log_block()
         return vws
 
-    def query_view(self, vw_name_or_luid):
-        """
-        :type vw_name_or_luid:
-        :rtype: etree.Element
-        """
+    def query_view(self, vw_name_or_luid: str) -> etree.Element:
         self.start_log_block()
         vw = self.query_single_element_from_endpoint_with_filter('view', vw_name_or_luid)
         self.end_log_block()
@@ -398,7 +345,6 @@ class WorkbookMethods():
 
     # Can take collection or luid_string
     def delete_workbooks(self, wb_name_or_luid_s: Union[List[str], str]):
-
         self.start_log_block()
         wbs = self.to_list(wb_name_or_luid_s)
         for wb in wbs:
@@ -459,7 +405,6 @@ class WorkbookMethods():
     # workbook LUID from the view LUID
     def query_view_preview_image(self, wb_name_or_luid: str, view_name_or_luid: str,
                                          proj_name_or_luid: Optional[str] = None) -> bytes:
-
         self.start_log_block()
         wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
         view_luid = self.query_workbook_view_luid(wb_name_or_luid, view_name=view_name_or_luid,
