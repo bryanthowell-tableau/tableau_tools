@@ -355,6 +355,19 @@ class WorkbookMethods():
         self.end_log_block()
         return save_filename
 
+    def publish_workbook(self, workbook_filename: str, workbook_name: str, project_obj: Project,
+                         overwrite: Optional[bool] = False, connection_username: Optional[str] = None,
+                         connection_password: Optional[str] = None, save_credentials: Optional[bool] = True,
+                         show_tabs: Optional[bool] = True, check_published_ds: Optional[bool] = True,
+                         oauth_flag: Optional[bool] = False) -> str:
+        project_luid = project_obj.luid
+        xml = self.publish_content('workbook', workbook_filename, workbook_name, project_luid,
+                                   {"overwrite": overwrite}, connection_username, connection_password,
+                                   save_credentials, show_tabs=show_tabs, check_published_ds=check_published_ds,
+                                   oauth_flag=oauth_flag)
+        workbook = xml.findall('.//t:workbook', self.ns_map)
+        return workbook[0].get('id')
+
     #
     # Image and PDF endpoints
     #
@@ -586,6 +599,27 @@ class WorkbookMethods30(WorkbookMethods28):
     def __init__(self, rest_api_base: TableauRestApiBase30):
         self.rest_api_base = rest_api_base
 
+    def publish_workbook(self, workbook_filename: str, workbook_name: str, project_obj: Project,
+                         overwrite: Optional[bool] = False, async_publish: Optional[bool] = False,
+                         connection_username: Optional[str] = None,
+                         connection_password: Optional[str] = None, save_credentials: Optional[bool] = True,
+                         show_tabs: Optional[bool] = True, check_published_ds: Optional[bool] = True,
+                         oauth_flag: Optional[bool] = False) -> str:
+        project_luid = project_obj.luid
+        xml = self._publish_content(content_type='workbook', content_filename=workbook_filename,
+                                   content_name=workbook_name, project_luid=project_luid,
+                                   url_params={"overwrite": overwrite, "asJob": async_publish},
+                                   connection_username=connection_username,
+                                   connection_password=connection_password, save_credentials=save_credentials,
+                                   show_tabs=show_tabs,
+                                   check_published_ds=check_published_ds, oauth_flag=oauth_flag)
+        if async_publish is True:
+            job = xml.findall('.//t:job', self.ns_map)
+            return job[0].get('id')
+        else:
+            workbook = xml.findall('.//t:workbook', self.ns_map)
+            return workbook[0].get('id')
+
 class WorkbookMethods31(WorkbookMethods30):
     def __init__(self, rest_api_base: TableauRestApiBase31):
         self.rest_api_base = rest_api_base
@@ -593,6 +627,30 @@ class WorkbookMethods31(WorkbookMethods30):
 class WorkbookMethods32(WorkbookMethods31):
     def __init__(self, rest_api_base: TableauRestApiBase32):
         self.rest_api_base = rest_api_base
+
+    # In 3.2, you can hide views from publishing
+    def publish_workbook(self, workbook_filename: str, workbook_name: str, project_obj: Project,
+                         overwrite: Optional[bool] = False, async_publish: Optional[bool] = False,
+                         connection_username: Optional[str] = None,
+                         connection_password: Optional[str] = None, save_credentials: Optional[bool] = True,
+                         show_tabs: Optional[bool] = True, check_published_ds: Optional[bool] = True,
+                         oauth_flag: Optional[bool] = False, views_to_hide_list: Optional[List[str]] = None) -> str:
+
+        project_luid = project_obj.luid
+        xml = self._publish_content(content_type='workbook', content_filename=workbook_filename,
+                                   content_name=workbook_name, project_luid=project_luid,
+                                   url_params={"overwrite": overwrite, "asJob": async_publish},
+                                   connection_username=connection_username,
+                                   connection_password=connection_password,
+                                   save_credentials=save_credentials, show_tabs=show_tabs,
+                                   check_published_ds=check_published_ds, oauth_flag=oauth_flag,
+                                   views_to_hide_list=views_to_hide_list)
+        if async_publish is True:
+            job = xml.findall('.//t:job', self.ns_map)
+            return job[0].get('id')
+        else:
+            workbook = xml.findall('.//t:workbook', self.ns_map)
+            return workbook[0].get('id')
 
 class WorkbookMethods33(WorkbookMethods32):
     def __init__(self, rest_api_base: TableauRestApiBase33):
@@ -611,6 +669,30 @@ class WorkbookMethods34(WorkbookMethods33):
                                       proj_name_or_luid=proj_name_or_luid, max_age_minutes=max_age_minutes)
         self.end_log_block()
         return image
+
+    def publish_workbook(self, workbook_filename: str, workbook_name: str, project_obj: Project,
+                         overwrite: Optional[bool] = False, async_publish: Optional[bool] = False,
+                         connection_username: Optional[str] = None,
+                         connection_password: Optional[str] = None, save_credentials: Optional[bool] = True,
+                         show_tabs: Optional[bool] = True, check_published_ds: Optional[bool] = True,
+                         oauth_flag: Optional[bool] = False, views_to_hide_list: Optional[List[str]] = None,
+                         generate_thumbnails_as_username_or_luid: Optional[str] = None):
+        project_luid = project_obj.luid
+        xml = self._publish_content(content_type='workbook', content_filename=workbook_filename,
+                                   content_name=workbook_name, project_luid=project_luid,
+                                   url_params={"overwrite": overwrite, "asJob": async_publish},
+                                   connection_username=connection_username,
+                                   connection_password=connection_password,
+                                   save_credentials=save_credentials, show_tabs=show_tabs,
+                                   check_published_ds=check_published_ds, oauth_flag=oauth_flag,
+                                   views_to_hide_list=views_to_hide_list,
+                                   generate_thumbnails_as_username_or_luid=generate_thumbnails_as_username_or_luid)
+        if async_publish is True:
+            job = xml.findall('.//t:job', self.ns_map)
+            return job[0].get('id')
+        else:
+            workbook = xml.findall('.//t:workbook', self.ns_map)
+            return workbook[0].get('id')
 
 class WorkbookMethods35(WorkbookMethods34):
     def __init__(self, rest_api_base: TableauRestApiBase35):

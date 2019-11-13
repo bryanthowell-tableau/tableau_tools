@@ -1061,9 +1061,8 @@ The Tableau REST API can publish both data sources and workbooks, either as TWB 
 If a workbook references a published data source, that data source must be published first. Additionally, unlike Tableau Desktop, the REST API will not find linked files and upload them. A workbook with a "live connection" to an Excel file, for example, must be saved as a TWBX rather than a TWB for an upload to work correctly. The error messages if you do not follow this order are not very clear. 
 
 #### 1.5.1 Publishing a Workbook or Datasource
-The publish methods must upload directly from disk. If you are manipulating a workbook or datasource using the TableauFile / TableauDocument classes, please save the file prior to publishing. Also note that you specify a Project object rather than the LUID.
+The publish methods must upload directly from disk. If you are manipulating a workbook or datasource using the TableauFile / TableauDocument classes, please save the file prior to publishing. Also note that you specify a Project object rather than the LUID. Publishing methods live under their respective sub-objects in TableauServeRest: .workbooks, .datasources or .flows
 
-These live under `TableauServerRest.publishing` when using those classes.
 
 `TableauRestApiConnection.publish_workbook(workbook_filename, workbook_name, project_obj, overwrite=False, connection_username=None, connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=True)`
 

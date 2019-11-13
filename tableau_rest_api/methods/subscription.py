@@ -160,7 +160,7 @@ class SubscriptionMethods():
         self.end_log_block()
 
 class SubscriptionMethods27(SubscriptionMethods):
-    def __init__(self, rest_api_base: TableauRestApiBase28):
+    def __init__(self, rest_api_base: TableauRestApiBase27):
         self.rest_api_base = rest_api_base
         
 class SubscriptionMethods28(SubscriptionMethods27):

@@ -256,6 +256,18 @@ class FlowMethods33():
         self.end_log_block()
         return save_filename
 
+    def publish_flow(self, flow_filename: str, flow_name: str, project_obj: Project,
+                           overwrite: Optional[bool] = False, connection_username: Optional[str] = None,
+                           connection_password: Optional[str] = None, save_credentials: Optional[bool] = True,
+                           oauth_flag: Optional[bool] = False, description: Optional[str] = None) -> str:
+        project_luid = project_obj.luid
+        xml = self._publish_content(content_type='flow', content_filename=flow_filename, content_name=flow_name,
+                                   project_luid=project_luid, url_params={"overwrite": overwrite},
+                                   connection_username=connection_username, connection_password=connection_password,
+                                   save_credentials=save_credentials, oauth_flag=oauth_flag, description=description)
+        flow = xml.findall('.//t:flow', self.ns_map)
+        return flow[0].get('id')
+
 class FlowMethods34(FlowMethods33):
     def __init__(self, rest_api_base: TableauRestApiBase34):
         self.rest_api_base = rest_api_base
