@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import os
-from typing import Union, Any, Optional, List, Dict
-
+from typing import Union, Any, Optional, List, Dict, Tuple
+from urllib.parse import urlencode
 from ...tableau_base import *
 from ._lookups import LookupMethods
 from ...tableau_documents.tableau_file import TableauFile
@@ -89,11 +89,38 @@ class TableauRestApiBase(LookupMethods, TableauBase):
     # REST API Helper Methods
     #
 
-    def build_api_url(self, call: str, server_level: bool = False) -> str:
+    def build_api_url(self, call: str, server_level: Optional[bool] = False,
+                      url_parameters: Optional[str] = None ) -> str:
         if server_level is True:
-            return "{}/api/{}/{}".format(self.server, self.api_version, call)
+            final_string = "{}/api/{}/{}".format(self.server, self.api_version, call)
         else:
-            return "{}/api/{}/sites/{}/{}".format(self.server, self.api_version, self.site_luid, call)
+            final_string = "{}/api/{}/sites/{}/{}".format(self.server, self.api_version, self.site_luid, call)
+        if url_parameters is not None:
+            if url_parameters[0] == "?":
+                final_string += url_parameters
+            else:
+                final_string += "?{}".format(url_parameters)
+        return final_string
+
+    @staticmethod
+    def build_url_parameter_string(map_dict: Optional[Dict] = None, name_value_tuple_list: Optional[List[Tuple]] = None,
+                                   hand_built_portion: Optional[str] = None):
+        encoded_list = None
+        if len(name_value_tuple_list) == 0:
+            encoded_list = None
+        else:
+            for v in name_value_tuple_list:
+                if len(v) != 2:
+                    raise InvalidOptionException('Each element should have a two-element Tuples (Name, Value)')
+                encoded_list = urlencode(name_value_tuple_list)
+
+        if hand_built_portion is not None and encoded_list is None:
+            final_string = hand_built_portion
+        elif hand_built_portion is None and encoded_list is not None:
+            final_string = encoded_list
+        else:
+            final_string = "{}&{}".format(hand_built_portion, encoded_list)
+        return final_string
 
     # Check method for filter objects
     @staticmethod
@@ -645,9 +672,8 @@ class TableauRestApiBase(LookupMethods, TableauBase):
         self.start_log_block()
         view_luid = self.query_workbook_view_luid(wb_name_or_luid, view_name=view_name_or_luid,
                                                       proj_name_or_luid=proj_name_or_luid)
-
+        url_param_map = {}
         if view_filter_map is not None:
-            final_filter_map = {}
             for key in view_filter_map:
                 new_key = "vf_{}".format(key)
                 # Check if this just a string
@@ -655,19 +681,15 @@ class TableauRestApiBase(LookupMethods, TableauBase):
                     value = view_filter_map[key]
                 else:
                     value = ",".join(map(str, view_filter_map[key]))
-                final_filter_map[new_key] = value
+                url_param_map[new_key] = value
 
-            additional_url_params = "?" + urllib.parse.urlencode(final_filter_map)
-            if high_resolution is True:
-                additional_url_params += "&resolution=high"
+        if high_resolution is True:
+                url_param_map['resolution'] = "high"
 
-        else:
-            additional_url_params = ""
-            if high_resolution is True:
-                additional_url_params += "?resolution=high"
+        url_params_str = self.build_url_parameter_string(map_dict=url_param_map)
         try:
 
-            url = self.build_api_url("views/{}/{}{}".format(view_luid, download_type, additional_url_params))
+            url = self.build_api_url("views/{}/{}".format(view_luid, download_type), url_parameters=url_params_str)
             binary_result = self.send_binary_get_request(url)
 
             self.end_log_block()
@@ -701,6 +723,7 @@ class TableauRestApiBase(LookupMethods, TableauBase):
     def update_online_site_logo(self, image_filename: str):
         # Request type is mixed and require a boundary
         boundary_string = self.generate_boundary_string()
+        file_extension = None
         for ending in ['.png', ]:
             if image_filename.endswith(ending):
                 file_extension = ending[1:]
@@ -755,21 +778,11 @@ class TableauRestApiBase28(TableauRestApiBase27):
 
 class TableauRestApiBase30(TableauRestApiBase28):
     @staticmethod
-    def build_site_request_xml(site_name=None, content_url=None, admin_mode=None, tier_creator_capacity=None,
-                               tier_explorer_capacity=None, tier_viewer_capacity=None, storage_quota=None,
-                               disable_subscriptions=None, state=None):
-        """
-        :type site_name: unicode
-        :type content_url: unicode
-        :type admin_mode: unicode
-        :type tier_creator_capacity: unicode
-        :type tier_explorer_capacity: unicode
-        :type tier_viewer_capacity: unicode
-        :type storage_quota: unicode
-        :type disable_subscriptions: bool
-        :type state: unicode
-        :rtype: unicode
-        """
+    def build_site_request_xml(site_name: Optional[str] = None, content_url: Optional[str] = None,
+                               admin_mode: Optional[str] = None, tier_creator_capacity: Optional[str] = None,
+                               tier_explorer_capacity: Optional[str] = None, tier_viewer_capacity: Optional[str] = None,
+                               storage_quota: Optional[str] = None, disable_subscriptions: Optional[bool] = None,
+                               state: Optional[str] = None) -> etree.Element:
         tsr = etree.Element("tsRequest")
         s = etree.Element('site')
 
@@ -806,17 +819,10 @@ class TableauRestApiBase33(TableauRestApiBase32):
 
 class TableauRestApiBase34(TableauRestApiBase33):
     # Generic implementation of all the CSV/PDF/PNG requests
-    def _query_data_file(self, download_type, view_name_or_luid, high_resolution=None, view_filter_map=None,
-                         wb_name_or_luid=None, proj_name_or_luid=None, max_age_minutes=None):
-        """
-        :type view_name_or_luid: unicode
-        :type high_resolution: bool
-        :type view_filter_map: dict
-        :type wb_name_or_luid: unicode
-        :type proj_name_or_luid
-        :type max_age_minutes: int
-        :rtype:
-        """
+    def _query_data_file(self, download_type: str, view_name_or_luid: str, high_resolution: Optional[bool] = False,
+                         view_filter_map=Dict, wb_name_or_luid: Optional[str] = None,
+                         proj_name_or_luid: Optional[str] = None, max_age_minutes: Optional[int] = None) -> bytes:
+
         self.start_log_block()
         if self.is_luid(view_name_or_luid):
             view_luid = view_name_or_luid
@@ -824,8 +830,8 @@ class TableauRestApiBase34(TableauRestApiBase33):
             view_luid = self.query_workbook_view_luid(wb_name_or_luid, view_name=view_name_or_luid,
                                                       proj_name_or_luid=proj_name_or_luid)
 
+        url_param_map = {}
         if view_filter_map is not None:
-            final_filter_map = {}
             for key in view_filter_map:
                 new_key = "vf_{}".format(key)
                 # Check if this just a string
@@ -833,19 +839,16 @@ class TableauRestApiBase34(TableauRestApiBase33):
                     value = view_filter_map[key]
                 else:
                     value = ",".join(map(str,view_filter_map[key]))
-                final_filter_map[new_key] = value
+                url_param_map[new_key] = value
 
-            additional_url_params = "?" + urllib.parse.urlencode(final_filter_map)
-            if high_resolution is True:
-                additional_url_params += "&resolution=high"
+        if high_resolution is True:
+            url_param_map['resolution'] = "high"
 
-        else:
-            additional_url_params = ""
-            if high_resolution is True:
-                additional_url_params += "?resolution=high"
+        url_params_str = self.build_url_parameter_string(map_dict=url_param_map)
         try:
 
-            url = self.build_api_url("views/{}/{}{}".format(view_luid, download_type, additional_url_params))
+            url = self.build_api_url("views/{}/{}".format(view_luid, download_type),
+                                     url_parameters=url_params_str)
             binary_result = self.send_binary_get_request(url)
 
             self.end_log_block()
