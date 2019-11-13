@@ -296,6 +296,8 @@ class TableauRestApiBase(LookupMethods, TableauBase):
                        sorts: Optional[List[Sort]] = None, additional_url_ending: Optional[str] = None,
                        fields: Optional[List[str]] = None) -> etree.Element:
         self.start_log_block()
+        if self.token == "":
+            raise NotSignedInException('Must use .signin() to create REST API session first')
         url_endings = []
         if filters is not None:
             if len(filters) > 0:
@@ -443,6 +445,8 @@ class TableauRestApiBase(LookupMethods, TableauBase):
                             sorts: Optional[List[Sort]] = None, additional_url_ending: str = None,
                             fields: Optional[List[str]] = None, page_number: Optional[int] = None) -> str:
         self.start_log_block()
+        if self.token == "":
+            raise NotSignedInException('Must use .signin() to create REST API session first')
         url_endings = []
         if filters is not None:
             if len(filters) > 0:
@@ -515,6 +519,8 @@ class TableauRestApiBase(LookupMethods, TableauBase):
 
     def send_post_request(self, url: str) -> etree.Element:
         self.start_log_block()
+        if self.token == "":
+            raise NotSignedInException('Must use .signin() to create REST API session first')
         self._request_obj.set_response_type('xml')
         self._request_obj.url = url
         self._request_obj.http_verb = 'post'
@@ -527,7 +533,8 @@ class TableauRestApiBase(LookupMethods, TableauBase):
     def send_add_request(self, url: str, request: etree.Element) -> etree.Element:
 
         self.start_log_block()
-
+        if self.token == "":
+            raise NotSignedInException('Must use .signin() to create REST API session first')
         self._request_obj.set_response_type('xml')
         self._request_obj.url = url
         self._request_obj.xml_request = request
@@ -542,7 +549,8 @@ class TableauRestApiBase(LookupMethods, TableauBase):
 
     def send_update_request(self, url: str, request: etree.Element) -> etree.Element:
         self.start_log_block()
-
+        if self.token == "":
+            raise NotSignedInException('Must use .signin() to create REST API session first')
         self._request_obj.set_response_type('xml')
         self._request_obj.url = url
         self._request_obj.xml_request = request
@@ -555,6 +563,8 @@ class TableauRestApiBase(LookupMethods, TableauBase):
 
     def send_delete_request(self, url: str) -> int:
         self.start_log_block()
+        if self.token == "":
+            raise NotSignedInException('Must use .signin() to create REST API session first')
         self._request_obj.set_response_type('xml')
         self._request_obj.url = url
         self._request_obj.http_verb = 'delete'
@@ -577,7 +587,8 @@ class TableauRestApiBase(LookupMethods, TableauBase):
     def send_publish_request(self, url: str, xml_request: etree.Element, content,
                              boundary_string: str) -> etree.Element:
         self.start_log_block()
-
+        if self.token == "":
+            raise NotSignedInException('Must use .signin() to create REST API session first')
         self._request_obj.set_response_type('xml')
         self._request_obj.url = url
         self._request_obj.set_publish_content(content, boundary_string)
@@ -594,6 +605,8 @@ class TableauRestApiBase(LookupMethods, TableauBase):
 
     def send_append_request(self, url: str, request, boundary_string: str) -> etree.Element:
         self.start_log_block()
+        if self.token == "":
+            raise NotSignedInException('Must use .signin() to create REST API session first')
         self._request_obj.set_response_type('xml')
         self._request_obj.url = url
         self._request_obj.set_publish_content(request, boundary_string)
@@ -609,6 +622,8 @@ class TableauRestApiBase(LookupMethods, TableauBase):
     # Used when the result is not going to be XML and you want to save the raw response as binary
     def send_binary_get_request(self, url: str) -> bytes:
         self.start_log_block()
+        if self.token == "":
+            raise NotSignedInException('Must use .signin() to create REST API session first')
         self._request_obj.url = url
 
         self._request_obj.http_verb = 'get'
@@ -628,10 +643,7 @@ class TableauRestApiBase(LookupMethods, TableauBase):
                          view_filter_map: Optional[Dict] = None,
                          wb_name_or_luid: Optional[str] = None, proj_name_or_luid: Optional[str] = None) -> bytes:
         self.start_log_block()
-        if self.is_luid(view_name_or_luid):
-            view_luid = view_name_or_luid
-        else:
-            view_luid = self.query_workbook_view_luid(wb_name_or_luid, view_name=view_name_or_luid,
+        view_luid = self.query_workbook_view_luid(wb_name_or_luid, view_name=view_name_or_luid,
                                                       proj_name_or_luid=proj_name_or_luid)
 
         if view_filter_map is not None:
