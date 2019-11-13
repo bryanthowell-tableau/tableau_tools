@@ -213,11 +213,7 @@ class PublishedContent(TableauBase):
         self.end_log_block()
 
     @staticmethod
-    def _fix_permissions_request_for_replication(tsr):
-        """
-        :type tsr: etree.Element
-        :rtype: etree.Element
-        """
+    def _fix_permissions_request_for_replication(tsr: etree.Element) -> etree.Element:
         # Remove the project tag from the original response
         proj_element = None
         for t in tsr.iter():
