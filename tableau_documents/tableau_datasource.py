@@ -543,7 +543,7 @@ class TableauDatasource(TableauDocument):
     # For creating new table relations
     #
     def set_first_table(self, db_table_name: str, table_alias: str, connection: Optional[str] = None,
-                        extract: Optional[bool] = False):
+                        extract: bool = False):
         self.ds_generator = True
         # Grab the original connection name
         if self.main_table_relation is not None and connection is None:
@@ -629,7 +629,7 @@ class TableauDatasource(TableauDocument):
 
     @staticmethod
     def create_table_relation(db_table_name: str, table_alias: str, connection: Optional[str] = None,
-                              extract: Optional[bool] = False) -> ET.Element:
+                              extract: bool = False) -> ET.Element:
         r = ET.Element("relation")
         r.set('name', table_alias)
         if extract is True:
@@ -764,7 +764,7 @@ class TableauDatasource(TableauDocument):
             rel_xml_obj = copy.deepcopy(prev_relation)
         return rel_xml_obj
 
-    def add_table_column(self, table_alias, table_field_name, tableau_field_alias):
+    def add_table_column(self, table_alias: str, table_field_name: str, tableau_field_alias: str):
         # Check to make sure the alias has been added
 
         # Check to make sure the tableau_field_alias hasn't been used already
@@ -798,7 +798,8 @@ class TableauDatasource(TableauDocument):
                                                     "role": role,
                                                     "calculation": calculation}
 
-    def add_calculation(self, calculation, calculation_name, dimension_or_measure, discrete_or_continuous, datatype):
+    def add_calculation(self, calculation: str, calculation_name: str, dimension_or_measure: str,
+                        discrete_or_continuous: str, datatype: str):
         internal_calc_name = self.create_random_calculation_name()
         self.add_column_alias(internal_calc_name, calculation_name, dimension_or_measure, discrete_or_continuous,
                               datatype, calculation)
@@ -806,7 +807,8 @@ class TableauDatasource(TableauDocument):
         return internal_calc_name
 
     @staticmethod
-    def create_dimension_filter(column_name, values, include_or_exclude='include', custom_value_list=False):
+    def create_dimension_filter(column_name: str, values: List[str], include_or_exclude: str = 'include',
+                                custom_value_list: bool = False):
         # Check if column_name is actually the alias of a calc, if so, replace with the random internal calc name
 
         if include_or_exclude.lower() in ['include', 'exclude']:

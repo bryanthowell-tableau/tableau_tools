@@ -89,7 +89,7 @@ class TableauRestApiBase(LookupMethods, TableauBase):
     # REST API Helper Methods
     #
 
-    def build_api_url(self, call: str, server_level: Optional[bool] = False,
+    def build_api_url(self, call: str, server_level: bool = False,
                       url_parameters: Optional[str] = None ) -> str:
         if server_level is True:
             final_string = "{}/api/{}/{}".format(self.server, self.api_version, call)
@@ -669,8 +669,8 @@ class TableauRestApiBase(LookupMethods, TableauBase):
     def _publish_content(self, content_type: str, content_filename: str, content_name: str, project_luid: str,
                          url_params: Optional[Dict] = None,
                          connection_username: Optional[str] = None, connection_password: Optional[str] = None,
-                         save_credentials: Optional[bool] = True, show_tabs: Optional[bool] = False,
-                         check_published_ds: Optional[bool] = True, oauth_flag: Optional[bool] = False,
+                         save_credentials: bool = True, show_tabs: bool = False,
+                         check_published_ds: bool = True, oauth_flag: bool = False,
                          generate_thumbnails_as_username_or_luid: Optional[str] = None,
                          description: Optional[str] = None, views_to_hide_list: Optional[List[str]] = None):
         # Single upload limit in MB
@@ -1034,7 +1034,7 @@ class TableauRestApiBase33(TableauRestApiBase32):
 
 class TableauRestApiBase34(TableauRestApiBase33):
     # Generic implementation of all the CSV/PDF/PNG requests
-    def _query_data_file(self, download_type: str, view_name_or_luid: str, high_resolution: Optional[bool] = False,
+    def _query_data_file(self, download_type: str, view_name_or_luid: str, high_resolution: bool = False,
                          view_filter_map=Dict, wb_name_or_luid: Optional[str] = None,
                          proj_name_or_luid: Optional[str] = None, max_age_minutes: Optional[int] = None) -> bytes:
 

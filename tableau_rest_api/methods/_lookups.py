@@ -93,7 +93,7 @@ class LookupMethods():
 
     def query_workbook_view_luid(self, wb_name_or_luid: str, view_name: Optional[str] = None,
                                  view_content_url: Optional[str] = None, proj_name_or_luid: Optional[str] = None,
-                                 username_or_luid: Optional[str] = None, usage: Optional[bool] = False)-> str:
+                                 username_or_luid: Optional[str] = None, usage: bool = False)-> str:
         self.start_log_block()
         if usage not in [True, False]:
             raise InvalidOptionException('Usage can only be set to True or False')

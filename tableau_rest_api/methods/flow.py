@@ -23,7 +23,7 @@ class FlowMethods33():
             self.end_log_block()
             raise NoMatchFoundException("No {} found with name {}".format(flows, flow_name))
 
-    def query_flows_for_a_site(self, project_name_or_luid: Optional[str] = None, all_fields: Optional[bool] = True,
+    def query_flows_for_a_site(self, project_name_or_luid: Optional[str] = None, all_fields: bool = True,
                                updated_at_filter: Optional[UrlFilter] = None,
                                created_at_filter: Optional[UrlFilter] = None,
                                flow_name_filter: Optional[UrlFilter] = None,
@@ -53,7 +53,7 @@ class FlowMethods33():
         self.end_log_block()
         return flows
 
-    def query_flows_for_a_user(self, username_or_luid: str, is_owner_flag: Optional[bool] = False) -> ET.Element:
+    def query_flows_for_a_user(self, username_or_luid: str, is_owner_flag: bool = False) -> ET.Element:
         self.start_log_block()
         user_luid = self.query_user_luid(username_or_luid)
         additional_url_params = ""
@@ -156,7 +156,7 @@ class FlowMethods33():
     def update_flow_connection(self, flow_luid: str, flow_connection_luid: str,  server_address: Optional[str] = None,
                                port: Optional[str] = None, connection_username: Optional[str] = None,
                                connection_password: Optional[str] = None,
-                               embed_password: Optional[bool] = False) -> ET.Element:
+                               embed_password: bool = False) -> ET.Element:
         self.start_log_block()
 
         tsr = ET.Element('tsRequest')
@@ -257,9 +257,9 @@ class FlowMethods33():
         return save_filename
 
     def publish_flow(self, flow_filename: str, flow_name: str, project_obj: Project,
-                           overwrite: Optional[bool] = False, connection_username: Optional[str] = None,
-                           connection_password: Optional[str] = None, save_credentials: Optional[bool] = True,
-                           oauth_flag: Optional[bool] = False, description: Optional[str] = None) -> str:
+                           overwrite: bool = False, connection_username: Optional[str] = None,
+                           connection_password: Optional[str] = None, save_credentials: bool = True,
+                           oauth_flag: bool = False, description: Optional[str] = None) -> str:
         project_luid = project_obj.luid
         xml = self._publish_content(content_type='flow', content_filename=flow_filename, content_name=flow_name,
                                    project_luid=project_luid, url_params={"overwrite": overwrite},

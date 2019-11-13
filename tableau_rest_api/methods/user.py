@@ -88,7 +88,7 @@ class UserMethods():
         return users
 
     def add_user_by_username(self, username: Optional[str] = None, site_role: Optional[str] = 'Unlicensed',
-                             auth_setting: Optional[str] = None, update_if_exists: Optional[bool] = False,
+                             auth_setting: Optional[str] = None, update_if_exists: bool = False,
                              direct_xml_request: Optional[ET.Element] = None) -> str:
         self.start_log_block()
 
@@ -138,7 +138,7 @@ class UserMethods():
     def add_user(self, username: Optional[str] = None, fullname: Optional[str] = None,
                  site_role: Optional[str] = 'Unlicensed', password: Optional[str] = None,
                  email: Optional[str] = None, auth_setting: Optional[str] = None,
-                 update_if_exists: Optional[bool] = False, direct_xml_request: Optional[ET.Element] = None) -> str:
+                 update_if_exists: bool = False, direct_xml_request: Optional[ET.Element] = None) -> str:
 
         self.start_log_block()
 

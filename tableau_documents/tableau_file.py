@@ -12,7 +12,7 @@ from typing import Union, Any, Optional, List, Dict, Tuple
 
 class TableauFile(TableauBase):
     def __init__(self, filename: str, logger_obj: Optional[Logger] = None,
-                 create_new: Optional[bool] = False, ds_version: Optional[str] = '10'):
+                 create_new: bool = False, ds_version: Optional[str] = '10'):
         self.logger: Optional[Logger] = logger_obj
         self.log('TableauFile initializing for {}'.format(filename))
         self.packaged_file: bool = False

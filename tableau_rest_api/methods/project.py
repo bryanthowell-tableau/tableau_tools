@@ -20,7 +20,7 @@ class ProjectMethods():
 
     def create_project(self, project_name: Optional[str] = None, project_desc: Optional[str] = None,
                        locked_permissions: bool = True, publish_samples: bool = False,
-                       no_return: Optional[bool] = False,
+                       no_return: bool = False,
                        direct_xml_request: Optional[ET.Element] = None) -> Project:
         self.start_log_block()
         if direct_xml_request is not None:
@@ -64,7 +64,7 @@ class ProjectMethods():
 
     def update_project(self, name_or_luid: str, new_project_name: Optional[str] = None,
                        new_project_description: Optional[str] = None,
-                       locked_permissions: Optional[bool] = None, publish_samples: Optional[bool] = False) -> Project:
+                       locked_permissions: Optional[bool] = None, publish_samples: bool = False) -> Project:
         self.start_log_block()
         project_luid = self.query_project_luid(name_or_luid)
 
@@ -170,8 +170,8 @@ class ProjectMethods28(ProjectMethods27):
         return proj_obj
 
     def create_project(self, project_name: Optional[str] = None, parent_project_name_or_luid: Optional[str] = None,
-                       project_desc: Optional[str] = None, locked_permissions: Optional[bool] = True,
-                       publish_samples: Optional[bool] = False, no_return: Optional[bool] = False,
+                       project_desc: Optional[str] = None, locked_permissions: bool = True,
+                       publish_samples: bool = False, no_return: bool = False,
                        direct_xml_request: Optional[ET.Element] = None) -> Project28:
 
         self.start_log_block()
@@ -212,7 +212,7 @@ class ProjectMethods28(ProjectMethods27):
 
     def update_project(self, name_or_luid: str, parent_project_name_or_luid: Optional[str] = None,
                        new_project_name: Optional[str] = None, new_project_description: Optional[str] = None,
-                       locked_permissions: Optional[bool] = None, publish_samples: Optional[bool] = False) -> Project28:
+                       locked_permissions: Optional[bool] = None, publish_samples: bool = False) -> Project28:
 
         self.start_log_block()
         project_luid = self.query_project_luid(name_or_luid)

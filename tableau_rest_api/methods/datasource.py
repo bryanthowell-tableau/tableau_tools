@@ -165,9 +165,9 @@ class DatasourceMethods():
         return save_filename
 
     def publish_datasource(self, ds_filename: str, ds_name: str, project_obj: Project,
-                           overwrite: Optional[bool] = False, connection_username: Optional[str] = None,
-                           connection_password: Optional[str] = None, save_credentials: Optional[bool] = True,
-                           oauth_flag: Optional[bool] = False) -> str:
+                           overwrite: bool = False, connection_username: Optional[str] = None,
+                           connection_password: Optional[str] = None, save_credentials: bool = True,
+                           oauth_flag: bool = False) -> str:
         project_luid = project_obj.luid
         xml = self._publish_content('datasource', ds_filename, ds_name, project_luid, {"overwrite": overwrite},
                                    connection_username, connection_password, save_credentials, oauth_flag=oauth_flag)

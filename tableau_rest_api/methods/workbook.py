@@ -8,7 +8,7 @@ class WorkbookMethods():
 
     # This uses the logged in username for convenience by default
     def query_workbooks(self, username_or_luid: Optional[str] = None, project_name_or_luid: Optional[str] = None,
-                        all_fields: Optional[bool] = True, created_at_filter: Optional[UrlFilter] = None,
+                        all_fields: bool = True, created_at_filter: Optional[UrlFilter] = None,
                         updated_at_filter: Optional[UrlFilter] = None, owner_name_filter: Optional[UrlFilter] = None,
                         tags_filter: Optional[UrlFilter] = None, sorts: Optional[List[Sort]] = None,
                         fields: Optional[List[str]] = None) -> ET.Element:
@@ -43,7 +43,7 @@ class WorkbookMethods():
         self.end_log_block()
         return wbs
 
-    def query_workbooks_json(self, username_or_luid: Optional[str] = None, all_fields: Optional[bool] = True,
+    def query_workbooks_json(self, username_or_luid: Optional[str] = None, all_fields: bool = True,
                              created_at_filter: Optional[UrlFilter] = None,
                              updated_at_filter: Optional[UrlFilter] = None,
                              owner_name_filter: Optional[UrlFilter] = None,
@@ -120,7 +120,7 @@ class WorkbookMethods():
 
     def update_workbook(self, workbook_name_or_luid: str, workbook_project_name_or_luid: str,
                         new_project_name_or_luid: Optional[str] = None, new_owner_username_or_luid: Optional[str] = None,
-                        show_tabs: Optional[bool] = True) -> ET.Element:
+                        show_tabs: bool = True) -> ET.Element:
         self.start_log_block()
         workbook_luid = self.query_workbook_luid(workbook_name_or_luid, workbook_project_name_or_luid, self.username)
         new_owner_luid = self.query_user_luid(new_owner_username_or_luid)
@@ -160,7 +160,7 @@ class WorkbookMethods():
         return response
 
     def query_view_image(self, view_name_or_luid: Optional[str] = None,
-                         high_resolution: Optional[bool] = False, view_filter_map: Optional[Dict] = None,
+                         high_resolution: bool = False, view_filter_map: Optional[Dict] = None,
                          wb_name_or_luid: Optional[str] = None, proj_name_or_luid: Optional[str] = None) -> bytes:
         self.start_log_block()
         image = self._query_data_file('image', view_name_or_luid=view_name_or_luid, high_resolution=high_resolution,
@@ -196,7 +196,7 @@ class WorkbookMethods():
 
 
     def query_workbook_views(self, wb_name_or_luid: str, proj_name_or_luid: Optional[str] = None,
-                             username_or_luid: Optional[str] = None, usage: Optional[bool] = False) -> ET.Element:
+                             username_or_luid: Optional[str] = None, usage: bool = False) -> ET.Element:
         self.start_log_block()
         if usage not in [True, False]:
             raise InvalidOptionException('Usage can only be set to True or False')
@@ -206,7 +206,7 @@ class WorkbookMethods():
         return vws
 
     def query_workbook_views_json(self, wb_name_or_luid: str, proj_name_or_luid: Optional[str] = None,
-                                  username_or_luid: Optional[str] = None, usage: Optional[bool] = False,
+                                  username_or_luid: Optional[str] = None, usage: bool = False,
                                   page_number: Optional[int] = None) -> str:
         self.start_log_block()
         if usage not in [True, False]:
@@ -220,7 +220,7 @@ class WorkbookMethods():
 
     def query_workbook_view(self, wb_name_or_luid, view_name_or_luid: Optional[str] = None,
                             view_content_url: Optional[str] = None, proj_name_or_luid: Optional[str] = None,
-                            username_or_luid: Optional[str] = None, usage: Optional[bool] = False) -> ET.Element:
+                            username_or_luid: Optional[str] = None, usage: bool = False) -> ET.Element:
 
         self.start_log_block()
         if usage not in [True, False]:
@@ -254,7 +254,7 @@ class WorkbookMethods():
         self.end_log_block()
         return conns
 
-    def query_views(self, all_fields: Optional[bool] = True, usage: Optional[bool] = False,
+    def query_views(self, all_fields: bool = True, usage: bool = False,
                          created_at_filter: Optional[UrlFilter] = None, updated_at_filter: Optional[UrlFilter] = None,
                          tags_filter: Optional[UrlFilter] = None, sorts: Optional[UrlFilter] = None,
                          fields: Optional[UrlFilter] = None) -> ET.Element:
@@ -274,7 +274,7 @@ class WorkbookMethods():
         self.end_log_block()
         return vws
 
-    def query_views_json(self, all_fields: Optional[bool] = True, usage: Optional[bool] = False,
+    def query_views_json(self, all_fields: bool = True, usage: bool = False,
                          created_at_filter: Optional[UrlFilter] = None, updated_at_filter: Optional[UrlFilter] = None,
                          tags_filter: Optional[UrlFilter] = None, sorts: Optional[UrlFilter] = None,
                          fields: Optional[UrlFilter] = None, page_number: Optional[int] = None) -> str:
@@ -314,7 +314,7 @@ class WorkbookMethods():
     # Do not include file extension, added automatically. Without filename, only returns the response
     # Use no_obj_return for save without opening and processing
     def download_workbook(self, wb_name_or_luid: str, filename_no_extension: str,
-                          proj_name_or_luid: Optional[str] = None, include_extract: Optional[bool] = True) -> str:
+                          proj_name_or_luid: Optional[str] = None, include_extract: bool = True) -> str:
         self.start_log_block()
 
         wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
@@ -356,10 +356,10 @@ class WorkbookMethods():
         return save_filename
 
     def publish_workbook(self, workbook_filename: str, workbook_name: str, project_obj: Project,
-                         overwrite: Optional[bool] = False, connection_username: Optional[str] = None,
-                         connection_password: Optional[str] = None, save_credentials: Optional[bool] = True,
-                         show_tabs: Optional[bool] = True, check_published_ds: Optional[bool] = True,
-                         oauth_flag: Optional[bool] = False) -> str:
+                         overwrite: bool = False, connection_username: Optional[str] = None,
+                         connection_password: Optional[str] = None, save_credentials: bool = True,
+                         show_tabs: bool = True, check_published_ds: bool = True,
+                         oauth_flag: bool = False) -> str:
         project_luid = project_obj.luid
         xml = self.publish_content('workbook', workbook_filename, workbook_name, project_luid,
                                    {"overwrite": overwrite}, connection_username, connection_password,
@@ -600,11 +600,11 @@ class WorkbookMethods30(WorkbookMethods28):
         self.rest_api_base = rest_api_base
 
     def publish_workbook(self, workbook_filename: str, workbook_name: str, project_obj: Project,
-                         overwrite: Optional[bool] = False, async_publish: Optional[bool] = False,
+                         overwrite: bool = False, async_publish: bool = False,
                          connection_username: Optional[str] = None,
-                         connection_password: Optional[str] = None, save_credentials: Optional[bool] = True,
-                         show_tabs: Optional[bool] = True, check_published_ds: Optional[bool] = True,
-                         oauth_flag: Optional[bool] = False) -> str:
+                         connection_password: Optional[str] = None, save_credentials: bool = True,
+                         show_tabs: bool = True, check_published_ds: bool = True,
+                         oauth_flag: bool = False) -> str:
         project_luid = project_obj.luid
         xml = self._publish_content(content_type='workbook', content_filename=workbook_filename,
                                    content_name=workbook_name, project_luid=project_luid,
@@ -630,11 +630,11 @@ class WorkbookMethods32(WorkbookMethods31):
 
     # In 3.2, you can hide views from publishing
     def publish_workbook(self, workbook_filename: str, workbook_name: str, project_obj: Project,
-                         overwrite: Optional[bool] = False, async_publish: Optional[bool] = False,
+                         overwrite: bool = False, async_publish: bool = False,
                          connection_username: Optional[str] = None,
-                         connection_password: Optional[str] = None, save_credentials: Optional[bool] = True,
-                         show_tabs: Optional[bool] = True, check_published_ds: Optional[bool] = True,
-                         oauth_flag: Optional[bool] = False, views_to_hide_list: Optional[List[str]] = None) -> str:
+                         connection_password: Optional[str] = None, save_credentials: bool = True,
+                         show_tabs: bool = True, check_published_ds: bool = True,
+                         oauth_flag: bool = False, views_to_hide_list: Optional[List[str]] = None) -> str:
 
         project_luid = project_obj.luid
         xml = self._publish_content(content_type='workbook', content_filename=workbook_filename,
@@ -660,7 +660,7 @@ class WorkbookMethods34(WorkbookMethods33):
     def __init__(self, rest_api_base: TableauRestApiBase34):
         self.rest_api_base = rest_api_base
 
-    def query_view_image(self, view_name_or_luid: Optional[str] = None, high_resolution: Optional[bool] = False,
+    def query_view_image(self, view_name_or_luid: Optional[str] = None, high_resolution: bool = False,
                          view_filter_map: Optional[Dict] = None, wb_name_or_luid: Optional[str] = None,
                          proj_name_or_luid: Optional[str] = None,  max_age_minutes: Optional[int] = None) -> bytes:
         self.start_log_block()
@@ -671,11 +671,11 @@ class WorkbookMethods34(WorkbookMethods33):
         return image
 
     def publish_workbook(self, workbook_filename: str, workbook_name: str, project_obj: Project,
-                         overwrite: Optional[bool] = False, async_publish: Optional[bool] = False,
+                         overwrite: bool = False, async_publish: bool = False,
                          connection_username: Optional[str] = None,
-                         connection_password: Optional[str] = None, save_credentials: Optional[bool] = True,
-                         show_tabs: Optional[bool] = True, check_published_ds: Optional[bool] = True,
-                         oauth_flag: Optional[bool] = False, views_to_hide_list: Optional[List[str]] = None,
+                         connection_password: Optional[str] = None, save_credentials: bool = True,
+                         show_tabs: bool = True, check_published_ds: bool = True,
+                         oauth_flag: bool = False, views_to_hide_list: Optional[List[str]] = None,
                          generate_thumbnails_as_username_or_luid: Optional[str] = None):
         project_luid = project_obj.luid
         xml = self._publish_content(content_type='workbook', content_filename=workbook_filename,

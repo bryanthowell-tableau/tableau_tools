@@ -98,7 +98,7 @@ class GroupMethods():
     # The luid is only available in the Response header if bg sync. Nothing else is passed this way -- how to expose?
     def create_group_from_ad_group(self, ad_group_name: str, ad_domain_name: str,
                                    default_site_role: Optional[str] = 'Unlicensed',
-                                   sync_as_background: Optional[bool] = True) -> str:
+                                   sync_as_background: bool = True) -> str:
         self.start_log_block()
         if default_site_role not in self._site_roles:
             raise InvalidOptionException('"{}" is not an acceptable site role'.format(default_site_role))
@@ -166,7 +166,7 @@ class GroupMethods():
 
     # AD group sync. Must specify the domain and the default site role for imported users
     def sync_ad_group(self, group_name_or_luid: str, ad_group_name: str, ad_domain: str, default_site_role: str,
-                      sync_as_background: Optional[bool] = True) -> str:
+                      sync_as_background: bool = True) -> str:
         self.start_log_block()
         if sync_as_background not in [True, False]:
             error = "'{}' passed for sync_as_background. Use True or False".format(str(sync_as_background).lower())

@@ -44,7 +44,7 @@ class RevisionMethods():
     # Rewrite to have a Download and a Save, with one giving object in memory
     def download_datasource_revision(self, ds_name_or_luid: str, revision_number: int, filename_no_extension: str,
                                      proj_name_or_luid: Optional[str] = None,
-                                     include_extract: Optional[bool] = True) -> str:
+                                     include_extract: bool = True) -> str:
         self.start_log_block()
 
         ds_luid = self.query_datasource_luid(ds_name_or_luid, proj_name_or_luid)
@@ -91,7 +91,7 @@ class RevisionMethods():
 
     def download_workbook_revision(self, wb_name_or_luid: str, revision_number: int, filename_no_extension: str,
                                    proj_name_or_luid: Optional[str] = None,
-                                   include_extract: Optional[bool] = True) -> str:
+                                   include_extract: bool = True) -> str:
         self.start_log_block()
 
         wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
