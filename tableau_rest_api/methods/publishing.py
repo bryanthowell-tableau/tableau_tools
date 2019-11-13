@@ -115,9 +115,9 @@ class PublishingMethods():
                     publish_request += bytes('Content-Type: text/xml\r\n\r\n'.encode('utf-8'))
 
                     # Build publish request in ElementTree then convert at publish
-                    publish_request_xml = etree.Element('tsRequest')
+                    publish_request_xml = ET.Element('tsRequest')
                     # could be either workbook, datasource, or flow
-                    t1 = etree.Element(content_type)
+                    t1 = ET.Element(content_type)
                     t1.set('name', content_name)
                     if show_tabs is not False:
                         t1.set('showTabs', str(show_tabs).lower())
@@ -129,7 +129,7 @@ class PublishingMethods():
                         t1.set('generateThumbnailsAsUser', thumbnail_user_luid)
 
                     if connection_username is not None:
-                        cc = etree.Element('connectionCredentials')
+                        cc = ET.Element('connectionCredentials')
                         cc.set('name', connection_username)
                         if oauth_flag is True:
                             cc.set('oAuth', "True")
@@ -141,9 +141,9 @@ class PublishingMethods():
                     # Views to Hide in Workbooks from 3.2
                     if views_to_hide_list is not None:
                         if len(views_to_hide_list) > 0:
-                            vs = etree.Element('views')
+                            vs = ET.Element('views')
                             for view_name in views_to_hide_list:
-                                v = etree.Element('view')
+                                v = ET.Element('view')
                                 v.set('name', view_name)
                                 v.set('hidden', 'true')
                             t1.append(vs)
@@ -151,12 +151,12 @@ class PublishingMethods():
                     # Description only allowed for Flows as of 3.3
                     if description is not None:
                          t1.set('description', description)
-                    p = etree.Element('project')
+                    p = ET.Element('project')
                     p.set('id', project_luid)
                     t1.append(p)
                     publish_request_xml.append(t1)
 
-                    encoded_request = etree.tostring(publish_request_xml, encoding='utf-8')
+                    encoded_request = ET.tostring(publish_request_xml, encoding='utf-8')
 
                     publish_request += bytes(encoded_request)
                     publish_request += bytes("\r\n--{}".format(boundary_string).encode('utf-8'))

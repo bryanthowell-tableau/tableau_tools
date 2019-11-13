@@ -8,19 +8,19 @@ class AlertMethods32():
     def __getattr__(self, attr):
         return getattr(self.rest_api_base, attr)
 
-    def query_data_driven_alerts(self) -> etree.Element:
+    def query_data_driven_alerts(self) -> ET.Element:
         self.start_log_block()
         alerts = self.query_resource("dataAlerts")
         self.end_log_block()
         return alerts
 
-    def query_data_driven_alerts_for_view(self, view_luid: str) -> etree.Element:
+    def query_data_driven_alerts_for_view(self, view_luid: str) -> ET.Element:
         self.start_log_block()
         alerts = self.query_resource("dataAlerts?filter=viewId:eq:{}".format(view_luid))
         self.end_log_block()
         return alerts
 
-    def query_data_driven_alert_details(self, data_alert_luid: str) -> etree.Element:
+    def query_data_driven_alert_details(self, data_alert_luid: str) -> ET.Element:
         self.start_log_block()
         alert_details = self.query_resource("dataAlerts/{}".format(data_alert_luid))
         self.end_log_block()
@@ -36,8 +36,8 @@ class AlertMethods32():
         self.start_log_block()
         user_luid = self.query_user_luid(username_or_luid)
 
-        tsr = etree.Element("tsRequest")
-        u = etree.Element("user")
+        tsr = ET.Element("tsRequest")
+        u = ET.Element("user")
         u.set("id", user_luid)
         tsr.append(u)
         url = self.build_api_url('dataAlerts/{}/users'.format(data_alert_luid))
@@ -46,10 +46,10 @@ class AlertMethods32():
 
     def update_data_driven_alert(self, data_alert_luid: str, subject: Optional[str] = None,
                                  frequency: Optional[str] = None,
-                                 owner_username_or_luid: Optional[str] = None) -> etree.Element:
+                                 owner_username_or_luid: Optional[str] = None) -> ET.Element:
         self.start_log_block()
-        tsr = etree.Element("tsRequest")
-        d = etree.Element("dataAlert")
+        tsr = ET.Element("tsRequest")
+        d = ET.Element("dataAlert")
         if subject is not None:
             d.set("subject", subject)
 
@@ -62,7 +62,7 @@ class AlertMethods32():
 
         if owner_username_or_luid is not None:
             owner_luid = self.query_user_luid(owner_username_or_luid)
-            o = etree.Element('owner')
+            o = ET.Element('owner')
             o.set("id", owner_luid)
             d.append(o)
 

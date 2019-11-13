@@ -11,7 +11,7 @@ class SubscriptionMethods():
                             subscription_subject: Optional[str] = None, view_or_workbook: Optional[str] = None,
                             content_name_or_luid: Optional[str] = None,
                             project_name_or_luid: Optional[str] = None,
-                            wb_name_or_luid: Optional[str] = None) -> etree.Element:
+                            wb_name_or_luid: Optional[str] = None) -> ET.Element:
 
         self.start_log_block()
         subscriptions = self.query_resource('subscriptions')
@@ -63,7 +63,7 @@ class SubscriptionMethods():
                             content_name_or_luid: Optional[str] = None, schedule_name_or_luid: Optional[str] = None,
                             username_or_luid: Optional[str] = None, project_name_or_luid: Optional[str] = None,
                             wb_name_or_luid: Optional[str] = None,
-                            direct_xml_request: Optional[etree.Element] = None) -> str:
+                            direct_xml_request: Optional[ET.Element] = None) -> str:
         self.start_log_block()
         if direct_xml_request is not None:
             tsr = direct_xml_request
@@ -87,15 +87,15 @@ class SubscriptionMethods():
                 else:
                     raise InvalidOptionException("view_or_workbook must be 'Workbook' or 'View'")
 
-            tsr = etree.Element('tsRequest')
-            s = etree.Element('subscription')
+            tsr = ET.Element('tsRequest')
+            s = ET.Element('subscription')
             s.set('subject', subscription_subject)
-            c = etree.Element('content')
+            c = ET.Element('content')
             c.set('type', view_or_workbook)
             c.set('id', content_luid)
-            sch = etree.Element('schedule')
+            sch = ET.Element('schedule')
             sch.set('id', schedule_luid)
-            u = etree.Element('user')
+            u = ET.Element('user')
             u.set('id', user_luid)
             s.append(c)
             s.append(sch)
@@ -131,17 +131,17 @@ class SubscriptionMethods():
         return luid
 
     def update_subscription(self, subscription_luid: str, subject: Optional[str] = None,
-                            schedule_luid: Optional[str] = None) -> etree.Element:
+                            schedule_luid: Optional[str] = None) -> ET.Element:
         if subject is None and schedule_luid is None:
             raise InvalidOptionException("You must pass one of subject or schedule_luid, or both")
-        tsr = etree.Element('tsRequest')
-        s = etree.Element('subscription')
+        tsr = ET.Element('tsRequest')
+        s = ET.Element('subscription')
 
         if subject is not None:
             s.set('subject', subject)
 
         if schedule_luid is not None:
-            sch = etree.Element('schedule')
+            sch = ET.Element('schedule')
             sch.set('id', schedule_luid)
             s.append(sch)
         tsr.append(s)

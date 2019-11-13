@@ -1,7 +1,7 @@
 from ..tableau_base import *
 from .tableau_document import TableauDocument
 
-import xml.etree.cElementTree as etree
+import xml.etree.ElementTree as ET
 from ..tableau_exceptions import *
 
 from xml.sax.saxutils import quoteattr, unescape
@@ -12,7 +12,7 @@ import re
 class TableauParameters(TableauDocument):
     def __init__(self, datasource_xml=None, logger_obj=None):
         """
-        :type datasource_xml: etree.Element
+        :type datasource_xml: ET.Element
         :type logger_obj: Logger
         """
         TableauDocument.__init__(self)
@@ -25,12 +25,12 @@ class TableauParameters(TableauDocument):
 
         if datasource_xml is None:
             self.log('No Parameter XML passed in, building from scratch')
-            self.ds_xml = etree.Element("datasource")
+            self.ds_xml = ET.Element("datasource")
             self.ds_xml.set('name', 'Parameters')
             # Initialization of the datasource
             self.ds_xml.set('hasconnection', 'false')
             self.ds_xml.set('inline', 'true')
-            a = etree.Element('aliases')
+            a = ET.Element('aliases')
             a.set('enabled', 'yes')
             self.ds_xml.append(a)
         else:
@@ -55,7 +55,7 @@ class TableauParameters(TableauDocument):
 
     def get_datasource_xml(self):
         self.start_log_block()
-        xmlstring = etree.tostring(self.ds_xml)
+        xmlstring = ET.tostring(self.ds_xml)
         self.end_log_block()
         return xmlstring
 
@@ -103,7 +103,7 @@ class TableauParameter(TableauBase):
     def __init__(self, parameter_xml=None, parameter_number=None, logger_obj=None, name=None, datatype=None,
                  current_value=None):
         """
-        :type parameter_xml: etree.Element
+        :type parameter_xml: ET.Element
         :type logger_obj: Logger
         """
         TableauBase.__init__(self)
@@ -120,7 +120,7 @@ class TableauParameter(TableauBase):
         else:
             if parameter_number is None:
                 raise InvalidOptionException('Must pass a parameter_number if creating a new Parameter')
-            self.p_xml = etree.Element("column")
+            self.p_xml = ET.Element("column")
             self.p_xml.set('name', '[Parameter {}]'.format(str(parameter_number)))
             self.p_xml.set('role', 'measure')
             # Set allowable_values to all by default
@@ -188,7 +188,7 @@ class TableauParameter(TableauBase):
         # See if a range already exists, otherwise create it
         r = self.p_xml.find('./range', self.ns_map)
         if r is None:
-            r = etree.Element('range')
+            r = ET.Element('range')
             self.p_xml.append(r)
 
         # Set any new values that come through
@@ -230,16 +230,16 @@ class TableauParameter(TableauBase):
             self.p_xml.remove(m)
 
         aliases = None
-        members = etree.Element('members')
+        members = ET.Element('members')
 
         for value_pair in list_value_display_as_pairs:
             for value in value_pair:
-                member = etree.Element('member')
+                member = ET.Element('member')
                 member.set('value', str(value))
                 if value_pair[value] is not None:
                     if aliases is None:
-                        aliases = etree.Element('aliases')
-                    alias = etree.Element('alias')
+                        aliases = ET.Element('aliases')
+                    alias = ET.Element('alias')
                     alias.set('key', str(value))
                     alias.set('value', str(value_pair[value]))
                     member.set('alias', str(value_pair[value]))
@@ -293,7 +293,7 @@ class TableauParameter(TableauBase):
                         actual_value = value
 
         # Why there have to be a calculation tag as well? I don't know, but there does
-        calc = etree.Element('calculation')
+        calc = ET.Element('calculation')
         calc.set('class', 'tableau')
         if isinstance(current_value, str) and self.datatype not in ['date', 'datetime']:
             self.p_xml.set('value', quoteattr(actual_value))

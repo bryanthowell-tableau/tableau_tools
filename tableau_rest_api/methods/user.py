@@ -11,13 +11,13 @@ class UserMethods():
     # The reference has this name, so for consistency adding an alias
     def get_users(self, all_fields: bool = True, last_login_filter: Optional[UrlFilter] = None,
                   site_role_filter: Optional[UrlFilter] = None, sorts: Optional[List[Sort]] = None,
-                  fields: Optional[List[str] ] =None) -> etree.Element:
+                  fields: Optional[List[str] ] =None) -> ET.Element:
         return self.query_users(all_fields=all_fields, last_login_filter=last_login_filter,
                                 site_role_filter=site_role_filter, sorts=sorts, fields=fields)
 
     def query_users(self, all_fields: bool = True, last_login_filter: Optional[UrlFilter] = None,
                     site_role_filter: Optional[UrlFilter] = None, username_filter: Optional[UrlFilter] = None,
-                    sorts: Optional[List[Sort]] = None, fields: Optional[List[str] ] =None) -> etree.Element:
+                    sorts: Optional[List[Sort]] = None, fields: Optional[List[str] ] =None) -> ET.Element:
         self.start_log_block()
         if fields is None:
             if all_fields is True:
@@ -59,7 +59,7 @@ class UserMethods():
         self.end_log_block()
         return users
 
-    def query_user(self, username_or_luid: str, all_fields: bool = True) -> etree.Element:
+    def query_user(self, username_or_luid: str, all_fields: bool = True) -> ET.Element:
         self.start_log_block()
         user = self.query_single_element_from_endpoint_with_filter("user", username_or_luid, all_fields=all_fields)
         user_luid = user.get("id")
@@ -80,7 +80,7 @@ class UserMethods():
         self.end_log_block()
         return username
 
-    def query_users_in_group(self, group_name_or_luid: str) -> etree.Element:
+    def query_users_in_group(self, group_name_or_luid: str) -> ET.Element:
         self.start_log_block()
         luid = self.query_group_luid(group_name_or_luid)
         users = self.query_resource("groups/{}/users".format(luid))
@@ -89,7 +89,7 @@ class UserMethods():
 
     def add_user_by_username(self, username: Optional[str] = None, site_role: Optional[str] = 'Unlicensed',
                              auth_setting: Optional[str] = None, update_if_exists: Optional[bool] = False,
-                             direct_xml_request: Optional[etree.Element] = None) -> str:
+                             direct_xml_request: Optional[ET.Element] = None) -> str:
         self.start_log_block()
 
         # Check to make sure role that is passed is a valid role in the API
@@ -103,8 +103,8 @@ class UserMethods():
         if direct_xml_request is not None:
             tsr = direct_xml_request
         else:
-            tsr = etree.Element("tsRequest")
-            u = etree.Element("user")
+            tsr = ET.Element("tsRequest")
+            u = ET.Element("user")
             u.set("name", username)
             u.set("siteRole", site_role)
             if auth_setting is not None:
@@ -138,7 +138,7 @@ class UserMethods():
     def add_user(self, username: Optional[str] = None, fullname: Optional[str] = None,
                  site_role: Optional[str] = 'Unlicensed', password: Optional[str] = None,
                  email: Optional[str] = None, auth_setting: Optional[str] = None,
-                 update_if_exists: Optional[bool] = False, direct_xml_request: Optional[etree.Element] = None) -> str:
+                 update_if_exists: Optional[bool] = False, direct_xml_request: Optional[ET.Element] = None) -> str:
 
         self.start_log_block()
 
@@ -146,8 +146,8 @@ class UserMethods():
             # Add username first, then update with full name
             if direct_xml_request is not None:
                 # Parse to second level, should be
-                new_user_tsr = etree.Element('tsRequest')
-                new_user_u = etree.Element('user')
+                new_user_tsr = ET.Element('tsRequest')
+                new_user_u = ET.Element('user')
                 for t in direct_xml_request:
                     if t.tag != 'user':
                         raise InvalidOptionException('Must submit a tsRequest with a user element')
@@ -157,8 +157,8 @@ class UserMethods():
                 new_user_tsr.append(new_user_u)
                 new_user_luid = self.add_user_by_username(direct_xml_request=new_user_tsr)
 
-                update_tsr = etree.Element('tsRequest')
-                update_u = etree.Element('user')
+                update_tsr = ET.Element('tsRequest')
+                update_u = ET.Element('user')
                 for t in direct_xml_request:
                     for a in t.attrib:
                         if a in ['fullName', 'email', 'password', 'siteRole', 'authSetting']:
@@ -179,7 +179,7 @@ class UserMethods():
 
     def update_user(self, username_or_luid: str, full_name: Optional[str] = None, site_role: Optional[str] =None,
                     password: Optional[str] = None,
-                    email: Optional[str] = None, direct_xml_request: Optional[etree.Element] = None) -> etree.Element:
+                    email: Optional[str] = None, direct_xml_request: Optional[ET.Element] = None) -> ET.Element:
 
         self.start_log_block()
         user_luid =  self.query_user_luid(username_or_luid)
@@ -187,8 +187,8 @@ class UserMethods():
         if direct_xml_request is not None:
             tsr = direct_xml_request
         else:
-            tsr = etree.Element("tsRequest")
-            u = etree.Element("user")
+            tsr = ET.Element("tsRequest")
+            u = ET.Element("user")
             if full_name is not None:
                 u.set('fullName', full_name)
             if site_role is not None:

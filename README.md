@@ -205,6 +205,8 @@ It should never be necessary to use TableauBase by itself.
 ### 0.4 tableau_exceptions
 The tableau_exceptions file defines a variety of Exceptions that are specific to Tableau, particularly the REST API. They are not very complex, and most simply include a msg property that will clarify the problem if logged
 
+### 0.5 ElementTree elements for XML
+All XML in tableau_tools is handled through ElementTree. It is aliased 
 
 ## 1. tableau_rest_api sub-package
 
@@ -365,7 +367,7 @@ tableau_tools handles translations between real world names and LUIDs automatica
  There are few cases where only the LUID can be accepted. In this case, the parameter will show just "_luid". 
 
 
-#### 1.2.2 Plural querying methods and converting to name : luid dicts
+#### 1.2.2 Plural querying methods and converting to { name : luid} Dict
 The simplest method for getting information from the REST API are the "plural" querying methods
 
 `TableauRestApiConnection.query_groups()`

@@ -9,7 +9,7 @@ class DatasourceMethods():
     def query_datasources(self, project_name_or_luid: Optional[str] = None, all_fields: Optional[bool] = True,
                           updated_at_filter: Optional[UrlFilter] = None, created_at_filter: Optional[UrlFilter] = None,
                           tags_filter: Optional[UrlFilter] = None, datasource_type_filter: Optional[UrlFilter] = None,
-                          sorts: Optional[List[Sort]] = None, fields: Optional[List[str]] = None) -> etree.Element:
+                          sorts: Optional[List[Sort]] = None, fields: Optional[List[str]] = None) -> ET.Element:
 
         self.start_log_block()
         if fields is None:
@@ -26,7 +26,7 @@ class DatasourceMethods():
         if project_name_or_luid is not None:
             project_luid = self.query_project_luid(project_name_or_luid)
             dses_in_project = datasources.findall('.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
-            dses = etree.Element(self.ns_prefix + 'datasources')
+            dses = ET.Element(self.ns_prefix + 'datasources')
             for ds in dses_in_project:
                 dses.append(ds)
         else:
@@ -56,7 +56,7 @@ class DatasourceMethods():
         return datasources
 
     # Tries to guess name or LUID, hope there is only one
-    def query_datasource(self, ds_name_or_luid: str, proj_name_or_luid: Optional[str] = None) -> etree.Element:
+    def query_datasource(self, ds_name_or_luid: str, proj_name_or_luid: Optional[str] = None) -> ET.Element:
         self.start_log_block()
 
         ds_luid = self.query_datasource_luid(ds_name_or_luid, proj_name_or_luid)
@@ -85,20 +85,20 @@ class DatasourceMethods():
 
     def update_datasource(self, datasource_name_or_luid: str, datasource_project_name_or_luid: Optional[str] = None,
                           new_datasource_name: Optional[str] = None, new_project_luid: Optional[str] = None,
-                          new_owner_luid: Optional[str] = None) -> etree.Element:
+                          new_owner_luid: Optional[str] = None) -> ET.Element:
         self.start_log_block()
         datasource_luid = self.query_datasource_luid(datasource_name_or_luid, datasource_project_name_or_luid)
 
-        tsr = etree.Element("tsRequest")
-        d = etree.Element("datasource")
+        tsr = ET.Element("tsRequest")
+        d = ET.Element("datasource")
         if new_datasource_name is not None:
             d.set('name', new_datasource_name)
         if new_project_luid is not None:
-            p = etree.Element('project')
+            p = ET.Element('project')
             p.set('id', new_project_luid)
             d.append(p)
         if new_owner_luid is not None:
-            o = etree.Element('owner')
+            o = ET.Element('owner')
             o.set('id', new_owner_luid)
             d.append(o)
 
@@ -112,7 +112,7 @@ class DatasourceMethods():
     def update_datasource_connection_by_luid(self, datasource_luid: str, new_server_address: Optional[str] = None,
                                              new_server_port: Optional[str] = None,
                                              new_connection_username: Optional[str] = None,
-                                             new_connection_password: Optional[str] = None) -> etree.Element:
+                                             new_connection_password: Optional[str] = None) -> ET.Element:
         self.start_log_block()
         tsr = self.__build_connection_update_xml(new_server_address, new_server_port,
                                                             new_connection_username,
@@ -170,17 +170,17 @@ class DatasourceMethods():
 
     # Tags can be scalar string or list
     def add_tags_to_datasource(self, ds_name_or_luid: str, tag_s: Union[List[str], str],
-                               proj_name_or_luid: Optional[str] = None) -> etree.Element:
+                               proj_name_or_luid: Optional[str] = None) -> ET.Element:
         self.start_log_block()
 
         ds_luid = self.query_workbook_luid(ds_name_or_luid, proj_name_or_luid)
         url = self.build_api_url("datasources/{}/tags".format(ds_luid))
 
-        tsr = etree.Element("tsRequest")
-        ts = etree.Element("tags")
+        tsr = ET.Element("tsRequest")
+        ts = ET.Element("tags")
         tags = self.to_list(tag_s)
         for tag in tags:
-            t = etree.Element("tag")
+            t = ET.Element("tag")
             t.set("label", tag)
             ts.append(t)
         tsr.append(ts)
@@ -209,15 +209,15 @@ class DatasourceMethods27(DatasourceMethods):
     def update_datasource(self, datasource_name_or_luid: str, datasource_project_name_or_luid: Optional[str] = None,
                           new_datasource_name: Optional[str] = None, new_project_luid: Optional[str] = None,
                           new_owner_luid: Optional[str] = None, certification_status: Optional[str] = None,
-                          certification_note: Optional[str] = None) -> etree.Element:
+                          certification_note: Optional[str] = None) -> ET.Element:
         self.start_log_block()
         if certification_status not in [None, False, True]:
             raise InvalidOptionException('certification_status must be None, False, or True')
 
         datasource_luid = self.query_datasource_luid(datasource_name_or_luid, datasource_project_name_or_luid)
 
-        tsr = etree.Element("tsRequest")
-        d = etree.Element("datasource")
+        tsr = ET.Element("tsRequest")
+        d = ET.Element("datasource")
         if new_datasource_name is not None:
             d.set('name', new_datasource_name)
         if certification_status is not None:
@@ -225,11 +225,11 @@ class DatasourceMethods27(DatasourceMethods):
         if certification_note is not None:
             d.set('certificationNote', certification_note)
         if new_project_luid is not None:
-            p = etree.Element('project')
+            p = ET.Element('project')
             p.set('id', new_project_luid)
             d.append(p)
         if new_owner_luid is not None:
-            o = etree.Element('owner')
+            o = ET.Element('owner')
             o.set('id', new_owner_luid)
             d.append(o)
 

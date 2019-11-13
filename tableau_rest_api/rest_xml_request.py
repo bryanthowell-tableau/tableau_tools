@@ -1,6 +1,6 @@
 from ..tableau_base import *
 from ..tableau_exceptions import *
-import xml.etree.cElementTree as etree
+import xml.etree as ET
 # from HTMLParser import HTMLParser
 # from StringIO import StringIO
 from io import BytesIO
@@ -37,7 +37,7 @@ class RestXmlRequest(TableauBase):
         self.__last_response_headers = None
         self.__xml_object = None
         self.ns_map = {'t': ns_map_url}
-        etree.register_namespace('t', ns_map_url)
+        ET.register_namespace('t', ns_map_url)
         self.logger = logger
         self.log('RestXmlRequest intialized')
         self.__publish = None
@@ -119,7 +119,7 @@ class RestXmlRequest(TableauBase):
 
     def get_response(self):
         if self.__response_type == 'xml' and self.__xml_object is not None:
-            self.log_debug("XML Object Response: {}".format(etree.tostring(self.__xml_object, encoding='utf-8').decode('utf-8')))
+            self.log_debug("XML Object Response: {}".format(ET.tostring(self.__xml_object, encoding='utf-8').decode('utf-8')))
             return self.__xml_object
         else:
             return self.__raw_response
@@ -147,11 +147,11 @@ class RestXmlRequest(TableauBase):
         # Log the XML request being sent
         encoded_request = ""
         if self.xml_request is not None:
-            self.log("Request XML: {}".format(etree.tostring(self.xml_request, encoding='utf-8').decode('utf-8')))
+            self.log("Request XML: {}".format(ET.tostring(self.xml_request, encoding='utf-8').decode('utf-8')))
             if isinstance(self.xml_request, str):
                 encoded_request = self.xml_request.encode('utf-8')
             else:
-                encoded_request = etree.tostring(self.xml_request, encoding='utf-8')
+                encoded_request = ET.tostring(self.xml_request, encoding='utf-8')
         if self.__publish_content is not None:
             encoded_request = self.__publish_content
         try:
@@ -207,8 +207,8 @@ class RestXmlRequest(TableauBase):
         self.log("Received a {} error, here was response:".format(str(status_code)))
         self.log(raw_error_response.decode('utf8'))
 
-        utf8_parser = etree.XMLParser(encoding='utf-8')
-        xml = etree.parse(BytesIO(raw_error_response), parser=utf8_parser)
+        utf8_parser = ET.XMLParser(encoding='utf-8')
+        xml = ET.parse(BytesIO(raw_error_response), parser=utf8_parser)
         try:
             tableau_error = xml.findall('.//t:error', namespaces=self.ns_map)
             error_code = tableau_error[0].get('code')
@@ -264,9 +264,9 @@ class RestXmlRequest(TableauBase):
         if self.__response_type == 'xml':
             if self.__raw_response == '' or self.__raw_response is None or len(self.__raw_response) == 0:
                 return True
-            utf8_parser = etree.XMLParser(encoding='UTF-8')
+            utf8_parser = ET.XMLParser(encoding='UTF-8')
             sio = BytesIO(self.__raw_response)
-            xml = etree.parse(sio, parser=utf8_parser)
+            xml = ET.parse(sio, parser=utf8_parser)
             # Set the XML object to the first returned. Will be replaced if there is pagination
             self.__xml_object = xml.getroot()
 
@@ -287,8 +287,8 @@ class RestXmlRequest(TableauBase):
                     for i in range(2, total_pages + 1):
 
                         self.__make_request(i)  # Get next page
-                        utf8_parser2 = etree.XMLParser(encoding='utf-8')
-                        xml = etree.parse(BytesIO(self.__raw_response), parser=utf8_parser2)
+                        utf8_parser2 = ET.XMLParser(encoding='utf-8')
+                        xml = ET.parse(BytesIO(self.__raw_response), parser=utf8_parser2)
                         for obj in xml.getroot():
                             if obj.tag != 'pagination':
                                 full_xml_obj = obj
@@ -298,7 +298,7 @@ class RestXmlRequest(TableauBase):
 
                 self.__xml_object = combined_xml_obj
                 self.log_debug("Logging the combined xml object")
-                self.log_debug(etree.tostring(self.__xml_object, encoding='utf-8').decode('utf-8'))
+                self.log_debug(ET.tostring(self.__xml_object, encoding='utf-8').decode('utf-8'))
                 self.log("Request succeeded")
                 return True
         elif self.__response_type in ['binary', 'png', 'csv']:

@@ -4,7 +4,7 @@ from .logger import Logger
 import re
 
 from io import StringIO
-import xml.etree.cElementTree as etree
+import xml.etree.ElementTree as ET
 
 
 class TableauBase(object):
@@ -20,7 +20,7 @@ class TableauBase(object):
         self.tableau_namespace = 'http://tableau.com/api'
         self.ns_map = {'t': 'http://tableau.com/api'}
         self.ns_prefix = '{' + self.ns_map['t'] + '}'
-        etree.register_namespace('t', self.ns_map['t'])
+        ET.register_namespace('t', self.ns_map['t'])
 
         self.site_roles = (
             'Interactor',
@@ -444,13 +444,13 @@ class TableauBase(object):
 
     # Generic method for XML lists for the "query" actions to name -> id dict
     @staticmethod
-    def convert_xml_list_to_name_id_dict(etree_obj):
+    def convert_xml_list_to_name_id_dict(ET_obj):
         """
-        :type etree_obj: etree.Element
+        :type ET_obj: ET.Element
         :return: dict
         """
         d = {}
-        for element in etree_obj:
+        for element in ET_obj:
             e_id = element.get("id")
             # If list is collection, have to run one deeper
             if e_id is None:

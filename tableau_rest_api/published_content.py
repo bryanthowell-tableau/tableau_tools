@@ -137,10 +137,10 @@ class PublishedContent(TableauBase):
     def convert_permissions_xml_object_from_orig_site_to_current_site(self, permissions_xml_request, orig_site,
                                                                       username_map=None):
         """
-        :type permissions_xml_request: etree.Element
+        :type permissions_xml_request: ET.Element
         :type orig_site: TableauRestApiConnection
         :type username_map: dict[unicode, unicode]
-        :rtype: etree.Element
+        :rtype: ET.Element
         """
         # If the site is the same, skip the whole thing and just return the original
         if self.t_rest_api.site_content_url == orig_site.site_content_url \
@@ -213,7 +213,7 @@ class PublishedContent(TableauBase):
         self.end_log_block()
 
     @staticmethod
-    def _fix_permissions_request_for_replication(tsr: etree.Element) -> etree.Element:
+    def _fix_permissions_request_for_replication(tsr: ET.Element) -> ET.Element:
         # Remove the project tag from the original response
         proj_element = None
         for t in tsr.iter():
@@ -302,12 +302,12 @@ class PublishedContent(TableauBase):
         """
         :type capabilities_dict: dict
         :type obj_type: unicode
-        :return: etree.Element
+        :return: ET.Element
         """
         if obj_type not in self.permissionable_objects:
             error_text = 'objtype can only be "project", "workbook" or "datasource", was given {}'
             raise InvalidOptionException(error_text.format('obj_type'))
-        c = etree.Element('capabilities')
+        c = ET.Element('capabilities')
 
         for cap in capabilities_dict:
             # Skip if the capability is set to None
@@ -328,7 +328,7 @@ class PublishedContent(TableauBase):
                 if cap not in self.available_capabilities[self.api_version]["workbook"]:
                     self.log('{} is not a valid capability for a workbook'.format(cap))
                     continue
-            capab = etree.Element('capability')
+            capab = ET.Element('capability')
             capab.set('name', cap)
             capab.set('mode', capabilities_dict[cap])
             c.append(capab)
@@ -337,15 +337,15 @@ class PublishedContent(TableauBase):
     def build_add_permissions_request(self, permissions_obj):
         """
         :param permissions_obj: Permissions
-        :return: etree.Element
+        :return: ET.Element
         """
 
-        tsr = etree.Element('tsRequest')
-        p = etree.Element('permissions')
+        tsr = ET.Element('tsRequest')
+        p = ET.Element('permissions')
         capabilities_dict = permissions_obj.get_capabilities_dict()
         c = self.build_capabilities_xml_from_dict(capabilities_dict, self.obj_type)
-        gcap = etree.Element('granteeCapabilities')
-        t = etree.Element(permissions_obj.group_or_user)
+        gcap = ET.Element('granteeCapabilities')
+        t = ET.Element(permissions_obj.group_or_user)
         t.set('id', permissions_obj.luid)
         gcap.append(t)
         gcap.append(c)
@@ -360,7 +360,7 @@ class PublishedContent(TableauBase):
 
     def get_permissions_from_server(self, obj_perms_xml=None):
         """
-        :type obj_perms_xml: etree.Element
+        :type obj_perms_xml: ET.Element
         :return:
         """
         self.start_log_block()
@@ -389,7 +389,7 @@ class PublishedContent(TableauBase):
     # This one doesn't do any of the checking or determining if there is a need to change. Only for pure replication
     def set_permissions_by_permissions_direct_xml(self, direct_xml_request):
         """
-        :type direct_xml_request: etree.Element
+        :type direct_xml_request: ET.Element
         :return:
         """
         self.start_log_block()
@@ -534,7 +534,7 @@ class Project(PublishedContent):
 
     def convert_capabilities_xml_into_obj_list(self, xml_obj):
         """
-        :type xml_obj: etree.Element
+        :type xml_obj: ET.Element
         :rtype: list[ProjectPermissions21]
         """
         self.start_log_block()
@@ -849,7 +849,7 @@ class Project28(Project):
 
     def query_child_projects(self):
         """
-        :rtype: etree.Element
+        :rtype: ET.Element
         """
         self.start_log_block()
         projects = self.t_rest_api.query_projects()
@@ -857,7 +857,7 @@ class Project28(Project):
         self.end_log_block()
         return child_projects
 
-    def convert_capabilities_xml_into_obj_list(self, xml_obj: etree.Element) -> List[ProjectPermissions21]:
+    def convert_capabilities_xml_into_obj_list(self, xml_obj: ET.Element) -> List[ProjectPermissions21]:
         self.start_log_block()
         obj_list = []
         xml = xml_obj.findall('.//t:granteeCapabilities', self.ns_map)
@@ -931,7 +931,7 @@ class Workbook(PublishedContent):
         luid = self.t_rest_api.query_workbook_luid(name_or_luid)
         self._luid = luid
 
-    def convert_capabilities_xml_into_obj_list(self, xml_obj: etree.Element) -> List[WorkbookPermissions21]:
+    def convert_capabilities_xml_into_obj_list(self, xml_obj: ET.Element) -> List[WorkbookPermissions21]:
 
         self.start_log_block()
         obj_list = []
@@ -977,7 +977,7 @@ class Datasource(PublishedContent):
         ds_luid = self.t_rest_api.query_datasource_luid(name_or_luid)
         self._luid = ds_luid
 
-    def convert_capabilities_xml_into_obj_list(self, xml_obj: etree.Element) -> List[DatasourcePermissions21]:
+    def convert_capabilities_xml_into_obj_list(self, xml_obj: ET.Element) -> List[DatasourcePermissions21]:
         self.start_log_block()
         obj_list = []
         xml = xml_obj.findall('.//t:granteeCapabilities', self.ns_map)
@@ -1023,7 +1023,7 @@ class View(PublishedContent):
         # Maybe implement a search at some point
         self._luid = luid
 
-    def convert_capabilities_xml_into_obj_list(self, xml_obj: etree.Element) -> List[WorkbookPermissions21]:
+    def convert_capabilities_xml_into_obj_list(self, xml_obj: ET.Element) -> List[WorkbookPermissions21]:
         self.start_log_block()
         obj_list = []
         xml = xml_obj.findall('.//t:granteeCapabilities', self.ns_map)

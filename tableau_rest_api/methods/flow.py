@@ -28,7 +28,7 @@ class FlowMethods33():
                                created_at_filter: Optional[UrlFilter] = None,
                                flow_name_filter: Optional[UrlFilter] = None,
                                owner_name_filter: Optional[UrlFilter] = None, sorts: Optional[List[Sort]] = None,
-                               fields: Optional[List[str]] = None) -> etree.Element:
+                               fields: Optional[List[str]] = None) -> ET.Element:
         self.start_log_block()
         if fields is None:
             if all_fields is True:
@@ -53,7 +53,7 @@ class FlowMethods33():
         self.end_log_block()
         return flows
 
-    def query_flows_for_a_user(self, username_or_luid: str, is_owner_flag: Optional[bool] = False) -> etree.Element:
+    def query_flows_for_a_user(self, username_or_luid: str, is_owner_flag: Optional[bool] = False) -> ET.Element:
         self.start_log_block()
         user_luid = self.query_user_luid(username_or_luid)
         additional_url_params = ""
@@ -64,7 +64,7 @@ class FlowMethods33():
         self.end_log_block()
         return flows
 
-    def query_flow(self, flow_name_or_luid: str, project_name_or_luid: Optional[str] = None) -> etree.Element:
+    def query_flow(self, flow_name_or_luid: str, project_name_or_luid: Optional[str] = None) -> ET.Element:
         self.start_log_block()
         flow_luid = self.query_flow_luid(flow_name_or_luid, project_name_or_luid=project_name_or_luid)
 
@@ -74,7 +74,7 @@ class FlowMethods33():
         return flow
 
     def query_flow_connections(self, flow_name_or_luid: str,
-                               project_name_or_luid: Optional[str] = None) -> etree.Element:
+                               project_name_or_luid: Optional[str] = None) -> ET.Element:
         self.start_log_block()
         flow_luid = self.query_flow_luid(flow_name_or_luid, project_name_or_luid=project_name_or_luid)
         connections = self.query_resource('flows/{}/connections'.format(flow_luid))
@@ -82,13 +82,13 @@ class FlowMethods33():
         return connections
 
 
-    def get_flow_run_tasks(self) -> etree.Element:
+    def get_flow_run_tasks(self) -> ET.Element:
         self.start_log_block()
         tasks = self.query_resource('tasks/runFlow')
         self.end_log_block()
         return tasks
 
-    def get_flow_run_task(self, task_luid: str) -> etree.Element:
+    def get_flow_run_task(self, task_luid: str) -> ET.Element:
         self.start_log_block()
         task = self.query_resource('tasks/runFlow/{}'.format(task_luid))
         self.end_log_block()
@@ -107,13 +107,13 @@ class FlowMethods33():
         if flow_output_step_ids is not None:
             pass
 
-        tsr = etree.Element('tsRequest')
+        tsr = ET.Element('tsRequest')
         url = self.build_api_url("flows/{}/run{}".format(flow_luid, additional_url_params))
         job_luid = self.send_add_request(url, tsr)
         self.end_log_block()
         return job_luid
 
-    def run_flow_task(self, task_luid: str) -> etree.Element:
+    def run_flow_task(self, task_luid: str) -> ET.Element:
         self.start_log_block()
         url = self.build_api_url('tasks/runFlow/{}/runNow'.format(task_luid))
         response = self.send_post_request(url)
@@ -122,7 +122,7 @@ class FlowMethods33():
 
 
     def update_flow(self, flow_name_or_luid: str, project_name_or_luid: Optional[str] = None,
-                    owner_username_or_luid: Optional[str] = None) -> etree.Element:
+                    owner_username_or_luid: Optional[str] = None) -> ET.Element:
         self.start_log_block()
         if project_name_or_luid is None and owner_username_or_luid is None:
             raise InvalidOptionException('Must include at least one change, either project or owner or both')
@@ -130,18 +130,18 @@ class FlowMethods33():
         if self.is_luid(flow_name_or_luid):
             flow_luid = self.query_flow_luid(flow_name_or_luid)
 
-        tsr = etree.Element('tsRequest')
-        f = etree.Element('flow')
+        tsr = ET.Element('tsRequest')
+        f = ET.Element('flow')
         if project_name_or_luid is not None:
             proj_luid = self.query_project_luid(project_name_or_luid)
-            p = etree.Element('project')
+            p = ET.Element('project')
             p.set('id', proj_luid)
             f.append(p)
 
         if owner_username_or_luid is not None:
             owner_luid = self.query_user_luid(owner_username_or_luid)
 
-            o = etree.Element('owner')
+            o = ET.Element('owner')
             o.set('id', owner_luid)
             f.append(o)
 
@@ -156,11 +156,11 @@ class FlowMethods33():
     def update_flow_connection(self, flow_luid: str, flow_connection_luid: str,  server_address: Optional[str] = None,
                                port: Optional[str] = None, connection_username: Optional[str] = None,
                                connection_password: Optional[str] = None,
-                               embed_password: Optional[bool] = False) -> etree.Element:
+                               embed_password: Optional[bool] = False) -> ET.Element:
         self.start_log_block()
 
-        tsr = etree.Element('tsRequest')
-        c = etree.Element('connection')
+        tsr = ET.Element('tsRequest')
+        c = ET.Element('connection')
         updates_count = 0
         if server_address is not None:
             c.set('serverAddress', server_address)
@@ -200,10 +200,10 @@ class FlowMethods33():
         flow_luid = self.query_flow_luid(flow_name_or_luid)
         sched_luid = self.query_schedule_luid(schedule_name_or_luid)
 
-        tsr = etree.Element('tsRequest')
-        t = etree.Element('task')
-        fr = etree.Element('flowRun')
-        f = etree.Element('flow')
+        tsr = ET.Element('tsRequest')
+        t = ET.Element('task')
+        fr = ET.Element('flowRun')
+        f = ET.Element('flow')
         f.set('id', flow_luid)
         fr.append(f)
         t.append(fr)

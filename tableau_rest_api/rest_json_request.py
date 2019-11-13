@@ -1,6 +1,6 @@
 from ..tableau_base import *
 from ..tableau_exceptions import *
-import xml.etree.cElementTree as etree
+import xml.etree.ElementTree as ET
 # from HTMLParser import HTMLParser
 # from StringIO import StringIO
 from io import BytesIO
@@ -39,7 +39,7 @@ class RestJsonRequest(TableauBase):
         self.__last_response_headers = None
         self.__json_object = None
         self.ns_map = {'t': ns_map_url}
-        etree.register_namespace('t', ns_map_url)
+        ET.register_namespace('t', ns_map_url)
         self.logger = logger
         self.log('RestJsonRequest intialized')
         self.__publish = None
@@ -152,11 +152,11 @@ class RestJsonRequest(TableauBase):
         # Log the XML request being sent
         encoded_request = ""
         if self.xml_request is not None:
-            self.log("Request XML: {}".format(etree.tostring(self.xml_request, encoding='utf-8').decode('utf-8')))
+            self.log("Request XML: {}".format(ET.tostring(self.xml_request, encoding='utf-8').decode('utf-8')))
             if isinstance(self.xml_request, str):
                 encoded_request = self.xml_request.encode('utf-8')
             else:
-                encoded_request = etree.tostring(self.xml_request, encoding='utf-8')
+                encoded_request = ET.tostring(self.xml_request, encoding='utf-8')
         if self.__publish_content is not None:
             encoded_request = self.__publish_content
         try:
@@ -212,8 +212,8 @@ class RestJsonRequest(TableauBase):
         self.log("Received a {} error, here was response:".format(str(status_code)))
         self.log(raw_error_response.decode('utf8'))
 
-        utf8_parser = etree.XMLParser(encoding='utf-8')
-        xml = etree.parse(BytesIO(raw_error_response), parser=utf8_parser)
+        utf8_parser = ET.XMLParser(encoding='utf-8')
+        xml = ET.parse(BytesIO(raw_error_response), parser=utf8_parser)
         try:
             tableau_error = xml.findall('.//t:error', namespaces=self.ns_map)
             error_code = tableau_error[0].get('code')

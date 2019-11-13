@@ -11,7 +11,7 @@ class WorkbookMethods():
                         all_fields: Optional[bool] = True, created_at_filter: Optional[UrlFilter] = None,
                         updated_at_filter: Optional[UrlFilter] = None, owner_name_filter: Optional[UrlFilter] = None,
                         tags_filter: Optional[UrlFilter] = None, sorts: Optional[List[Sort]] = None,
-                        fields: Optional[List[str]] = None) -> etree.Element:
+                        fields: Optional[List[str]] = None) -> ET.Element:
         self.start_log_block()
         if fields is None:
             if all_fields is True:
@@ -31,13 +31,13 @@ class WorkbookMethods():
         if project_name_or_luid is not None:
             project_luid = self.query_project_luid(project_name_or_luid)
             wbs_in_project = wbs.findall('.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
-            wbs = etree.Element(self.ns_prefix + 'workbooks')
+            wbs = ET.Element(self.ns_prefix + 'workbooks')
             for wb in wbs_in_project:
                 wbs.append(wb)
         self.end_log_block()
         return wbs
 
-    def query_workbooks_for_user(self, username_or_luid: str) -> etree.Element:
+    def query_workbooks_for_user(self, username_or_luid: str) -> ET.Element:
         self.start_log_block()
         wbs = self.query_workbooks(username_or_luid)
         self.end_log_block()
@@ -72,7 +72,7 @@ class WorkbookMethods():
 
     # Because a workbook can have the same pretty name in two projects, requires more logic
     def query_workbook(self, wb_name_or_luid: str, proj_name_or_luid: Optional[str] = None,
-                       username_or_luid: Optional[str] = None) -> etree.Element:
+                       username_or_luid: Optional[str] = None) -> ET.Element:
         self.start_log_block()
         workbooks = self.query_workbooks(username_or_luid)
         if self.is_luid(wb_name_or_luid):
@@ -112,7 +112,7 @@ class WorkbookMethods():
         workbooks = self.query_workbooks(user_luid)
         # This brings back the workbook itself
         wbs_in_project = workbooks.findall('.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
-        wbs = etree.Element(self.ns_prefix + 'workbooks')
+        wbs = ET.Element(self.ns_prefix + 'workbooks')
         for wb in wbs_in_project:
             wbs.append(wb)
         self.end_log_block()
@@ -120,21 +120,21 @@ class WorkbookMethods():
 
     def update_workbook(self, workbook_name_or_luid: str, workbook_project_name_or_luid: str,
                         new_project_name_or_luid: Optional[str] = None, new_owner_username_or_luid: Optional[str] = None,
-                        show_tabs: Optional[bool] = True) -> etree.Element:
+                        show_tabs: Optional[bool] = True) -> ET.Element:
         self.start_log_block()
         workbook_luid = self.query_workbook_luid(workbook_name_or_luid, workbook_project_name_or_luid, self.username)
         new_owner_luid = self.query_user_luid(new_owner_username_or_luid)
         new_project_luid = self.query_project_luid(new_project_name_or_luid)
-        tsr = etree.Element("tsRequest")
-        w = etree.Element("workbook")
+        tsr = ET.Element("tsRequest")
+        w = ET.Element("workbook")
         w.set('showTabs', str(show_tabs).lower())
         if new_project_luid is not None:
-            p = etree.Element('project')
+            p = ET.Element('project')
             p.set('id', new_project_luid)
             w.append(p)
 
         if new_owner_luid is not None:
-            o = etree.Element('owner')
+            o = ET.Element('owner')
             o.set('id', new_owner_luid)
             w.append(o)
         tsr.append(w)
@@ -150,7 +150,7 @@ class WorkbookMethods():
                                            new_server_address: Optional[str] = None,
                                            new_server_port: Optional[str] = None,
                                            new_connection_username: Optional[str] = None,
-                                           new_connection_password: Optional[str] = None) -> etree.Element:
+                                           new_connection_password: Optional[str] = None) -> ET.Element:
         self.start_log_block()
         tsr = self.__build_connection_update_xml(new_server_address, new_server_port, new_connection_username,
                                                  new_connection_password)
@@ -196,7 +196,7 @@ class WorkbookMethods():
 
 
     def query_workbook_views(self, wb_name_or_luid: str, proj_name_or_luid: Optional[str] = None,
-                             username_or_luid: Optional[str] = None, usage: Optional[bool] = False) -> etree.Element:
+                             username_or_luid: Optional[str] = None, usage: Optional[bool] = False) -> ET.Element:
         self.start_log_block()
         if usage not in [True, False]:
             raise InvalidOptionException('Usage can only be set to True or False')
@@ -220,7 +220,7 @@ class WorkbookMethods():
 
     def query_workbook_view(self, wb_name_or_luid, view_name_or_luid: Optional[str] = None,
                             view_content_url: Optional[str] = None, proj_name_or_luid: Optional[str] = None,
-                            username_or_luid: Optional[str] = None, usage: Optional[bool] = False) -> etree.Element:
+                            username_or_luid: Optional[str] = None, usage: Optional[bool] = False) -> ET.Element:
 
         self.start_log_block()
         if usage not in [True, False]:
@@ -247,7 +247,7 @@ class WorkbookMethods():
     # This should be the key to updating the connections in a workbook. Seems to return
     # LUIDs for connections and the datatypes, but no way to distinguish them
     def query_workbook_connections(self, wb_name_or_luid: str, proj_name_or_luid: Optional[str] = None,
-                                   username_or_luid: Optional[str] = None) -> etree.Element:
+                                   username_or_luid: Optional[str] = None) -> ET.Element:
         self.start_log_block()
         wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
         conns = self.query_resource("workbooks/{}/connections".format(wb_luid))
@@ -257,7 +257,7 @@ class WorkbookMethods():
     def query_views(self, all_fields: Optional[bool] = True, usage: Optional[bool] = False,
                          created_at_filter: Optional[UrlFilter] = None, updated_at_filter: Optional[UrlFilter] = None,
                          tags_filter: Optional[UrlFilter] = None, sorts: Optional[UrlFilter] = None,
-                         fields: Optional[UrlFilter] = None) -> etree.Element:
+                         fields: Optional[UrlFilter] = None) -> ET.Element:
         self.start_log_block()
 
         if fields is None:
@@ -295,7 +295,7 @@ class WorkbookMethods():
         self.end_log_block()
         return vws
 
-    def query_view(self, vw_name_or_luid: str) -> etree.Element:
+    def query_view(self, vw_name_or_luid: str) -> ET.Element:
         self.start_log_block()
         vw = self.query_single_element_from_endpoint_with_filter('view', vw_name_or_luid)
         self.end_log_block()
@@ -448,16 +448,16 @@ class WorkbookMethods():
 
     # Tags can be scalar string or list
     def add_tags_to_workbook(self, wb_name_or_luid: str, tag_s: List[str],
-                             proj_name_or_luid: Optional[str] = None) -> etree.Element:
+                             proj_name_or_luid: Optional[str] = None) -> ET.Element:
         self.start_log_block()
         wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
         url = self.build_api_url("workbooks/{}/tags".format(wb_luid))
 
-        tsr = etree.Element("tsRequest")
-        ts = etree.Element("tags")
+        tsr = ET.Element("tsRequest")
+        ts = ET.Element("tags")
         tags = self.to_list(tag_s)
         for tag in tags:
-            t = etree.Element("tag")
+            t = ET.Element("tag")
             t.set("label", tag)
             ts.append(t)
         tsr.append(ts)
@@ -479,16 +479,16 @@ class WorkbookMethods():
 
     # Tags can be scalar string or list
     def add_tags_to_view(self, view_name_or_luid: str, workbook_name_or_luid: str, tag_s: List[str],
-                         proj_name_or_luid: Optional[str] = None) -> etree.Element:
+                         proj_name_or_luid: Optional[str] = None) -> ET.Element:
         self.start_log_block()
         vw_luid = self.query_workbook_view_luid(workbook_name_or_luid, view_name_or_luid, proj_name_or_luid)
         url = self.build_api_url("views/{}/tags".format(vw_luid))
 
-        tsr = etree.Element("tsRequest")
-        ts = etree.Element("tags")
+        tsr = ET.Element("tsRequest")
+        ts = ET.Element("tags")
         tags = self.to_list(tag_s)
         for tag in tags:
-            t = etree.Element("tag")
+            t = ET.Element("tag")
             t.set("label", tag)
             ts.append(t)
         tsr.append(ts)

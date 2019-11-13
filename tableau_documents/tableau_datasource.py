@@ -3,7 +3,7 @@ from .tableau_connection import TableauConnection
 from .tableau_document import TableauDocument
 from .tableau_columns import TableauColumns
 
-import xml.etree.cElementTree as etree
+import xml.etree.ElementTree as ET
 from ..tableau_exceptions import *
 import zipfile
 import os
@@ -19,13 +19,13 @@ import random
 class TableauDatasource(TableauDocument):
     def __init__(self, datasource_xml=None, logger_obj=None, ds_version=None):
         """
-        :type datasource_xml: etree.Element
+        :type datasource_xml: ET.Element
         :type logger_obj: Logger
         :type ds_version: unicode
         """
         TableauDocument.__init__(self)
         self._document_type = 'datasource'
-        etree.register_namespace('t', self.ns_map['t'])
+        ET.register_namespace('t', self.ns_map['t'])
         self.logger = logger_obj
         self._connections = []
         self.ds_name = None
@@ -251,7 +251,7 @@ class TableauDatasource(TableauDocument):
     @staticmethod
     def create_new_datasource_xml(version):
         # nsmap = {u"user": u'http://www.tableausoftware.com/xml/user'}
-        ds_xml = etree.Element("datasource")
+        ds_xml = ET.Element("datasource")
         ds_xml.set('version', version)
         ds_xml.set('inline', "true")
         return ds_xml
@@ -267,11 +267,11 @@ class TableauDatasource(TableauDocument):
         :type initial_sql: unicode
         :return:
         """
-        connection = etree.Element("connection")
+        connection = ET.Element("connection")
         if ds_version == '9':
             c = connection
         elif ds_version in ['10', '10.5']:
-            nc = etree.Element('named-connection')
+            nc = ET.Element('named-connection')
             nc.set('caption', 'Connection')
             # Connection has a random number of 20 digits appended
             rnumber = random.randrange(10**20, 10**21)
@@ -296,14 +296,14 @@ class TableauDatasource(TableauDocument):
         self.start_log_block()
         self.ds_generator = True
         conn = self.create_new_connection_xml(self.ds_version_type, ds_type, server, db_or_schema_name, authentication, initial_sql)
-        print((etree.tostring(conn)))
+        print((ET.tostring(conn)))
         if self.ds_version_type == '9':
             self.xml.append(conn)
             self._connection_root = conn
         elif self.ds_version_type in ['10', '10.5']:
-            c = etree.Element('connection')
+            c = ET.Element('connection')
             c.set('class', 'federated')
-            ncs = etree.Element('named-connections')
+            ncs = ET.Element('named-connections')
             ncs.append(copy.deepcopy(conn))
             c.append(ncs)
             self.xml.append(c)
@@ -387,7 +387,7 @@ class TableauDatasource(TableauDocument):
             new_xml.append(new_l)
             new_xml.append(new_sv)
 
-        xmlstring = etree.tostring(new_xml)
+        xmlstring = ET.tostring(new_xml)
         self.end_log_block()
         return xmlstring
 
@@ -487,12 +487,12 @@ class TableauDatasource(TableauDocument):
             print("Must have correct install of Tableau Extract SDK to add extracts")
             print('Exception arising from the Tableau Extract SDK itself')
             raise
-        e = etree.Element('extract')
+        e = ET.Element('extract')
         e.set('count', '-1')
         e.set('enabled', 'true')
         e.set('units', 'records')
 
-        c = etree.Element('connection')
+        c = ET.Element('connection')
         if self.ds_version_type in ['9', '10']:
             c.set('class', 'dataengine')
         # 10.5 has hyper data sources instead
@@ -511,20 +511,20 @@ class TableauDatasource(TableauDocument):
         pretty_date = right_now.strftime("%m/%d/%Y %H:%M:%S %p")
         c.set('update-time', pretty_date)
 
-        r = etree.Element('relation')
+        r = ET.Element('relation')
         r.set("name", "Extract")
         r.set("table", "[Extract].[Extract]")
         r.set("type", "table")
         c.append(r)
 
-        calcs = etree.Element("calculations")
-        calc = etree.Element("calculation")
+        calcs = ET.Element("calculations")
+        calc = ET.Element("calculation")
         calc.set("column", "[Number of Records]")
         calc.set("formula", "1")
         calcs.append(calc)
         c.append(calcs)
 
-        ref = etree.Element('refresh')
+        ref = ET.Element('refresh')
         if self.incremental_refresh_field is not None:
             ref.set("increment-key", self.incremental_refresh_field)
             ref.set("incremental-updates", 'true')
@@ -651,7 +651,7 @@ class TableauDatasource(TableauDocument):
     def set_stored_proc_parameter_value_by_name(self, parameter_name, parameter_value):
         # Create if there is none
         if self._stored_proc_parameters_xml is None:
-            self._stored_proc_parameters_xml = etree.Element('actual-parameters')
+            self._stored_proc_parameters_xml = ET.Element('actual-parameters')
         # Find parameter with that name (if exists)
         param = self._stored_proc_parameters_xml.find('.//column[@name="{}"]'.format(parameter_name), self.ns_map)
 
@@ -675,11 +675,11 @@ class TableauDatasource(TableauDocument):
         """
         :type parameter_name: unicode
         :type parameter_value: all
-        :return: etree.Element
+        :return: ET.Element
         """
         if parameter_name is None or parameter_value is None:
             raise InvalidOptionException('Must specify both a parameter_name (starting with @) and a parameter_value')
-        c = etree.Element('column')
+        c = ET.Element('column')
         # Check to see if this varies at all depending on type or whatever
         c.set('ordinal', '1')
         if parameter_name[0] != '@':
@@ -704,7 +704,7 @@ class TableauDatasource(TableauDocument):
 
     @staticmethod
     def create_table_relation(db_table_name, table_alias, connection=None, extract=False):
-        r = etree.Element("relation")
+        r = ET.Element("relation")
         r.set('name', table_alias)
         if extract is True:
             r.set("table", "[Extract].[{}]".format(db_table_name))
@@ -717,7 +717,7 @@ class TableauDatasource(TableauDocument):
 
     @staticmethod
     def create_custom_sql_relation(custom_sql, table_alias, connection=None):
-        r = etree.Element("relation")
+        r = ET.Element("relation")
         r.set('name', table_alias)
         r.text = custom_sql
         r.set("type", "text")
@@ -727,7 +727,7 @@ class TableauDatasource(TableauDocument):
 
     @staticmethod
     def create_stored_proc_relation(custom_sql, table_alias, connection=None, actual_parameters=None):
-        r = etree.Element("relation")
+        r = ET.Element("relation")
         r.set('name', table_alias)
         r.text = custom_sql
         r.set("type", "stored-proc")
@@ -762,7 +762,7 @@ class TableauDatasource(TableauDocument):
         #if self.relation_xml_obj is not None:
         #    self.relation_xml_obj.clear()
         #else:
-        rel_xml_obj = etree.Element("relation")
+        rel_xml_obj = ET.Element("relation")
         # There's only a single main relation with only one table
 
         if len(self.join_relations) == 0:
@@ -779,7 +779,7 @@ class TableauDatasource(TableauDocument):
             #print(self.join_relations)
             for join_desc in self.join_relations:
 
-                r = etree.Element("relation")
+                r = ET.Element("relation")
                 r.set("join", join_desc["join_type"])
                 r.set("type", "join")
                 if len(join_desc["on_clauses"]) == 0:
@@ -787,21 +787,21 @@ class TableauDatasource(TableauDocument):
                 else:
                     and_expression = None
                     if len(join_desc["on_clauses"]) > 1:
-                        and_expression = etree.Element("expression")
+                        and_expression = ET.Element("expression")
                         and_expression.set("op", 'AND')
                     for on_clause in join_desc["on_clauses"]:
-                        c = etree.Element("clause")
+                        c = ET.Element("clause")
                         c.set("type", "join")
-                        e = etree.Element("expression")
+                        e = ET.Element("expression")
                         e.set("op", on_clause["operator"])
 
-                        e_field1 = etree.Element("expression")
+                        e_field1 = ET.Element("expression")
                         e_field1_name = '[{}].[{}]'.format(on_clause["left_table_alias"],
                                                             on_clause["left_field"])
                         e_field1.set("op", e_field1_name)
                         e.append(e_field1)
 
-                        e_field2 = etree.Element("expression")
+                        e_field2 = ET.Element("expression")
                         e_field2_name = '[{}].[{}]'.format(on_clause["right_table_alias"],
                                                             on_clause["right_field"])
                         e_field2.set("op", e_field2_name)
@@ -817,7 +817,7 @@ class TableauDatasource(TableauDocument):
 
                 if join_desc["custom_sql"] is None:
                     # Append the main table first (not sure this works for more deep hierarchies, but let's see
-                    main_rel_xml_obj = etree.Element('relation')
+                    main_rel_xml_obj = ET.Element('relation')
                     for item in list(self.main_table_relation.items()):
                         main_rel_xml_obj.set(item[0], item[1])
                     if self.main_table_relation.text is not None:
@@ -999,18 +999,18 @@ class TableauDatasource(TableauDocument):
     def generate_filters(self, filter_array):
         return_array = []
         for filter_def in filter_array:
-            f = etree.Element('filter')
+            f = ET.Element('filter')
             f.set('class', filter_def['type'])
             f.set('column', filter_def['column_name'])
             f.set('filter-group', '2')
             if filter_def['type'] == 'quantitative':
                 f.set('include-values', 'in-range')
                 if filter_def['min'] is not None:
-                    m = etree.Element('min')
+                    m = ET.Element('min')
                     m.text = str(filter_def['min'])
                     f.append(m)
                 if filter_def['max'] is not None:
-                    m = etree.Element('max')
+                    m = ET.Element('max')
                     m.text = str(filter_def['max'])
                     f.append(m)
             elif filter_def['type'] == 'relative-date':
@@ -1021,7 +1021,7 @@ class TableauDatasource(TableauDocument):
                 f.set('period-type', filter_def['period-type'])
 
             elif filter_def['type'] == 'categorical':
-                gf = etree.Element('groupfilter')
+                gf = ET.Element('groupfilter')
                 # This attribute has a user namespace
                 gf.set('{' + '{}'.format(self.nsmap['user']) + '}ui-domain', 'database')
                 gf.set('{' + '{}'.format(self.nsmap['user']) + '}ui-enumeration', filter_def['ui-enumeration'])
@@ -1031,7 +1031,7 @@ class TableauDatasource(TableauDocument):
                 if len(filter_def['values']) == 1:
                     if filter_def['ui-enumeration'] == 'exclusive':
                         gf.set('function', 'except')
-                        gf1 = etree.Element('groupfilter')
+                        gf1 = ET.Element('groupfilter')
                         gf1.set('function', 'member')
                         gf1.set('level', filter_def['column_name'])
                     else:
@@ -1045,7 +1045,7 @@ class TableauDatasource(TableauDocument):
                         gf1.set('member', str(filter_def['values'][0]))
                     if filter_def['ui-enumeration'] == 'exclusive':
                         # Single exclude filters include an extra groupfilter set with level-members function
-                        lm = etree.Element('groupfilter')
+                        lm = ET.Element('groupfilter')
                         lm.set('function', 'level-members')
                         lm.set('level', filter_def['column_name'])
                         gf.append(lm)
@@ -1057,7 +1057,7 @@ class TableauDatasource(TableauDocument):
                     else:
                         gf.set('function', 'union')
                     for val in filter_def['values']:
-                        gf1 = etree.Element('groupfilter')
+                        gf1 = ET.Element('groupfilter')
                         gf1.set('function', 'member')
                         gf1.set('level', filter_def['column_name'])
                         # String types need &quot; , ints do not
@@ -1080,9 +1080,9 @@ class TableauDatasource(TableauDocument):
     def generate_cols_map_section(self):
         if len(self.column_mapping) == 0:
             return False
-        c = etree.Element("cols")
+        c = ET.Element("cols")
         for key in self.column_mapping:
-            m = etree.Element("map")
+            m = ET.Element("map")
             m.set("key", "[{}]".format(key))
             m.set("value", self.column_mapping[key])
             c.append(m)
@@ -1091,25 +1091,25 @@ class TableauDatasource(TableauDocument):
     @staticmethod
     def generate_aliases_tag():
         # For whatever reason, the aliases tag does not contain the columns, but it always precedes it
-        a = etree.Element("aliases")
+        a = ET.Element("aliases")
         a.set("enabled", "yes")
         return a
 
     def generate_aliases_column_section(self):
         """
-        :rtype: list[etree.Element]
+        :rtype: list[ET.Element]
         """
         column_aliases_array = []
 
         # Now to put in each column tag
         for column_alias in self.column_aliases:
-            c = etree.Element("column")
+            c = ET.Element("column")
             print("Column section")
-            print((etree.tostring(c)))
+            print((ET.tostring(c)))
             # Name is the Tableau Field Alias, always surrounded by brackets SQL Server style
             c.set("name", "[{}]".format(column_alias))
             print("Column section 2")
-            print((etree.tostring(c)))
+            print((ET.tostring(c)))
             if self.column_aliases[column_alias]["datatype"] is not None:
                 c.set("datatype", self.column_aliases[column_alias]["datatype"])
             if self.column_aliases[column_alias]["caption"] is not None:
@@ -1119,20 +1119,20 @@ class TableauDatasource(TableauDocument):
             if self.column_aliases[column_alias]["type"] is not None:
                 c.set("type", self.column_aliases[column_alias]["type"])
             if self.column_aliases[column_alias]['calculation'] is not None:
-                calc = etree.Element('calculation')
+                calc = ET.Element('calculation')
                 calc.set('class', 'tableau')
                 # quoteattr adds an extra real set of quotes around the string, which needs to be sliced out
                 calc.set('formula', quoteattr(self.column_aliases[column_alias]['calculation'])[1:-1])
                 c.append(calc)
             print("Column section at end")
-            print((etree.tostring(c)))
+            print((ET.tostring(c)))
             column_aliases_array.append(c)
         return column_aliases_array
 
     def generate_column_instances_section(self):
         column_instances_array = []
         for column_instance in self.column_instances:
-            ci = etree.Element('column-instance')
+            ci = ET.Element('column-instance')
             ci.set('column', column_instance['column'])
             ci.set('derivation', 'None')
             ci.set('name', column_instance['name'])

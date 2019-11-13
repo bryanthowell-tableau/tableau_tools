@@ -10,7 +10,7 @@ class SiteMethods():
     #
 
     # Site queries don't have the site portion of the URL, so login option gets correct format
-    def query_sites(self) -> etree.Element:
+    def query_sites(self) -> ET.Element:
         self.start_log_block()
         sites = self.query_resource("sites", server_level=True)
         self.end_log_block()
@@ -35,7 +35,7 @@ class SiteMethods():
         return site_content_urls
 
     # You can only query a site you have logged into this way. Better to use methods that run through query_sites
-    def query_current_site(self) -> etree.Element:
+    def query_current_site(self) -> ET.Element:
         self.start_log_block()
         site = self.query_resource("sites/{}".format(self.site_luid), server_level=True)
         self.end_log_block()
@@ -46,7 +46,7 @@ class SiteMethods():
                     user_quota: Optional[str] = None, storage_quota: Optional[str] = None,
                     disable_subscriptions: Optional[bool] = None, revision_history_enabled: Optional[bool] = None,
                     revision_limit: Optional[str] = None,
-                    direct_xml_request: Optional[etree.Element] = None) -> str:
+                    direct_xml_request: Optional[ET.Element] = None) -> str:
 
         if direct_xml_request is not None:
             add_request = direct_xml_request
@@ -72,7 +72,7 @@ class SiteMethods():
                     admin_mode: Optional[str] = None, user_quota: Optional[str] = None,
                     storage_quota: Optional[str] = None, disable_subscriptions: Optional[bool] = None,
                     state: Optional[str] = None, revision_history_enabled: Optional[bool] = None,
-                    revision_limit: Optional[str] = None) -> etree.Element:
+                    revision_limit: Optional[str] = None) -> ET.Element:
         self.start_log_block()
         tsr = self.build_site_request_xml(site_name, content_url, admin_mode, user_quota, storage_quota,
                                           disable_subscriptions, state, revision_limit=revision_limit)
@@ -106,7 +106,7 @@ class SiteMethods30(SiteMethods28):
                     storage_quota: Optional[str] = None,
                     disable_subscriptions: Optional[bool] = None, revision_history_enabled: Optional[bool] = None,
                     revision_limit: Optional[str] = None,
-                    direct_xml_request: Optional[etree.Element] = None) -> str:
+                    direct_xml_request: Optional[ET.Element] = None) -> str:
         add_request = self.build_site_request_xml(new_site_name, new_content_url, admin_mode, tier_creator_capacity,
                                                   tier_explorer_capacity, tier_viewer_capacity, storage_quota,
                                                   disable_subscriptions,
@@ -131,7 +131,7 @@ class SiteMethods30(SiteMethods28):
                     storage_quota: Optional[str] = None,
                     disable_subscriptions: Optional[bool] = None, revision_history_enabled: Optional[bool] = None,
                     revision_limit: Optional[str] = None, state: Optional[str] = None,
-                    direct_xml_request: Optional[etree.Element] = None) -> etree.Element:
+                    direct_xml_request: Optional[ET.Element] = None) -> ET.Element:
         self.start_log_block()
         tsr = self.build_site_request_xml(site_name, content_url, admin_mode, tier_creator_capacity,
                                           tier_explorer_capacity, tier_viewer_capacity, storage_quota,

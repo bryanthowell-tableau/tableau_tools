@@ -23,7 +23,7 @@ class TableauRestApiBase(LookupMethods, TableauBase):
         if server.find('http') == -1:
             raise InvalidOptionException('Server URL must include http:// or https://')
 
-        etree.register_namespace('t', self.ns_map['t'])
+        ET.register_namespace('t', self.ns_map['t'])
         self.server: str = server
         self.site_content_url: str = site_content_url
         self.username: str = username
@@ -143,8 +143,8 @@ class TableauRestApiBase(LookupMethods, TableauBase):
                                storage_quota: Optional[str] = None, disable_subscriptions: Optional[bool] = None,
                                state: Optional[str] = None,
                                revision_history_enabled: Optional[bool] = None, revision_limit: Optional[str] = None):
-        tsr = etree.Element("tsRequest")
-        s = etree.Element('site')
+        tsr = ET.Element("tsRequest")
+        s = ET.Element('site')
 
         if site_name is not None:
             s.set('name', site_name)
@@ -169,8 +169,8 @@ class TableauRestApiBase(LookupMethods, TableauBase):
         return tsr
 
     # This is specifically for replication from one site to another
-    def build_request_from_response(self, request: etree.Element) -> etree.Element:
-        tsr = etree.Element('tsRequest')
+    def build_request_from_response(self, request: ET.Element) -> ET.Element:
+        tsr = ET.Element('tsRequest')
         request_copy = copy.deepcopy(request)
         # If the object happens to include the tsResponse root tag, strip it out
         if request_copy.tag.find("tsResponse") != -1:
@@ -190,9 +190,9 @@ class TableauRestApiBase(LookupMethods, TableauBase):
     def __build_connection_update_xml(new_server_address: Optional[str] = None,
                                       new_server_port: Optional[str] = None,
                                       new_connection_username: Optional[str] = None,
-                                      new_connection_password: Optional[str] = None) -> etree.Element:
-        tsr = etree.Element('tsRequest')
-        c = etree.Element("connection")
+                                      new_connection_password: Optional[str] = None) -> ET.Element:
+        tsr = ET.Element('tsRequest')
+        c = ET.Element("connection")
         if new_server_address is not None:
             c.set('serverAddress', new_server_address)
         if new_server_port is not None:
@@ -208,7 +208,7 @@ class TableauRestApiBase(LookupMethods, TableauBase):
     # Factory methods for PublishedContent and Permissions objects
     #
     def get_published_project_object(self, project_name_or_luid: str,
-                                     project_xml_obj: Optional[etree.Element] = None) -> Project:
+                                     project_xml_obj: Optional[ET.Element] = None) -> Project:
         if self.is_luid(project_name_or_luid):
             luid = project_name_or_luid
         else:
@@ -240,18 +240,18 @@ class TableauRestApiBase(LookupMethods, TableauBase):
 
     def signin(self, user_luid_to_impersonate: Optional[str] = None):
         self.start_log_block()
-        tsr = etree.Element("tsRequest")
-        c = etree.Element("credentials")
+        tsr = ET.Element("tsRequest")
+        c = ET.Element("credentials")
         c.set("name", self.username)
         c.set("password", self._password)
-        s = etree.Element("site")
+        s = ET.Element("site")
         if self.site_content_url.lower() not in ['default', '']:
             s.set("contentUrl", self.site_content_url)
 
         c.append(s)
 
         if user_luid_to_impersonate is not None:
-            u = etree.Element('user')
+            u = ET.Element('user')
             u.set('id', user_luid_to_impersonate)
             c.append(u)
 
@@ -267,7 +267,7 @@ class TableauRestApiBase(LookupMethods, TableauBase):
                                            verify_ssl_cert=self.verify_ssl_cert)
         self._request_obj.xml_request = tsr
         self._request_obj.http_verb = 'post'
-        self.log('Login payload is\n {}'.format(etree.tostring(tsr)))
+        self.log('Login payload is\n {}'.format(ET.tostring(tsr)))
 
         self._request_obj.request_from_api(0)
         # self.log(api.get_raw_response())
@@ -321,7 +321,7 @@ class TableauRestApiBase(LookupMethods, TableauBase):
     # baseline method for any get request. appends to base url
     def query_resource(self, url_ending: str, server_level:bool = False, filters: Optional[List[UrlFilter]] = None,
                        sorts: Optional[List[Sort]] = None, additional_url_ending: Optional[str] = None,
-                       fields: Optional[List[str]] = None) -> etree.Element:
+                       fields: Optional[List[str]] = None) -> ET.Element:
         self.start_log_block()
         if self.token == "":
             raise NotSignedInException('Must use .signin() to create REST API session first')
@@ -370,7 +370,7 @@ class TableauRestApiBase(LookupMethods, TableauBase):
         return xml
 
     def query_elements_from_endpoint_with_filter(self, element_name: str, name_or_luid: Optional[str] = None,
-                                                 all_fields: bool = True) -> etree.Element:
+                                                 all_fields: bool = True) -> ET.Element:
 
         self.start_log_block()
         # A few elements have singular endpoints
@@ -397,7 +397,7 @@ class TableauRestApiBase(LookupMethods, TableauBase):
 
     def query_single_element_from_endpoint_with_filter(self, element_name: str,
                                                        name_or_luid: Optional[str] = None,
-                                                       all_fields: bool = True) -> etree.Element:
+                                                       all_fields: bool = True) -> ET.Element:
         self.start_log_block()
         elements = self.query_elements_from_endpoint_with_filter(element_name, name_or_luid, all_fields=all_fields)
 
@@ -521,7 +521,7 @@ class TableauRestApiBase(LookupMethods, TableauBase):
         return json_response
 
     def query_single_element_from_endpoint(self, element_name: str, name_or_luid: str,
-                                           server_level: bool = False) -> etree.Element:
+                                           server_level: bool = False) -> ET.Element:
 
         self.start_log_block()
         # A few elements have singular endpoints
@@ -544,7 +544,7 @@ class TableauRestApiBase(LookupMethods, TableauBase):
             self.end_log_block()
             raise NoMatchFoundException("No {} found with name or luid {}".format(element_name, name_or_luid))
 
-    def send_post_request(self, url: str) -> etree.Element:
+    def send_post_request(self, url: str) -> ET.Element:
         self.start_log_block()
         if self.token == "":
             raise NotSignedInException('Must use .signin() to create REST API session first')
@@ -557,7 +557,7 @@ class TableauRestApiBase(LookupMethods, TableauBase):
         self.end_log_block()
         return xml
 
-    def send_add_request(self, url: str, request: etree.Element) -> etree.Element:
+    def send_add_request(self, url: str, request: ET.Element) -> ET.Element:
 
         self.start_log_block()
         if self.token == "":
@@ -574,7 +574,7 @@ class TableauRestApiBase(LookupMethods, TableauBase):
         self.end_log_block()
         return xml
 
-    def send_update_request(self, url: str, request: etree.Element) -> etree.Element:
+    def send_update_request(self, url: str, request: ET.Element) -> ET.Element:
         self.start_log_block()
         if self.token == "":
             raise NotSignedInException('Must use .signin() to create REST API session first')
@@ -611,8 +611,8 @@ class TableauRestApiBase(LookupMethods, TableauBase):
         except:
             raise
 
-    def send_publish_request(self, url: str, xml_request: etree.Element, content,
-                             boundary_string: str) -> etree.Element:
+    def send_publish_request(self, url: str, xml_request: ET.Element, content,
+                             boundary_string: str) -> ET.Element:
         self.start_log_block()
         if self.token == "":
             raise NotSignedInException('Must use .signin() to create REST API session first')
@@ -630,7 +630,7 @@ class TableauRestApiBase(LookupMethods, TableauBase):
         self.end_log_block()
         return xml
 
-    def send_append_request(self, url: str, request, boundary_string: str) -> etree.Element:
+    def send_append_request(self, url: str, request, boundary_string: str) -> ET.Element:
         self.start_log_block()
         if self.token == "":
             raise NotSignedInException('Must use .signin() to create REST API session first')
@@ -699,7 +699,7 @@ class TableauRestApiBase(LookupMethods, TableauBase):
                                                                                            e.tableau_error_code))
             self.end_log_block()
             raise
-    def query_server_info(self) -> etree.Element:
+    def query_server_info(self) -> ET.Element:
         self.start_log_block()
         server_info = self.query_resource("serverinfo", server_level=True)
         self.end_log_block()
@@ -782,9 +782,9 @@ class TableauRestApiBase30(TableauRestApiBase28):
                                admin_mode: Optional[str] = None, tier_creator_capacity: Optional[str] = None,
                                tier_explorer_capacity: Optional[str] = None, tier_viewer_capacity: Optional[str] = None,
                                storage_quota: Optional[str] = None, disable_subscriptions: Optional[bool] = None,
-                               state: Optional[str] = None) -> etree.Element:
-        tsr = etree.Element("tsRequest")
-        s = etree.Element('site')
+                               state: Optional[str] = None) -> ET.Element:
+        tsr = ET.Element("tsRequest")
+        s = ET.Element('site')
 
         if site_name is not None:
             s.set('name', site_name)
@@ -870,7 +870,7 @@ class TableauRestApiBase36(TableauRestApiBase35):
         if server.find('http') == -1:
             raise InvalidOptionException('Server URL must include http:// or https://')
 
-        etree.register_namespace('t', self.ns_map['t'])
+        ET.register_namespace('t', self.ns_map['t'])
         self.server: str = server
         self.site_content_url: str = site_content_url
         self.username: str = username
@@ -904,8 +904,8 @@ class TableauRestApiBase36(TableauRestApiBase35):
 
     def signin(self, user_luid_to_impersonate: Optional[str] = None):
         self.start_log_block()
-        tsr = etree.Element("tsRequest")
-        c = etree.Element("credentials")
+        tsr = ET.Element("tsRequest")
+        c = ET.Element("credentials")
         if self._pat_name is not None:
             if self._pat_secret is not None:
                 c.set('personalAccessTokenName', self._pat_name)
@@ -919,7 +919,7 @@ class TableauRestApiBase36(TableauRestApiBase35):
                     c.set("password", self._password)
                 else:
                     raise InvalidOptionException('Must include both username and password to login without PAT')
-        s = etree.Element("site")
+        s = ET.Element("site")
         if self.site_content_url.lower() not in ['default', '']:
             s.set("contentUrl", self.site_content_url)
 
@@ -930,7 +930,7 @@ class TableauRestApiBase36(TableauRestApiBase35):
             if self._pat_name is not None:
                 raise InvalidOptionException('Impersonation is not available when using PAT login')
             else:
-                u = etree.Element('user')
+                u = ET.Element('user')
                 u.set('id', user_luid_to_impersonate)
                 c.append(u)
 
@@ -946,7 +946,7 @@ class TableauRestApiBase36(TableauRestApiBase35):
                                            verify_ssl_cert=self.verify_ssl_cert)
         self._request_obj.xml_request = tsr
         self._request_obj.http_verb = 'post'
-        self.log('Login payload is\n {}'.format(etree.tostring(tsr)))
+        self.log('Login payload is\n {}'.format(ET.tostring(tsr)))
 
         self._request_obj.request_from_api(0)
         # self.log(api.get_raw_response())

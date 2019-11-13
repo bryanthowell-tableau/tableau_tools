@@ -1,6 +1,6 @@
 from ..tableau_base import *
 from ..tableau_exceptions import *
-import xml.etree.cElementTree as etree
+import xml.etree.ElementTree as ET
 
 
 # Represents the actual Connection tag of a given datasource
@@ -19,7 +19,7 @@ class TableauConnection(TableauBase):
     @property
     def cols(self):
         """
-        :rtype: etree.Element
+        :rtype: ET.Element
         """
         return self.xml_obj.find('cols')
 

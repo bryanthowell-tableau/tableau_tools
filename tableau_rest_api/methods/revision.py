@@ -8,7 +8,7 @@ class RevisionMethods():
         return getattr(self.rest_api_base, attr)
 
     def get_workbook_revisions(self, workbook_name_or_luid: str, username_or_luid: Optional[str] = None,
-                               project_name_or_luid: Optional[str] = None) -> etree.Element:
+                               project_name_or_luid: Optional[str] = None) -> ET.Element:
         self.start_log_block()
         wb_luid = self.query_workbook_luid(workbook_name_or_luid, project_name_or_luid, username_or_luid)
         wb_revisions = self.query_resource('workbooks/{}/revisions'.format(wb_luid))
@@ -16,7 +16,7 @@ class RevisionMethods():
         return wb_revisions
 
     def get_datasource_revisions(self, datasource_name_or_luid: str,
-                                 project_name_or_luid: Optional[str] = None) -> etree.Element:
+                                 project_name_or_luid: Optional[str] = None) -> ET.Element:
         self.start_log_block()
         ds_luid = self.query_datasource_luid(datasource_name_or_luid, project_name_or_luid)
         wb_revisions = self.query_resource('workbooks/{}/revisions'.format(ds_luid))

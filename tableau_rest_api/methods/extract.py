@@ -6,13 +6,13 @@ class ExtractMethods():
     def __getattr__(self, attr):
         return getattr(self.rest_api_base, attr)
 
-    def get_extract_refresh_tasks(self) -> etree.Element:
+    def get_extract_refresh_tasks(self) -> ET.Element:
         self.start_log_block()
         extract_tasks = self.query_resource('tasks/extractRefreshes')
         self.end_log_block()
         return extract_tasks
 
-    def get_extract_refresh_task(self, task_luid: str) -> etree.Element:
+    def get_extract_refresh_task(self, task_luid: str) -> ET.Element:
         self.start_log_block()
         extract_task = self.query_resource('tasks/extractRefreshes/{}'.format(task_luid))
         self.start_log_block()
@@ -32,7 +32,7 @@ class ExtractMethods():
 
     def run_extract_refresh_task(self, task_luid:str) -> str:
         self.start_log_block()
-        tsr = etree.Element('tsRequest')
+        tsr = ET.Element('tsRequest')
         url = self.build_api_url('tasks/extractRefreshes/{}/runNow'.format(task_luid))
         response = self.send_add_request(url, tsr)
         self.end_log_block()
@@ -69,7 +69,7 @@ class ExtractMethods():
         self.end_log_block()
 
     # Checks status of AD sync process or extract
-    def query_job(self, job_luid: str) -> etree.Element:
+    def query_job(self, job_luid: str) -> ET.Element:
         self.start_log_block()
         job = self.query_resource("jobs/{}".format(job_luid))
         self.end_log_block()
@@ -84,13 +84,13 @@ class ExtractMethods28(ExtractMethods27):
         self.rest_api_base = rest_api_base
 
     def update_datasource_now(self, ds_name_or_luid: str,
-                              project_name_or_luid: Optional[str] = None) -> etree.Element:
+                              project_name_or_luid: Optional[str] = None) -> ET.Element:
 
         self.start_log_block()
         ds_luid = self.query_datasource_luid(ds_name_or_luid, project_name_or_luid=project_name_or_luid)
 
         # Has an empty request but is POST because it makes a
-        tsr = etree.Element('tsRequest')
+        tsr = ET.Element('tsRequest')
 
         url = self.build_api_url('datasources/{}/refresh'.format(ds_luid))
         response = self.send_add_request(url, tsr)
@@ -98,12 +98,12 @@ class ExtractMethods28(ExtractMethods27):
         self.end_log_block()
         return response
 
-    def update_workbook_now(self, wb_name_or_luid: str, project_name_or_luid: Optional[str] = None) -> etree.Element:
+    def update_workbook_now(self, wb_name_or_luid: str, project_name_or_luid: Optional[str] = None) -> ET.Element:
         self.start_log_block()
         wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid=project_name_or_luid)
 
         # Has an empty request but is POST because it makes a
-        tsr = etree.Element('tsRequest')
+        tsr = ET.Element('tsRequest')
 
         url = self.build_api_url('workbooks/{}/refresh'.format(wb_luid))
         response = self.send_add_request(url, tsr)
@@ -112,12 +112,12 @@ class ExtractMethods28(ExtractMethods27):
         return response
 
     def run_extract_refresh_for_workbook(self, wb_name_or_luid: str,
-                                         proj_name_or_luid: Optional[str] = None) -> etree.Element:
+                                         proj_name_or_luid: Optional[str] = None) -> ET.Element:
         return self.update_workbook_now(wb_name_or_luid, proj_name_or_luid)
 
     # Use the specific refresh rather than the schedule task in 2.8
     def run_extract_refresh_for_datasource(self, ds_name_or_luid: str,
-                                           proj_name_or_luid: Optional[str] = None) -> etree.Element:
+                                           proj_name_or_luid: Optional[str] = None) -> ET.Element:
         return self.update_datasource_now(ds_name_or_luid, proj_name_or_luid)
 
 
@@ -133,7 +133,7 @@ class ExtractMethods31(ExtractMethods30):
                    created_at_filter: Optional[UrlFilter] = None, started_at_filter: Optional[UrlFilter] = None,
                    ended_at_filter: Optional[UrlFilter] = None, title_filter: Optional[UrlFilter] = None,
                    subtitle_filter: Optional[UrlFilter] = None,
-                   notes_filter: Optional[UrlFilter] = None) -> etree.Element:
+                   notes_filter: Optional[UrlFilter] = None) -> ET.Element:
         self.start_log_block()
         filter_checks = {'progress': progress_filter, 'jobType': job_type_filter,
                          'createdAt': created_at_filter, 'title': title_filter,

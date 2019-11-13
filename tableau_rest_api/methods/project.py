@@ -6,7 +6,7 @@ class ProjectMethods():
     def __getattr__(self, attr):
         return getattr(self.rest_api_base, attr)
 
-    def query_projects(self) -> etree.Element:
+    def query_projects(self) -> ET.Element:
         self.start_log_block()
         projects = self.query_resource("projects")
         self.end_log_block()
@@ -21,13 +21,13 @@ class ProjectMethods():
     def create_project(self, project_name: Optional[str] = None, project_desc: Optional[str] = None,
                        locked_permissions: bool = True, publish_samples: bool = False,
                        no_return: Optional[bool] = False,
-                       direct_xml_request: Optional[etree.Element] = None) -> Project:
+                       direct_xml_request: Optional[ET.Element] = None) -> Project:
         self.start_log_block()
         if direct_xml_request is not None:
             tsr = direct_xml_request
         else:
-            tsr = etree.Element("tsRequest")
-            p = etree.Element("project")
+            tsr = ET.Element("tsRequest")
+            p = ET.Element("project")
             p.set("name", project_name)
 
             if project_desc is not None:
@@ -55,7 +55,7 @@ class ProjectMethods():
 
 
 
-    def query_project_xml_object(self, project_name_or_luid: str) -> etree.Element:
+    def query_project_xml_object(self, project_name_or_luid: str) -> ET.Element:
         self.start_log_block()
         luid = self.query_project_luid(project_name_or_luid)
         proj_xml = self.query_single_element_from_endpoint('project', luid)
@@ -68,8 +68,8 @@ class ProjectMethods():
         self.start_log_block()
         project_luid = self.query_project_luid(name_or_luid)
 
-        tsr = etree.Element("tsRequest")
-        p = etree.Element("project")
+        tsr = ET.Element("tsRequest")
+        p = ET.Element("project")
         if new_project_name is not None:
             p.set('name', new_project_name)
         if new_project_description is not None:
@@ -106,7 +106,7 @@ class ProjectMethods27(ProjectMethods):
     def query_projects(self, name_filter: Optional[UrlFilter] = None, owner_name_filter: Optional[UrlFilter] = None,
                        updated_at_filter: Optional[UrlFilter] = None, created_at_filter: Optional[UrlFilter] = None,
                        owner_domain_filter: Optional[UrlFilter] = None, owner_email_filter: Optional[UrlFilter] = None,
-                       sorts: Optional[List[Sort]] = None) -> etree.Element:
+                       sorts: Optional[List[Sort]] = None) -> ET.Element:
         filter_checks = {'name': name_filter, 'ownerName': owner_name_filter,
                          'updatedAt': updated_at_filter, 'createdAt': created_at_filter,
                          'ownerDomain': owner_domain_filter, 'ownerEmail': owner_email_filter}
@@ -145,7 +145,7 @@ class ProjectMethods27(ProjectMethods):
         self.end_log_block()
         return proj
 
-    def query_project_xml_object(self, project_name_or_luid: str) -> etree.Element:
+    def query_project_xml_object(self, project_name_or_luid: str) -> ET.Element:
         self.start_log_block()
         luid = self.query_project_luid(project_name_or_luid)
         proj_xml = self.query_single_element_from_endpoint_with_filter('project', luid)
@@ -157,7 +157,7 @@ class ProjectMethods28(ProjectMethods27):
         self.rest_api_base = rest_api_base
 
     def get_published_project_object(self, project_name_or_luid: str,
-                                     project_xml_obj: Optional[etree.Element] = None) -> Project28:
+                                     project_xml_obj: Optional[ET.Element] = None) -> Project28:
 
         luid = self.query_project_luid(project_name_or_luid)
 
@@ -172,14 +172,14 @@ class ProjectMethods28(ProjectMethods27):
     def create_project(self, project_name: Optional[str] = None, parent_project_name_or_luid: Optional[str] = None,
                        project_desc: Optional[str] = None, locked_permissions: Optional[bool] = True,
                        publish_samples: Optional[bool] = False, no_return: Optional[bool] = False,
-                       direct_xml_request: Optional[etree.Element] = None) -> Project28:
+                       direct_xml_request: Optional[ET.Element] = None) -> Project28:
 
         self.start_log_block()
         if direct_xml_request is not None:
             tsr = direct_xml_request
         else:
-            tsr = etree.Element("tsRequest")
-            p = etree.Element("project")
+            tsr = ET.Element("tsRequest")
+            p = ET.Element("project")
             p.set("name", project_name)
 
             if project_desc is not None:
@@ -217,8 +217,8 @@ class ProjectMethods28(ProjectMethods27):
         self.start_log_block()
         project_luid = self.query_project_luid(name_or_luid)
 
-        tsr = etree.Element("tsRequest")
-        p = etree.Element("project")
+        tsr = ET.Element("tsRequest")
+        p = ET.Element("project")
         if new_project_name is not None:
             p.set('name', new_project_name)
         if new_project_description is not None:

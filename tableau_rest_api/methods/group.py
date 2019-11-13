@@ -7,7 +7,7 @@ class GroupMethods():
     def __getattr__(self, attr):
         return getattr(self.rest_api_base, attr)
 
-    def query_groups(self) -> etree.Element:
+    def query_groups(self) -> ET.Element:
         self.start_log_block()
         groups = self.query_resource("groups")
         for group in groups:
@@ -31,7 +31,7 @@ class GroupMethods():
         self.end_log_block()
         return groups
 
-    def query_group(self, group_name_or_luid: str) -> etree.Element:
+    def query_group(self, group_name_or_luid: str) -> ET.Element:
         self.start_log_block()
         group = self.query_single_element_from_endpoint('group', group_name_or_luid)
         # Add to group_name : luid cache
@@ -71,14 +71,14 @@ class GroupMethods():
         return group_name
 
     # Returns the LUID of an existing group if one already exists
-    def create_group(self, group_name: Optional[str] = None, direct_xml_request: Optional[etree.Element] = None) -> str:
+    def create_group(self, group_name: Optional[str] = None, direct_xml_request: Optional[ET.Element] = None) -> str:
         self.start_log_block()
 
         if direct_xml_request is not None:
             tsr = direct_xml_request
         else:
-            tsr = etree.Element("tsRequest")
-            g = etree.Element("group")
+            tsr = ET.Element("tsRequest")
+            g = ET.Element("group")
             g.set("name", group_name)
             tsr.append(g)
 
@@ -103,10 +103,10 @@ class GroupMethods():
         if default_site_role not in self._site_roles:
             raise InvalidOptionException('"{}" is not an acceptable site role'.format(default_site_role))
 
-        tsr = etree.Element("tsRequest")
-        g = etree.Element("group")
+        tsr = ET.Element("tsRequest")
+        g = ET.Element("group")
         g.set("name", ad_group_name)
-        i = etree.Element("import")
+        i = ET.Element("import")
         i.set("source", "ActiveDirectory")
         i.set("domainName", ad_domain_name)
         i.set("siteRole", default_site_role)
@@ -127,7 +127,7 @@ class GroupMethods():
             return group[0].get('id')
 
     # Take a single user_luid string or a collection of luid_strings
-    def add_users_to_group(self, username_or_luid_s: List[str], group_name_or_luid: str) -> etree.Element:
+    def add_users_to_group(self, username_or_luid_s: List[str], group_name_or_luid: str) -> ET.Element:
         self.start_log_block()
         group_luid = self.query_group_luid(group_name_or_luid)
 
@@ -135,8 +135,8 @@ class GroupMethods():
         for user in users:
             user_luid = self.query_user_luid(user)
 
-            tsr = etree.Element("tsRequest")
-            u = etree.Element("user")
+            tsr = ET.Element("tsRequest")
+            u = ET.Element("user")
             u.set("id", user_luid)
             tsr.append(u)
 
@@ -150,12 +150,12 @@ class GroupMethods():
         self.end_log_block()
 
     # Local Authentication update group
-    def update_group(self, name_or_luid: str, new_group_name: str) -> etree.Element:
+    def update_group(self, name_or_luid: str, new_group_name: str) -> ET.Element:
         self.start_log_block()
         group_luid = self.query_group_luid(name_or_luid)
 
-        tsr = etree.Element("tsRequest")
-        g = etree.Element("group")
+        tsr = ET.Element("tsRequest")
+        g = ET.Element("group")
         g.set("name", new_group_name)
         tsr.append(g)
 
@@ -176,10 +176,10 @@ class GroupMethods():
             raise InvalidOptionException("'{}' is not a valid site role in Tableau".format(default_site_role))
         # Check that the group exists
         self.query_group(group_name_or_luid)
-        tsr = etree.Element('tsRequest')
-        g = etree.Element('group')
+        tsr = ET.Element('tsRequest')
+        g = ET.Element('group')
         g.set('name', ad_group_name)
-        i = etree.Element('import')
+        i = ET.Element('import')
         i.set('source', 'ActiveDirectory')
         i.set('domainName', ad_domain)
         i.set('siteRole', default_site_role)
@@ -244,7 +244,7 @@ class GroupMethods27(GroupMethods):
                      domain_nickname_filter: Optional[UrlFilter] = None, is_local_filter: Optional[UrlFilter] = None,
                      user_count_filter: Optional[UrlFilter] = None,
                      minimum_site_role_filter: Optional[UrlFilter] = None,
-                     sorts: Optional[List[Sort]] = None) -> etree.Element:
+                     sorts: Optional[List[Sort]] = None) -> ET.Element:
 
         filter_checks = {'name': name_filter, 'domainName': domain_name_filter,
                          'domainNickname': domain_nickname_filter, 'isLocal': is_local_filter,
@@ -281,7 +281,7 @@ class GroupMethods27(GroupMethods):
 
         # # No basic verb for querying a single group, so run a query_groups
 
-    def query_group(self, group_name_or_luid: str) -> etree.Element:
+    def query_group(self, group_name_or_luid: str) -> ET.Element:
         self.start_log_block()
         group = self.query_single_element_from_endpoint_with_filter('group', group_name_or_luid)
         # Add to group_name : luid cache

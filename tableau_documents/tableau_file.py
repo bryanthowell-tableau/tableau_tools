@@ -95,9 +95,9 @@ class TableauFile(TableauBase):
                     o_ds_fh.close()
 
                     ds_fh.close()
-                    utf8_parser = etree.XMLParser(encoding='utf-8')
+                    utf8_parser = ET.XMLParser(encoding='utf-8')
 
-                    ds_xml = etree.parse('temp_file.txt', parser=utf8_parser)
+                    ds_xml = ET.parse('temp_file.txt', parser=utf8_parser)
 
                     self._tableau_document = TableauDatasource(ds_xml.getroot(), self.logger)
                 self.xml_name = None
