@@ -208,7 +208,7 @@ class DatasourceMethods27(DatasourceMethods):
 
     def update_datasource(self, datasource_name_or_luid: str, datasource_project_name_or_luid: Optional[str] = None,
                           new_datasource_name: Optional[str] = None, new_project_luid: Optional[str] = None,
-                          new_owner_luid: Optional[str] = None, certification_status: Optional[str] = None,
+                          new_owner_luid: Optional[str] = None, certification_status: Optional[bool] = None,
                           certification_note: Optional[str] = None) -> ET.Element:
         self.start_log_block()
         if certification_status not in [None, False, True]:

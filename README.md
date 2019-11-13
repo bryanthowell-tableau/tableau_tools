@@ -62,6 +62,7 @@ The TableauDatasource class uses the `TDEFileGenerator` and/or the `HyperFileGen
   * [0.2 Logger class](#02-logger-class)
   * [0.3 TableauBase class](#03-tableaubase-class)
   * [0.4 tableau_exceptions](#04-tableau-exceptions)
+  * [0.5 ElementTree.Element for XML handling](#05-elementtree)
 - [1. tableau_rest_api sub-package](#1-tableau-rest-api-sub-package)
   * [1.1 Connecting](#11-connecting)
     + [1.1.2 Enabling logging for TableauRestApiConnection classes](#112-enabling-logging-for-tableaurestapiconnection-classes)
@@ -194,7 +195,7 @@ where l is a string. You do not need to add a "\n", it will be added automatical
 
 The Logger class by default only logs Requests but not Responses. If you need to see the full responses, use the following method:
 
-`Logger.enable_debug_level()`
+`Logger.enable_debug_level()`b
 
 
 ### 0.3 TableauBase class
@@ -205,8 +206,8 @@ It should never be necessary to use TableauBase by itself.
 ### 0.4 tableau_exceptions
 The tableau_exceptions file defines a variety of Exceptions that are specific to Tableau, particularly the REST API. They are not very complex, and most simply include a msg property that will clarify the problem if logged
 
-### 0.5 ElementTree elements for XML
-All XML in tableau_tools is handled through ElementTree. It is aliased 
+### 0.5 ElementTree.Element for XML handling
+All XML in tableau_tools is handled through ElementTree. It is aliased as ET per the standard Python documentation (https://docs.python.org/3/library/xml.etree.elementtree.html) . If you see a return type of ET.Element, that means you are dealing with an ElementTree.Element object -- basically the raw response from the Tableau REST API, or some kind of slice of one.
 
 ## 1. tableau_rest_api sub-package
 
@@ -358,7 +359,32 @@ You can get all of the values from the previous object, if it has been signed in
 Now any actions you take with t2 will be the same session to the Tableau Server as those taken with t1. This can also be very useful for multi-threaded programming, where you may want to clone instances of an object so that they don't interact with one another while doing things on different threads, but still use the same REST API session.
 
 ### 1.2 Basics and Querying
+#### 1.2.0 ElementTree.Element XML Responses
+As mentioned in the 0 section, tableau_tools returns ElementTree.Element responses for any XML request. To know exactly what is available in any given object coming back from the Tableau REST API, you'll need to either consult the REST API Reference or convert to it something you can write to the console or a text file.
 
+    t = TableauServerRest("http://127.0.0.1", "admin", "adminsp@ssw0rd", site_content_url="site1")
+    t.signin()
+    groups = t.groups.query_groups()
+    print(ET.tostring(groups))
+    
+If it is a collection of elements, you can iterate through using the standard Python for.. in loop. If you know there is an attribute you want (per the Reference or the printed response), you can access it via the `.get(attribute_name)` method of the Element object:
+
+    for group in groups:
+        print(ET.tostring(group))
+        group_luid = group.get('id')
+        group_name = group.get('name')
+
+
+Some XML responses are more complex, with element nodes within other elements. An example of this would be workbooks, which have a project tag inside the workbook tag. The Pythonic way is to iterate through the workbook object to get to the sub-objects. You must watch out, though, because the Tableau REST API uses XML Namespaces, so you can't simply match the tag names directly using the `==` operator. Instead, you are better off using `.find()` string method to find a match with the tag name you are looking for:
+
+    wbs = t.workbooks.query_workbooks()
+    for wb in wbs:
+        print(ET.tostring(wb))
+        for elem in wb:
+            # Only want the project element inside
+            if elem.tag.find('project') != -1:
+                proj_luid = elem.get('id')
+                
 #### 1.2.1 LUIDs - Locally Unique IDentifiers
 The Tableau REST API represents each object on the server (project, workbook, user, group, etc.) with a Locally Unique IDentifier (LUID). Every command other than the sign-in to a particular site (which uses the `site_content_url`) requires a LUID. LUIDs are returned when you create an object on the server, or they can be retrieved by the Query methods and then searched to find the matching LUID. In the XML or JSON, they are labeled with the `id` value, but tableau_tools specifically refers to them as LUID throughout, because there are other Tableau IDs in the Tableau Server repoistory.
 
@@ -550,7 +576,7 @@ Most methods follow this pattern:
 
 Yo'll notice that `query_workbook` and `query_datasource` include parameters for the project (and the username for workbooks). This is because workbook and datasource names are only unique within a Project of a Site, not within a Site. If you search without the project specified, the method will return a workbook if only one is found, but if multiple are found, it will throw a `MultipleMatchesFoundException` .
 
-Unlike almost every other singular method, `query_project` returns a `Project` object, which is necessary when setting Permissions, rather than an `etree.Element` . This does take some amount of time, because all of the underlying permissions and default permissions on the project are requested when creating the Project object
+Unlike almost every other singular method, `query_project` returns a `Project` object, which is necessary when setting Permissions, rather than an `ET.Element` . This does take some amount of time, because all of the underlying permissions and default permissions on the project are requested when creating the Project object
 
 `TableauRestApiConnection.query_project(project_name_or_luid) : returns Project`
 
@@ -612,6 +638,26 @@ Ex.
     new_luid = t.create_group("Awesome People")
     # or if using TableauServerRest
     new_luid = t.groups.create_group('Awesome People')
+
+##### 1.3.2.1 direct_xml_request arguments on ADD / CREATE methods for duplicating site information     
+Some, if not all, of the create / add methods implement an optional `direct_xml_request` parameter, which allows you to submit your own ET.Element, starting with the tsRequest tag. When there is any value sent as an argument for this parameter, that method will ignore any values from the other arguments and just submit the Element you send in.
+
+The original purpose of this parameter is for allowing easy duplication of content from one site/server to another in conjunction with 
+
+`build_request_from_response(request: ET.Element)`
+
+This method automatically converts any single Tableau REST API XML tsResponse object into a tsRequest -- in particular, it removes any IDs, so that the tsRequest can be submitted to create a new element with the new settings.
+
+    t = TableauServerRest("http://127.0.0.1", "admin", "adminsp@ssw0rd", site_content_url="site1")
+    t.signin()
+    
+    t2 = TableauServerRest("http://127.0.0.1", "admin", "adminsp@ssw0rd", site_content_url="duplicate_site1")
+    t2.signin()
+    
+    o_groups = t.groups.query_groups()
+    for group in groups:
+        new_group_request = t.build_request_from_response(group)
+        new_group_luid = t2.groups.create_group(direct_xml_request=new_group_request)
 
 #### 1.3.3 Adding users to a Group
 Once users have been created, they can be added into a group via the following method, which can take either a single string or a list/tuple set. Anywhere you see the `"or_luid_s"` pattern in a parameter, it means you can pass a  string or a list of strings to make the action happen to all of those in the list. 

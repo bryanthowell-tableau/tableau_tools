@@ -6,7 +6,7 @@ class ScheduleMethods():
     def __getattr__(self, attr):
         return getattr(self.rest_api_base, attr)
 
-    def query_schedules(self) -> etree.Element:
+    def query_schedules(self) -> ET.Element:
         self.start_log_block()
         schedules = self.query_resource("schedules", server_level=True)
         self.end_log_block()
@@ -18,14 +18,14 @@ class ScheduleMethods():
         self.end_log_block()
         return schedules
 
-    def query_extract_schedules(self) -> etree.Element:
+    def query_extract_schedules(self) -> ET.Element:
         self.start_log_block()
         schedules = self.query_schedules()
         extract_schedules = schedules.findall('.//t:schedule[@type="Extract"]', self.ns_map)
         self.end_log_block()
         return extract_schedules
 
-    def query_subscription_schedules(self) -> etree.Element:
+    def query_subscription_schedules(self) -> ET.Element:
         self.start_log_block()
         schedules = self.query_schedules()
         subscription_schedules = schedules.findall('.//t:schedule[@type="Subscription"]', self.ns_map)
@@ -34,13 +34,13 @@ class ScheduleMethods():
 
 
 
-    def query_schedule(self, schedule_name_or_luid: str) -> etree.Element:
+    def query_schedule(self, schedule_name_or_luid: str) -> ET.Element:
         self.start_log_block()
         schedule = self.query_single_element_from_endpoint('schedule', schedule_name_or_luid, server_level=True)
         self.end_log_block()
         return schedule
 
-    def query_extract_refresh_tasks_by_schedule(self, schedule_name_or_luid: str) -> etree.Element:
+    def query_extract_refresh_tasks_by_schedule(self, schedule_name_or_luid: str) -> ET.Element:
         self.start_log_block()
         luid = self.query_schedule_luid(schedule_name_or_luid)
         tasks = self.query_resource("schedules/{}/extracts".format(luid))
@@ -52,7 +52,7 @@ class ScheduleMethods():
                         priority: Optional[int] = None, start_time: Optional[str] = None,
                         end_time: Optional[str] = None, interval_value_s: Optional[Union[List[str], str]] = None,
                         interval_hours_minutes: Optional[int] = None,
-                        direct_xml_request: Optional[etree.Element] = None) -> str:
+                        direct_xml_request: Optional[ET.Element] = None) -> str:
         self.start_log_block()
         if direct_xml_request is not None:
             tsr = direct_xml_request
@@ -65,25 +65,25 @@ class ScheduleMethods():
                 raise InvalidOptionException("parallel_or_serial must be 'Parallel' or 'Serial'")
             if frequency not in ['Hourly', 'Daily', 'Weekly', 'Monthly']:
                 raise InvalidOptionException("frequency must be 'Hourly', 'Daily', 'Weekly' or 'Monthly'")
-            tsr = etree.Element('tsRequest')
-            s = etree.Element('schedule')
+            tsr = ET.Element('tsRequest')
+            s = ET.Element('schedule')
             s.set('name', name)
             s.set('priority', str(priority))
             s.set('type', extract_or_subscription)
             s.set('frequency', frequency)
             s.set('executionOrder', parallel_or_serial)
-            fd = etree.Element('frequencyDetails')
+            fd = ET.Element('frequencyDetails')
             fd.set('start', start_time)
             if end_time is not None:
                 fd.set('end', end_time)
-            intervals = etree.Element('intervals')
+            intervals = ET.Element('intervals')
 
             # Daily does not need an interval value
 
             if interval_value_s is not None:
                 ivs = self.to_list(interval_value_s)
                 for i in ivs:
-                    interval = etree.Element('interval')
+                    interval = ET.Element('interval')
                     if frequency == 'Hourly':
                         if interval_hours_minutes is None:
                             raise InvalidOptionException(
@@ -115,7 +115,7 @@ class ScheduleMethods():
                         priority: Optional[int] = None, start_time: Optional[str] = None,
                         end_time: Optional[str] = None, interval_value_s: Optional[Union[List[str], str]] = None,
                         interval_hours_minutes: Optional[int] = None,
-                        direct_xml_request: Optional[etree.Element] = None) -> etree.Element:
+                        direct_xml_request: Optional[ET.Element] = None) -> ET.Element:
         self.start_log_block()
         if self.is_luid(schedule_name_or_luid):
             luid = schedule_name_or_luid
@@ -124,8 +124,8 @@ class ScheduleMethods():
         if direct_xml_request is not None:
             tsr = direct_xml_request
         else:
-            tsr = etree.Element('tsRequest')
-            s = etree.Element('schedule')
+            tsr = ET.Element('tsRequest')
+            s = ET.Element('schedule')
             if new_name is not None:
                 s.set('name', new_name)
             if priority is not None:
@@ -141,18 +141,18 @@ class ScheduleMethods():
             if frequency is not None:
                 if frequency not in ['Hourly', 'Daily', 'Weekly', 'Monthly']:
                     raise InvalidOptionException("frequency must be 'Hourly', 'Daily', 'Weekly' or 'Monthly'")
-                fd = etree.Element('frequencyDetails')
+                fd = ET.Element('frequencyDetails')
                 fd.set('start', start_time)
                 if end_time is not None:
                     fd.set('end', end_time)
-                intervals = etree.Element('intervals')
+                intervals = ET.Element('intervals')
 
                 # Daily does not need an interval value
 
                 if interval_value_s is not None:
                     ivs = self.to_list(interval_value_s)
                     for i in ivs:
-                        interval = etree.Element('interval')
+                        interval = ET.Element('interval')
                         if frequency == 'Hourly':
                             if interval_hours_minutes is None:
                                 raise InvalidOptionException(
@@ -178,8 +178,8 @@ class ScheduleMethods():
         self.start_log_block()
         luid = self.query_schedule_luid(schedule_name_or_luid)
 
-        tsr = etree.Element('tsRequest')
-        s = etree.Element('schedule')
+        tsr = ET.Element('tsRequest')
+        s = ET.Element('schedule')
         s.set('state', 'Suspended')
         tsr.append(s)
 
@@ -191,8 +191,8 @@ class ScheduleMethods():
         self.start_log_block()
         luid = self.query_schedule_luid(schedule_name_or_luid)
 
-        tsr = etree.Element('tsRequest')
-        s = etree.Element('schedule')
+        tsr = ET.Element('tsRequest')
+        s = ET.Element('schedule')
         s.set('state', 'Active')
         tsr.append(s)
 
@@ -372,15 +372,15 @@ class ScheduleMethods28(ScheduleMethods27):
         self.rest_api_base = rest_api_base
 
     def add_workbook_to_schedule(self, wb_name_or_luid: str, schedule_name_or_luid: str,
-                                 proj_name_or_luid: Optional[str] = None) -> etree.Element:
+                                 proj_name_or_luid: Optional[str] = None) -> ET.Element:
         self.start_log_block()
         wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
         schedule_luid = self.query_schedule_luid(schedule_name_or_luid)
 
-        tsr = etree.Element('tsRequest')
-        t = etree.Element('task')
-        er = etree.Element('extractRefresh')
-        w = etree.Element('workbook')
+        tsr = ET.Element('tsRequest')
+        t = ET.Element('task')
+        er = ET.Element('extractRefresh')
+        w = ET.Element('workbook')
         w.set('id', wb_luid)
         er.append(w)
         t.append(er)
@@ -393,16 +393,16 @@ class ScheduleMethods28(ScheduleMethods27):
         return response
 
     def add_datasource_to_schedule(self, ds_name_or_luid: str, schedule_name_or_luid: str,
-                                   proj_name_or_luid: Optional[str] = None) -> etree.Element:
+                                   proj_name_or_luid: Optional[str] = None) -> ET.Element:
         self.start_log_block()
 
         ds_luid = self.query_workbook_luid(ds_name_or_luid, proj_name_or_luid)
         schedule_luid = self.query_schedule_luid(schedule_name_or_luid)
 
-        tsr = etree.Element('tsRequest')
-        t = etree.Element('task')
-        er = etree.Element('extractRefresh')
-        d = etree.Element('datasource')
+        tsr = ET.Element('tsRequest')
+        t = ET.Element('task')
+        er = ET.Element('extractRefresh')
+        d = ET.Element('datasource')
         d.set('id', ds_luid)
         er.append(d)
         t.append(er)
