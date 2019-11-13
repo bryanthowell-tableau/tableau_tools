@@ -15,24 +15,11 @@ class PublishingMethods():
         (1) Initiate File Upload (2) Append to File Upload (3) Publish workbook to commit (over 64 MB)
     '''
 
-    def publish_workbook(self, workbook_filename, workbook_name, project_obj, overwrite=False, connection_username=None,
-                         connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=True,
-                         oauth_flag=False):
-        """
-        :type workbook_filename: unicode
-        :type workbook_name: unicode
-        :type project_obj: Project20 or Project21
-        :type overwrite: bool
-        :type connection_username: unicode
-        :type connection_password: unicode
-        :type save_credentials: bool
-        :type show_tabs: bool
-        :param check_published_ds: Set to False to improve publish speed if you KNOW there are no published data sources
-        :type check_published_ds: bool
-        :type oauth_flag: bool
-        :rtype: unicode
-        """
-
+    def publish_workbook(self, workbook_filename: str, workbook_name: str, project_obj: Project,
+                         overwrite: Optional[bool] = False, connection_username: Optional[str] = None,
+                         connection_password: Optional[str] = None, save_credentials: Optional[bool] = True,
+                         show_tabs: Optional[bool] = True, check_published_ds: Optional[bool] = True,
+                         oauth_flag: Optional[bool] = False) -> str:
         project_luid = project_obj.luid
         xml = self.publish_content('workbook', workbook_filename, workbook_name, project_luid,
                                    {"overwrite": overwrite}, connection_username, connection_password,
@@ -41,19 +28,10 @@ class PublishingMethods():
         workbook = xml.findall('.//t:workbook', self.ns_map)
         return workbook[0].get('id')
 
-    def publish_datasource(self, ds_filename, ds_name, project_obj, overwrite=False, connection_username=None,
-                           connection_password=None, save_credentials=True, oauth_flag=False):
-        """
-        :type ds_filename: unicode
-        :type ds_name: unicode
-        :type project_obj: Project20 or Project21
-        :type overwrite: bool
-        :type connection_username: unicode
-        :type connection_password: unicode
-        :type save_credentials: bool
-        :type oauth_flag: bool
-        :rtype: unicode
-        """
+    def publish_datasource(self, ds_filename: str, ds_name: str, project_obj: Project,
+                           overwrite: Optional[bool] = False, connection_username: Optional[str] = None,
+                           connection_password: Optional[str] = None, save_credentials: Optional[bool] = True,
+                           oauth_flag: Optional[bool] = False) -> str:
         project_luid = project_obj.luid
         xml = self.publish_content('datasource', ds_filename, ds_name, project_luid, {"overwrite": overwrite},
                                    connection_username, connection_password, save_credentials, oauth_flag=oauth_flag)
@@ -72,7 +50,7 @@ class PublishingMethods():
         # If you need a temporary copy when fixing the published datasources
         temp_wb_filename = None
 
-        # Must be 'workbook' or 'datasource'
+        # Must be 'workbook' or 'datasource' or 'flow'
         if content_type not in ['workbook', 'datasource', 'flow']:
             raise InvalidOptionException("content_type must be 'workbook',  'datasource', or 'flow' ")
 
@@ -276,24 +254,12 @@ class PublishingMethods30(PublishingMethods28):
     def __init__(self, rest_api_base: TableauRestApiBase30):
         self.rest_api_base = rest_api_base
 
-    def publish_workbook(self, workbook_filename, workbook_name, project_obj, overwrite=False, async_publish=False, connection_username=None,
-                         connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=True,
-                         oauth_flag=False):
-        """
-        :type workbook_filename: unicode
-        :type workbook_name: unicode
-        :type project_obj: Project20 or Project21
-        :type overwrite: bool
-        :type connection_username: unicode
-        :type connection_password: unicode
-        :type save_credentials: bool
-        :type show_tabs: bool
-        :param check_published_ds: Set to False to improve publish speed if you KNOW there are no published data sources
-        :type check_published_ds: bool
-        :type oauth_flag: bool
-        :rtype: unicode
-        """
-
+    def publish_workbook(self, workbook_filename: str, workbook_name: str, project_obj: Project,
+                         overwrite: Optional[bool] = False, async_publish: Optional[bool] = False,
+                         connection_username: Optional[str] = None,
+                         connection_password: Optional[str] = None, save_credentials: Optional[bool] = True,
+                         show_tabs: Optional[bool] = True, check_published_ds: Optional[bool] = True,
+                         oauth_flag: Optional[bool] = False) -> str:
         project_luid = project_obj.luid
         xml = self.publish_content('workbook', workbook_filename, workbook_name, project_luid,
                                    {"overwrite": overwrite, "asJob": async_publish}, connection_username,
@@ -315,25 +281,12 @@ class PublishingMethods32(PublishingMethods31):
         self.rest_api_base = rest_api_base
 
     # In 3.2, you can hide views from publishing
-    def publish_workbook(self, workbook_filename, workbook_name, project_obj, overwrite=False, async_publish=False, connection_username=None,
-                         connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=True,
-                         oauth_flag=False, views_to_hide_list=None):
-        """
-        :type workbook_filename: unicode
-        :type workbook_name: unicode
-        :type project_obj: Project20 or Project21
-        :type overwrite: bool
-        :type connection_username: unicode
-        :type connection_password: unicode
-        :type save_credentials: bool
-        :type show_tabs: bool
-        :param check_published_ds: Set to False to improve publish speed if you KNOW there are no published data sources
-        :type check_published_ds: bool
-        :type oauth_flag: bool:
-        :type views_to_hide_list: list[unicode]
-        :
-        :rtype: unicode
-        """
+    def publish_workbook(self, workbook_filename: str, workbook_name: str, project_obj: Project,
+                         overwrite: Optional[bool] = False, async_publish: Optional[bool] = False,
+                         connection_username: Optional[str] = None,
+                         connection_password: Optional[str] = None, save_credentials: Optional[bool] = True,
+                         show_tabs: Optional[bool] = True, check_published_ds: Optional[bool] = True,
+                         oauth_flag: Optional[bool] = False, views_to_hide_list: Optional[List[str]] = None) -> str:
 
         project_luid = project_obj.luid
         xml = self.publish_content('workbook', workbook_filename, workbook_name, project_luid,
@@ -352,26 +305,13 @@ class PublishingMethods33(PublishingMethods32):
     def __init__(self, rest_api_base: TableauRestApiBase33):
         self.rest_api_base = rest_api_base
 
-    def publish_workbook(self, workbook_filename, workbook_name, project_obj, overwrite=False, async_publish=False,
-                         connection_username=None,
-                         connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=True,
-                         oauth_flag=False, views_to_hide_list=None, generate_thumbnails_as_username_or_luid=None):
-        """
-        :type workbook_filename: unicode
-        :type workbook_name: unicode
-        :type project_obj: Project20 or Project21
-        :type overwrite: bool
-        :type connection_username: unicode
-        :type connection_password: unicode
-        :type save_credentials: bool
-        :type show_tabs: bool
-        :param check_published_ds: Set to False to improve publish speed if you KNOW there are no published data sources
-        :type check_published_ds: bool
-        :type oauth_flag: bool:
-        :type generate_thumbnails_as_username_or_luid: unicode
-        :rtype: unicode
-        """
-
+    def publish_workbook(self, workbook_filename: str, workbook_name: str, project_obj: Project,
+                         overwrite: Optional[bool] = False, async_publish: Optional[bool] = False,
+                         connection_username: Optional[str] = None,
+                         connection_password: Optional[str] = None, save_credentials: Optional[bool] = True,
+                         show_tabs: Optional[bool] = True, check_published_ds: Optional[bool] = True,
+                         oauth_flag: Optional[bool] = False, views_to_hide_list: Optional[List[str]] = None,
+                         generate_thumbnails_as_username_or_luid: Optional[str] = None):
         project_luid = project_obj.luid
         xml = self.publish_content('workbook', workbook_filename, workbook_name, project_luid,
                                    {"overwrite": overwrite, "asJob": async_publish}, connection_username,
@@ -386,20 +326,10 @@ class PublishingMethods33(PublishingMethods32):
             workbook = xml.findall('.//t:workbook', self.ns_map)
             return workbook[0].get('id')
 
-    def publish_flow(self, flow_filename, flow_name, project_obj, overwrite=False, connection_username=None,
-                     connection_password=None, save_credentials=True, description=None, oauth_flag=False):
-        """
-        :type flow_filename: unicode
-        :type flow_name: unicode
-        :type project_obj: Project20 or Project21 or Project28
-        :type overwrite: bool
-        :type connection_username: unicode
-        :type connection_password: unicode
-        :type save_credentials: bool
-        :type description: unicode
-        :type oauth_flag: bool
-        :rtype: unicode
-        """
+    def publish_flow(self, flow_filename: str, flow_name: str, project_obj: Project,
+                           overwrite: Optional[bool] = False, connection_username: Optional[str] = None,
+                           connection_password: Optional[str] = None, save_credentials: Optional[bool] = True,
+                           oauth_flag: Optional[bool] = False, description: Optional[str] = None) -> str:
         project_luid = project_obj.luid
         xml = self.publish_content('flow', flow_filename, flow_name, project_luid, {"overwrite": overwrite},
                                    connection_username, connection_password, save_credentials, oauth_flag=oauth_flag,
