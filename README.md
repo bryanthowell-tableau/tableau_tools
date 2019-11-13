@@ -416,7 +416,7 @@ The JSON plural query methods allow you to specify the page of results using the
 
 `TableauServerRest.workbooks.query_workbook_views_json(page_number=None)`
 
-##### 1.2.2.1 Filtering and Sorting (Tableau Server 9.3+)
+##### 1.2.2.1 Filtering and Sorting 
 `The classes implement filtering and sorting for the methods directly against the REST API where it is allowed. Singular lookup methods are programmed to take advantage of this automatically for improved performance, but the plural querying methods can use the filters to bring back specific sets.
 
 http://onlinehelp.tableau.com/current/api/rest_api/en-us/help.htm#REST/rest_api_concepts_filtering_and_sorting.htm%3FTocPath%3DConcepts%7C_____7
@@ -547,10 +547,17 @@ Most methods follow this pattern:
 
 Yo'll notice that `query_workbook` and `query_datasource` include parameters for the project (and the username for workbooks). This is because workbook and datasource names are only unique within a Project of a Site, not within a Site. If you search without the project specified, the method will return a workbook if only one is found, but if multiple are found, it will throw a `MultipleMatchesFoundException` .
 
-Starting in tableau_tools 4.0, `query_project` returns a `Project` object, which is necessary when setting Permissions.
+Unlike almost every other singular method, `query_project` returns a `Project` object, which is necessary when setting Permissions, rather than an `etree.Element` . This does take some amount of time, because all of the underlying permissions and default permissions on the project are requested when creating the Project object
 
 `TableauRestApiConnection.query_project(project_name_or_luid) : returns Project`
 
+If you just need to look at the values from the XML, can request the XML element using:
+
+`TableauRestApiConnection.query_project_xml_object(project_name_or_luid(`
+
+or if you already have a Project object, you can access it this way:
+
+`Project.get_xml_obj()`
 
 #### 1.2.5 Querying Permissions
 Because Permissions actually exist and attach to Published Content on the Tableau Server, all Permissions are handled through one of the derived `PublishedContent` classes (Project, Workbook, or Datasource). There are no direct methods to access them, because the `PublishedContent` methods include the most efficient algorithms for updating Permissions with the least amount of effort. See Section 1.4 for all the details on Permissions.
