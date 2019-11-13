@@ -209,6 +209,8 @@ The tableau_exceptions file defines a variety of Exceptions that are specific to
 ### 0.5 ElementTree.Element for XML handling
 All XML in tableau_tools is handled through ElementTree. It is aliased as ET per the standard Python documentation (https://docs.python.org/3/library/xml.etree.elementtree.html) . If you see a return type of ET.Element, that means you are dealing with an ElementTree.Element object -- basically the raw response from the Tableau REST API, or some kind of slice of one.
 
+Because they are ElementTree.Element objects, you can use the `.find()` and `findall()` methods to do a limited sub-set of XPath queries on the responses. XPath isn't the easiest thing to do, and often the Tableau Server REST API has direct filtering mechanisms available in the requests. If you see a parameter on a method that appears to limit the result set of a request, please try that first as it is will implement the fastest and most correct algorithm known to the tableau_tools authors. 
+
 ## 1. tableau_rest_api sub-package
 
 `tableau_tools.tableau_rest_api` sub-package is designed to fully implement every feature in every version of the Tableau Server REST API. As much as possible, every action that is available in the reference guide here

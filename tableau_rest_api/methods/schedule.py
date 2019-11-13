@@ -51,7 +51,7 @@ class ScheduleMethods():
                         frequency: Optional[str] = None, parallel_or_serial: Optional[str] = None,
                         priority: Optional[int] = None, start_time: Optional[str] = None,
                         end_time: Optional[str] = None, interval_value_s: Optional[Union[List[str], str]] = None,
-                        interval_hours_minutes: Optional[int] = None,
+                        interval_hours_minutes: Optional[str] = None,
                         direct_xml_request: Optional[ET.Element] = None) -> str:
         self.start_log_block()
         if direct_xml_request is not None:
@@ -114,7 +114,7 @@ class ScheduleMethods():
                         frequency: Optional[str] = None, parallel_or_serial: Optional[str] = None,
                         priority: Optional[int] = None, start_time: Optional[str] = None,
                         end_time: Optional[str] = None, interval_value_s: Optional[Union[List[str], str]] = None,
-                        interval_hours_minutes: Optional[int] = None,
+                        interval_hours_minutes: Optional[str] = None,
                         direct_xml_request: Optional[ET.Element] = None) -> ET.Element:
         self.start_log_block()
         if self.is_luid(schedule_name_or_luid):
@@ -200,15 +200,8 @@ class ScheduleMethods():
         self.send_update_request(url, tsr)
         self.end_log_block()
 
-    def create_daily_extract_schedule(self, name, start_time, priority=1, parallel_or_serial='Parallel'):
-        """
-        :type name: unicode
-        :type parallel_or_serial: unicode
-        :type priority: int
-        :param start_time: In format HH:MM:SS , like 18:30:00
-        :type start_time: unicode
-        :rtype: unicode
-        """
+    def create_daily_extract_schedule(self, name: str, start_time: str, priority: Optional[int]  = 1,
+                                      parallel_or_serial: Optional[str] = 'Parallel') -> str:
         self.start_log_block()
         # Check the time format at some point
 
@@ -216,15 +209,8 @@ class ScheduleMethods():
         self.end_log_block()
         return luid
 
-    def create_daily_subscription_schedule(self, name, start_time, priority=1, parallel_or_serial='Parallel'):
-        """
-        :type name: unicode
-        :type parallel_or_serial: unicode
-        :type priority: int
-        :param start_time: In format HH:MM:SS , like 18:30:00
-        :type start_time: unicode
-        :rtype: unicode
-        """
+    def create_daily_subscription_schedule(self, name: str, start_time: str, priority: Optional[int]  = 1,
+                                      parallel_or_serial: Optional[str] = 'Parallel') -> str:
         self.start_log_block()
         # Check the time format at some point
 
@@ -232,134 +218,66 @@ class ScheduleMethods():
         self.end_log_block()
         return luid
 
-    def create_weekly_extract_schedule(self, name, weekday_s, start_time, priority=1, parallel_or_serial='Parallel'):
-        """
-        :type name: unicode
-        :type parallel_or_serial: unicode
-        :type priority: int
-        :param start_time: Must be in HH:MM:SS format
-        :type start_time: unicode
-        :param weekday_s: Use 'Monday', 'Tuesday' etc.
-        :type weekday_s: list[unicode] or unicode
-        :rtype: unicode
-        """
+    def create_weekly_extract_schedule(self, name: str, weekday_s: Union[List[str], str], start_time: str,
+                                       priority: Optional[int]  = 1,
+                                       parallel_or_serial: Optional[str] = 'Parallel') -> str:
         self.start_log_block()
-
         luid = self.create_schedule(name, 'Extract', 'Weekly', parallel_or_serial, priority, start_time=start_time,
                                     interval_value_s=weekday_s)
         self.end_log_block()
         return luid
 
-    def create_weekly_subscription_schedule(self, name, weekday_s, start_time, priority=1,
-                                            parallel_or_serial='Parallel'):
-        """
-        :type name: unicode
-        :type parallel_or_serial: unicode
-        :type priority: int
-        :param start_time: Must be in HH:MM:SS format
-        :type start_time: unicode
-        :param weekday_s: Use 'Monday', 'Tuesday' etc.
-        :type weekday_s: list[unicode] or unicode
-        :rtype: unicode
-        """
+    def create_weekly_subscription_schedule(self, name: str, weekday_s: Union[List[str], str], start_time: str,
+                                       priority: Optional[int]  = 1,
+                                       parallel_or_serial: Optional[str] = 'Parallel') -> str:
         self.start_log_block()
-
         luid = self.create_schedule(name, 'Subscription', 'Weekly', parallel_or_serial, priority,
                                     start_time=start_time, interval_value_s=weekday_s)
         self.end_log_block()
         return luid
 
-    def create_monthly_extract_schedule(self, name, day_of_month, start_time, priority=1,
-                                        parallel_or_serial='Parallel'):
-        """
-        :type name: unicode
-        :type parallel_or_serial: unicode
-        :type priority: int
-        :param start_time: Must be in HH:MM:SS format
-        :type start_time: unicode
-        :param day_of_month: Use '1', '2' or 'LastDay'
-        :type day_of_month: unicode
-        :rtype: unicode
-        """
+    def create_monthly_extract_schedule(self, name: str, day_of_month: str, start_time: str,
+                                        priority: Optional[int] = 1,
+                                        parallel_or_serial: Optional[str] = 'Parallel') -> str:
         self.start_log_block()
-
         luid = self.create_schedule(name, 'Extract', 'Monthly', parallel_or_serial, priority, start_time=start_time,
                                     interval_value_s=day_of_month)
         self.end_log_block()
         return luid
 
-    def create_monthly_subscription_schedule(self, name, day_of_month, start_time, priority=1,
-                                             parallel_or_serial='Parallel'):
-        """
-        :type name: unicode
-        :type parallel_or_serial: unicode
-        :type priority: int
-        :param start_time: Must be in HH:MM:SS format
-        :type start_time: unicode
-        :param day_of_month: Use '1', '2' or 'LastDay'
-        :type day_of_month: unicode
-        :rtype: unicode
-        """
+    def create_monthly_subscription_schedule(self, name: str, day_of_month: str, start_time: str,
+                                             priority: Optional[int] = 1,
+                                             parallel_or_serial: Optional[str] = 'Parallel') -> str:
         self.start_log_block()
-
         luid = self.create_schedule(name, 'Subscription', 'Monthly', parallel_or_serial, priority,
                                     start_time=start_time, interval_value_s=day_of_month)
         self.end_log_block()
         return luid
 
-    def create_hourly_extract_schedule(self, name, interval_hours_or_minutes, interval, start_time, end_time,
-                                       priority=1, parallel_or_serial='Parallel'):
-        """
-        :type name: unicode
-        :type parallel_or_serial: unicode
-        :type priority: int
-        :param start_time: In format HH:MM:SS , like 18:30:00
-        :type start_time: unicode
-        :param end_time: In format HH:MM:SS , like 18:30:00
-        :type end_time: unicode
-        :param interval_hours_or_minutes: Either 'hours' or 'minutes'
-        :type interval_hours_or_minutes: unicode
-        :parame interval: This can be '1','2', '4', '6', '8', or '12' for hours or '15' or '30' for minutes
-        :type interval: unicode
-        :rtype: unicode
-        """
-        self.start_log_block()
+    def create_hourly_extract_schedule(self, name: str, interval_hours_or_minutes: str, interval: str, start_time: str,
+                                       end_time: str, priority: Optional[int] = 1,
+                                       parallel_or_serial: Optional[str] = 'Parallel') -> str:
 
+        self.start_log_block()
         luid = self.create_schedule(name, 'Extract', 'Hourly', parallel_or_serial, priority, start_time, end_time,
                                     interval, interval_hours_or_minutes)
         self.end_log_block()
         return luid
 
-    def create_hourly_subscription_schedule(self, name, interval_hours_or_minutes, interval, start_time, end_time,
-                                            priority=1, parallel_or_serial='Parallel'):
-        """
-        :type name: unicode
-        :type parallel_or_serial: unicode
-        :type priority: int
-        :param start_time: In format HH:MM:SS , like 18:30:00
-        :type start_time: unicode
-        :param end_time: In format HH:MM:SS , like 18:30:00
-        :type end_time: unicode
-        :param interval_hours_or_minutes: Either 'hours' or 'minutes'
-        :type interval_hours_or_minutes: unicode
-        :parame interval: This can be '1','2', '4', '6', '8', or '12' for hours or '15' or '30' for minutes
-        :type interval: unicode
-        :rtype: unicode
-        """
+    def create_hourly_subscription_schedule(self, name: str, interval_hours_or_minutes: str, interval: str, start_time: str,
+                                            end_time: str, priority: Optional[int] = 1,
+                                            parallel_or_serial: Optional[str] = 'Parallel') -> str:
         self.start_log_block()
-
         luid = self.create_schedule(name, 'Subscription', 'Hourly', parallel_or_serial, priority, start_time, end_time,
                                     interval, interval_hours_or_minutes)
         self.end_log_block()
         return luid
 
     def delete_schedule(self, schedule_name_or_luid: str):
-
         self.start_log_block()
         schedule_luid = self.query_schedule_luid(schedule_name_or_luid)
         url = self.build_api_url("schedules/{}".format(schedule_luid), server_level=True)
         self.send_delete_request(url)
-
         self.end_log_block()
 
 
