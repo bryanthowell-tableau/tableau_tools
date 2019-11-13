@@ -1124,7 +1124,22 @@ Just upgrade your server at this point, that is a long long time to go without a
 Starting in API 3.2 (2018.3+), you can manage Data Driven Alerts via the APIs. The methods for this functionality follows the exact naming pattern of the REST API Reference.
 
 These methods live under `TableauServerRest.alerts` when using `TableauServerRest`
+
+### 1.8 Tableau Prep Flows (2019.1+)
+Starting in API 3.3 (2019.1+), Tableau Prep flows can be published and managed through the REST API. For Permissions on Published Flows, see Section 1.4 which describes all of the PublishedContent methods. 
+
+The methods for flows live under `TableauServerRest.flows` in `TableauServerRest`
     
+### 1.9 Favorites
+Favorites live as their own items in Tableau Server. You can access the methods to set Favorites under `TableauServerREst.favorites`. Most of the methods to delete Favorites are plural and thus can take a list
+
+Ex.
+
+    add_workbook_to_user_favorites(favorite_name: str, wb_name_or_luid: str, username_or_luid: str, 
+                                    proj_name_or_luid: Optional[str] = None) -> etree.Element
+    delete_views_from_user_favorites(view_name_or_luid_s: Union[List[str], str],
+                                     username_or_luid: str, wb_name_or_luid: Optional[str] = None)
+
 ## 2 tableau_documents: Modifying Tableau Documents (for Template Publishing)
 tableau_documents implements some features that go beyond the Tableau REST API, but are extremely useful when dealing with a large number of workbooks or datasources, particularly for multi-tenented Sites. These methods actually allow unsupported changes to the Tableau workbook or datasource XML. If something breaks with them, blame the author of the library and not Tableau Support, who won't help you with them.
 
