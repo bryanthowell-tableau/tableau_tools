@@ -300,6 +300,17 @@ Ex.
 
 Now that you are signed-in, the object will hold all of the session state information and can be used to make any number of calls to that Site. 
 
+You can signin AS another user as well, through impersonation. You must first get that user's LUID for the given site you want to sign into:
+
+    t = TableauServerRest("http://127.0.0.1", "admin", "adminsp@ssw0rd", site_content_url="site1")
+    # Most LUID lookups live in the main object of TableauServerRest
+    t.signin()
+    user_luid = t.query_user_luid('a.user')
+    t2 = TableauServerRest("http://127.0.0.1", "admin", "adminsp@ssw0rd", site_content_url="site1")
+    t2.signin(user_luid_to_impersonate=user_luid)
+    
+Starting in API 3.6 (2019.4+), you can use a Personal Access Token to signin rather than username and password. Simply use the `pat_name` and `pat_secret` optional parameters rather than `username` and `password` in the `signin()` method. One note: as of this writing, you cannot do an impersonation signin when using PAT instead of username/password credentials. But always check the most recent documentation of the Tableau Server REST API to see if things have changed.
+
 #### 1.1.4 Connecting to multiple sites
 The Tableau REST API only allows a session to a single Site at a time. To deal with multiple sites, you can create multiple objects representing each site. To sign in to a site, you need the `site_content_url`, which is the portion of the URL that represents the Site. 
 
@@ -318,7 +329,32 @@ returns an list that can be iterated over. You must sign-in to one site first to
         t = TableauRestApiConnection34("http://127.0.0.1", "admin", "adminsp@ssw0rd", site_content_url=site_content_url)
         t.signin()
         ...
+
+### 1.1.5 Signout, Killing Other Sessions, and Swapping Tokens
+The `signout()` method called by itself will send the Sign Out REST API command to the server for the username that the object was created as. It also implements an optional parameter that lets you sign out a different session:
+
+`t.signout(session_token='buerojh8b4L2-b208guDSVD!--038bSVE')`
+
+Depending on how your Tableau Server is connected, you may be able to use session values retrieved from the Tableau Server Repository in this function to sign-out (i.e. kill) regular user sessions or other REST API sessions you want to end. 
+
+The REST API session you are connected to is represented by a token, which the object stores internally after a successful `.signon()` . There may be situations where you would like to retrieve that token, or even swap in different tokens, so that the object doesn't have to be recreated just to send a message. One example of this is a RESTful web service that must impersonate multiple users, and otherwise would generate a new object for each user/site connection. 
+
+Swapping in a different session into the main objects requires more than just the session_token. If you need to do this, use `swap_token(site_luid: str, user_luid: str, token: str)`
+
+You can get all of the values from the previous object, if it has been signed in. You also must have signed in to the second object at least once, because that initializes much of the other internal properties correctly.:
     
+    t = TableauRestApiConnection(server='http://127.0.0.1', username='usrnm', password='nowthatsabigpass', site_content_url='some_site')
+    t.signin()
+    first_site_luid = t.site_luid
+    first_user_luid = t.user_luid
+    first_token = t.token
+    
+    t2 = TableauRestApiConnection(server='http://127.0.0.1', username='a.nother', password='passittotheleft', site_content_url='some_site_other_site')
+    t2.signin()
+    t2.swap_token(site_luid=first_site_luid, user_luid=first_user_luid, token=first_token)
+    
+Now any actions you take with t2 will be the same session to the Tableau Server as those taken with t1. This can also be very useful for multi-threaded programming, where you may want to clone instances of an object so that they don't interact with one another while doing things on different threads, but still use the same REST API session.
+
 ### 1.2 Basics and Querying
 
 #### 1.2.1 LUIDs - Locally Unique IDentifiers
