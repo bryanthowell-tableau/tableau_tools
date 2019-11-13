@@ -8,6 +8,7 @@ from xml.sax.saxutils import quoteattr, unescape
 import datetime
 import collections
 import re
+from typing import Union, Any, Optional, List, Dict, Tuple
 
 class TableauParameters(TableauDocument):
     def __init__(self, datasource_xml=None, logger_obj=None):

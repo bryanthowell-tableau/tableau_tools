@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+from typing import Union, Any, Optional, List, Dict, Tuple
 
 from ..tableau_base import TableauBase
 from ..tableau_exceptions import *
+from .tableau_datasource import TableauDatasource
 
 # This class is just a shell so that TableauWorkbook and TableauDatasource can look the same from TableauFile
 # This is probably not that Pythonic but whatevs
@@ -13,25 +15,15 @@ class TableauDocument(TableauBase):
         self.parameters = None
 
     @property
-    def datasources(self):
-        """
-        :rtype: list[TableauDatasource]
-        """
+    def datasources(self) -> List[TableauDatasource]:
         return self._datasources
 
     @property
-    def document_type(self):
-        """
-        :rtype: unicode
-        """
+    def document_type(self) -> str:
         return self._document_type
 
-    def save_file(self, filename_no_extension, save_to_directory=None):
-        """
-        :type filename_no_extension: unicode
-        :type save_to_directory: unicode
-        :rtype: bool
-        """
+    # Basically an abstract base class, but not sure if there is value in implementing as such
+    def save_file(self, filename_no_extension: str, save_to_directory: Optional[str] = None) -> bool:
         return True
 
 

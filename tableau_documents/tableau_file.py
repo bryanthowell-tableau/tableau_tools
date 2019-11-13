@@ -8,26 +8,22 @@ from .tableau_datasource import TableauDatasource
 from .tableau_workbook import TableauWorkbook
 from .tableau_document import TableauDocument
 import codecs
-
+from typing import Union, Any, Optional, List, Dict, Tuple
 
 class TableauFile(TableauBase):
-
-    def __init__(self, filename, logger_obj=None, create_new=False, ds_version='10'):
-        """
-        :type filename: unicode
-        :type logger_obj: Logger
-        """
-        self.logger = logger_obj
+    def __init__(self, filename: str, logger_obj: Optional[Logger] = None,
+                 create_new: Optional[bool] = False, ds_version: Optional[str] = '10'):
+        self.logger: Optional[Logger] = logger_obj
         self.log('TableauFile initializing for {}'.format(filename))
-        self.packaged_file = False
-        self.packaged_filename = None
-        self.tableau_xml_file = None
-        self._tableau_document = None
-        self._original_file_type = None
-        self._final_file_type = None
-        self.other_files = []
-        self.temp_filename = None
-        self.orig_filename = filename
+        self.packaged_file: bool = False
+        self.packaged_filename: Optional[str] = None
+        self.tableau_xml_file: Optional[ET.Element] = None
+        self._tableau_document: Optional[TableauDocument] = None
+        self._original_file_type: Optional[str] = None
+        self._final_file_type: Optional[str] = None
+        self.other_files: List[str] = []
+        self.temp_filename: Optional[str] = None
+        self.orig_filename: str = filename
         if filename is None:
             # Assume we start as TDS when building from scratch
             self._original_file_type = 'tds'

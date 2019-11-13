@@ -13,16 +13,12 @@ import datetime
 import codecs
 import collections
 import random
-
+from typing import Union, Any, Optional, List, Dict, Tuple
 
 # Meant to represent a TDS file, does not handle the file opening
 class TableauDatasource(TableauDocument):
-    def __init__(self, datasource_xml=None, logger_obj=None, ds_version=None):
-        """
-        :type datasource_xml: ET.Element
-        :type logger_obj: Logger
-        :type ds_version: unicode
-        """
+    def __init__(self, datasource_xml: Optional[ET.Element] = None, logger_obj: Optional[Logger] = None,
+                 ds_version: Optional[str] = None):
         TableauDocument.__init__(self)
         self._document_type = 'datasource'
         ET.register_namespace('t', self.ns_map['t'])
@@ -156,53 +152,34 @@ class TableauDatasource(TableauDocument):
         self.ds_generator = None
 
     @property
-    def tde_filename(self):
-        """
-        :rtype: unicode
-        """
+    def tde_filename(self) -> str:
         return self._extract_filename
 
     @tde_filename.setter
-    def tde_filename(self, tde_filename):
+    def tde_filename(self, tde_filename: str):
         self._extract_filename = tde_filename
 
     @property
-    def connections(self):
-        """
-        :rtype: list[TableauConnection]
-        """
+    def connections(self) -> List[TableauConnection]:
         return self._connections
 
     @property
-    def columns(self):
-        """
-        :rtype: TableauColumns
-        """
+    def columns(self) -> TableauColumns:
         return self._columns
 
     @property
-    def published(self):
-        """
-        :rtype: bool
-        """
+    def published(self) -> bool:
         return self._published
 
     @property
-    def published_ds_site(self):
-        """
-        :rtype: unicode
-        """
+    def published_ds_site(self) -> str:
         if self.repository_location.get("site"):
             return self.repository_location.get("site")
         else:
             return 'default'
 
     @published_ds_site.setter
-    def published_ds_site(self, new_site_content_url):
-        """
-        :type new_site_content_url: unicode
-        :return:
-        """
+    def published_ds_site(self, new_site_content_url: str):
         self.start_log_block()
         # If it was originally the default site, you need to add the site name in front
         if self.repository_location.get("site") is None:
@@ -214,21 +191,14 @@ class TableauDatasource(TableauDocument):
         self.end_log_block()
 
     @property
-    def published_ds_content_url(self):
-        """
-        :rtype: unicode
-        """
+    def published_ds_content_url(self) -> Optional[str]:
         if self.repository_location.get("id"):
             return self.repository_location.get("id")
         else:
             return None
 
     @published_ds_content_url.setter
-    def published_ds_content_url(self, new_content_url):
-        """
-        :type new_content_url: unicode
-        :return:
-        """
+    def published_ds_content_url(self, new_content_url: str):
         if self.published is False:
             return
         else:
@@ -236,12 +206,7 @@ class TableauDatasource(TableauDocument):
             self.connections[0].dbname = new_content_url
 
     # It seems some databases like Oracle and Teradata need this as well to swap a database
-    def update_tables_with_new_database_or_schema(self, original_db_or_schema, new_db_or_schema):
-        """
-        :type original_db_or_schema: unicode
-        :type new_db_or_schema: unicode
-        :return:
-        """
+    def update_tables_with_new_database_or_schema(self, original_db_or_schema: str, new_db_or_schema: str):
         for relation in self.table_relations:
             if relation.get('type') == "table":
                 relation.set('table', relation.get('table').replace("[{}]".format(original_db_or_schema),
@@ -249,7 +214,7 @@ class TableauDatasource(TableauDocument):
 
 
     @staticmethod
-    def create_new_datasource_xml(version):
+    def create_new_datasource_xml(version: str) -> ET.Element:
         # nsmap = {u"user": u'http://www.tableausoftware.com/xml/user'}
         ds_xml = ET.Element("datasource")
         ds_xml.set('version', version)
@@ -257,16 +222,9 @@ class TableauDatasource(TableauDocument):
         return ds_xml
 
     @staticmethod
-    def create_new_connection_xml(ds_version, ds_type, server, db_name, authentication=None, initial_sql=None):
-        """
-        :type ds_version: unicode
-        :type ds_type: unicode
-        :type server: unicode
-        :type db_name: unicode
-        :type authentication: unicode
-        :type initial_sql: unicode
-        :return:
-        """
+    def create_new_connection_xml(ds_version: str, ds_type: str, server: str, db_name: str,
+                                  authentication: Optional[str] = None,
+                                  initial_sql: Optional[str] = None) -> ET.Element:
         connection = ET.Element("connection")
         if ds_version == '9':
             c = connection
@@ -292,10 +250,13 @@ class TableauDatasource(TableauDocument):
             connection.set('one-time-sql', initial_sql)
         return c
 
-    def add_new_connection(self, ds_type, server=None, db_or_schema_name=None, authentication=None, initial_sql=None):
+    def add_new_connection(self, ds_type: str, server: Optional[str] = None,
+                           db_or_schema_name: Optional[str] = None, authentication: Optional[str] = None,
+                           initial_sql: Optional[str] = None) -> TableauConnection:
         self.start_log_block()
         self.ds_generator = True
-        conn = self.create_new_connection_xml(self.ds_version_type, ds_type, server, db_or_schema_name, authentication, initial_sql)
+        conn = self.create_new_connection_xml(self.ds_version_type, ds_type, server,
+                                              db_or_schema_name, authentication, initial_sql)
         print((ET.tostring(conn)))
         if self.ds_version_type == '9':
             self.xml.append(conn)
@@ -316,18 +277,14 @@ class TableauDatasource(TableauDocument):
         self.end_log_block()
         return new_conn
 
-    def add_new_hyper_file_connection(self, hyper_filename_no_path):
-        """
-        :type hyper_filename: unicode
-        :rtype: TableauConnection
-        """
+    def add_new_hyper_file_connection(self, hyper_filename_no_path: str) -> TableauConnection:
         conn_obj = self.add_new_connection(ds_type='hyper', db_or_schema_name='Data/{}'.format(hyper_filename_no_path),
                                      authentication='auth-none')
         conn_obj.username = 'tableau_internal_user'
         return conn_obj
 
 
-    def get_datasource_xml(self):
+    def get_datasource_xml(self) -> str:
         # The TableauDatasource object basically stores all properties separately and doesn't actually create
         # the final XML until this function is called.
         self.start_log_block()
@@ -391,13 +348,7 @@ class TableauDatasource(TableauDocument):
         self.end_log_block()
         return xmlstring
 
-    def save_file(self, filename_no_extension, save_to_directory=None):
-        """
-        :param filename_no_extension: Filename to save the XML to. Will append .tds if not found
-        :type filename_no_extension: unicode
-        :type save_to_directory: unicode
-        :rtype: bool
-        """
+    def save_file(self, filename_no_extension: str, save_to_directory: Optional[str] = None):
         self.start_log_block()
         file_extension = '.tds'
         #if self.tde_filename is not None:
@@ -422,37 +373,17 @@ class TableauDatasource(TableauDocument):
             lh.write(final_string)
             lh.close()
 
-            # Handle all of this in the TableauFile object now
-
-            #if file_extension == u'.tdsx':
-            #    zf = zipfile.ZipFile(save_to_directory + filename_no_extension + u'.tdsx', 'w')
-            #    if save_to_directory is not None:
-            #        zf.write(save_to_directory + tds_filename, u'/{}'.format(tds_filename))
-            #    else:
-            #        zf.write(tds_filename, u'/{}'.format(tds_filename))
-            #    # Delete temporary TDS at some point
-            #    zf.write(self.tde_filename, u'/Data/Datasources/{}'.format(self.tde_filename))
-            #    zf.close()
-            #    # Remove the temp tde_file that is created
-            #    os.remove(self.tde_filename)
-            #    return True
         except IOError:
             self.log("Error: File '{} cannot be opened to write to".format(filename_no_extension + file_extension))
             self.end_log_block()
             raise
 
-    def translate_columns(self, translation_dict):
+    def translate_columns(self, translation_dict: Dict):
         self.start_log_block()
-        self.columns.set_translation_dict(translation_dict)
-        self.columns.translate_captions()
+        self.columns.translate_captions(translation_dict=translation_dict)
         self.end_log_block()
 
-    def add_extract(self, new_extract_filename):
-        """
-        :param new_extract_filename: Name of the new stub TDE file to be created. .tde will be added if not specified
-        :type new_extract_filename: unicode
-        :return:
-        """
+    def add_extract(self, new_extract_filename: str):
         self.log('add_extract called, checking if extract exists already')
         # Test to see if extract exists already
         e = self.xml.find('extract')
@@ -469,7 +400,7 @@ class TableauDatasource(TableauDocument):
             self._extract_filename = final_extract_filename
             self.log('Adding extract to the  data source')
 
-    def generate_extract_section(self):
+    def generate_extract_section(self) -> Union[ET.Element, bool]:
         # Short circuit if no extract had been set
         if self._extract_filename is None:
             self.log('No extract_filename, no extract being added')
@@ -611,7 +542,8 @@ class TableauDatasource(TableauDocument):
     #
     # For creating new table relations
     #
-    def set_first_table(self, db_table_name, table_alias, connection=None, extract=False):
+    def set_first_table(self, db_table_name: str, table_alias: str, connection: Optional[str] = None,
+                        extract: Optional[bool] = False):
         self.ds_generator = True
         # Grab the original connection name
         if self.main_table_relation is not None and connection is None:
@@ -619,24 +551,24 @@ class TableauDatasource(TableauDocument):
         self.main_table_relation = self.create_table_relation(db_table_name, table_alias, connection=connection,
                                                               extract=extract)
 
-    def set_first_custom_sql(self, custom_sql, table_alias, connection=None):
+    def set_first_custom_sql(self, custom_sql: str, table_alias: str, connection: Optional[str] = None):
         self.ds_generator = True
         if self.main_table_relation is not None and connection is None:
             connection = self.main_table_relation.get('connection')
         self.main_table_relation = self.create_custom_sql_relation(custom_sql, table_alias, connection=connection)
 
-    def set_first_stored_proc(self, stored_proc_name, table_alias, connection=None):
+    def set_first_stored_proc(self, stored_proc_name: str, table_alias: str, connection: Optional[str] = None):
         self.ds_generator = True
         if self.main_table_relation is not None and connection is None:
             connection = self.main_table_relation.get('connection')
         self.main_table_relation = self.create_stored_proc_relation(stored_proc_name, table_alias, connection=connection)
 
-    def get_stored_proc_parameter_value_by_name(self, parameter_name):
+    def get_stored_proc_parameter_value_by_name(self, parameter_name: str) -> str:
         if self._stored_proc_parameters_xml is None:
-            return NoResultsException('There are no parameters set for this stored proc (or it is not a stored proc)')
+            raise NoResultsException('There are no parameters set for this stored proc (or it is not a stored proc)')
         param = self._stored_proc_parameters_xml.find('../column[@name="{}"]'.format(parameter_name))
         if param is None:
-            return NoMatchFoundException('Could not find Stored Proc parameter with name {}'.format(parameter_name))
+            raise NoMatchFoundException('Could not find Stored Proc parameter with name {}'.format(parameter_name))
         else:
             value = param.get('value')
 
@@ -648,7 +580,7 @@ class TableauDatasource(TableauDocument):
             else:
                 return unescape(value)
 
-    def set_stored_proc_parameter_value_by_name(self, parameter_name, parameter_value):
+    def set_stored_proc_parameter_value_by_name(self, parameter_name: str, parameter_value: str):
         # Create if there is none
         if self._stored_proc_parameters_xml is None:
             self._stored_proc_parameters_xml = ET.Element('actual-parameters')
@@ -671,14 +603,7 @@ class TableauDatasource(TableauDocument):
             param.set('value', final_val)
 
     @staticmethod
-    def create_stored_proc_parameter(parameter_name, parameter_value):
-        """
-        :type parameter_name: unicode
-        :type parameter_value: all
-        :return: ET.Element
-        """
-        if parameter_name is None or parameter_value is None:
-            raise InvalidOptionException('Must specify both a parameter_name (starting with @) and a parameter_value')
+    def create_stored_proc_parameter(parameter_name: str, parameter_value: Any) -> ET.Element:
         c = ET.Element('column')
         # Check to see if this varies at all depending on type or whatever
         c.set('ordinal', '1')
@@ -695,7 +620,7 @@ class TableauDatasource(TableauDocument):
         return c
 
     @staticmethod
-    def create_random_calculation_name():
+    def create_random_calculation_name() -> str:
         n = 19
         range_start = 10 ** (n - 1)
         range_end = (10 ** n) - 1
@@ -703,7 +628,8 @@ class TableauDatasource(TableauDocument):
         return 'Calculation_{}'.format(str(random_digits))
 
     @staticmethod
-    def create_table_relation(db_table_name, table_alias, connection=None, extract=False):
+    def create_table_relation(db_table_name: str, table_alias: str, connection: Optional[str] = None,
+                              extract: Optional[bool] = False) -> ET.Element:
         r = ET.Element("relation")
         r.set('name', table_alias)
         if extract is True:
@@ -716,7 +642,7 @@ class TableauDatasource(TableauDocument):
         return r
 
     @staticmethod
-    def create_custom_sql_relation(custom_sql, table_alias, connection=None):
+    def create_custom_sql_relation(custom_sql: str, table_alias: str, connection: Optional[str] = None) -> ET.Element:
         r = ET.Element("relation")
         r.set('name', table_alias)
         r.text = custom_sql
@@ -725,11 +651,11 @@ class TableauDatasource(TableauDocument):
             r.set('connection', connection)
         return r
 
+    # UNFINISHED, NEEDS TESTING TO COMPLETE
     @staticmethod
-    def create_stored_proc_relation(custom_sql, table_alias, connection=None, actual_parameters=None):
+    def create_stored_proc_relation(stored_proc_name: str, connection: Optional[str] = None, actual_parameters=None):
         r = ET.Element("relation")
-        r.set('name', table_alias)
-        r.text = custom_sql
+        r.set('name', stored_proc_name)
         r.set("type", "stored-proc")
         if connection is not None:
             r.set('connection', connection)
@@ -747,7 +673,8 @@ class TableauDatasource(TableauDocument):
                 "right_field": right_field
                 }
 
-    def join_table(self, join_type, db_table_name, table_alias, join_on_clauses, custom_sql=None):
+    def join_table(self, join_type: str, db_table_name: str, table_alias: str, join_on_clauses: List[Dict],
+                   custom_sql: Optional[str] = None):
         full_join_desc = {"join_type": join_type.lower(),
                           "db_table_name": db_table_name,
                           "table_alias": table_alias,
@@ -755,7 +682,7 @@ class TableauDatasource(TableauDocument):
                           "custom_sql": custom_sql}
         self.join_relations.append(full_join_desc)
 
-    def generate_relation_section(self, connection_name=None):
+    def generate_relation_section(self, connection_name: Optional[str] = None) -> ET.Element:
         # Because of the strange way that the interior definition is the last on, you need to work inside out
         # "Middle-out" as Silicon Valley suggests.
         # Generate the actual JOINs
@@ -996,9 +923,9 @@ class TableauDatasource(TableauDocument):
         }
         return ds_filter
 
-    def generate_filters(self, filter_array):
+    def generate_filters(self, filter_list: List[Dict]) -> List[ET.Element]:
         return_array = []
-        for filter_def in filter_array:
+        for filter_def in filter_list:
             f = ET.Element('filter')
             f.set('class', filter_def['type'])
             f.set('column', filter_def['column_name'])
@@ -1077,7 +1004,7 @@ class TableauDatasource(TableauDocument):
             filters_array.append(f)
         return filters_array
 
-    def generate_cols_map_section(self):
+    def generate_cols_map_section(self) -> bool:
         if len(self.column_mapping) == 0:
             return False
         c = ET.Element("cols")
@@ -1087,19 +1014,17 @@ class TableauDatasource(TableauDocument):
             m.set("value", self.column_mapping[key])
             c.append(m)
         self.xml.append(c)
+        return True
 
     @staticmethod
-    def generate_aliases_tag():
+    def generate_aliases_tag() -> ET.Element:
         # For whatever reason, the aliases tag does not contain the columns, but it always precedes it
         a = ET.Element("aliases")
         a.set("enabled", "yes")
         return a
 
-    def generate_aliases_column_section(self):
-        """
-        :rtype: list[ET.Element]
-        """
-        column_aliases_array = []
+    def generate_aliases_column_section(self) -> List[ET.Element]:
+        column_aliases_list = []
 
         # Now to put in each column tag
         for column_alias in self.column_aliases:
@@ -1126,11 +1051,11 @@ class TableauDatasource(TableauDocument):
                 c.append(calc)
             print("Column section at end")
             print((ET.tostring(c)))
-            column_aliases_array.append(c)
-        return column_aliases_array
+            column_aliases_list.append(c)
+        return column_aliases_list
 
-    def generate_column_instances_section(self):
-        column_instances_array = []
+    def generate_column_instances_section(self) -> List[ET.Element]:
+        column_instances_list = []
         for column_instance in self.column_instances:
             ci = ET.Element('column-instance')
             ci.set('column', column_instance['column'])
@@ -1138,5 +1063,5 @@ class TableauDatasource(TableauDocument):
             ci.set('name', column_instance['name'])
             ci.set('pivot', 'key')
             ci.set('type', column_instance['type'])
-            column_instances_array.append(ci)
-        return column_instances_array
+            column_instances_list.append(ci)
+        return column_instances_list
