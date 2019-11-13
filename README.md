@@ -523,14 +523,15 @@ You can use like this to specify specific fields only to come back:
 (This is a lot more useful on something like `query_workbooks` which has additional info about the owner and the project which are not included in the defaults).
 
 #### 1.2.3 LUID Lookup Methods
-There are numerous methods for finding an LUID based on the name of a piece of content. An example would be:
+There are numerous methods for finding an LUID based on the name of a piece of content. Because LUID lookup for all types is useful to almost any commands, these methods live in the main class, even in `TableauServerRest`. An example is:
 
-`TableauRestApiConnection24.query_group_luid(name)`
+    TableauRestApiConnection.query_group_luid(name)
+    # or 
+    TableauServerRest.query_group_luid(name)
 
-These methods are very useful when you need a LUID to generate another action. With tableau_tools 4.0+, you shouldn't need these methods very frequently, as the majority of methods will do the lookup automaticaly if a name is passed in.
+These methods are very useful when you need a LUID to generate another action.  You shouldn't need these methods very frequently, as the majority of methods will do the lookup automatically if a name is passed in. 
 
 However, if you do have a LUID from a call or a create method, it will be faster to pass in the LUIDs, particularly for large lists.
-
 
 #### 1.2.4 Singular querying methods
 There are methods for getting the XML just for a single object, but they actually require calling to the plural methods internally in many cases where there is no singular method actually implemented in Tableau Server. 
@@ -785,7 +786,7 @@ You can update a subscription with
 
 `TableauRestApiConnection.delete_subscriptions(subscription_luid_s)`
 
-Yo'll note that the update and delete subscriptions methods only take LUIDs, unlike most other methods in tableau_tools. This is because Subscriptions do not have a reasonbly unique identifier -- to find the LUID, you would use a combination of things to filter on.
+Yo'll note that the update and delete subscriptions methods only take LUIDs, unlike most other methods in tableau_tools. This is because Subscriptions do not have a reasonably unique identifier -- to find the LUID, you would use a combination of things to filter on.
 
 This brings us to how to find subscriptions to do things to via `query_subscriptions`
 
