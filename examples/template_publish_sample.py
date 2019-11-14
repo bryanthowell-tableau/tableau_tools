@@ -9,6 +9,8 @@ import time
 import datetime
 import os
 
+from tableau_rest_api.tableau_rest_api_connection import *
+
 logger = Logger('template_publish.txt')
 
 # In production, you would pull this from a config file or database

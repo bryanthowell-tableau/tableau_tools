@@ -7,7 +7,6 @@ from .favorites import *
 from .flow import *
 from .group import *
 from .project import *
-from .publishing import *
 from .revision import *
 from .schedule import *
 from .site import *
