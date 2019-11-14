@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 
 from .tableau_exceptions import *
-from .tableau_base import TableauBase
 import psycopg2
 import psycopg2.extensions
 psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
 psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
-
+from typing import Union, Any, Optional, List, Dict, Tuple
 
 class TableauRepository:
-    def __init__(self, tableau_server_url, repository_password, repository_username='readonly'):
+    def __init__(self, tableau_server_url: str, repository_password: str, repository_username: str = 'readonly'):
         if repository_username not in ['tableau', 'readonly', 'tblwgadmin']:
             raise InvalidOptionException('Must use one of the three valid usernames')
 
@@ -35,7 +34,7 @@ class TableauRepository:
         self.db_conn.close()
 
     # Base method for querying
-    def query(self, sql, sql_parameter_list=None):
+    def query(self, sql: str, sql_parameter_list: Optional[List] = None):
 
         cur = self.db_conn.cursor()
         if sql_parameter_list is not None:
@@ -44,7 +43,7 @@ class TableauRepository:
             cur.execute(sql)
         return cur
 
-    def query_sessions(self, username=None):
+    def query_sessions(self, username: Optional[str] = None):
         # Trusted tickets sessions do not have anything in the 'data' column
         # The auth token is contained within the shared_wg_write column, stored as JSON
         sessions_sql = """
@@ -71,7 +70,7 @@ JOIN system_users ON users.system_user_id = system_users.id
             cur = self.query(sessions_sql)
         return cur
 
-    def query_subscriptions(self, schedule_name=None, views_only=True):
+    def query_subscriptions(self, schedule_name: Optional[str] = None, views_only: bool = True):
         subscriptions_sql = """
 SELECT
 s.id,
@@ -101,7 +100,7 @@ JOIN system_users su ON su.name = s.user_name
         return cur
 
     # Set extract refresh schedules
-    def query_extract_schedules(self, schedule_name=None):
+    def query_extract_schedules(self, schedule_name: Optional[str] = None):
         schedules_sql = """
 SELECT *
 FROM _schedules
@@ -115,7 +114,7 @@ AND hidden = false
             cur = self.query(schedules_sql)
         return cur
 
-    def get_extract_schedule_id_by_name(self, schedule_name):
+    def get_extract_schedule_id_by_name(self, schedule_name: str):
         cur = self.query_extract_schedules(schedule_name=schedule_name)
         if cur.rowcount == 0:
             raise NoMatchFoundException('No schedule found with name "{}"'.format(schedule_name))
@@ -125,7 +124,7 @@ AND hidden = false
             sched_id = row[0]
         return sched_id
 
-    def query_sites(self, site_content_url=None, site_pretty_name=None):
+    def query_sites(self, site_content_url: Optional[str] = None, site_pretty_name: Optional[str] = None):
         if site_content_url is None and site_pretty_name is None:
             raise InvalidOptionException('Must pass one of either the site_content_url or site_pretty_name')
 
@@ -145,7 +144,7 @@ FROM _sites
 
         return cur
 
-    def get_site_id_by_site_content_url(self, site_content_url):
+    def get_site_id_by_site_content_url(self, site_content_url: str):
         cur = self.query_sites(site_content_url=site_content_url)
         if cur.rowcount == 0:
             raise NoMatchFoundException('No site found with content url "{}"'.format(site_content_url))
@@ -155,7 +154,7 @@ FROM _sites
             site_id = row[0]
         return site_id
 
-    def get_site_id_by_site_pretty_name(self, site_pretty_name):
+    def get_site_id_by_site_pretty_name(self, site_pretty_name: str):
         cur = self.query_sites(site_pretty_name=site_pretty_name)
         if cur.rowcount == 0:
             raise NoMatchFoundException('No site found with pretty name "{}"'.format(site_pretty_name))
@@ -165,7 +164,7 @@ FROM _sites
             site_id = row[0]
         return site_id
 
-    def query_project_id_on_site_by_name(self, project_name, site_id):
+    def query_project_id_on_site_by_name(self, project_name: str, site_id: str):
         project_sql = """
         SELECT *
         FROM _projects
@@ -180,7 +179,7 @@ FROM _sites
             project_id = row[0]
         return project_id
 
-    def query_datasource_id_on_site_in_project(self, datasource_name, site_id, project_id):
+    def query_datasource_id_on_site_in_project(self, datasource_name: str, site_id: str, project_id: str):
         datasource_query = """
         SELECT id
         FROM _datasources
@@ -196,7 +195,7 @@ FROM _sites
             datasource_id = row[0]
         return datasource_id
 
-    def query_workbook_id_on_site_in_project(self, workbook_name, site_id, project_id):
+    def query_workbook_id_on_site_in_project(self, workbook_name: str, site_id: str, project_id: str):
         workbook_query = """
         SELECT id
         FROM _workbooks
@@ -212,7 +211,7 @@ FROM _sites
             workbook_id = row[0]
         return workbook_id
 
-    def query_workbook_id_from_luid(self, workbook_luid):
+    def query_workbook_id_from_luid(self, workbook_luid: str):
         workbook_query = """
         SELECT id
         FROM workbooks
@@ -226,7 +225,7 @@ FROM _sites
             workbook_id = row[0]
         return workbook_id
 
-    def query_site_id_from_workbook_luid(self, workbook_luid):
+    def query_site_id_from_workbook_luid(self, workbook_luid: str):
         workbook_query = """
             SELECT site_id
             FROM workbooks
@@ -240,7 +239,7 @@ FROM _sites
             workbook_id = row[0]
         return workbook_id
 
-    def query_datasource_id_from_luid(self, datasource_luid):
+    def query_datasource_id_from_luid(self, datasource_luid: str):
         datasource_query = """
         SELECT id
         FROM datasources
@@ -254,7 +253,7 @@ FROM _sites
             datasource_id = row[0]
         return datasource_id
 
-    def query_site_id_from_datasource_luid(self, datasource_luid):
+    def query_site_id_from_datasource_luid(self, datasource_luid: str):
         datasource_query = """
         SELECT site_id
         FROM datasources
@@ -268,3 +267,4 @@ FROM _sites
             datasource_id = row[0]
         return datasource_id
 
+# Need to add in some classes to find Custom View LUIDs
