@@ -1,5 +1,8 @@
 from .methods import *
-
+#
+# This is equivalent to TableauRestApiConnection but with an extra layer of organization, by attaching
+# most of the functions as sub-objects
+#
 class TableauServerRest(TableauRestApiBase):
     def __init__(self, server: str, username: str, password: str,
                  site_content_url: Optional[str] = ""):

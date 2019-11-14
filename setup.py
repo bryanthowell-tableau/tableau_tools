@@ -2,6 +2,7 @@ from setuptools import setup
 
 setup(
     name='tableau_tools',
+    python_requires='>=3.6',
     version='5.0.0',
     packages=['tableau_tools', 'tableau_tools.tableau_rest_api', 'tableau_tools.tableau_documents', 'tableau_tools.examples'],
     url='https://github.com/bryantbhowell/tableau_tools',
