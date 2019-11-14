@@ -287,6 +287,10 @@ class TableauRestApiBase(LookupMethods, TableauBase):
     def swap_token(self, site_luid: str, user_luid: str, token: str):
         self.start_log_block()
         self.token = token
+        # Reset caches if you are changing site
+        if self.site_luid != site_luid:
+            self.group_name_luid_cache = {}
+            self.username_luid_cache = {}
         self.site_luid = site_luid
         self.user_luid = user_luid
         if self._request_obj is None:
@@ -611,7 +615,7 @@ class TableauRestApiBase(LookupMethods, TableauBase):
         except:
             raise
 
-    def send_publish_request(self, url: str, xml_request: ET.Element, content,
+    def send_publish_request(self, url: str, xml_request: Optional[ET.Element], content: bytes,
                              boundary_string: str) -> ET.Element:
         self.start_log_block()
         if self.token == "":
@@ -630,13 +634,13 @@ class TableauRestApiBase(LookupMethods, TableauBase):
         self.end_log_block()
         return xml
 
-    def send_append_request(self, url: str, request, boundary_string: str) -> ET.Element:
+    def send_append_request(self, url: str, content: bytes, boundary_string: str) -> ET.Element:
         self.start_log_block()
         if self.token == "":
             raise NotSignedInException('Must use .signin() to create REST API session first')
         self._request_obj.set_response_type('xml')
         self._request_obj.url = url
-        self._request_obj.set_publish_content(request, boundary_string)
+        self._request_obj.set_publish_content(content, boundary_string)
         self._request_obj.http_verb = 'put'
         self._request_obj.request_from_api(0)
         xml = self._request_obj.get_response()  # return Element rather than ElementTree
@@ -836,7 +840,8 @@ class TableauRestApiBase(LookupMethods, TableauBase):
                             os.remove(temp_wb_filename)
                         if cleanup_temp_file is True:
                             os.remove(final_filename)
-                        return self.send_publish_request(url, None, publish_request, boundary_string)
+                        return self.send_publish_request(url=url, xml_request=None, content=publish_request,
+                                                         boundary_string=boundary_string)
 
                 except IOError:
                     print("Error: File '{}' cannot be opened to upload".format(content_filename))
@@ -847,29 +852,29 @@ class TableauRestApiBase(LookupMethods, TableauBase):
                 "File {} does not have an acceptable extension. Should be .twb,.twbx,.tde,.tdsx,.tds,.tde".format(
                     content_filename))
 
-    def initiate_file_upload(self):
+    def initiate_file_upload(self) -> str:
         url = self.build_api_url("fileUploads")
         xml = self.send_post_request(url)
         file_upload = xml.findall('.//t:fileUpload', self.ns_map)
         return file_upload[0].get("uploadSessionId")
 
     # Uploads a chunk to an already started session
-    def append_to_file_upload(self, upload_session_id, content, filename):
+    def append_to_file_upload(self, upload_session_id: str, content: bytes, filename: str):
         boundary_string = self.generate_boundary_string()
-        publish_request = "--{}\r\n".format(boundary_string)
-        publish_request += 'Content-Disposition: name="request_payload"\r\n'
-        publish_request += 'Content-Type: text/xml\r\n\r\n'
-        publish_request += '\r\n'
-        publish_request += "--{}\r\n".format(boundary_string)
-        publish_request += 'Content-Disposition: name="tableau_file"; filename="{}"\r\n'.format(
-            filename)
-        publish_request += 'Content-Type: application/octet-stream\r\n\r\n'
+        publish_request = bytes("--{}\r\n".format(boundary_string))
+        publish_request += bytes('Content-Disposition: name="request_payload"\r\n')
+        publish_request += bytes('Content-Type: text/xml\r\n\r\n')
+        publish_request += bytes('\r\n')
+        publish_request += bytes("--{}\r\n".format(boundary_string))
+        publish_request += bytes('Content-Disposition: name="tableau_file"; filename="{}"\r\n'.format(
+            filename))
+        publish_request += bytes('Content-Type: application/octet-stream\r\n\r\n')
 
         publish_request += content
 
         publish_request += "\r\n--{}--".format(boundary_string)
         url = self.build_api_url("fileUploads/{}".format(upload_session_id))
-        self.send_append_request(url, publish_request, boundary_string)
+        self.send_append_request(url=url, content=publish_request, boundary_string=boundary_string)
 
     # Generic implementation of all the CSV/PDF/PNG requests
     def _query_data_file(self, download_type: str, view_name_or_luid: str, high_resolution: Optional[bool] = None,
@@ -942,11 +947,27 @@ class TableauRestApiBase(LookupMethods, TableauBase):
         for ending in ['.png', ]:
             if image_filename.endswith(ending):
                 file_extension = ending[1:]
-
                 # Open the file to be uploaded
                 try:
                     content_file = open(image_filename, 'rb')
+                    # Create the initial XML portion of the request
+                    publish_request = bytes("--{}\r\n".format(boundary_string))
+                    publish_request += bytes(
+                        'Content-Disposition: form-data; name="site_logo"; filename="new_site_logo.png"\r\n')
+                    publish_request += bytes('Content-Type: application/octet-stream\r\n\r\n')
 
+                    publish_request += bytes("--{}".format(boundary_string))
+
+                    # Content needs to be read unencoded from the file
+                    content = content_file.read()
+
+                    # Add to string as regular binary, no encoding
+                    publish_request += content
+
+                    publish_request += bytes("\r\n--{}--".format(boundary_string))
+                    url = self.build_api_url('')[:-1]
+                    return self.send_publish_request(url=url, xml_request=None, content=publish_request,
+                                                     boundary_string=boundary_string)
                 except IOError:
                     print("Error: File '{}' cannot be opened to upload".format(image_filename))
                     raise
@@ -954,23 +975,6 @@ class TableauRestApiBase(LookupMethods, TableauBase):
         if file_extension is None:
             raise InvalidOptionException(
                 "File {} is not PNG. Use PNG image.".format(image_filename))
-
-        # Create the initial XML portion of the request
-        publish_request = "--{}\r\n".format(boundary_string)
-        publish_request += 'Content-Disposition: form-data; name="site_logo"; filename="new_site_logo.png"\r\n'
-        publish_request += 'Content-Type: application/octet-stream\r\n\r\n'
-
-        publish_request += "--{}".format(boundary_string)
-
-        # Content needs to be read unencoded from the file
-        content = content_file.read()
-
-        # Add to string as regular binary, no encoding
-        publish_request += content
-
-        publish_request += "\r\n--{}--".format(boundary_string)
-        url = self.build_api_url('')[:-1]
-        return self.send_publish_request(url, publish_request, None, boundary_string)
 
     def restore_online_site_logo(self):
         boundary_string = self.generate_boundary_string()

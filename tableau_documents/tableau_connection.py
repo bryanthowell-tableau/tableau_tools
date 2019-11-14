@@ -1,7 +1,7 @@
 from ..tableau_base import *
 from ..tableau_exceptions import *
 import xml.etree.ElementTree as ET
-
+from typing import Union, Any, Optional, List, Dict, Tuple
 
 # Represents the actual Connection tag of a given datasource
 class TableauConnection(TableauBase):
@@ -17,14 +17,11 @@ class TableauConnection(TableauBase):
             self.xml_obj = connection_xml_obj
 
     @property
-    def cols(self):
-        """
-        :rtype: ET.Element
-        """
+    def cols(self) -> ET.Element:
         return self.xml_obj.find('cols')
 
     @property
-    def dbname(self):
+    def dbname(self) -> Optional[str]:
         # Looks for schema tag as well in case it's an Oracle system
         if self.xml_obj.get('dbname'):
             return self.xml_obj.get('dbname')
@@ -34,11 +31,7 @@ class TableauConnection(TableauBase):
             return None
 
     @dbname.setter
-    def dbname(self, new_db_name):
-        """
-        :type new_db_name: unicode
-        :return:
-        """
+    def dbname(self, new_db_name: str):
         if self.xml_obj.get("dbname") is not None:
             self.xml_obj.attrib["dbname"] = new_db_name
         elif self.xml_obj.get('schema') is not None:
@@ -50,7 +43,7 @@ class TableauConnection(TableauBase):
                 self.xml_obj.set('dbname', new_db_name)
 
     @property
-    def schema(self):
+    def schema(self) -> Optional[str]:
         # dbname already handles this for Oracle, just here for the heck of it
         return self.dbname
 
@@ -152,30 +145,22 @@ class TableauConnection(TableauBase):
             self.xml_obj.set("authentication", auth_type)
 
     @property
-    def service(self):
+    def service(self) -> str:
         return self.xml_obj.get('service')
 
     @service.setter
-    def service(self, service):
-        """
-        :type service: unicode
-        :return:
-        """
+    def service(self, service: str):
         if self.xml_obj.get("service") is not None:
             self.xml_obj.attrib["service"] = service
         else:
             self.xml_obj.set("service", service)
 
     @property
-    def username(self):
+    def username(self) -> str:
         return self.xml_obj.get('username')
 
     @username.setter
-    def username(self, username):
-        """
-        :type username: unicode
-        :return:
-        """
+    def username(self, username: str):
         if self.xml_obj.get('username') is not None:
             self.xml_obj.attrib['username'] = username
         else:
