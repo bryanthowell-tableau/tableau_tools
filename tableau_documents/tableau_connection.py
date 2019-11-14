@@ -5,7 +5,7 @@ from typing import Union, Any, Optional, List, Dict, Tuple
 
 # Represents the actual Connection tag of a given datasource
 class TableauConnection(TableauBase):
-    def __init__(self, connection_xml_obj, logger_obj=None):
+    def __init__(self, connection_xml_obj: ET.Element, logger_obj: Optional[Logger] = None):
         TableauBase.__init__(self)
         self.logger = logger_obj
         self.connection_name = None

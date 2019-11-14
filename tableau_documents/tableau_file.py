@@ -103,23 +103,16 @@ class TableauFile(TableauBase):
             raise
 
     @property
-    def file_type(self):
+    def file_type(self) -> str:
         return self._original_file_type
 
     @property
-    def tableau_document(self):
-        """
-        :rtype: TableauDocument
-        """
+    def tableau_document(self) -> TableauDocument:
         return self._tableau_document
 
     # Appropriate extension added if needed
-    def save_new_file(self, new_filename_no_extension, data_file_replacement_map=None, new_data_files_map=None):
-        """
-        :type new_filename_no_extension: unicode
-        :type data_file_replacement_map: dict
-        :rtype: unicode
-        """
+    def save_new_file(self, new_filename_no_extension: str, data_file_replacement_map: Optional[Dict],
+                      new_data_files_map: Optional[Dict]) -> str:
         self.start_log_block()
         new_filename = new_filename_no_extension.split('.')[0]  # simple algorithm to kill extension
         if new_filename is None:
@@ -195,9 +188,6 @@ class TableauFile(TableauBase):
 
                     # If file is listed in the data_file_replacement_map, write data from the mapped in file
                     if data_file_replacement_map and filename in data_file_replacement_map:
-                        #data_file_obj = open(filename, mode='wb')
-                        #data_file_obj.write(data_file_replacement_map[filename])
-                        #data_file_obj.close()
                         new_zf.write(data_file_replacement_map[filename], "/" + filename)
                         # Delete from the data_file_replacement_map to reduce down to end
                         del data_file_replacement_map[filename]

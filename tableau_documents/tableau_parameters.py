@@ -8,7 +8,6 @@ from ..tableau_exceptions import *
 
 from xml.sax.saxutils import quoteattr, unescape
 import datetime
-import collections
 import re
 from typing import Union, Any, Optional, List, Dict, Tuple
 
@@ -17,7 +16,7 @@ class TableauParameters(TableauDocument):
 
         TableauDocument.__init__(self)
         self.logger: Optional[Logger] = logger_obj
-        self._parameters: List[TableauParameter] = []
+        self._parameters: Dict = {}
         self._highest_param_num: int = 1
         self.log('Initializing TableauParameters object')
         self._document_type = 'parameters'
@@ -51,7 +50,7 @@ class TableauParameters(TableauDocument):
                         self._highest_param_num = param_num
 
                 p = TableauParameter(parameter_xml=column, logger_obj=self.logger)
-                self._parameters.append(p)
+                self._parameters[alias] = p
 
     def get_datasource_xml(self) -> str:
         self.start_log_block()
@@ -190,7 +189,7 @@ class TableauParameter(TableauBase):
         if period_type is not None:
             r.set('period-type', str(period_type))
 
-    def set_allowable_values_to_list(self, list_value_display_as_pairs):
+    def set_allowable_values_to_list(self, list_value_display_as_pairs: List[Dict]):
         """
         :param list_value_display_as_pairs: To maintain ordering, pass in the values as a list of {value : display_as } dict elements
         :type list_value_display_as_pairs: list[dict]
@@ -260,7 +259,7 @@ class TableauParameter(TableauBase):
         self.p_xml.set('param-domain-type', 'all')
 
     @property
-    def current_value(self):
+    def current_value(self) -> str:
         # Returns the alias if one exists
         if self.p_xml.get('alias') is None:
             return self.p_xml.get('value')
@@ -268,7 +267,7 @@ class TableauParameter(TableauBase):
             return self.p_xml.get('alias')
 
     @current_value.setter
-    def current_value(self, current_value):
+    def current_value(self, current_value: str):
         # The set value is both in the column tag and has a separate calculation tag
 
         # If there is an alias, have to grab the real value

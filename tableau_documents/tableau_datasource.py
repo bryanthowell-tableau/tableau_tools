@@ -120,7 +120,7 @@ class TableauDatasource(TableauDocument):
             # Skip the relation if it is a Parameters datasource. Eventually, build out separate object
             if self.xml.get('name') != 'Parameters':
                 self.relation_xml_obj = self.xml.find('.//relation', self.ns_map)
-                self.read_existing_relations()
+                self._read_existing_relations()
             else:
                 self.log('Found a Parameters datasource')
 
@@ -413,7 +413,8 @@ class TableauDatasource(TableauDocument):
             if self.ds_version_type == '10.5':
                 from .hyper_file_generator import HyperFileGenerator
             else:
-                from .tde_file_generator import TDEFileGenerator
+                raise InvalidOptionException(
+                    'tableau_tools 5.0 is Python 3.6+ compatible, but the TDE generating library is only available for Python 2.7. Please upgrade to a newer version of Tableau with Hyper extract engine (10.5+)')
         except Exception as ex:
             print("Must have correct install of Tableau Extract SDK to add extracts")
             print('Exception arising from the Tableau Extract SDK itself')
@@ -507,17 +508,16 @@ class TableauDatasource(TableauDocument):
         if self.ds_version_type == '10.5':
             from .hyper_file_generator import HyperFileGenerator
             extract_file_generator = HyperFileGenerator(self.logger)
+            extract_file_generator.set_table_definition(tde_columns)
+            extract_file_generator.create_extract(self.tde_filename)
         else:
-            from .tde_file_generator import TDEFileGenerator
-            extract_file_generator = TDEFileGenerator(self.logger)
-        extract_file_generator.set_table_definition(tde_columns)
-        extract_file_generator.create_extract(self.tde_filename)
+            raise InvalidOptionException('tableau_tools 5.0 is Python 3.6+ compatible, but the TDE generating library is only available for Python 2.7. Please upgrade to a newer version of Tableau with Hyper extract engine (10.5+)')
         return e
 
     #
     # Reading existing table relations
     #
-    def read_existing_relations(self):
+    def _read_existing_relations(self):
         # Test for single relation
         relation_type = self.relation_xml_obj.get('type')
         if relation_type != 'join':
