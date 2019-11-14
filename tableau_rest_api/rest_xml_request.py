@@ -1,6 +1,7 @@
 from ..tableau_base import *
 from ..tableau_exceptions import *
-import xml.etree as ET
+from ..logger import Logger
+import xml.etree.ElementTree as ET
 # from HTMLParser import HTMLParser
 # from StringIO import StringIO
 from io import BytesIO
@@ -9,35 +10,34 @@ import math
 import copy
 import requests
 import sys
+from typing import Union, Any, Optional, List, Dict, Tuple
 
 
 # Handles all of the actual HTTP calling
 class RestXmlRequest(TableauBase):
-    def __init__(self, url=None, token=None, logger=None, ns_map_url='http://tableau.com/api',
-                 verify_ssl_cert=True):
-        """
-        :param url:
-        :param token:
-        :param logger:
-        :param ns_map_url:
-        """
+    def __init__(self, url: Optional[str] = None, token: Optional[str] = None, logger: Optional[Logger] = None,
+                 ns_map_url: str ='http://tableau.com/api',
+                 verify_ssl_cert: bool = True):
         super(self.__class__, self).__init__()
 
         # requests Session created to minimize connections
         self.session = requests.Session()
 
-        self.__defined_response_types = ('xml', 'png', 'binary')
+        self.__defined_response_types = ('xml', 'png', 'binary', 'pdf')
         self.__defined_http_verbs = ('post', 'get', 'put', 'delete')
-        self.url = url
-        self._xml_request = None
-        self._token = token
+        self.url: str = url
+        self._xml_request: Optional[ET.Element] = None
+        self._token: str = token
         self.__raw_response = None
         self.__last_error = None
         self.__last_url_request = None
         self.__last_response_headers = None
         self.__xml_object = None
+
+        # This sets the namespace globally so you can do XPath with t:
         self.ns_map = {'t': ns_map_url}
         ET.register_namespace('t', ns_map_url)
+
         self.logger = logger
         self.log('RestXmlRequest intialized')
         self.__publish = None
@@ -60,25 +60,21 @@ class RestXmlRequest(TableauBase):
         return self._token
 
     @token.setter
-    def token(self, token):
+    def token(self, token: str):
         self._token = token
         # Requests documentation says setting a dict value to None will remove it.
         self.session.headers.update({'X-tableau-auth': token})
 
     @property
-    def xml_request(self):
+    def xml_request(self) -> ET.Element:
         return self._xml_request
 
     @xml_request.setter
-    def xml_request(self, xml_request):
-        """
-        :type xml_request: Element
-        :return: boolean
-        """
+    def xml_request(self, xml_request: ET.Element):
         self._xml_request = xml_request
 
     @property
-    def http_verb(self):
+    def http_verb(self) -> str:
         return self._http_verb
 
     @http_verb.setter
@@ -89,7 +85,7 @@ class RestXmlRequest(TableauBase):
         else:
             raise InvalidOptionException("HTTP Verb '{}' is not defined for this library".format(verb))
 
-    def set_response_type(self, response_type):
+    def set_response_type(self, response_type: str):
         response_type = response_type.lower()
         if response_type in self.__defined_response_types:
             self.__response_type = response_type
@@ -97,7 +93,7 @@ class RestXmlRequest(TableauBase):
             raise InvalidOptionException("Response type '{}' is not defined in this library".format(response_type))
 
     # Must set a boundary string when publishing
-    def set_publish_content(self, content, boundary_string):
+    def set_publish_content(self, content: bytes, boundary_string: str):
         if content is None and boundary_string is None:
             self.__publish = False
         else:
@@ -105,19 +101,19 @@ class RestXmlRequest(TableauBase):
         self.__boundary_string = boundary_string
         self.__publish_content = content
 
-    def get_raw_response(self):
+    def get_raw_response(self) -> bytes:
         return self.__raw_response
 
-    def get_last_error(self):
+    def get_last_error(self) -> str:
         return self.__last_error
 
-    def get_last_url_request(self):
+    def get_last_url_request(self) -> str:
         return self.__last_url_request
 
-    def get_last_response_content_type(self):
+    def get_last_response_content_type(self) -> str:
         return self.__last_response_content_type
 
-    def get_response(self):
+    def get_response(self) -> Union[ET.Element, bytes]:
         if self.__response_type == 'xml' and self.__xml_object is not None:
             self.log_debug("XML Object Response: {}".format(ET.tostring(self.__xml_object, encoding='utf-8').decode('utf-8')))
             return self.__xml_object
@@ -125,7 +121,7 @@ class RestXmlRequest(TableauBase):
             return self.__raw_response
 
     # Larger requests require pagination (starting at 1), thus page_number argument can be called.
-    def __make_request(self, page_number=1):
+    def __make_request(self, page_number:int = 1):
         url = self.url
         if page_number > 0:
             param_separator = '?'
@@ -195,7 +191,7 @@ class RestXmlRequest(TableauBase):
 
         # Error detection
         except requests.exceptions.HTTPError as e:
-            self._handle_http_error(response, e)
+            self._handle_http_error(e.response, e)
 
     def _handle_http_error(self, response, e):
         status_code = response.status_code
@@ -242,21 +238,17 @@ class RestXmlRequest(TableauBase):
             raise e
 
     def _set_raw_response(self, unicode_raw_response):
-        if sys.version_info[0] < 3:
-            try:
-                self.__raw_response = unicode_raw_response.encode('utf-8')
-            # Sometimes it appears we actually send this stuff in UTF8
-            except UnicodeDecodeError:
-                self.__raw_response = unicode_raw_response
-                unicode_raw_response = unicode_raw_response.decode('utf-8')
-        else:
-            self.__raw_response = unicode_raw_response
-            unicode_raw_response = unicode_raw_response.decode('utf-8')
+
+        self.__raw_response = unicode_raw_response
+        unicode_raw_response = unicode_raw_response.decode('utf-8')
 
         if self.__response_type == 'xml':
             self.log_debug("Raw Response: {}".format(unicode_raw_response))
 
-    def request_from_api(self, page_number=1):
+    # This has always brought back ALL listings from long paginated lists
+    # But really should support three behaviors:
+    # Single Page, All, and a "turbo search" mechanism for large lists of workbooks or data sources
+    def request_from_api(self, page_number: int = 1):
         try:
             self.__make_request(page_number)
         except:

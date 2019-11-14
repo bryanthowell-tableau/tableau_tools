@@ -187,7 +187,7 @@ class Tabcmd(TableauBase):
         if self.export_type is not None:
             export_type = self.export_type
         if export_type.lower() not in ['pdf', 'csv', 'png', 'fullpdf']:
-            raise Exception(msg='Options are pdf fullpdf csv or png')
+            raise InvalidOptionException('Options are pdf fullpdf csv or png')
         #
         if user_to_impersonate is not None:
             self._create_session_and_configure_tabcmd_for_user(user_to_impersonate, view_location)

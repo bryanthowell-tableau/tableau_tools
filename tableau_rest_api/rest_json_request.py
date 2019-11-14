@@ -11,7 +11,10 @@ import requests
 import sys
 import json
 
-
+# NOTE
+# JSON Requests are not implemented for anything besides GET requests at the moment
+# There is a lot of code in here based on the RestXmlRequest class, which would need to be cleaned up to handle
+# all of the request types.
 # Handles all of the actual HTTP calling
 class RestJsonRequest(TableauBase):
     def __init__(self, url=None, token=None, logger=None, ns_map_url='http://tableau.com/api',
@@ -200,7 +203,7 @@ class RestJsonRequest(TableauBase):
 
         # Error detection
         except requests.exceptions.HTTPError as e:
-            self._handle_http_error(response, e)
+            self._handle_http_error(e.response, e)
 
     def _handle_http_error(self, response, e):
         status_code = response.status_code
@@ -212,20 +215,10 @@ class RestJsonRequest(TableauBase):
         self.log("Received a {} error, here was response:".format(str(status_code)))
         self.log(raw_error_response.decode('utf8'))
 
-        utf8_parser = ET.XMLParser(encoding='utf-8')
-        xml = ET.parse(BytesIO(raw_error_response), parser=utf8_parser)
-        try:
-            tableau_error = xml.findall('.//t:error', namespaces=self.ns_map)
-            error_code = tableau_error[0].get('code')
-            tableau_detail = xml.findall('.//t:detail', namespaces=self.ns_map)
-            detail_text = tableau_detail[0].text
-        # This is to capture an error from the old API version when doing tests
-        except IndexError:
-            old_ns_map = {'t': 'http://tableausoftware.com/api'}
-            tableau_error = xml.findall('.//t:error', namespaces=old_ns_map)
-            error_code = tableau_error[0].get('code')
-            tableau_detail = xml.findall('.//t:detail', namespaces=old_ns_map)
-            detail_text = tableau_detail[0].text
+        json_obj = json.loads(bytes(raw_error_response), parser='utf-8')
+        tableau_error = json_obj['error']
+        error_code = tableau_error['code']
+        detail_text = tableau_error['detail']
         detail_luid_match_obj = re.search(self.__luid_pattern, detail_text)
         if detail_luid_match_obj:
             detail_luid = detail_luid_match_obj.group(0)

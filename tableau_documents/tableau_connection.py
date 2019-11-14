@@ -48,55 +48,43 @@ class TableauConnection(TableauBase):
         return self.dbname
 
     @schema.setter
-    def schema(self, new_schema):
-        """
-        :type new_schema: unicode
-        :return:
-        """
+    def schema(self, new_schema: str):
         self.dbname = new_schema
 
     @property
-    def server(self):
+    def server(self) -> str:
         return self.xml_obj.get("server")
 
     @server.setter
-    def server(self, new_server):
-        """
-        :type new_server: unicode
-        :return:
-        """
+    def server(self, new_server: str):
         if self.xml_obj.get("server") is not None:
             self.xml_obj.attrib["server"] = new_server
         else:
             self.xml_obj.set('server', new_server)
 
     @property
-    def port(self):
+    def port(self) -> str:
         return self.xml_obj.get("port")
 
     @port.setter
-    def port(self, new_port):
-        """
-        :type port: unicode
-        :return:
-        """
+    def port(self, new_port: str):
         if self.xml_obj.get("port") is not None:
             self.xml_obj.attrib["port"] = str(new_port)
         else:
             self.xml_obj.set('port', str(new_port))
 
     @property
-    def connection_type(self):
+    def connection_type(self) -> str:
         return self.xml_obj.get('class')
 
     @connection_type.setter
-    def connection_type(self, new_type):
+    def connection_type(self, new_type: str):
         if self.xml_obj.get("class") is not None:
             self.xml_obj.attrib["class"] = new_type
         else:
             self.xml_obj.set('class', new_type)
 
-    def is_windows_auth(self):
+    def is_windows_auth(self) -> bool:
         if self.xml_obj.get("authentication") is not None:
             if self.xml_obj.get("authentication") == 'sspi':
                 return True
@@ -104,7 +92,7 @@ class TableauConnection(TableauBase):
                 return False
 
     @property
-    def filename(self):
+    def filename(self) -> str:
         if self.xml_obj.get('filename') is None:
             raise NoResultsException('Connection type {} does not have filename attribute'.format(
                 self.connection_type))
@@ -112,33 +100,29 @@ class TableauConnection(TableauBase):
             return self.xml_obj.get('filename')
 
     @filename.setter
-    def filename(self, filename):
+    def filename(self, filename: str):
         if self.xml_obj.get('filename') is not None:
             self.xml_obj.attrib['filename'] = filename
         else:
             self.xml_obj.set('filename', filename)
 
     @property
-    def sslmode(self):
+    def sslmode(self) -> str:
         return self.xml_obj.get('sslmode')
 
     @sslmode.setter
-    def sslmode(self, value='require'):
+    def sslmode(self, value: str = 'require'):
         if self.xml_obj.get('sslmode') is not None:
             self.xml_obj.attrib["sslmode"] = value
         else:
             self.xml_obj.set('sslmode', value)
 
     @property
-    def authentication(self):
+    def authentication(self) -> str:
         return self.xml_obj.get('authentication')
 
     @authentication.setter
-    def authentication(self, auth_type):
-        """
-        :type auth_type: unicode
-        :return:
-        """
+    def authentication(self, auth_type: str):
         if self.xml_obj.get("authentication") is not None:
             self.xml_obj.attrib["authentication"] = auth_type
         else:

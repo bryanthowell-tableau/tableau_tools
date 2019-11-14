@@ -1,3 +1,5 @@
+from tableau_tools.tableau_documents import TableauParameter
+
 from ..tableau_base import *
 from .tableau_document import TableauDocument
 
@@ -11,15 +13,12 @@ import re
 from typing import Union, Any, Optional, List, Dict, Tuple
 
 class TableauParameters(TableauDocument):
-    def __init__(self, datasource_xml=None, logger_obj=None):
-        """
-        :type datasource_xml: ET.Element
-        :type logger_obj: Logger
-        """
+    def __init__(self, datasource_xml: Optional[ET.Element] = None, logger_obj: Optional[Logger] = None):
+
         TableauDocument.__init__(self)
-        self.logger = logger_obj
-        self._parameters = []  # type: list[TableauParameter]
-        self._highest_param_num = 1
+        self.logger: Optional[Logger] = logger_obj
+        self._parameters: List[TableauParameter] = []
+        self._highest_param_num: int = 1
         self.log('Initializing TableauParameters object')
         self._document_type = 'parameters'
         # Initialize new Parameters datasource if existing xml is not passed in
@@ -40,8 +39,8 @@ class TableauParameters(TableauDocument):
             params_xml = self.ds_xml.findall('./column')
             numbered_parameter_regex = re.compile("\[Parameter (\d+)\]")
             for column in params_xml:
-                alias = column.get('caption')
-                internal_name = column.get('name')  # type: unicode
+                alias: str = column.get('caption')
+                internal_name: str = column.get('name')
                 # Parameters are all given internal name [Parameter #], unless they are copies where they
                 # end with (copy) h/t Jeff James for discovering
                 regex_match = numbered_parameter_regex.match(internal_name)
@@ -54,27 +53,21 @@ class TableauParameters(TableauDocument):
                 p = TableauParameter(parameter_xml=column, logger_obj=self.logger)
                 self._parameters.append(p)
 
-    def get_datasource_xml(self):
+    def get_datasource_xml(self) -> str:
         self.start_log_block()
         xmlstring = ET.tostring(self.ds_xml)
         self.end_log_block()
         return xmlstring
 
-    def get_parameter_by_name(self, parameter_name):
-        """
-        :type parameter_name: unicode
-        :rtype: TableauParameter
-        """
+    def get_parameter_by_name(self, parameter_name: str) -> TableauParameter:
         for p in self._parameters:
             if p.name == parameter_name:
                 return p
         else:
             raise NoMatchFoundException('No parameter named {}'.format(parameter_name))
 
-    def create_new_parameter(self, name=None, datatype=None, current_value=None):
-        """
-        :rtype: TableauParameter
-        """
+    def create_new_parameter(self, name: Optional[str] = None, datatype: Optional[str] = None,
+                             current_value: Optional[str] = None) -> TableauParameter:
         # Need to check existing Parameter numbers
         self._highest_param_num += 1
         p = TableauParameter(parameter_xml=None, parameter_number=self._highest_param_num, logger_obj=self.logger,
@@ -82,16 +75,12 @@ class TableauParameters(TableauDocument):
 
         return p
 
-    def add_parameter(self, parameter):
-        """
-        :type parameter: TableauParameter
-        :return:
-        """
+    def add_parameter(self, parameter: TableauParameter):
         if isinstance(parameter, TableauParameter) is not True:
             raise InvalidOptionException('parameter must be a TableauParameter object')
         self._parameters[parameter.name] = parameter
 
-    def delete_parameter_by_name(self, parameter_name):
+    def delete_parameter_by_name(self, parameter_name: str):
         if self._parameters.get(parameter_name) is not None:
             param_xml = self.ds_xml.find('./column[@caption="{}"]'.format(parameter_name))
             del self._parameters[parameter_name]
@@ -101,12 +90,10 @@ class TableauParameters(TableauDocument):
 
 
 class TableauParameter(TableauBase):
-    def __init__(self, parameter_xml=None, parameter_number=None, logger_obj=None, name=None, datatype=None,
-                 current_value=None):
-        """
-        :type parameter_xml: ET.Element
-        :type logger_obj: Logger
-        """
+    def __init__(self, parameter_xml: Optional[ET.Element] = None, parameter_number: Optional[int] = None,
+                 logger_obj: Optional[Logger] = None, name: Optional[str] = None, datatype: Optional[str] = None,
+                 current_value: Optional[str] = None):
+
         TableauBase.__init__(self)
         self.logger = logger_obj
         self._aliases = False
@@ -134,22 +121,22 @@ class TableauParameter(TableauBase):
                 self.current_value = current_value
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.p_xml.get('caption')
 
     @name.setter
-    def name(self, name):
+    def name(self, name: str):
         if self.p_xml.get('caption') is not None:
             self.p_xml.attrib['caption'] = name
         else:
             self.p_xml.set('caption', name)
 
     @property
-    def datatype(self):
+    def datatype(self) -> str:
         return self.p_xml.get('datatype')
 
     @datatype.setter
-    def datatype(self, datatype):
+    def datatype(self, datatype: str):
         if datatype.lower() not in ['string', 'integer', 'datetime', 'date', 'real', 'boolean']:
             raise InvalidOptionException("{} is not a valid datatype".format(datatype))
         if self.p_xml.get("datatype") is not None:
@@ -167,10 +154,11 @@ class TableauParameter(TableauBase):
                 self.p_xml.set('type', 'nominal')
 
     @property
-    def allowable_values(self):
+    def allowable_values(self) -> str:
         return self.p_xml.get('param-domain-type')
 
-    def set_allowable_values_to_range(self, minimum=None, maximum=None, step_size=None, period_type=None):
+    def set_allowable_values_to_range(self, minimum: Optional[int] = None, maximum: Optional[int] = None,
+                                      step_size: Optional[int] = None, period_type: Optional[int] = None):
         # Automatically switch to a range param-domain-type and clean up list version
         if self.p_xml.get('param-domain-type') == 'list':
             a = self.p_xml.find('./aliases')

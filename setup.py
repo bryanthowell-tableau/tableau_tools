@@ -9,6 +9,5 @@ setup(
     author='Bryant Howell',
     author_email='bhowell@tableau.com',
     description='A library for programmatically working with Tableau files and Tableau Server, including the REST API',
-    install_requires=['requests'],
-    use_2to3=True
+    install_requires=['requests']
 )

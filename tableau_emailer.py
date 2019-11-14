@@ -81,8 +81,3 @@ class TableauEmailer:
             self.tabcmd.site = site
             self.generate_email_from_view(email_from_user, user_email, email_subject, email_template_name, user,
                                           view_location, email_content_type=email_content_type)
-
-
-
-
-

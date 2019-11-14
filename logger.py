@@ -1,6 +1,6 @@
 import time
 import sys
-import xml.etree.ElementTree as etree
+import xml.etree.ElementTree as ET
 
 
 class Logger(object):
@@ -63,4 +63,4 @@ class Logger(object):
         if isinstance(xml, str):
             self.log('Sending {} request with XML: \n{}'.format(verb, xml))
         else:
-            self.log('Sending {} request with XML: \n{}'.format(verb, etree.tostring(xml)))
+            self.log('Sending {} request with XML: \n{}'.format(verb, ET.tostring(xml)))

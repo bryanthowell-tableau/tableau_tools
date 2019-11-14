@@ -6,10 +6,11 @@ from .tableau_parameters import TableauParameters
 from .tableau_document import TableauDocument
 import os
 import codecs
-
+import xml.etree.ElementTree as ET
+from typing import Union, Any, Optional, List, Dict, Tuple
 
 class TableauWorkbook(TableauDocument):
-    def __init__(self, twb_filename, logger_obj=None):
+    def __init__(self, twb_filename: str, logger_obj: Optional[Logger] = None):
         TableauDocument.__init__(self)
         self._document_type = 'workbook'
         self.parameters = None
@@ -21,11 +22,7 @@ class TableauWorkbook(TableauDocument):
             raise InvalidOptionException('Must input a .twb filename that exists')
         self.build_document_objects(self.twb_filename)
 
-
-#        if self.logger is not None:
-#            self.enable_logging(self.logger)
-
-    def build_document_objects(self, filename):
+    def build_document_objects(self, filename: str):
         wb_fh = codecs.open(filename, 'r', encoding='utf-8')
         ds_fh = codecs.open('temp_ds.txt', 'w', encoding='utf-8')
 
@@ -51,8 +48,8 @@ class TableauWorkbook(TableauDocument):
                 break
         wb_fh.close()
 
-        utf8_parser = etree.XMLParser(encoding='utf-8')
-        ds_xml = etree.parse('temp_ds.txt', parser=utf8_parser)
+        utf8_parser = ET.XMLParser(encoding='utf-8')
+        ds_xml = ET.parse('temp_ds.txt', parser=utf8_parser)
         os.remove('temp_ds.txt')
 
         self.log("Building TableauDatasource objects")
@@ -67,23 +64,14 @@ class TableauWorkbook(TableauDocument):
                 ds = TableauDatasource(datasource, self.logger)
                 self._datasources.append(ds)
 
-    def add_parameters_to_workbook(self):
-        """
-        :rtype: TableauParameters
-        """
+    def add_parameters_to_workbook(self) -> TableauParameters:
         if self.parameters is not None:
             return self.parameters
         else:
             self.parameters = TableauParameters(logger_obj=self.logger)
             return self.parameters
 
-    def save_file(self, filename_no_extension, save_to_directory=None):
-        """
-        :param filename_no_extension: Filename to save the XML to. Will append .twb if not found
-        :type filename_no_extension: unicode
-        :type save_to_directory: unicode
-        :rtype: bool
-        """
+    def save_file(self, filename_no_extension: str, save_to_directory: Optional[str] = None):
         self.start_log_block()
         try:
             orig_wb = codecs.open(self.twb_filename, 'r', encoding='utf-8')
@@ -127,7 +115,6 @@ class TableauWorkbook(TableauDocument):
                     lh.write('</datasources>\n')
             lh.close()
             self.end_log_block()
-            return True
 
         except IOError:
             self.log("Error: File '{} cannot be opened to write to".format(filename_no_extension))
