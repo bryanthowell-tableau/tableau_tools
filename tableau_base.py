@@ -5,12 +5,12 @@ import re
 
 from io import StringIO
 import xml.etree.ElementTree as ET
-
+from typing import Union, Any, Optional, List, Dict, Tuple
 
 class TableauBase(object):
     def __init__(self):
         # In reverse order to work down until the acceptable version is found on the server, through login process
-        self.supported_versions = ('2019.1', '2018.3', '2018.2', '2018.1', "10.5", "10.4", "10.3", "10.2", "10.1", "10.0", "9.3", "9.2", "9.1", "9.0")
+        self.supported_versions = ('2019.1', '2018.3', '2018.2', '2018.1', "10.5", "10.4", "10.3")
         self.logger = None
         self.luid_pattern = r"[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*"
 
@@ -21,6 +21,8 @@ class TableauBase(object):
         self.ns_map = {'t': 'http://tableau.com/api'}
         self.ns_prefix = '{' + self.ns_map['t'] + '}'
         ET.register_namespace('t', self.ns_map['t'])
+
+        self.permissionable_objects = ('datasource', 'project', 'workbook', 'flow')
 
         self.site_roles = (
             'Interactor',
@@ -38,27 +40,6 @@ class TableauBase(object):
             'Creator',
             'SiteAdministratorCreator'
         )
-
-        server_content_roles_2_0 = {
-                "project": (
-                    'Viewer',
-                    'Interactor',
-                    'Editor',
-                    'Data Source Connector',
-                    'Data Source Editor',
-                    'Publisher',
-                    'Project Leader'
-                ),
-                "workbook": (
-                    'Viewer',
-                    'Interactor',
-                    'Editor'
-                ),
-                "datasource": (
-                    'Data Source Connector',
-                    'Data Source Editor'
-                )
-            }
 
         server_content_roles_2_1 = {
                 "project": (
@@ -78,12 +59,6 @@ class TableauBase(object):
             }
 
         self.server_content_roles = {
-            "2.0": server_content_roles_2_0,
-            "2.1": server_content_roles_2_1,
-            "2.2": server_content_roles_2_1,
-            "2.3": server_content_roles_2_1,
-            "2.4": server_content_roles_2_1,
-            "2.5": server_content_roles_2_1,
             "2.6": server_content_roles_2_1,
             "2.7": server_content_roles_2_1,
             "2.8": server_content_roles_2_1,
@@ -117,51 +92,6 @@ class TableauBase(object):
             'Inherited Project Leader': 'InheritedProjectLeader',
             'all': 'all'  # special command to do everything
         }
-
-        capabilities_2_0 = {
-                "project": (
-                    'AddComment',
-                    'ChangeHierarchy',
-                    'ChangePermissions',
-                    'Connect',
-                    'Delete',
-                    'ExportData',
-                    'ExportImage',
-                    'ExportXml',
-                    'Filter',
-                    'ProjectLeader',
-                    'Read',
-                    'ShareView',
-                    'ViewComments',
-                    'ViewUnderlyingData',
-                    'WebAuthoring',
-                    'Write'
-                ),
-                "workbook": (
-                    'AddComment',
-                    'ChangeHierarchy',
-                    'ChangePermissions',
-                    'Delete',
-                    'ExportData',
-                    'ExportImage',
-                    'ExportXml',
-                    'Filter',
-                    'Read',
-                    'ShareView',
-                    'ViewComments',
-                    'ViewUnderlyingData',
-                    'WebAuthoring',
-                    'Write'
-                ),
-                "datasource": (
-                    'ChangePermissions',
-                    'Connect',
-                    'Delete',
-                    'ExportXml',
-                    'Read',
-                    'Write'
-                )
-            }
 
         capabilities_2_1 = {
                 "project": ("Read", "Write", 'ProjectLeader'),
@@ -259,12 +189,6 @@ class TableauBase(object):
             }
 
         self.available_capabilities = {
-            "2.0": capabilities_2_0,
-            "2.1": capabilities_2_1,
-            "2.2": capabilities_2_1,
-            '2.3': capabilities_2_1,
-            '2.4': capabilities_2_1,
-            '2.5': capabilities_2_1,
             '2.6': capabilities_2_1,
             '2.7': capabilities_2_1,
             '2.8': capabilities_2_8,
@@ -319,29 +243,15 @@ class TableauBase(object):
             "Tableau Data Extract": "dataengine",
             "Teradata": "teradata",
             "Text file": "textscan",
-            "Hyper": 'hyper'
+            "Hyper": 'hyper',
         }
 
-        self.permissionable_objects = ('datasource', 'project', 'workbook', 'flow')
 
-    def set_tableau_server_version(self, tableau_server_version):
-        """
-        :type tableau_server_version: unicode
-        """
-        # API Versioning (starting in 9.2)
-        if str(tableau_server_version)in ["9.2", "9.3", "10.0", "10.1", "10.2", "10.3", "10.4", "10.5",
-                                              '2018.1', '2018.2', '2018.3', '2019.1']:
-            if str(tableau_server_version) == "9.2":
-                self.api_version = "2.1"
-            elif str(tableau_server_version) == "9.3":
-                self.api_version = "2.2"
-            elif str(tableau_server_version) == '10.0':
-                self.api_version = '2.3'
-            elif str(tableau_server_version) == '10.1':
-                self.api_version = '2.4'
-            elif str(tableau_server_version) == '10.2':
-                self.api_version = '2.5'
-            elif str(tableau_server_version) == '10.3':
+
+    def set_tableau_server_version(self, tableau_server_version: str) -> str:
+        if str(tableau_server_version)in ["10.3", "10.4", "10.5", '2018.1', '2018.2', '2018.3', '2019.1',
+                                          '2019.2', '2019.3', '2019.4', '2019.5', '2019.6']:
+            if str(tableau_server_version) == '10.3':
                 self.api_version = '2.6'
             elif str(tableau_server_version) == '10.4':
                 self.api_version = '2.7'
@@ -355,35 +265,30 @@ class TableauBase(object):
                 self.api_version = '3.2'
             elif str(tableau_server_version) == '2019.1':
                 self.api_version = '3.3'
+            elif str(tableau_server_version) == '2019.2':
+                self.api_version = '3.4'
+            elif str(tableau_server_version) == '2019.3':
+                self.api_version = '3.5'
+            elif str(tableau_server_version) == '2019.4':
+                self.api_version = '3.6'
             self.tableau_namespace = 'http://tableau.com/api'
             self.ns_map = {'t': 'http://tableau.com/api'}
             self.version = tableau_server_version
             self.ns_prefix = '{' + self.ns_map['t'] + '}'
             return self.api_version
-        elif str(tableau_server_version) in ["9.0", "9.1"]:
-            self.api_version = "2.0"
-            self.tableau_namespace = 'http://tableausoftware.com/api'
-            self.ns_map = {'t': 'http://tableausoftware.com/api'}
-            self.version = tableau_server_version
-            self.ns_prefix = '{' + self.ns_map['t'] + '}'
-            return self.api_version
+
         else:
-            raise InvalidOptionException("Please specify tableau_server_version as a string. '9.0' or '9.2' etc...")
+            raise InvalidOptionException("Please specify tableau_server_version as a string. '10.5' or '2019.3' etc...")
 
     # Logging Methods
-    def enable_logging(self, logger_obj):
-        """
-        :type logger_obj: Logger
-        :return:
-        """
-        if isinstance(logger_obj, Logger):
-            self.logger = logger_obj
+    def enable_logging(self, logger_obj: Logger):
+        self.logger = logger_obj
 
-    def log(self, l):
+    def log(self, l: str):
         if self.logger is not None:
             self.logger.log(l)
 
-    def log_debug(self, l):
+    def log_debug(self, l: str):
         if self.logger is not None:
             self.logger.log_debug(l)
 
@@ -395,17 +300,17 @@ class TableauBase(object):
         if self.logger is not None:
             self.logger.end_log_block()
 
-    def log_uri(self, uri, verb):
+    def log_uri(self, uri: str, verb: str):
         if self.logger is not None:
             self.logger.log_uri(verb, uri)
 
-    def log_xml_request(self, xml, verb):
+    def log_xml_request(self, xml: ET.Element, verb: str):
         if self.logger is not None:
             self.logger.log_xml_request(verb, xml)
 
     # Method to handle single str or list and return a list
     @staticmethod
-    def to_list(x):
+    def to_list(x: Union[str, List[str]]):
         if isinstance(x, str):
             l = [x]  # Make single into a collection
         else:
@@ -424,33 +329,22 @@ class TableauBase(object):
     # You must generate a boundary string that is used both in the headers and the generated request that you post.
     # This builds a simple 30 hex digit string
     @staticmethod
-    def generate_boundary_string():
-        """
-        :return: unicode
-        """
+    def generate_boundary_string() -> str:
         random_digits = [random.SystemRandom().choice('0123456789abcdef') for n in range(30)]
         s = "".join(random_digits)
         return s
 
     # URI is different form actual URL you need to load a particular view in iframe
     @staticmethod
-    def convert_view_content_url_to_embed_url(content_url):
-        """
-        :type content_url: unicode
-        :return: unicode
-        """
+    def convert_view_content_url_to_embed_url(content_url: str) -> str:
         split_url = content_url.split('/')
         return 'views/{}/{}'.format(split_url[0], split_url[2])
 
     # Generic method for XML lists for the "query" actions to name -> id dict
     @staticmethod
-    def convert_xml_list_to_name_id_dict(ET_obj):
-        """
-        :type ET_obj: ET.Element
-        :return: dict
-        """
+    def convert_xml_list_to_name_id_dict(xml_obj: ET.Element) -> Dict:
         d = {}
-        for element in ET_obj:
+        for element in xml_obj:
             e_id = element.get("id")
             # If list is collection, have to run one deeper
             if e_id is None:
@@ -464,18 +358,14 @@ class TableauBase(object):
         return d
 
     # Convert a permission
-    def convert_server_permission_name_to_rest_permission(self, permission_name):
+    def convert_server_permission_name_to_rest_permission(self, permission_name: str) -> str:
         if permission_name in self.server_to_rest_capability_map:
             return self.server_to_rest_capability_map[permission_name]
         else:
             raise InvalidOptionException('{} is not a permission name on the Tableau Server'.format(permission_name))
 
     # 32 hex characters with 4 dashes
-    def is_luid(self, val):
-        """
-        :type val: unicode
-        :return: bool
-        """
+    def is_luid(self, val: str) -> bool:
         if len(val) == 36:
             if re.match(self.luid_pattern, val) is not None:
                 return True

@@ -36,9 +36,6 @@ class Tabcmd(TableauBase):
         self.export_height_pixels = 600
         self.export_type = None
 
-        # Go ahead and prep for any subsequent calls
-        self._create_tabcmd_admin_session()
-
     #
     # Wrapper commands for Tabcmd command line actions
     #
@@ -63,7 +60,7 @@ class Tabcmd(TableauBase):
     def build_export_cmd(self, export_type, filename, view_url, view_filter_map=None, refresh=False):
         # view_filter_map allows for passing URL filters or parameters
         if export_type.lower() not in ['pdf', 'csv', 'png', 'fullpdf']:
-            raise Exception(msg='Should be pdf fullpdf csv or png')
+            raise InvalidOptionException('Should be pdf fullpdf csv or png')
         additional_url_params = ""
         if view_filter_map is not None:
             additional_url_params = "?" + urllib.parse.urlencode(view_filter_map)
@@ -111,77 +108,9 @@ class Tabcmd(TableauBase):
         return cmd
 
     #
-    # Methods for Creating TabCmd Session for the appropriate user
-    #
-
-    def _create_tabcmd_admin_session(self):
-        # Create a password file so the password doesn't run in the logs / command line
-        pw_filename = self.tabcmd_folder + 'dorwsasp.txt'
-        login_cmds = self.build_login_cmd(pw_filename)
-        directory_cmd = self.build_directory_cmd()
-        temp_bat = open('login.bat', 'w')
-
-        temp_bat.write(directory_cmd + "\n")
-        temp_bat.write(login_cmds + "\n")
-        temp_bat.close()
-
-        os.system("login.bat")
-        os.remove("login.bat")
-        # Kill the password file as soon as it has run.
-        os.remove(pw_filename)
-
-    def _set_tabcmd_auth_info_from_repository_for_impersonation(self, username_to_impersonate):
-        # After you create a session, you must query the repository to retrieve the auth_token from it
-        repository = TableauRepository(self.tableau_server_url, self.repository_pw)
-        cur = repository.query_sessions(username_to_impersonate)
-
-        # Did anything return?
-        if cur.rowcount > 0:
-            first_row = cur.fetchone()
-            self.user_session_id = first_row[0]
-
-            wg_json = first_row[4]
-            json_obj = json.loads(wg_json)
-            self.user_auth_token = json_obj["auth_token"]
-            cur.close()
-        else:
-            raise NoResultsException('There were no sessions found for the username {}'.format(username_to_impersonate))
-
-    def _configure_tabcmd_config_for_user_session(self, user):
-        # tabcmd keeps a session history, stored within its XML configuration file.
-        # Rather than logging into tabcmd again, once there is a session history, we simply substitute in the
-        # impersonated user's info directly into the XML.
-        xml_tree = ET.parse(self.tabcmd_config_location + self.tabcmd_config_filename)
-        root = xml_tree.getroot()
-
-        for child in root:
-            if child.tag == 'username':
-                child.text = user
-            if child.tag == 'base-url':
-                child.text = self.tableau_server_url
-            if child.tag == 'session-id':
-                child.text = self.user_session_id
-            if child.tag == 'authenticity-token':
-                child.text = self.user_auth_token
-            if child.tag == 'site-prefix':
-                if self.site.lower() != 'default':
-                    child.text = 't/{}'.format(self.site)
-                else:
-                    child.text = None
-        xml_tree.write(self.tabcmd_config_location + self.tabcmd_config_filename, encoding='UTF8',
-                       xml_declaration=True, default_namespace=None
-                       )
-
-    def _create_session_and_configure_tabcmd_for_user(self, user, view_location):
-        tabhttp = TableauHTTP(self.tableau_server_url)
-        tabhttp.create_trusted_ticket_session(view_location, user, site=self.site)
-        self._set_tabcmd_auth_info_from_repository_for_impersonation(user)
-        self._configure_tabcmd_config_for_user_session(user)
-
-    #
     # Methods to use
     #
-    def create_export(self, export_type, view_location, view_filter_map=None, user_to_impersonate=None,
+    def create_export(self, export_type, view_location, view_filter_map=None,
                       filename='tableau_workbook'):
         self.start_log_block()
         if self.export_type is not None:
@@ -189,8 +118,6 @@ class Tabcmd(TableauBase):
         if export_type.lower() not in ['pdf', 'csv', 'png', 'fullpdf']:
             raise InvalidOptionException('Options are pdf fullpdf csv or png')
         #
-        if user_to_impersonate is not None:
-            self._create_session_and_configure_tabcmd_for_user(user_to_impersonate, view_location)
 
         directory_cmd = self.build_directory_cmd()
         # fullpdf still ends with pdf
