@@ -2,7 +2,8 @@ from setuptools import setup
 
 setup(
     name='tableau_tools',
-    version='4.9.8',
+    version='4.9.9',
+    python_requires='>=2.7',
     packages=['tableau_tools', 'tableau_tools.tableau_rest_api', 'tableau_tools.tableau_documents', 'tableau_tools.examples'],
     url='https://github.com/bryantbhowell/tableau_tools',
     license='',
