@@ -127,7 +127,7 @@ class GroupMethods():
             return group[0].get('id')
 
     # Take a single user_luid string or a collection of luid_strings
-    def add_users_to_group(self, username_or_luid_s: List[str], group_name_or_luid: str) -> ET.Element:
+    def add_users_to_group(self, username_or_luid_s: Union[List[str], str], group_name_or_luid: str) -> ET.Element:
         self.start_log_block()
         group_luid = self.query_group_luid(group_name_or_luid)
 
