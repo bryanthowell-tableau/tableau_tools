@@ -1087,6 +1087,68 @@ class TableauRestApiBase34(TableauRestApiBase33):
 class TableauRestApiBase35(TableauRestApiBase34):
     pass
 
+    @staticmethod
+    def build_site_request_xml(site_name: Optional[str] = None, content_url: Optional[str] = None,
+                               admin_mode: Optional[str] = None, tier_creator_capacity: Optional[str] = None,
+                               tier_explorer_capacity: Optional[str] = None, tier_viewer_capacity: Optional[str] = None,
+                               storage_quota: Optional[str] = None,
+                               disable_subscriptions: Optional[bool] = None,
+                               flows_enabled: Optional[bool] = None,
+                               allow_subscription_attachments: Optional[bool] = None,
+                               guest_access_enabled: Optional[bool] = None,
+                               cache_warmup_enabled: Optional[bool] = None,
+                               commenting_enabled: Optional[bool] = None,
+                               revision_history_enabled: Optional[bool] = None,
+                               revision_limit: Optional[str] = None,
+                               subscribe_others_enabled: Optional[bool] = None,
+                               extract_encryption_mode: Optional[str] = None,
+                               request_access_enabled: Optional[bool] = None,
+                               state: Optional[str] = None) -> ET.Element:
+        tsr = ET.Element("tsRequest")
+        s = ET.Element('site')
+
+        if site_name is not None:
+            s.set('name', site_name)
+        if content_url is not None:
+            s.set('contentUrl', content_url)
+        if admin_mode is not None:
+            s.set('adminMode', admin_mode)
+        if tier_creator_capacity is not None:
+            s.set('tierCreatorCapacity', str(tier_creator_capacity))
+        if tier_explorer_capacity is not None:
+            s.set('tierExplorerCapacity', str(tier_explorer_capacity))
+        if tier_viewer_capacity is not None:
+            s.set('tierViewerCapacity', str(tier_viewer_capacity))
+        if state is not None:
+            s.set('state', state)
+        if storage_quota is not None:
+            s.set('storageQuota', str(storage_quota))
+        if disable_subscriptions is not None:
+            s.set('disableSubscriptions', str(disable_subscriptions).lower())
+        if flows_enabled is not None:
+            s.set('flowsEnabled', str(flows_enabled).lower())
+        if allow_subscription_attachments is not None:
+            s.set('allowSubscriptionAttachments', str(allow_subscription_attachments).lower())
+        if guest_access_enabled is not None:
+            s.set('guestAccessEnabled', str(guest_access_enabled).lower())
+        if cache_warmup_enabled is not None:
+            s.set('cacheWarmupEnabled', str(cache_warmup_enabled).lower())
+        if commenting_enabled is not None:
+            s.set('commentingEnabled', str(commenting_enabled).lower())
+        if revision_history_enabled is not None:
+            s.set('revisionHistoryEnabled', str(revision_history_enabled).lower())
+        if revision_limit is not None:
+            s.set('revisionLimit', str(revision_limit))
+        if subscribe_others_enabled is not None:
+            s.set('extractEncryptionMode', extract_encryption_mode)
+        if extract_encryption_mode is not None:
+            s.set('subscribeOthersEnabled', str(subscribe_others_enabled).lower())
+        if request_access_enabled is not None:
+            s.set('requestAccessEnabled', str(request_access_enabled).lower())
+
+        tsr.append(s)
+        return tsr
+
 class TableauRestApiBase36(TableauRestApiBase35):
     def __init__(self, server: str, username: Optional[str] = None, password: Optional[str] = None,
                  pat_name: Optional[str] = None, pat_secret: Optional[str] = None,

@@ -161,6 +161,69 @@ class SiteMethods35(SiteMethods34):
     def __init__(self, rest_api_base: TableauRestApiBase35):
         self.rest_api_base = rest_api_base
 
+    # Both SiteName and ContentUrl must be unique to add a site
+    def create_site(self, new_site_name: str, new_content_url: str, admin_mode: Optional[str] = None,
+                    tier_creator_capacity=None, tier_explorer_capacity=None, tier_viewer_capacity=None,
+                    storage_quota: Optional[str] = None,
+                    disable_subscriptions: Optional[bool] = None,
+                    flows_enabled: Optional[bool] = None,
+                    allow_subscription_attachments: Optional[bool] = None,
+                    guest_access_enabled: Optional[bool] = None,
+                    cache_warmup_enabled: Optional[bool] = None,
+                    commenting_enabled: Optional[bool] = None,
+                    revision_history_enabled: Optional[bool] = None,
+                    revision_limit: Optional[str] = None,
+                    subscribe_others_enabled: Optional[bool] = None,
+                    extract_encryption_mode: Optional[str] = None,
+                    request_access_enabled: Optional[bool] = None,
+                    direct_xml_request: Optional[ET.Element] = None) -> str:
+        if extract_encryption_mode is not None:
+            if extract_encryption_mode not in ['enforced', 'enabled', 'disabled']:
+                raise InvalidOptionException('extract_encryption_mode must be one of: enforced, enabled, disabled')
+        add_request = self.build_site_request_xml(new_site_name, new_content_url, admin_mode, tier_creator_capacity,
+                                                  tier_explorer_capacity, tier_viewer_capacity, storage_quota,
+                                                  disable_subscriptions,
+                                                  revision_history_enabled=revision_history_enabled,
+                                                  revision_limit=revision_limit)
+        url = self.build_api_url("sites/",
+                                 server_level=True)  # Site actions drop back out of the site ID hierarchy like login
+        try:
+            new_site = self.send_add_request(url, add_request)
+            return new_site.findall('.//t:site', self.ns_map)[0].get("id")
+        except RecoverableHTTPException as e:
+            if e.http_code == 409:
+                self.log("Site with content_url {} already exists".format(new_content_url))
+                self.end_log_block()
+                raise AlreadyExistsException("Site with content_url {} already exists".format(new_content_url),
+                                             new_content_url)
+
+    # Can only update the site you are signed into, so take site_luid from the object
+    def update_site(self, site_name: Optional[str] = None, content_url: Optional[str] = None,
+                    admin_mode: Optional[str] = None,
+                    tier_creator_capacity=None, tier_explorer_capacity=None, tier_viewer_capacity=None,
+                    storage_quota: Optional[str] = None,
+                    disable_subscriptions: Optional[bool] = None,
+                    flows_enabled: Optional[bool] = None,
+                    allow_subscription_attachments: Optional[bool] = None,
+                    guest_access_enabled: Optional[bool] = None,
+                    cache_warmup_enabled: Optional[bool] = None,
+                    commenting_enabled: Optional[bool] = None,
+                    revision_history_enabled: Optional[bool] = None,
+                    revision_limit: Optional[str] = None,
+                    subscribe_others_enabled: Optional[bool] = None,
+                    extract_encryption_mode: Optional[str] = None,
+                    request_access_enabled: Optional[bool] = None,
+                    state: Optional[str] = None,
+                    direct_xml_request: Optional[ET.Element] = None) -> ET.Element:
+        self.start_log_block()
+        tsr = self.build_site_request_xml(site_name, content_url, admin_mode, tier_creator_capacity,
+                                          tier_explorer_capacity, tier_viewer_capacity, storage_quota,
+                                          disable_subscriptions, state)
+        url = self.build_api_url("")
+        response = self.send_update_request(url, tsr)
+        self.end_log_block()
+        return response
+
 class SiteMethods36(SiteMethods35):
     def __init__(self, rest_api_base: TableauRestApiBase36):
         self.rest_api_base = rest_api_base
