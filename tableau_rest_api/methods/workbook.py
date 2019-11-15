@@ -534,7 +534,7 @@ class WorkbookMethods28(WorkbookMethods27):
     def __init__(self, rest_api_base: TableauRestApiBase28):
         self.rest_api_base = rest_api_base
 
-    def query_view_pdf(self, wb_name_or_luid, view_name_or_luid, proj_name_or_luid=None,
+    def query_view_pdf(self, wb_name_or_luid: str, view_name_or_luid: str, proj_name_or_luid=None,
                        view_filter_map=None):
         self.start_log_block()
         pdf = self._query_data_file('pdf', view_name_or_luid=view_name_or_luid, wb_name_or_luid=wb_name_or_luid,
@@ -669,6 +669,41 @@ class WorkbookMethods34(WorkbookMethods33):
                                       proj_name_or_luid=proj_name_or_luid, max_age_minutes=max_age_minutes)
         self.end_log_block()
         return image
+
+    def query_workbook_pdf(self, wb_name_or_luid: str, proj_name_or_luid: Optional[str] = None,
+                       page_orientation: str = 'Portrait', page_type: str = 'Legal'):
+        self.start_log_block()
+        if page_orientation not in ['Portrait', 'Landscape']:
+            raise InvalidOptionException('page_orientation can only be "Portrait" or "Landscape"')
+        if page_type not in ['A3', 'A4', 'A5', 'B5', 'Executive', 'Folio', 'Ledger', 'Legal', 'Letter', 'Note',
+                             'Quarto', 'Tabloid']:
+            raise InvalidOptionException('page_type can only be one of: A3, A4, A5, B5, Executive, Folio, Ledger, Legal, Letter, Note, Quarto, or Tabloid.')
+        pdf = self._query_data_file('pdf', wb_name_or_luid=wb_name_or_luid,
+                                    proj_name_or_luid=proj_name_or_luid, page_type=page_type,
+                                    page_orientation=page_orientation)
+        self.end_log_block()
+        return pdf
+
+    def save_workbook_pdf(self, wb_name_or_luid: str, filename_no_extension: str,
+                          proj_name_or_luid: Optional[str] = None, page_orientation: str = 'Portrait',
+                          page_type: str = 'Legal') -> str:
+        self.start_log_block()
+        pdf = self.query_workbook_pdf(wb_name_or_luid=wb_name_or_luid,
+                                  proj_name_or_luid=proj_name_or_luid, page_type=page_type,
+                                    page_orientation=page_orientation )
+
+        if filename_no_extension.find('.pdf') == -1:
+            filename_no_extension += '.pdf'
+        try:
+            save_file = open(filename_no_extension, 'wb')
+            save_file.write(pdf)
+            save_file.close()
+            self.end_log_block()
+            return filename_no_extension
+        except IOError:
+            self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension))
+            self.end_log_block()
+            raise
 
     def publish_workbook(self, workbook_filename: str, workbook_name: str, project_obj: Project,
                          overwrite: bool = False, async_publish: bool = False,

@@ -1038,17 +1038,12 @@ class TableauRestApiBase33(TableauRestApiBase32):
 
 class TableauRestApiBase34(TableauRestApiBase33):
     # Generic implementation of all the CSV/PDF/PNG requests
-    def _query_data_file(self, download_type: str, view_name_or_luid: str, high_resolution: bool = False,
+    def _query_data_file(self, download_type: str, view_name_or_luid: Optional[str] = None, high_resolution: bool = False,
                          view_filter_map=Dict, wb_name_or_luid: Optional[str] = None,
-                         proj_name_or_luid: Optional[str] = None, max_age_minutes: Optional[int] = None) -> bytes:
+                         proj_name_or_luid: Optional[str] = None, max_age_minutes: Optional[int] = None,
+                         page_orientation: Optional[str] = None, page_type: Optional[str] = None) -> bytes:
 
         self.start_log_block()
-        if self.is_luid(view_name_or_luid):
-            view_luid = view_name_or_luid
-        else:
-            view_luid = self.query_workbook_view_luid(wb_name_or_luid, view_name=view_name_or_luid,
-                                                      proj_name_or_luid=proj_name_or_luid)
-
         url_param_map = {}
         if view_filter_map is not None:
             for key in view_filter_map:
@@ -1062,12 +1057,23 @@ class TableauRestApiBase34(TableauRestApiBase33):
 
         if high_resolution is True:
             url_param_map['resolution'] = "high"
+        if page_type is not None:
+            url_param_map['page-type'] = page_type
+        if page_orientation is not None:
+            url_param_map['page-orientation'] = page_orientation
 
         url_params_str = self.build_url_parameter_string(map_dict=url_param_map)
         try:
-
-            url = self.build_api_url("views/{}/{}".format(view_luid, download_type),
-                                     url_parameters=url_params_str)
+            # Workbook PDF request is only like this right now
+            if view_name_or_luid is None:
+                wb_luid = self.query_workbook_luid(wb_name=wb_name_or_luid, proj_name_or_luid=proj_name_or_luid)
+                url = self.build_api_url("workbooks/{}/{}".format(wb_luid, download_type),
+                                         url_parameters=url_params_str)
+            else:
+                view_luid = self.query_workbook_view_luid(wb_name_or_luid, view_name=view_name_or_luid,
+                                                          proj_name_or_luid=proj_name_or_luid)
+                url = self.build_api_url("views/{}/{}".format(view_luid, download_type),
+                                         url_parameters=url_params_str)
             binary_result = self.send_binary_get_request(url)
 
             self.end_log_block()
