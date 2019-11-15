@@ -168,6 +168,24 @@ class ExtractMethods35(ExtractMethods34):
     def __init__(self, rest_api_base: TableauRestApiBase35):
         self.rest_api_base = rest_api_base
 
+    def encrypt_extracts(self):
+        self.start_log_block()
+        url = self.build_api_url('encrypt-extracts')
+        self.send_post_request(url=url)
+        self.end_log_block()
+
+    def decrypt_extracts(self):
+        self.start_log_block()
+        url = self.build_api_url('decrypt-extracts')
+        self.send_post_request(url=url)
+        self.end_log_block()
+
+    def reencrypt_extracts(self):
+        self.start_log_block()
+        url = self.build_api_url('renecrypt-extracts')
+        self.send_post_request(url=url)
+        self.end_log_block()
+
 class ExtractMethods36(ExtractMethods35):
     def __init__(self, rest_api_base: TableauRestApiBase36):
         self.rest_api_base = rest_api_base
