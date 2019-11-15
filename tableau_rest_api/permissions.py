@@ -333,3 +333,21 @@ class FlowPermissions33(Permissions):
                 self.capabilities[cap] = None
         # Unclear that there are any defined roles for Prep Conductor flows
         self.role_set = {}
+
+class DatabasePermissions35(Permissions):
+    def __init__(self, group_or_user: str, group_or_user_luid: str):
+        Permissions.__init__(self, group_or_user, group_or_user_luid, 'database')
+        for cap in self.available_capabilities['3.5']['database']:
+            if cap != 'all':
+                self.capabilities[cap] = None
+        # No idea what roles might exist for 'databases' or 'tables'
+        self.role_set = {}
+
+class TablePermissions35(Permissions):
+    def __init__(self, group_or_user: str, group_or_user_luid: str):
+        Permissions.__init__(self, group_or_user, group_or_user_luid, 'table')
+        for cap in self.available_capabilities['3.5']['table']:
+            if cap != 'all':
+                self.capabilities[cap] = None
+        # No idea what roles might exist for 'databases' or 'tables'
+        self.role_set = {}

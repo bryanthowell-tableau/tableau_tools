@@ -225,7 +225,10 @@ class RestXmlRequest(TableauBase):
         self.log('Tableau REST API error code is: {}'.format(error_code))
         # If you are not signed in
         if error_code == '401000':
-            raise NotSignedInException('You must sign in first')
+            raise NotSignedInException('401000 error, no session token was provided. Please sign in again.')
+        if error_code == '401002':
+            raise NotSignedInException('401002 error, session token has timed out or otherwise been invalidated. Please sign in again.')
+
         # Everything that is not 400 can potentially be recovered from
         if status_code in [401, 402, 403, 404, 405, 409]:
             # If 'not exists' for a delete, recover and log
