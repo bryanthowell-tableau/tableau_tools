@@ -529,7 +529,7 @@ class TableauRestApiBase(LookupMethods, TableauBase):
 
         self.start_log_block()
         # A few elements have singular endpoints
-        singular_endpoints = ['workbook', 'user', 'datasource', 'site']
+        singular_endpoints = ['workbook', 'user', 'datasource', 'site', 'databases']
         if element_name in singular_endpoints and self.is_luid(name_or_luid):
             element = self.query_resource("{}s/{}".format(element_name, name_or_luid))
             self.end_log_block()
@@ -1148,6 +1148,7 @@ class TableauRestApiBase35(TableauRestApiBase34):
 
         tsr.append(s)
         return tsr
+
 
 class TableauRestApiBase36(TableauRestApiBase35):
     def __init__(self, server: str, username: Optional[str] = None, password: Optional[str] = None,

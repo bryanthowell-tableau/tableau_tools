@@ -114,31 +114,47 @@ class LookupMethods():
         self.end_log_block()
         return view_luid
 
-    def query_workbook_luid(self, wb_name: str, proj_name_or_luid: Optional[str] = None,
-                            username_or_luid: Optional[str] = None) -> str:
+    def query_workbook_luid(self, wb_name: str, proj_name_or_luid: Optional[str] = None) -> str:
         self.start_log_block()
-        if username_or_luid is None:
-            username_or_luid = self.user_luid
-        workbooks = self.query_workbooks(username_or_luid)
-        workbooks_with_name = workbooks.findall('.//t:workbook[@name="{}"]'.format(wb_name), self.ns_map)
+        workbooks_with_name = self.query_elements_from_endpoint_with_filter('workbook', wb_name)
         if len(workbooks_with_name) == 0:
             self.end_log_block()
-            raise NoMatchFoundException("No workbook found for username '{}' named {}".format(username_or_luid, wb_name))
+            raise NoMatchFoundException("No workbook found for named {}".format(wb_name))
         elif len(workbooks_with_name) == 1:
             wb_luid = workbooks_with_name[0].get("id")
             self.end_log_block()
             return wb_luid
         elif len(workbooks_with_name) > 1 and proj_name_or_luid is not None:
             if self.is_luid(proj_name_or_luid):
-                wb_in_proj = workbooks.findall('.//t:workbook[@name="{}"]/t:project[@id="{}"]/..'.format(wb_name, proj_name_or_luid), self.ns_map)
+                wb_in_proj = workbooks_with_name.findall('.//t:project[@id="{}"]/..'.format(proj_name_or_luid),
+                                                           self.ns_map)
             else:
-                wb_in_proj = workbooks.findall('.//t:workbook[@name="{}"]/t:project[@name="{}"]/..'.format(wb_name, proj_name_or_luid), self.ns_map)
+                wb_in_proj = workbooks_with_name.findall(
+                    './/t:project[@name="{}"]/..'.format(proj_name_or_luid),
+                    self.ns_map)
             if len(wb_in_proj) == 0:
                 self.end_log_block()
-                raise NoMatchFoundException('No workbook found with name {} in project {}').format(wb_name, proj_name_or_luid)
+                raise NoMatchFoundException('No workbook found with name {} in project {}'.format(wb_name, proj_name_or_luid))
             wb_luid = wb_in_proj[0].get("id")
             self.end_log_block()
             return wb_luid
         else:
             self.end_log_block()
-            raise MultipleMatchesFoundException('More than one workbook found by name {} without a project specified').format(wb_name)
+            raise MultipleMatchesFoundException('More than one workbook found by name {} without a project specified'.format(wb_name))
+
+    def query_database_luid(self, database_name: str) -> str:
+            self.start_log_block()
+            databases = self.query_resource("databases")
+            databases_with_name = databases.findall('.//t:database[@name="{}"]'.format(database_name), self.ns_map)
+            if len(databases_with_name) == 0:
+                self.end_log_block()
+                raise NoMatchFoundException(
+                    "No database found named {}".format(database_name))
+            elif len(databases_with_name) == 1:
+                db_luid = databases_with_name[0].get("id")
+                self.end_log_block()
+                return db_luid
+            else:
+                self.end_log_block()
+                raise MultipleMatchesFoundException(
+                    'More than one database found by name {}. Please determine LUID using another method').format(database_name)
