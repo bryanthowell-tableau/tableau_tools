@@ -455,6 +455,10 @@ class TableauRestApiBase(LookupMethods, TableauBase):
     def query_single_element_luid_by_name_from_endpoint(self, element_name: str, name: str,
                                                         server_level: bool = False) -> str:
         self.start_log_block()
+        # Short circuit if this is already a luid
+        if self.is_luid(name):
+            return name
+
         elements = self.query_resource("{}s".format(element_name), server_level=server_level)
         # Groups have a cache within tableau_tools
         if element_name == 'group':

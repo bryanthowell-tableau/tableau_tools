@@ -21,7 +21,10 @@ class LookupMethods():
     def query_datasource_luid(self, datasource_name: str, project_name_or_luid: Optional[str] = None,
                               content_url: Optional[str] = None) -> str:
         self.start_log_block()
+        if self.is_luid(datasource_name):
+            return datasource_name
         # This quick filters down to just those with the name
+
         datasources_with_name = self.query_elements_from_endpoint_with_filter('datasource', datasource_name)
 
         # Throw exception if nothing found
@@ -70,6 +73,7 @@ class LookupMethods():
 
     def query_group_luid(self, group_name: str) -> str:
         self.start_log_block()
+
         if group_name in self.group_name_luid_cache:
             group_luid = self.group_name_luid_cache[group_name]
             self.log('Found group name {} in cache with luid {}'.format(group_name, group_luid))
@@ -97,7 +101,10 @@ class LookupMethods():
         self.start_log_block()
         if usage not in [True, False]:
             raise InvalidOptionException('Usage can only be set to True or False')
-        wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
+        # Short circuit check if a LUID is passed in
+        if self.is_luid(view_name):
+            return view_name
+        wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
         vws = self.query_resource("workbooks/{}/views?includeUsageStatistics={}".format(wb_luid, str(usage).lower()))
         if view_content_url is not None:
             views_with_name = vws.findall('.//t:view[@contentUrl="{}"]'.format(view_content_url), self.ns_map)
@@ -116,6 +123,9 @@ class LookupMethods():
 
     def query_workbook_luid(self, wb_name: str, proj_name_or_luid: Optional[str] = None) -> str:
         self.start_log_block()
+        # Short circuit if LUID is passed in
+        if self.is_luid(wb_name):
+            return wb_name
         workbooks_with_name = self.query_elements_from_endpoint_with_filter('workbook', wb_name)
         if len(workbooks_with_name) == 0:
             self.end_log_block()
@@ -144,6 +154,9 @@ class LookupMethods():
 
     def query_database_luid(self, database_name: str) -> str:
             self.start_log_block()
+            # Short circuit if LUID is passed in
+            if self.is_luid(database_name):
+                return database_name
             databases = self.query_resource("databases")
             databases_with_name = databases.findall('.//t:database[@name="{}"]'.format(database_name), self.ns_map)
             if len(databases_with_name) == 0:
@@ -161,6 +174,9 @@ class LookupMethods():
 
     def query_table_luid(self, table_name: str) -> str:
             self.start_log_block()
+            # Short circuit if LUID is passed in
+            if self.is_luid(table_name):
+                return table_name
             tables = self.query_resource("tables")
             tables_with_name = tables.findall('.//t:table[@name="{}"]'.format(table_name), self.ns_map)
             if len(tables_with_name) == 0:

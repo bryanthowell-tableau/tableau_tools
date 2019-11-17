@@ -106,6 +106,13 @@ class MetadataMethods35():
         self.rest_api_base.send_delete_request(url)
         self.end_log_block()
 
+    def query_columns_in_a_table(self, table_name_or_luid: str) -> ET.Element:
+        self.start_log_block()
+        table_luid = self.query_table_luid(table_name_or_luid)
+        response = self.query_resource("tables")
+        self.end_log_block()
+        return response
+
     # Described here https://help.tableau.com/current/api/metadata_api/en-us/index.html
     # Uses json.loads() to build the JSON object to send
     # Need to implement POST on the RestJsonRequest object to be able to do this
