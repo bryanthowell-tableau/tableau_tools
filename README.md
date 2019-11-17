@@ -387,6 +387,53 @@ Some XML responses are more complex, with element nodes within other elements. A
             if elem.tag.find('project') != -1:
                 proj_luid = elem.get('id')
                 
+##### 1.2.0.1 Underlying Base Methods
+This section is only useful or necessary if you are investingating an issue with the library, or need to do something from the reference guide that is not implemented yet with its own dedicated methods. 
+
+The rest_api_base class implements a number of methods which are used by the more specific methods. These actualy perform the basic REST API actions, along with Tableau Server specific checks and algorithms. 
+
+For example:
+
+    query_resource(url_ending: str, server_level:bool = False, 
+    filters: Optional[List[UrlFilter]] = None, 
+    sorts: Optional[List[Sort]] = None, 
+    additional_url_ending: Optional[str] = None, 
+    fields: Optional[List[str]] = None) -> ET.Element
+
+Is the underlying abstracted method that almost all "query_{element}s" methods actually use. It sends an HTTP GET request, and then returns back the response. If a new endpoint has been added to Tableau Server, before tableau_tools is updated, you could directly use query_resource:
+
+    xml = t.query_resource(url_ending="newthings")
+    # or
+    xml = t.query_resource(url_ending="newserverlevelthings", server_level=True)
+    
+The query_resource method automatically builds the first part of the URL based on the currently signed in site / user / etc., so you only have to pass in the part of the URL after the site luid. The "server_level" flag tells the URL builder to omit the site luid, for those endpoints that are server-wide. And you can see the other parameters that are available for constructing more complex queries.
+
+Similarly, there is a `query_resource_json()` for receiving back a JSON response to the same type of requests.
+
+There are other `query_` methods available in RestApiBase, but they typically implement lookup or search mechanisms that are tailored to the particulars of the various objects on Tableau Server, so you should only be looking at them for bug-fixes or if you were trying to expand the library. 
+
+The basic HTTP actions to the REST API are all implemented via methods that begin with `send_`:
+
+    send_post_request(url: str) -> ET.Element
+    send_add_request(url: str, request: ET.Element) -> ET.Element
+    send_update_request(url: str, request: ET.Element) -> ET.Element
+    send_delete_request(url: str) -> int
+    send_publish_request(url: str, xml_request: Optional[ET.Element], content: bytes, boundary_string: str) -> ET.Element
+    send_append_request(url: str, content: bytes, boundary_string: str) -> ET.Element
+    send_binary_get_request(url: str) -> bytes
+
+If there was a particular new endpoint that you needed to POST an XML element to to add to, you could accomplish using `send_add_request` (send_post_request exists for POSTs with no request content)
+
+    tsr = ET.Element('tsRequest')
+    e = ET.Element('newContentType')
+    e.set('name', 'My.Name')
+    tsr.append(e)
+    new_luid = t.send_add_request(url='newcontenttypes', request=tsr)
+
+Internally if you look at most add methods, this is fundamentally how they are all constructed. 
+
+For historical reasons, the actual HTTP connections are handled in a separate class and object entirely, either RestXmlRequest or RestJsonRequest, rather than performed directly within RestApiBase. Those objects both use the standad `requests` library to handle their HTTP actions. Unless you are updating the library to handle a vastly new situation with regards to request or response types with the REST API, it is unlikely you'll ever need to look into the details of those objects or attempt to access them directly. 
+
 #### 1.2.1 LUIDs - Locally Unique IDentifiers
 The Tableau REST API represents each object on the server (project, workbook, user, group, etc.) with a Locally Unique IDentifier (LUID). Every command other than the sign-in to a particular site (which uses the `site_content_url`) requires a LUID. LUIDs are returned when you create an object on the server, or they can be retrieved by the Query methods and then searched to find the matching LUID. In the XML or JSON, they are labeled with the `id` value, but tableau_tools specifically refers to them as LUID throughout, because there are other Tableau IDs in the Tableau Server repoistory.
 

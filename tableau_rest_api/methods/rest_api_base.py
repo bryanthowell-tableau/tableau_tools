@@ -327,8 +327,6 @@ class TableauRestApiBase(LookupMethods, TableauBase):
                        sorts: Optional[List[Sort]] = None, additional_url_ending: Optional[str] = None,
                        fields: Optional[List[str]] = None) -> ET.Element:
         self.start_log_block()
-        if self.token == "":
-            raise NotSignedInException('Must use .signin() to create REST API session first')
         url_endings = []
         if filters is not None:
             if len(filters) > 0:
@@ -476,8 +474,6 @@ class TableauRestApiBase(LookupMethods, TableauBase):
                             sorts: Optional[List[Sort]] = None, additional_url_ending: str = None,
                             fields: Optional[List[str]] = None, page_number: Optional[int] = None) -> str:
         self.start_log_block()
-        if self.token == "":
-            raise NotSignedInException('Must use .signin() to create REST API session first')
         url_endings = []
         if filters is not None:
             if len(filters) > 0:
