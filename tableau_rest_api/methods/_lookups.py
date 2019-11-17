@@ -105,11 +105,11 @@ class LookupMethods():
             views_with_name = vws.findall('.//t:view[@name="{}"]'.format(view_name), self.ns_map)
         if len(views_with_name) == 0:
             self.end_log_block()
-            raise NoMatchFoundException('No view found with name {} or content_url {} in workbook {}').format(view_name, view_content_url, wb_name_or_luid)
+            raise NoMatchFoundException('No view found with name {} or content_url {} in workbook {}'.format(view_name, view_content_url, wb_name_or_luid))
         elif len(views_with_name) > 1:
             self.end_log_block()
             raise MultipleMatchesFoundException(
-                'More than one view found by name {} in workbook {}. Use view_content_url parameter').format(view_name, view_content_url, wb_name_or_luid)
+                'More than one view found by name {} in workbook {}. Use view_content_url parameter'.format(view_name, view_content_url, wb_name_or_luid))
         view_luid = views_with_name[0].get('id')
         self.end_log_block()
         return view_luid
@@ -157,4 +157,21 @@ class LookupMethods():
             else:
                 self.end_log_block()
                 raise MultipleMatchesFoundException(
-                    'More than one database found by name {}. Please determine LUID using another method').format(database_name)
+                    'More than one database found by name {}. Please determine LUID using another method'.format(database_name))
+
+    def query_table_luid(self, table_name: str) -> str:
+            self.start_log_block()
+            tables = self.query_resource("tables")
+            tables_with_name = tables.findall('.//t:table[@name="{}"]'.format(table_name), self.ns_map)
+            if len(tables_with_name) == 0:
+                self.end_log_block()
+                raise NoMatchFoundException(
+                    "No database found named {}".format(table_name))
+            elif len(tables_with_name) == 1:
+                t_luid = tables_with_name[0].get("id")
+                self.end_log_block()
+                return t_luid
+            else:
+                self.end_log_block()
+                raise MultipleMatchesFoundException(
+                    'More than one table found by name {}. Please determine LUID using another method'.format(table_name))

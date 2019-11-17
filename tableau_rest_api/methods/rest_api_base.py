@@ -525,7 +525,7 @@ class TableauRestApiBase(LookupMethods, TableauBase):
 
         self.start_log_block()
         # A few elements have singular endpoints
-        singular_endpoints = ['workbook', 'user', 'datasource', 'site', 'databases']
+        singular_endpoints = ['workbook', 'user', 'datasource', 'site', 'database', 'table']
         if element_name in singular_endpoints and self.is_luid(name_or_luid):
             element = self.query_resource("{}s/{}".format(element_name, name_or_luid))
             self.end_log_block()
@@ -557,8 +557,9 @@ class TableauRestApiBase(LookupMethods, TableauBase):
         self.end_log_block()
         return xml
 
-    def send_add_request(self, url: str, request: ET.Element) -> ET.Element:
 
+
+    def send_add_request(self, url: str, request: ET.Element) -> ET.Element:
         self.start_log_block()
         if self.token == "":
             raise NotSignedInException('Must use .signin() to create REST API session first')
@@ -573,6 +574,21 @@ class TableauRestApiBase(LookupMethods, TableauBase):
         self._request_obj.xml_request = None
         self.end_log_block()
         return xml
+
+    def send_add_request_json(self, url: str, request: Dict) -> Dict:
+        self.start_log_block()
+        if self._request_json_obj is None:
+            self._request_json_obj = RestJsonRequest(token=self.token, logger=self.logger,
+                                                     verify_ssl_cert=self.verify_ssl_cert)
+        self._request_json_obj.http_verb = 'post'
+        self._request_json_obj.url = url
+        self._request_json_obj.json_request = request
+        self._request_json_obj.request_from_api(0)
+        json_response = self._request_json_obj.get_response()
+        self._request_json_obj.url = None
+        self._request_json_obj.json_request = None
+        self.end_log_block()
+        return json_response
 
     def send_update_request(self, url: str, request: ET.Element) -> ET.Element:
         self.start_log_block()
