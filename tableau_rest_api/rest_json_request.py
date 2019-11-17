@@ -17,14 +17,9 @@ import json
 # all of the request types.
 # Handles all of the actual HTTP calling
 class RestJsonRequest(TableauBase):
-    def __init__(self, url=None, token=None, logger=None, ns_map_url='http://tableau.com/api',
-                 verify_ssl_cert=True):
-        """
-        :param url:
-        :param token:
-        :param logger:
-        :param ns_map_url:
-        """
+    def __init__(self, url: Optional[str] = None, token: Optional[str] = None, logger: Optional[Logger] = None,
+                 ns_map_url: str='http://tableau.com/api',
+                 verify_ssl_cert: bool = True):
         super(self.__class__, self).__init__()
 
         # requests Session created to minimize connections
@@ -34,13 +29,13 @@ class RestJsonRequest(TableauBase):
         self.__defined_response_types = ('xml', 'png', 'binary', 'json')
         self.__defined_http_verbs = ('post', 'get', 'put', 'delete')
         self.url = url
-        self._xml_request = None
+        self._json_request: Optional[Dict] = None
         self.token = token
         self.__raw_response = None
         self.__last_error = None
         self.__last_url_request = None
         self.__last_response_headers = None
-        self.__json_object = None
+        self.__json_object: Optional[Dict] = None
         self.ns_map = {'t': ns_map_url}
         ET.register_namespace('t', ns_map_url)
         self.logger = logger
@@ -72,16 +67,12 @@ class RestJsonRequest(TableauBase):
                                      'Accept': 'application/json'})
 
     @property
-    def xml_request(self):
-        return self._xml_request
+    def json_request(self):
+        return self._json_request
 
-    @xml_request.setter
-    def xml_request(self, xml_request):
-        """
-        :type xml_request: Element
-        :return: boolean
-        """
-        self._xml_request = xml_request
+    @json_request.setter
+    def json_request(self, json_request: Dict):
+        self._json_request = json_request
 
     @property
     def http_verb(self):
@@ -125,7 +116,7 @@ class RestJsonRequest(TableauBase):
     def get_last_response_content_type(self):
         return self.__last_response_content_type
 
-    def get_response(self):
+    def get_response(self) -> Union[Dict, bytes]:
         if self.__response_type == 'json' and self.__json_object is not None:
             self.log_debug("JSON Object Response: {}".format(json.dumps(self.__json_object)))
             return self.__json_object
@@ -154,12 +145,13 @@ class RestJsonRequest(TableauBase):
 
         # Log the XML request being sent
         encoded_request = ""
-        if self.xml_request is not None:
-            self.log("Request XML: {}".format(ET.tostring(self.xml_request, encoding='utf-8').decode('utf-8')))
-            if isinstance(self.xml_request, str):
-                encoded_request = self.xml_request.encode('utf-8')
+        if self.json_request is not None:
+            # Double check just in case someone sends through JSON as a string
+            if (isinstance(self.json_request, str)):
+                encoded_request = json.loads(self.json_request)
             else:
-                encoded_request = ET.tostring(self.xml_request, encoding='utf-8')
+                encoded_request = self.json_request
+            self.log("Request JSON: {}".format(self.json_request))
         if self.__publish_content is not None:
             encoded_request = self.__publish_content
         try:
@@ -244,21 +236,9 @@ class RestJsonRequest(TableauBase):
             raise e
 
     def _set_raw_response(self, unicode_raw_response):
-        if sys.version_info[0] < 3:
-            try:
-                self.__raw_response = unicode_raw_response.encode('utf-8')
-            # Sometimes it appears we actually send this stuff in UTF8
-            except UnicodeDecodeError:
-                self.__raw_response = unicode_raw_response
-                unicode_raw_response = unicode_raw_response.decode('utf-8')
-        else:
-            self.__raw_response = unicode_raw_response
-            unicode_raw_response = unicode_raw_response.decode('utf-8')
+        self.__raw_response = unicode_raw_response
 
-        if self.__response_type == 'xml':
-            self.log_debug("Raw Response: {}".format(unicode_raw_response))
-
-    def request_from_api(self, page_number=None):
+    def request_from_api(self, page_number: Optional[int] = None) -> bool:
 
         if page_number is not None:
             self.__make_request(page_number)

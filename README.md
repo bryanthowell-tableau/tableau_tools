@@ -143,14 +143,15 @@ tableau_tools
         * favorites
         * flow
         * group
+        * metadata
         * project
-        * publishing
         * rest_api_base
         * revision
         * schedule
         * site
         * subscription
         * user
+        * webhooks
         * workbook
     * permissions
     * published_content (Project, Workbook, Datasource)
