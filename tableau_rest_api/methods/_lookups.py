@@ -191,3 +191,9 @@ class LookupMethods():
                 self.end_log_block()
                 raise MultipleMatchesFoundException(
                     'More than one table found by name {}. Please determine LUID using another method'.format(table_name))
+
+    def query_webhook_luid(self, webhook_name: str) -> str:
+        self.start_log_block()
+        luid = self.query_single_element_luid_by_name_from_endpoint('webhook', webhook_name)
+        self.end_log_block()
+        return luid

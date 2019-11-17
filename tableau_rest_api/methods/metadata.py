@@ -218,3 +218,7 @@ class MetadataMethods35():
         return response
 
     # Database and Table Permissions are implemented in the Permissions and PublishedContent classes
+
+class MetadataMethods36(MetadataMethods35):
+    def __init__(self, rest_api_base: TableauRestApiBase36):
+        self.rest_api_base = rest_api_base

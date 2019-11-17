@@ -201,4 +201,5 @@ class TableauServerRest36(TableauRestApiBase36):
         self.sites: SiteMethods = SiteMethods36(self.rest_api_base)
         self.subscriptions: SubscriptionMethods36 = SubscriptionMethods36(self.rest_api_base)
         self.users: UserMethods36 = UserMethods36(self.rest_api_base)
+        self.webhooks: WebhooksMethods36 = WebhooksMethods36(self.rest_api_base)
         self.workbooks: WorkbookMethods36 = WorkbookMethods36(self.rest_api_base)

@@ -57,14 +57,15 @@ class TableauRestApiConnection34(WorkbookMethods34, UserMethods34, SubscriptionM
     pass
 
 class TableauRestApiConnection35(WorkbookMethods35, UserMethods35, SubscriptionMethods35, SiteMethods35,
-                                 ScheduleMethods35, RevisionMethods35, ProjectMethods35,
+                                 ScheduleMethods35, RevisionMethods35, ProjectMethods35, MetadataMethods35,
                                  GroupMethods35, FlowMethods35,
                                  FavoritesMethods35, ExtractMethods35, DatasourceMethods35, AlertMethods35,
                                  TableauRestApiBase35):
     pass
 
-class TableauRestApiConnection36(WorkbookMethods36, UserMethods36, SubscriptionMethods36, SiteMethods36,
-                                 ScheduleMethods36, RevisionMethods36, ProjectMethods36,
+class TableauRestApiConnection36(WorkbookMethods36, WebhooksMethods36, UserMethods36, SubscriptionMethods36,
+                                 SiteMethods36,
+                                 ScheduleMethods36, RevisionMethods36, ProjectMethods36, MetadataMethods36,
                                  GroupMethods36, FlowMethods36,
                                  FavoritesMethods36, ExtractMethods36, DatasourceMethods36, AlertMethods36,
                                  TableauRestApiBase36):

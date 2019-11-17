@@ -6,11 +6,13 @@ from .extract import *
 from .favorites import *
 from .flow import *
 from .group import *
+from .metadata import *
 from .project import *
 from .revision import *
 from .schedule import *
 from .site import *
 from .subscription import *
 from .user import *
+from .webhooks import *
 from .workbook import *
 
