@@ -12,7 +12,7 @@ class ProjectMethods():
         self.end_log_block()
         return projects
 
-    def query_projects_json(self, page_number: Optional[int] = None) -> str:
+    def query_projects_json(self, page_number: Optional[int] = None) -> Dict:
         self.start_log_block()
         projects = self.query_resource_json("projects", page_number=page_number)
         self.end_log_block()
@@ -124,7 +124,7 @@ class ProjectMethods27(ProjectMethods):
                             created_at_filter: Optional[UrlFilter] = None,
                             owner_domain_filter: Optional[UrlFilter] = None,
                             owner_email_filter: Optional[UrlFilter] = None, sorts: Optional[List[Sort]] = None,
-                            page_number: Optional[int] = None) -> str:
+                            page_number: Optional[int] = None) -> Dict:
         filter_checks = {'name': name_filter, 'ownerName': owner_name_filter,
                          'updatedAt': updated_at_filter, 'createdAt': created_at_filter,
                          'ownerDomain': owner_domain_filter, 'ownerEmail': owner_email_filter}

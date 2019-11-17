@@ -35,7 +35,7 @@ class UserMethods():
     def get_users_json(self, all_fields: bool = True, last_login_filter: Optional[UrlFilter] = None,
                        site_role_filter: Optional[UrlFilter] = None, username_filter: Optional[UrlFilter] = None,
                        sorts: Optional[List[Sort]] = None, fields: Optional[List[str] ] =None,
-                       page_number: Optional[int] = None) -> str:
+                       page_number: Optional[int] = None) -> Dict:
         return  self.query_users_json(all_fields=all_fields, last_login_filter=last_login_filter,
                                      site_role_filter=site_role_filter, username_filter=username_filter, sorts=sorts,
                                      fields=fields, page_number=page_number)
@@ -43,7 +43,7 @@ class UserMethods():
     def query_users_json(self, all_fields: bool = True, last_login_filter: Optional[UrlFilter] = None,
                          site_role_filter: Optional[UrlFilter] = None, username_filter: Optional[UrlFilter] = None,
                          sorts: Optional[List[Sort]] = None, fields: Optional[List[str]] = None,
-                         page_number: Optional[int] = None) -> str:
+                         page_number: Optional[int] = None) -> Dict:
 
         self.start_log_block()
         if fields is None:

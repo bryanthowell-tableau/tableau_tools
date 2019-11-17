@@ -48,7 +48,7 @@ class WorkbookMethods():
                              updated_at_filter: Optional[UrlFilter] = None,
                              owner_name_filter: Optional[UrlFilter] = None,
                              tags_filter: Optional[UrlFilter] = None, sorts: Optional[List[Sort]] = None,
-                             fields: Optional[List[str]] = None, page_number: Optional[int] = None) -> str:
+                             fields: Optional[List[str]] = None, page_number: Optional[int] = None) -> Dict:
         self.start_log_block()
         if fields is None:
             if all_fields is True:
@@ -207,7 +207,7 @@ class WorkbookMethods():
 
     def query_workbook_views_json(self, wb_name_or_luid: str, proj_name_or_luid: Optional[str] = None,
                                   username_or_luid: Optional[str] = None, usage: bool = False,
-                                  page_number: Optional[int] = None) -> str:
+                                  page_number: Optional[int] = None) -> Dict:
         self.start_log_block()
         if usage not in [True, False]:
             raise InvalidOptionException('Usage can only be set to True or False')
@@ -277,7 +277,7 @@ class WorkbookMethods():
     def query_views_json(self, all_fields: bool = True, usage: bool = False,
                          created_at_filter: Optional[UrlFilter] = None, updated_at_filter: Optional[UrlFilter] = None,
                          tags_filter: Optional[UrlFilter] = None, sorts: Optional[UrlFilter] = None,
-                         fields: Optional[UrlFilter] = None, page_number: Optional[int] = None) -> str:
+                         fields: Optional[UrlFilter] = None, page_number: Optional[int] = None) -> Dict:
         self.start_log_block()
 
         if fields is None:

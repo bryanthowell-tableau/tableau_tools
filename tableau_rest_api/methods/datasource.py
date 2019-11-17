@@ -38,7 +38,7 @@ class DatasourceMethods():
     def query_datasources_json(self, all_fields: Optional[bool] = True, updated_at_filter: Optional[UrlFilter] = None,
                                created_at_filter: Optional[UrlFilter] = None, tags_filter: Optional[UrlFilter] = None,
                                datasource_type_filter: Optional[UrlFilter] = None, sorts: Optional[List[Sort]] = None,
-                               fields: Optional[List[str]] = None, page_number: Optional[int] = None) -> str:
+                               fields: Optional[List[str]] = None, page_number: Optional[int] = None) -> Dict:
 
         self.start_log_block()
         if fields is None:

@@ -12,7 +12,7 @@ class ScheduleMethods():
         self.end_log_block()
         return schedules
 
-    def query_schedules_json(self, page_number: Optional[int] = None)-> str:
+    def query_schedules_json(self, page_number: Optional[int] = None)-> Dict:
         self.start_log_block()
         schedules = self.query_resource_json("schedules", server_level=True, page_number=page_number)
         self.end_log_block()

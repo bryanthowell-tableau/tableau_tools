@@ -16,7 +16,7 @@ class SiteMethods():
         self.end_log_block()
         return sites
 
-    def query_sites_json(self, page_number: Optional[int] = None) -> str:
+    def query_sites_json(self, page_number: Optional[int] = None) -> Dict:
         self.start_log_block()
         sites = self.query_resource_json("sites", server_level=True, page_number=page_number)
         self.end_log_block()

@@ -472,7 +472,7 @@ class TableauRestApiBase(LookupMethods, TableauBase):
     def query_resource_json(self, url_ending: str, server_level: bool = False,
                             filters: Optional[List[UrlFilter]] = None,
                             sorts: Optional[List[Sort]] = None, additional_url_ending: str = None,
-                            fields: Optional[List[str]] = None, page_number: Optional[int] = None) -> str:
+                            fields: Optional[List[str]] = None, page_number: Optional[int] = None) -> Dict:
         self.start_log_block()
         url_endings = []
         if filters is not None:

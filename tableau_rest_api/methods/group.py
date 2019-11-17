@@ -20,7 +20,7 @@ class GroupMethods():
 
     # # No basic verb for querying a single group, so run a query_groups
 
-    def query_groups_json(self, page_number: Optional[int]=None) -> str:
+    def query_groups_json(self, page_number: Optional[int]=None) -> Dict:
         self.start_log_block()
         groups = self.query_resource_json("groups", page_number=page_number)
         #for group in groups:
@@ -266,7 +266,7 @@ class GroupMethods27(GroupMethods):
                      domain_nickname_filter: Optional[UrlFilter] = None, is_local_filter: Optional[UrlFilter] = None,
                      user_count_filter: Optional[UrlFilter] = None,
                      minimum_site_role_filter: Optional[UrlFilter] = None,
-                     sorts: Optional[List[Sort]] = None, page_number: Optional[int] = None) -> str:
+                     sorts: Optional[List[Sort]] = None, page_number: Optional[int] = None) -> Dict:
 
             filter_checks = {'name': name_filter, 'domainName': domain_name_filter,
                              'domainNickname': domain_nickname_filter, 'isLocal': is_local_filter,
