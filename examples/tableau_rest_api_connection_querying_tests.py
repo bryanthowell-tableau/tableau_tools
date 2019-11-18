@@ -27,7 +27,7 @@ def run_tests(server_url: str, username: str, password: str, site_content_url: s
     log_obj = Logger('tableau_rest_api_connection_querying_tests.log')
 
     # Create a default connection, test pulling server information
-    t = TableauServerRest(server=server_url, username=username, password=password,
+    t = TableauServerRest35(server=server_url, username=username, password=password,
                                        site_content_url=site_content_url)
     t.signin()
     t.enable_logging(log_obj)
@@ -75,7 +75,7 @@ def run_tests(server_url: str, username: str, password: str, site_content_url: s
 
     # Step 10: Extract Refresh tests
 
-def project_tests(t: TableauServerRest):
+def project_tests(t: TableauServerRest33):
 
     print('Testing project methods')
     all_projects = t.projects.query_projects()
@@ -96,165 +96,50 @@ def project_tests(t: TableauServerRest):
         ds_default_permissions = project_obj.datasource_defaults.get_permissions_obj_list()
         ds_default_permissions_xml = project_obj.workbook_defaults.get_permissions_xml()
 
-        flow_def
+        # Make conditional on API 3./3
+        flow_default_permissions = project_obj.flow_defaults.get_permissions_obj_list()
+        flow_default_permissions_xml = project_obj.flow_defaults.get_permissions_xml()
+        
         break
 
-    t.log('Updating first project')
 
     print("Finished testing project methods")
 
 
-def group_tests(t: TableauRestApiConnection, group_names: List[str]) -> Dict:
+def group_tests(t: TableauServerRest):
     print("Starting group tests")
 
-    for group in group_names:
-        t.log("Creating Group {}".format(group))
-        new_group_luid = t.create_group(group)
-
-    # Let all of the groups settle in
-    time.sleep(3)
-    t.log('Updating first group name')
-    t.update_group(group_names[0], '{} (updated)'.format(group_names[0]))
-
-    # Delete Groups not introduced until API 2.1
-    if isinstance(t, TableauRestApiConnection):
-        t.log('Deleting fourth group')
-        t.delete_groups(group_names[3])
-
     t.log("Querying all the groups")
-    groups_on_site = t.query_groups()
+    groups_on_site = t.groups.query_groups()
 
     # Convert the list to a dict {name : luid}
     groups_dict = t.convert_xml_list_to_name_id_dict(groups_on_site)
     t.log(str(groups_dict))
+
+    t.groups.query_groups_json()
+
+    t.groups.query_group(group_name_or_luid="All Users")
+    all_users_luid = t.query_group_luid("All Users")
+    all_users_name = t.groups.query_group_name(group_luid=all_users_luid)
+
+
     print('Finished group tests')
-    time.sleep(3)  # Let everything update
     return groups_dict
 
-
-def project_permissions_tests(t:TableauRestApiConnection):
-    print("Starting Permissions tests")
-    projects = t.query_projects()
-    projects_dict = t.convert_xml_list_to_name_id_dict(projects)
-    project_names = list(projects_dict.keys())
-
-    groups = t.query_groups()
-    groups_dict = t.convert_xml_list_to_name_id_dict(groups)
-    group_names = list(groups_dict.keys())
-
-    # Set permissions for one project
-    t.log('Querying project called {}'.format(project_names[0]))
-    proj_1 = t.query_project(projects_dict[project_names[0]])
-    t.log('Setting project to locked permissions')
-    proj_1.lock_permissions()
-    t.log('Clearing all existing permissions on first project')
-    proj_1.clear_all_permissions()
-
-    proj_perms_list = []
-    for group in groups_dict:
-        proj_perms = proj_1.create_project_permissions_object_for_group(groups_dict[group], 'Viewer')
-        proj_perms_list.append(proj_perms)
-
-    proj_1.set_permissions_by_permissions_obj_list(proj_perms_list)
-
-    # WB defaults
-    wb_perms_list = []
-    for group in groups_dict:
-        wb_perms = proj_1.create_workbook_permissions_object_for_group(groups_dict[group], 'Interactor')
-        wb_perms_list.append(wb_perms)
-    t.log('Setting workbook permissions')
-    proj_1.workbook_defaults.set_permissions_by_permissions_obj_list(wb_perms_list)
-
-    # DS defaults
-    ds_perms_list = []
-    for group in groups_dict:
-        ds_perms = proj_1.create_datasource_permissions_object_for_group(groups_dict[group], 'Editor')
-        ds_perms_list.append(ds_perms)
-    t.log('Setting datasource permissions')
-    proj_1.datasource_defaults.set_permissions_by_permissions_obj_list(ds_perms_list)
-
-    # Second Project
-    t.log('Querying project called {}'.format(project_names[5]))
-    proj_2 = t.query_project(projects_dict[project_names[5]])
-    t.log('Unlocking permissions')
-    proj_2.unlock_permissions()
-    proj_2.clear_all_permissions(clear_defaults=False)  # Don't clear workbook or datasource defaults
-
-    proj_perms = proj_2.create_project_permissions_object_for_group(groups_dict[group_names[6]])
-    proj_perms.set_all_to_allow()
-    proj_perms.set_capability_to_unspecified('Save')
-    t.log('Setting project permissions for group {}'.format(group_names[6]))
-    proj_2.set_permissions_by_permissions_obj_list([proj_perms, ])
-
-    # Clone Permissions from one to another
-    t.log('Cloning project permissions from {} to {}'.format(project_names[3], project_names[0]))
-    proj_3 = t.query_project(projects_dict[project_names[3]])
-    proj_3.replicate_permissions(proj_1)
-
-    print('Finished Permissions tests')
-
-
-def user_tests(t: TableauRestApiConnection, names: List[str]):
+def user_tests(t: TableauServerRest):
     print('Starting User tests')
-    # Create some fake users to assign to groups
+    users = t.users.query_users()
+    t.users.get_users()
 
-    new_user_luids = []
-    for name in names:
-        username = name
-        full_name = name.upper()
-        t.log("Creating User '{}' named '{}'".format(username, full_name))
-        try:
-            new_user_luid = t.add_user(username, full_name, 'Interactor', 'password', username + '@nowhere.com')
-        except InvalidOptionException as e:
-            print((e.msg))
-            raise
-        new_user_luids.append(new_user_luid)
+    t.users.query_users_json()
+    t.users.get_users_json()
 
-    # This takes Users x Groups amount of time to complete, can really stretch out the test
-    groups = t.query_groups()
-    groups_dict = t.convert_xml_list_to_name_id_dict(groups)
-    group_names = list(groups_dict.keys())
+    t.users.query_users_in_group(group_name_or_luid="All Users")
 
-    # Add all users to first group
-    t.log("Adding users to group {}".format(group_names[0]))
-    t.add_users_to_group(new_user_luids, groups_dict[group_names[0]])
-
-    # Add first three users to second gruop
-
-    t.log("Adding users to group {}".format(group_names[1]))
-    t.add_users_to_group([new_user_luids[0], new_user_luids[1], new_user_luids[3]], group_names[1])
-
-    # Remove sixth user from first gruop
-    t.log('Removing user {} from group {}'.format(new_user_luids[5], group_names[0]))
-    t.remove_users_from_group(new_user_luids[5], groups_dict[group_names[0]])
-
-    t.log('Unlicensing the second user')
-    t.update_user(new_user_luids[1], site_role='Unlicensed')
-
-    t.log('Updating second user')
-    t.update_user(new_user_luids[1], full_name='Updated User', password='h@ckm3', email='me@gmail.com')
-
-    t.log('Removing the third user')
-    t.remove_users_from_site(new_user_luids[2])
-
-    # Sleep to let updates happen
-    time.sleep(4)
-    users = t.query_users()
     users_dict = t.convert_xml_list_to_name_id_dict(users)
     t.log(str(list(users_dict.keys())))
 
-    if isinstance(t, TableauRestApiConnection):
-        name_sort = Sort('name', 'desc')
-        if isinstance(t, TableauRestApiConnection28):
-            role_f = UrlFilter28.create_site_roles_filter(['Interactor', 'Publisher'])
-        else:
-            role_f = UrlFilter.create_site_role_filter('Interactor')
-        ll_f = UrlFilter.create_last_login_filter('gte', '2018-01-01T00:00:00:00Z')
-
-        users = t.query_users(sorts=[name_sort, ], site_role_filter=role_f, last_login_filter=ll_f)
-        t.log('Here are sorted and filtered users')
-        for user in users:
-            t.log(user.get('name'))
+    # Filtering and Sorting
 
     print('Finished User tests')
 
