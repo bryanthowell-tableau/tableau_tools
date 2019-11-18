@@ -318,6 +318,34 @@ class TableauRestApiBase(LookupMethods, TableauBase):
         self.log('Signed out successfully')
         self.end_log_block()
 
+    def switch_site(self, site_content_url):
+        self.start_log_block()
+        url = self.build_api_url("auth/signout", server_level=True)
+        self.log('Switching site via'.format(url))
+        tsr = ET.Element('tsRequest')
+        s = ET.Element('site')
+        s.set('contentUrl', site_content_url)
+        tsr.append(s)
+
+        self._request_obj.http_verb = 'post'
+        self.log('Switch site request XML is\n {}'.format(ET.tostring(tsr)))
+
+        self._request_obj.request_from_api(0)
+        # self.log(api.get_raw_response())
+        xml = self._request_obj.get_response()
+
+        credentials_element = xml.findall('.//t:credentials', self.ns_map)
+        self.token = credentials_element[0].get("token")
+        self.log("Token is " + self.token)
+        self._request_obj.token = self.token
+        self.site_luid = credentials_element[0].findall(".//t:site", self.ns_map)[0].get("id")
+        self.user_luid = credentials_element[0].findall(".//t:user", self.ns_map)[0].get("id")
+        self.log("Site ID is " + self.site_luid)
+        self._request_obj.url = None
+        self._request_obj.xml_request = None
+
+        self.end_log_block()
+
     #
     # HTTP "verb" methods. These actually communicate with the RestXmlRequest object to place the requests
     #
