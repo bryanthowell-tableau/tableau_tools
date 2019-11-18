@@ -3,12 +3,14 @@
 import zipfile
 import os
 import shutil
-from ..tableau_base import *
-from .tableau_datasource import TableauDatasource
-from .tableau_workbook import TableauWorkbook
-from .tableau_document import TableauDocument
 import codecs
 from typing import Union, Any, Optional, List, Dict, Tuple
+
+from tableau_tools.tableau_base import *
+from tableau_documents.tableau_datasource import TableauDatasource
+from tableau_documents.tableau_workbook import TableauWorkbook
+from tableau_documents.tableau_document import TableauDocument
+
 
 class TableauFile(TableauBase):
     def __init__(self, filename: str, logger_obj: Optional[Logger] = None,

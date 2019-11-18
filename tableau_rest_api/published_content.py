@@ -5,7 +5,7 @@ import copy
 from typing import Union, Any, Optional, List, Dict
 
 # Represents a published workbook, project or datasource
-class PublishedContent(TableauBase):
+class PublishedContent(Logging):
     def __init__(self, luid, obj_type, tableau_rest_api_obj, tableau_server_version, default=False,
                  logger_obj=None, content_xml_obj=None):
         """
@@ -16,8 +16,7 @@ class PublishedContent(TableauBase):
         :type default: boolean
         :type logger_obj: Logger
         """
-        TableauBase.__init__(self)
-        self.set_tableau_server_version(tableau_server_version)
+        self.tableau_rest_api_obj.set_tableau_server_version(tableau_server_version)
 
         self.logger = logger_obj
         self.log("Setting Server Version ID to {}".format(tableau_server_version))

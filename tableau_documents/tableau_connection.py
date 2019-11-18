@@ -1,7 +1,9 @@
-from ..tableau_base import *
-from ..tableau_exceptions import *
 import xml.etree.ElementTree as ET
 from typing import Union, Any, Optional, List, Dict, Tuple
+
+from tableau_tools.tableau_base import *
+from tableau_tools.tableau_exceptions import *
+
 
 # Represents the actual Connection tag of a given datasource
 class TableauConnection(TableauBase):

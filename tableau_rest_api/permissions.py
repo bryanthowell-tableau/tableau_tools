@@ -67,6 +67,274 @@ class Permissions(TableauBase):
             }
         }
 
+        self.permissionable_objects = ('datasource', 'project', 'workbook', 'flow')
+
+        self.site_roles = (
+            'Interactor',
+            'Publisher',
+            'SiteAdministrator',
+            'Unlicensed',
+            'UnlicensedWithPublish',   # This was sunset at some point
+            'Viewer',
+            'ViewerWithPublish',
+            'ServerAdministrator',
+            'ReadOnly',
+            'Explorer',
+            'ExplorerCanPublish',
+            'SiteAdministratorExplorer',
+            'Creator',
+            'SiteAdministratorCreator'
+        )
+
+        server_content_roles_2_1 = {
+                "project": (
+                    'Viewer',
+                    'Publisher',
+                    'Project Leader'
+                ),
+                "workbook": (
+                    'Viewer',
+                    'Interactor',
+                    'Editor'
+                ),
+                "datasource": (
+                    'Editor',
+                    'Connector'
+                )
+            }
+
+        server_content_roles_3_3 = {
+                "project": (
+                    'Viewer',
+                    'Publisher',
+                    'Project Leader'
+                ),
+                "workbook": (
+                    'Viewer',
+                    'Interactor',
+                    'Editor'
+                ),
+                "datasource": (
+                    'Editor',
+                    'Connector'
+                ),
+                "flow" : (
+
+                )
+            }
+
+        server_content_roles_3_5 = {
+            "project": (
+                'Viewer',
+                'Publisher',
+                'Project Leader'
+            ),
+            "workbook": (
+                'Viewer',
+                'Interactor',
+                'Editor'
+            ),
+            "datasource": (
+                'Editor',
+                'Connector'
+            ),
+            "flow": (
+
+            ),
+            "database": (),
+            "table" : ()
+        }
+
+        self.server_content_roles = {
+            "2.6": server_content_roles_2_1,
+            "2.7": server_content_roles_2_1,
+            "2.8": server_content_roles_2_1,
+            '3.0': server_content_roles_2_1,
+            '3.1': server_content_roles_2_1,
+            '3.2': server_content_roles_2_1,
+            '3.3': server_content_roles_3_3,
+            '3.4': server_content_roles_3_3,
+            '3.5': server_content_roles_3_5,
+            '3.6': server_content_roles_3_5
+        }
+
+        self.server_to_rest_capability_map = {
+            'Add Comment': 'AddComment',
+            'Move': 'ChangeHierarchy',
+            'Set Permissions': 'ChangePermissions',
+            'Connect': 'Connect',
+            'Delete': 'Delete',
+            'View Summary Data': 'ExportData',
+            'Download Summary Data': 'ExportData',
+            'Export Image': 'ExportImage',
+            'Download Image/PDF': 'ExportImage',
+            'Download': 'ExportXml',
+            'Download Workbook/Save As': 'ExportXml',
+            'Filter': 'Filter',
+            'Project Leader': 'ProjectLeader',
+            'View': 'Read',
+            'Share Customized': 'ShareView',
+            'View Comments': 'ViewComments',
+            'View Underlying Data': 'ViewUnderlyingData',
+            'Download Full Data' : 'ViewUnderlyingData',
+            'Web Edit': 'WebAuthoring',
+            'Save': 'Write',
+            'Inherited Project Leader': 'InheritedProjectLeader',
+            'all': 'all'  # special command to do everything
+        }
+
+        capabilities_2_1 = {
+                "project": ("Read", "Write", 'ProjectLeader'),
+                "workbook": (
+                    'Read',
+                    'ExportImage',
+                    'ExportData',
+                    'ViewComments',
+                    'AddComment',
+                    'Filter',
+                    'ViewUnderlyingData',
+                    'ShareView',
+                    'WebAuthoring',
+                    'Write',
+                    'ExportXml',
+                    'ChangeHierarchy',
+                    'Delete',
+                    'ChangePermissions',
+
+                ),
+                "datasource": (
+                    'Read',
+                    'Connect',
+                    'Write',
+                    'ExportXml',
+                    'Delete',
+                    'ChangePermissions'
+                )
+            }
+
+        capabilities_2_8 = {
+                "project": ("Read", "Write", 'ProjectLeader', 'InheritedProjectLeader'),
+                "workbook": (
+                    'Read',
+                    'ExportImage',
+                    'ExportData',
+                    'ViewComments',
+                    'AddComment',
+                    'Filter',
+                    'ViewUnderlyingData',
+                    'ShareView',
+                    'WebAuthoring',
+                    'Write',
+                    'ExportXml',
+                    'ChangeHierarchy',
+                    'Delete',
+                    'ChangePermissions',
+
+                ),
+                "datasource": (
+                    'Read',
+                    'Connect',
+                    'Write',
+                    'ExportXml',
+                    'Delete',
+                    'ChangePermissions'
+                )
+            }
+
+        capabilities_3_3 = {
+                "project": ("Read", "Write", 'ProjectLeader', 'InheritedProjectLeader'),
+                "workbook": (
+                    'Read',
+                    'ExportImage',
+                    'ExportData',
+                    'ViewComments',
+                    'AddComment',
+                    'Filter',
+                    'ViewUnderlyingData',
+                    'ShareView',
+                    'WebAuthoring',
+                    'Write',
+                    'ExportXml',
+                    'ChangeHierarchy',
+                    'Delete',
+                    'ChangePermissions',
+
+                ),
+                "datasource": (
+                    'Read',
+                    'Connect',
+                    'Write',
+                    'ExportXml',
+                    'Delete',
+                    'ChangePermissions'
+                ),
+                'flow': (
+                    'ChangeHierarchy',
+                    'ChangePermissions',
+                    'Delete',
+                    'ExportXml',
+                    'Read',
+                    'Write'
+                )
+            }
+
+        capabilities_3_5 = {
+                "project": ("Read", "Write", 'ProjectLeader', 'InheritedProjectLeader'),
+                "workbook": (
+                    'Read',
+                    'ExportImage',
+                    'ExportData',
+                    'ViewComments',
+                    'AddComment',
+                    'Filter',
+                    'ViewUnderlyingData',
+                    'ShareView',
+                    'WebAuthoring',
+                    'Write',
+                    'ExportXml',
+                    'ChangeHierarchy',
+                    'Delete',
+                    'ChangePermissions',
+
+                ),
+                "datasource": (
+                    'Read',
+                    'Connect',
+                    'Write',
+                    'ExportXml',
+                    'Delete',
+                    'ChangePermissions'
+                ),
+                'flow': (
+                    'ChangeHierarchy',
+                    'ChangePermissions',
+                    'Delete',
+                    'ExportXml',
+                    'Read',
+                    'Write'
+                )
+            }
+
+        self.available_capabilities = {
+            '2.6': capabilities_2_1,
+            '2.7': capabilities_2_1,
+            '2.8': capabilities_2_8,
+            '3.0': capabilities_2_8,
+            '3.1': capabilities_2_8,
+            '3.2': capabilities_2_8,
+            '3.3': capabilities_3_3,
+            '3.4': capabilities_3_3,
+            '3.5': capabilities_3_5,
+            '3.6': capabilities_3_5
+
+        }
+
+    def convert_server_permission_name_to_rest_permission(self, permission_name: str) -> str:
+        if permission_name in self.server_to_rest_capability_map:
+            return self.server_to_rest_capability_map[permission_name]
+        else:
+            raise InvalidOptionException('{} is not a permission name on the Tableau Server'.format(permission_name))
+
     @property
     def luid(self):
         return self._luid

@@ -1,4 +1,4 @@
-from .rest_api_base import *
+from .rest_api_base import TableauRestApiBase, TableauRestApiBase27, TableauRestApiBase28, TableauRestApiBase30, TableauRestApiBase31, TableauRestApiBase32, TableauRestApiBase33, TableauRestApiBase34, TableauRestApiBase35, TableauRestApiBase36
 from ._lookups import *
 from .alert import *
 from .datasource import *

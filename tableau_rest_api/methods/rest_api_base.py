@@ -3,27 +3,33 @@
 import os
 from typing import Union, Any, Optional, List, Dict, Tuple
 from urllib.parse import urlencode
-from ...tableau_base import *
-from ._lookups import LookupMethods
-from ...tableau_documents.tableau_file import TableauFile
-from ...tableau_documents.tableau_workbook import TableauWorkbook
-from ...tableau_documents.tableau_datasource import TableauDatasource
-from ...tableau_exceptions import *
-from ..rest_xml_request import RestXmlRequest
-from ..rest_json_request import RestJsonRequest
-from ..published_content import Project, Project28, Project33, Workbook, Datasource, Flow33
-from ..url_filter import *
-from ..sort import *
 import copy
+import xml.etree.ElementTree as ET
 
-class TableauRestApiBase(LookupMethods, TableauBase):
+from ...tableau_base import *
+from ...logging import Logging
+from ._lookups import LookupMethods
+from  ...tableau_documents.tableau_file import TableauFile
+from  ...tableau_exceptions import *
+from  ...tableau_rest_api.rest_xml_request import RestXmlRequest
+from  ...tableau_rest_api.rest_json_request import RestJsonRequest
+from  ...tableau_rest_api.published_content import Project, Project28, Project33, Workbook, Datasource, Flow33
+from  ...tableau_rest_api.url_filter import *
+from  ...tableau_rest_api.sort import *
+
+
+class TableauRestApiBase(LookupMethods, Logging):
     # Defines a class that represents a RESTful connection to Tableau Server. Use full URL (http:// or https://)
     def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
-        TableauBase.__init__(self)
+        Logging.__init__()
         if server.find('http') == -1:
             raise InvalidOptionException('Server URL must include http:// or https://')
 
+        self.tableau_namespace = 'http://tableau.com/api'
+        self.ns_map = {'t': 'http://tableau.com/api'}
+        self.ns_prefix = '{' + self.ns_map['t'] + '}'
         ET.register_namespace('t', self.ns_map['t'])
+
         self.server: str = server
         self.site_content_url: str = site_content_url
         self.username: str = username
@@ -51,11 +57,107 @@ class TableauRestApiBase(LookupMethods, TableauBase):
         # For working around SSL issues
         self.verify_ssl_cert = True
 
+        self.version: Optional[str] = None
+        self.api_version: Optional[str]  = None
         # Starting in version 5 of tableau_tools, 10.3 is the lowest supported version
         self.set_tableau_server_version("10.3")
 
         # Try to see if this gets the composition right
         self.rest_api_base = self
+
+    # URI is different form actual URL you need to load a particular view in iframe
+    @staticmethod
+    def convert_view_content_url_to_embed_url(content_url: str) -> str:
+        split_url = content_url.split('/')
+        return 'views/{}/{}'.format(split_url[0], split_url[2])
+
+    # Generic method for XML lists for the "query" actions to name -> id dict
+    @staticmethod
+    def convert_xml_list_to_name_id_dict(xml_obj: ET.Element) -> Dict:
+        d = {}
+        for element in xml_obj:
+            e_id = element.get("id")
+            # If list is collection, have to run one deeper
+            if e_id is None:
+                for list_element in element:
+                    e_id = list_element.get("id")
+                    name = list_element.get("name")
+                    d[name] = e_id
+            else:
+                name = element.get("name")
+                d[name] = e_id
+        return d
+
+    def set_tableau_server_version(self, tableau_server_version: str) -> str:
+        if str(tableau_server_version)in ["10.3", "10.4", "10.5", '2018.1', '2018.2', '2018.3', '2019.1',
+                                          '2019.2', '2019.3', '2019.4', '2019.5', '2019.6']:
+            if str(tableau_server_version) == '10.3':
+                self.api_version = '2.6'
+            elif str(tableau_server_version) == '10.4':
+                self.api_version = '2.7'
+            elif str(tableau_server_version) == '10.5':
+                self.api_version = '2.8'
+            elif str(tableau_server_version) == '2018.1':
+                self.api_version = '3.0'
+            elif str(tableau_server_version) == '2018.2':
+                self.api_version = '3.1'
+            elif str(tableau_server_version) == '2018.3':
+                self.api_version = '3.2'
+            elif str(tableau_server_version) == '2019.1':
+                self.api_version = '3.3'
+            elif str(tableau_server_version) == '2019.2':
+                self.api_version = '3.4'
+            elif str(tableau_server_version) == '2019.3':
+                self.api_version = '3.5'
+            elif str(tableau_server_version) == '2019.4':
+                self.api_version = '3.6'
+            self.tableau_namespace = 'http://tableau.com/api'
+            self.ns_map = {'t': 'http://tableau.com/api'}
+            self.version = tableau_server_version
+            self.ns_prefix = '{' + self.ns_map['t'] + '}'
+            return self.api_version
+
+        else:
+            raise InvalidOptionException("Please specify tableau_server_version as a string. '10.5' or '2019.3' etc...")
+
+
+    # Method to handle single str or list and return a list
+    @staticmethod
+    def to_list(x: Union[str, List[str]]):
+        if isinstance(x, str):
+            l = [x]  # Make single into a collection
+        else:
+            l = x
+        return l
+
+    # Method to read file in x MB chunks for upload, 10 MB by default (1024 bytes = KB, * 1024 = MB, * 10)
+    @staticmethod
+    def read_file_in_chunks(file_object, chunk_size=(1024 * 1024 * 10)):
+        while True:
+            data = file_object.read(chunk_size)
+            if not data:
+                break
+            yield data
+
+    # You must generate a boundary string that is used both in the headers and the generated request that you post.
+    # This builds a simple 30 hex digit string
+    @staticmethod
+    def generate_boundary_string() -> str:
+        random_digits = [random.SystemRandom().choice('0123456789abcdef') for n in range(30)]
+        s = "".join(random_digits)
+        return s
+
+    # 32 hex characters with 4 dashes
+    @staticmethod
+    def is_luid(val: str) -> bool:
+        luid_pattern = r"[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*"
+        if len(val) == 36:
+            if re.match(luid_pattern, val) is not None:
+                return True
+            else:
+                return False
+        else:
+            return False
 
     @property
     def token(self) -> str:

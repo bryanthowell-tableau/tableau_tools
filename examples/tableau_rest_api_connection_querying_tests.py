@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from ...tableau_tools.tableau_rest_api import *
-from ...tableau_tools import *
+from tableau_tools.tableau_rest_api import *
+from tableau_tools import *
 import time
 # This is meant to test all querying functionality of the tableau_tools library.
 # It is intended to be pointed at existing sites on existing Tableau Servers, with enough content for
@@ -14,10 +14,10 @@ import time
 
 # Allows for testing against multiple versions of Tableau Server. Feel free to use just one
 servers = {
-           "2019.3 Windows": {"server": "http://127.0.0.1", "username": "", "password": "", "site_content_url": ""},
-           "2019.3 Linux": {"server": "http://127.0.0.1", "username": "", "password": "", "site_content_url": ""},
-           "2019.4 Windows": {"server": "http://127.0.0.1", "username": "", "password": "", "site_content_url": ""},
-           "2019.4 Linux": {"server": "http://127.0.0.1", "username": "", "password": "", "site_content_url": ""}
+           #"2019.3 Windows": {"server": "http://127.0.0.1", "username": "", "password": "", "site_content_url": ""},
+           "2019.3 Linux": {"server": "http://35.155.172.157", "username": "djangoEmbedDemos", "password": "test", "site_content_url": "retail"},
+           #"2019.4 Windows": {"server": "http://127.0.0.1", "username": "", "password": "", "site_content_url": ""},
+           #"2019.4 Linux": {"server": "http://127.0.0.1", "username": "", "password": "", "site_content_url": ""}
            }
 
 
@@ -51,9 +51,6 @@ def run_tests(server_url: str, username: str, password: str, site_content_url: s
 
     # Step 3: Group tests
     group_tests(t)
-
-    # Step 4: Project Permissions tests
-    project_permissions_tests(t)
 
     # Step 5: User Tests
     user_tests(t)
@@ -140,6 +137,11 @@ def user_tests(t: TableauServerRest):
     t.log(str(list(users_dict.keys())))
 
     # Filtering and Sorting
+    explorer_filter = UrlFilter.create_site_role_filter(site_role="Explorer")
+    last_login_filter = UrlFilter.create_last_login_filter(operator="gte", last_login_time="")
+
+    filtered_users = t.users.query_users(site_role_filter=explorer_filter, last_login_filter=last_login_filter,
+                                         sorts=[SortAscending("name"), ])
 
     print('Finished User tests')
 

@@ -1,9 +1,9 @@
-from .methods import *
+from tableau_rest_api.methods import *
 
 # This is a now a composite class that brings together all the different methods under one roof, but compatible with
 # older scripts (easy upgrade)
 class TableauRestApiConnection(WorkbookMethods, UserMethods, SubscriptionMethods, SiteMethods,
-                               ScheduleMethods, RevisionMethods, PublishingMethods,
+                               ScheduleMethods, RevisionMethods,
                                ProjectMethods, GroupMethods, FavoritesMethods,
                                ExtractMethods, DatasourceMethods, TableauRestApiBase):
     def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):

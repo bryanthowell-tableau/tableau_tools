@@ -1,15 +1,13 @@
-from tableau_tools.tableau_documents import TableauParameter
-
-from ..tableau_base import *
-from .tableau_document import TableauDocument
-
 import xml.etree.ElementTree as ET
-from ..tableau_exceptions import *
-
 from xml.sax.saxutils import quoteattr, unescape
 import datetime
 import re
 from typing import Union, Any, Optional, List, Dict, Tuple
+
+# from ..tableau_base import *
+from tableau_documents.tableau_document import TableauDocument
+from tableau_tools.tableau_exceptions import *
+
 
 class TableauParameters(TableauDocument):
     def __init__(self, datasource_xml: Optional[ET.Element] = None, logger_obj: Optional[Logger] = None):

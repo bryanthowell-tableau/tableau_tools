@@ -1,4 +1,4 @@
-from .methods import *
+from tableau_rest_api.methods import *
 #
 # This is equivalent to TableauRestApiConnection but with an extra layer of organization, by attaching
 # most of the functions as sub-objects
@@ -172,6 +172,7 @@ class TableauServerRest35(TableauRestApiBase35):
         self.favorites: FavoritesMethods35 = FavoritesMethods35(self.rest_api_base)
         self.flows: FlowMethods35 = FlowMethods35(self.rest_api_base)
         self.groups: GroupMethods35 = GroupMethods35(self.rest_api_base)
+        self.metadata: MetadataMethods35 = MetadataMethods35(self.rest_api_base)
         self.projects: ProjectMethods35 = ProjectMethods35(self.rest_api_base)
         self.revisions: RevisionMethods35 = RevisionMethods35(self.rest_api_base)
         self.schedules: ScheduleMethods35 = ScheduleMethods35(self.rest_api_base)
@@ -195,6 +196,7 @@ class TableauServerRest36(TableauRestApiBase36):
         self.favorites: FavoritesMethods36 = FavoritesMethods36(self.rest_api_base)
         self.flows: FlowMethods36 = FlowMethods36(self.rest_api_base)
         self.groups: GroupMethods36 = GroupMethods36(self.rest_api_base)
+        self.metadata: MetadataMethods36 = MetadataMethods36(self.rest_api_base)
         self.projects: ProjectMethods36 = ProjectMethods36(self.rest_api_base)
         self.revisions: RevisionMethods36 = RevisionMethods36(self.rest_api_base)
         self.schedules: ScheduleMethods36 = ScheduleMethods36(self.rest_api_base)

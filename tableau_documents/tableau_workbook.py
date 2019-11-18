@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
-
-from ..tableau_base import *
-from .tableau_datasource import TableauDatasource
-from .tableau_parameters import TableauParameters
-from .tableau_document import TableauDocument
 import os
 import codecs
 import xml.etree.ElementTree as ET
 from typing import Union, Any, Optional, List, Dict, Tuple
+
+from tableau_tools.tableau_base import *
+from tableau_documents.tableau_datasource import TableauDatasource
+from tableau_documents.tableau_parameters import TableauParameters
+from tableau_documents.tableau_document import TableauDocument
+
 
 class TableauWorkbook(TableauDocument):
     def __init__(self, twb_filename: str, logger_obj: Optional[Logger] = None):

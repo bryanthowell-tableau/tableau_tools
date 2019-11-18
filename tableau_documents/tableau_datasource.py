@@ -1,10 +1,4 @@
-from ..tableau_base import *
-from .tableau_connection import TableauConnection
-from .tableau_document import TableauDocument
-from .tableau_columns import TableauColumns
-
 import xml.etree.ElementTree as ET
-from ..tableau_exceptions import *
 import zipfile
 import os
 import copy
@@ -14,6 +8,14 @@ import codecs
 import collections
 import random
 from typing import Union, Any, Optional, List, Dict, Tuple
+
+# from ..tableau_base import *
+from tableau_tools.tableau_exceptions import *
+from tableau_tools.logger import Logger
+from tableau_documents.tableau_connection import TableauConnection
+from tableau_documents.tableau_document import TableauDocument
+from tableau_documents.tableau_columns import TableauColumns
+
 
 # Meant to represent a TDS file, does not handle the file opening
 class TableauDatasource(TableauDocument):
@@ -48,6 +50,53 @@ class TableauDatasource(TableauDocument):
         self.table_relations = None
         self._connection_root = None
         self._stored_proc_parameters_xml = None
+
+        self.datasource_class_map = {
+            "Actian Vectorwise": "vectorwise",
+            "Amazon EMR": "awshadoophive",
+            "Amazon Redshift": "redshift",
+            "Aster Database": "asterncluster",
+            "Cloudera Hadoop": "hadoophive",
+            "DataStax Enterprise": "datastax",
+            "EXASolution": "exasolution",
+            "Firebird": "firebird",
+            "Generic ODBC": "genericodbc",
+            "Google Analytics": "google-analytics",
+            "Google BigQuery": "bigquery",
+            "Hortonworks Hadooop Hive": "hortonworkshadoophive",
+            "HP Vertica": "vertica",
+            "IBM BigInsights": "bigsql",
+            "IBM DB2": "db2",
+            "JavaScript Connector": "jsconnector",
+            "MapR Hadoop Hive": "maprhadoophive",
+            "MarkLogic": "marklogic",
+            "Microsoft Access": "msaccess",
+            "Microsoft Analysis Services": "msolap",
+            "Microsoft Excel": "excel-direct",
+            "Microsoft PowerPivot": "powerpivot",
+            "Microsoft SQL Server": "sqlserver",
+            "MySQL": "mysql",
+            "IBM Netezza": "netezza",
+            "OData": "odata",
+            "Oracle": "oracle",
+            "Oracle Essbase": "essbase",
+            "ParAccel": "paraccel",
+            "Pivotal Greenplum": "greenplum",
+            "PostgreSQL": "postgres",
+            "Progress OpenEdge": "progressopenedge",
+            "SAP HANA": "saphana",
+            "SAP Netweaver Business Warehouse": "sapbw",
+            "SAP Sybase ASE": "sybasease",
+            "SAP Sybase IQ": "sybaseiq",
+            "Salesforce": "salesforce",
+            "Spark SQL": "spark",
+            "Splunk": "splunk",
+            "Statistical File": "",
+            "Tableau Data Extract": "dataengine",
+            "Teradata": "teradata",
+            "Text file": "textscan",
+            "Hyper": 'hyper',
+        }
 
         # Create from new or from existing object
         if datasource_xml is None:

@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-
-from ..tableau_base import TableauBase
-from ..logger import Logger
-from .tableau_parameters import TableauParameter
-from ..tableau_exceptions import *
 from typing import Union, Any, Optional, List, Dict, Tuple
 import xml.etree.ElementTree as ET
+
+from tableau_tools.tableau_base import TableauBase
+from tableau_tools.logger import Logger
+from tableau_tools.tableau_exceptions import *
+from tableau_documents.tableau_parameters import TableauParameter
 
 
 class TableauColumns(TableauBase):
