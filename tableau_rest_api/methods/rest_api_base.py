@@ -11,7 +11,7 @@ from ...tableau_documents.tableau_datasource import TableauDatasource
 from ...tableau_exceptions import *
 from ..rest_xml_request import RestXmlRequest
 from ..rest_json_request import RestJsonRequest
-from ..published_content import Project, Project28, Project33, Workbook, Datasource
+from ..published_content import Project, Project28, Project33, Workbook, Datasource, Flow33
 from ..url_filter import *
 from ..sort import *
 import copy
@@ -209,28 +209,19 @@ class TableauRestApiBase(LookupMethods, TableauBase):
     #
     def get_published_project_object(self, project_name_or_luid: str,
                                      project_xml_obj: Optional[ET.Element] = None) -> Project:
-        if self.is_luid(project_name_or_luid):
-            luid = project_name_or_luid
-        else:
-            luid = self.query_project_luid(project_name_or_luid)
+        luid = self.query_project_luid(project_name_or_luid)
         proj_obj = Project(luid, self, self.version, self.logger, content_xml_obj=project_xml_obj)
         return proj_obj
 
     def get_published_workbook_object(self, workbook_name_or_luid: str,
                                       project_name_or_luid: Optional[str] = None) -> Workbook:
-        if self.is_luid(workbook_name_or_luid):
-            luid = workbook_name_or_luid
-        else:
-            luid = self.query_workbook_luid(workbook_name_or_luid, project_name_or_luid)
+        luid = self.query_workbook_luid(workbook_name_or_luid, project_name_or_luid)
         wb_obj = Workbook(luid, self, tableau_server_version=self.version, default=False, logger_obj=self.logger)
         return wb_obj
 
     def get_published_datasource_object(self, datasource_name_or_luid: str,
                                         project_name_or_luid: Optional[str] = None) -> Datasource:
-        if self.is_luid(datasource_name_or_luid):
-            luid = datasource_name_or_luid
-        else:
-            luid = self.query_datasource_luid(datasource_name_or_luid, project_name_or_luid)
+        luid = self.query_datasource_luid(datasource_name_or_luid, project_name_or_luid)
         ds_obj = Datasource(luid, self, tableau_server_version=self.version, default=False, logger_obj=self.logger)
         return ds_obj
 
@@ -1037,7 +1028,12 @@ class TableauRestApiBase27(TableauRestApiBase):
     pass
 
 class TableauRestApiBase28(TableauRestApiBase27):
-    pass
+
+    def get_published_project_object(self, project_name_or_luid: str,
+                                     project_xml_obj: Optional[ET.Element] = None) -> Project28:
+        luid = self.query_project_luid(project_name_or_luid)
+        proj_obj = Project28(luid, self, self.version, self.logger, content_xml_obj=project_xml_obj)
+        return proj_obj
 
 class TableauRestApiBase30(TableauRestApiBase28):
     @staticmethod
@@ -1078,7 +1074,18 @@ class TableauRestApiBase32(TableauRestApiBase31):
     pass
 
 class TableauRestApiBase33(TableauRestApiBase32):
-    pass
+
+    def get_published_project_object(self, project_name_or_luid: str,
+                                     project_xml_obj: Optional[ET.Element] = None) -> Project33:
+        luid = self.query_project_luid(project_name_or_luid)
+        proj_obj = Project33(luid, self, self.version, self.logger, content_xml_obj=project_xml_obj)
+        return proj_obj
+
+    def get_published_flow_object(self, project_name_or_luid: str,
+                                     project_xml_obj: Optional[ET.Element] = None) -> Flow33:
+        luid = self.query_project_luid(project_name_or_luid)
+        proj_obj = Flow33(luid, self, self.version, self.logger, content_xml_obj=project_xml_obj)
+        return proj_obj
 
 class TableauRestApiBase34(TableauRestApiBase33):
     # Generic implementation of all the CSV/PDF/PNG requests

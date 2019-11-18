@@ -911,7 +911,7 @@ class Project33(Project28):
                  content_xml_obj=None, parent_project_luid=None):
         Project28.__init__(self, luid, tableau_rest_api_obj, tableau_server_version, logger_obj=logger_obj,
                            content_xml_obj=content_xml_obj, parent_project_luid=parent_project_luid)
-        self.flow_defaults = Flow(self.luid, self.t_rest_api, tableau_server_version=tableau_server_version,
+        self.flow_defaults = Flow33(self.luid, self.t_rest_api, tableau_server_version=tableau_server_version,
                                   default=True, logger_obj=logger_obj)
 
 class Workbook(PublishedContent):
@@ -1052,7 +1052,7 @@ class View(PublishedContent):
             return obj_list
 
 
-class Flow(PublishedContent):
+class Flow33(PublishedContent):
     def __init__(self, luid, tableau_rest_api_obj, tableau_server_version, default=False, logger_obj=None,
                  content_xml_obj=None):
         PublishedContent.__init__(self, luid, "flow", tableau_rest_api_obj, tableau_server_version,
