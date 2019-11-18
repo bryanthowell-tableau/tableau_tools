@@ -99,7 +99,7 @@ def project_tests(t: TableauServerRest33):
         # Make conditional on API 3./3
         flow_default_permissions = project_obj.flow_defaults.get_permissions_obj_list()
         flow_default_permissions_xml = project_obj.flow_defaults.get_permissions_xml()
-        
+
         break
 
 
