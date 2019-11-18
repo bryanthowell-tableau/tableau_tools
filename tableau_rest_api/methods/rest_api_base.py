@@ -11,7 +11,7 @@ from ...tableau_documents.tableau_datasource import TableauDatasource
 from ...tableau_exceptions import *
 from ..rest_xml_request import RestXmlRequest
 from ..rest_json_request import RestJsonRequest
-from ..published_content import Project, Project28, Workbook, Datasource
+from ..published_content import Project, Project28, Project33, Workbook, Datasource
 from ..url_filter import *
 from ..sort import *
 import copy
