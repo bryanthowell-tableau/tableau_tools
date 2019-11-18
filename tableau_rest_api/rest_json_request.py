@@ -1,5 +1,3 @@
-from ..tableau_base import *
-from ..tableau_exceptions import *
 import xml.etree.ElementTree as ET
 # from HTMLParser import HTMLParser
 # from StringIO import StringIO
@@ -10,13 +8,17 @@ import copy
 import requests
 import sys
 import json
+from typing import Union, Any, Optional, List, Dict
+
+from ..logging import Logging
+from ..tableau_exceptions import *
 
 # NOTE
 # JSON Requests are not implemented for anything besides GET requests at the moment
 # There is a lot of code in here based on the RestXmlRequest class, which would need to be cleaned up to handle
 # all of the request types.
 # Handles all of the actual HTTP calling
-class RestJsonRequest(TableauBase):
+class RestJsonRequest(Logging):
     def __init__(self, url: Optional[str] = None, token: Optional[str] = None, logger: Optional[Logger] = None,
                  ns_map_url: str='http://tableau.com/api',
                  verify_ssl_cert: bool = True):

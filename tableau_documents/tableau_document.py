@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 from typing import Union, Any, Optional, List, Dict, Tuple
 
-from tableau_tools.tableau_base import TableauBase
-from tableau_tools.tableau_exceptions import *
-# from tableau_documents.tableau_datasource import TableauDatasource
+from ..logging import Logging
+from ..tableau_exceptions import *
+from .tableau_datasource import TableauDatasource
 
 # This class is just a shell so that TableauWorkbook and TableauDatasource can look the same from TableauFile
 # This is probably not that Pythonic but whatevs
-class TableauDocument(TableauBase):
+class TableauDocument(Logging):
     def __init__(self):
-        TableauBase.__init__(self)
         self._datasources = []
         self._document_type = None
         self.parameters = None

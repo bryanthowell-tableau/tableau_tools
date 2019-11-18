@@ -1,4 +1,4 @@
-from ..tableau_base import *
+from ..logging import Logging
 from ..tableau_exceptions import *
 from .permissions import *
 import copy
@@ -17,7 +17,7 @@ class PublishedContent(Logging):
         :type logger_obj: Logger
         """
         self.tableau_rest_api_obj.set_tableau_server_version(tableau_server_version)
-
+        self.permissionable_objects = ('datasource', 'project', 'workbook', 'flow')
         self.logger = logger_obj
         self.log("Setting Server Version ID to {}".format(tableau_server_version))
         self._luid = luid

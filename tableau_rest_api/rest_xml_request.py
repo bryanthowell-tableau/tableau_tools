@@ -1,4 +1,4 @@
-from ..tableau_base import *
+from ..logging import Logging
 from ..tableau_exceptions import *
 from ..logger import Logger
 import xml.etree.ElementTree as ET
@@ -14,7 +14,7 @@ from typing import Union, Any, Optional, List, Dict, Tuple
 
 
 # Handles all of the actual HTTP calling
-class RestXmlRequest(TableauBase):
+class RestXmlRequest(Logging):
     def __init__(self, url: Optional[str] = None, token: Optional[str] = None, logger: Optional[Logger] = None,
                  ns_map_url: str ='http://tableau.com/api',
                  verify_ssl_cert: bool = True):

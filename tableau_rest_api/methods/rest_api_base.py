@@ -6,7 +6,7 @@ from urllib.parse import urlencode
 import copy
 import xml.etree.ElementTree as ET
 
-from ...tableau_base import *
+from ...logger import Logger
 from ...logging import Logging
 from ._lookups import LookupMethods
 from  ...tableau_documents.tableau_file import TableauFile
@@ -21,7 +21,6 @@ from  ...tableau_rest_api.sort import *
 class TableauRestApiBase(LookupMethods, Logging):
     # Defines a class that represents a RESTful connection to Tableau Server. Use full URL (http:// or https://)
     def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
-        Logging.__init__()
         if server.find('http') == -1:
             raise InvalidOptionException('Server URL must include http:// or https://')
 

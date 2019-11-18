@@ -1,11 +1,11 @@
-from ..tableau_base import TableauBase
-from ..tableau_exceptions import *
 from typing import Union, Any, Optional, List, Dict
 
+from ..logging import Logging
+from ..tableau_exceptions import *
+
 # Represents the Permissions from any given user or group. Equivalent to GranteeCapabilities in the API
-class Permissions(TableauBase):
+class Permissions(Logging):
     def __init__(self, group_or_user: str, luid: str, content_type: Optional[str] = None):
-        TableauBase.__init__(self)
         if group_or_user not in ['group', 'user']:
             raise InvalidOptionException('group_or_user must be "group" or "user"')
         self.content_type = content_type
@@ -67,7 +67,7 @@ class Permissions(TableauBase):
             }
         }
 
-        self.permissionable_objects = ('datasource', 'project', 'workbook', 'flow')
+
 
         self.site_roles = (
             'Interactor',
