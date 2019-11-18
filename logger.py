@@ -1,7 +1,7 @@
 import time
 import sys
 import xml.etree.ElementTree as ET
-
+from typing import Union, Any, Optional, List, Dict, Tuple
 
 class Logger(object):
     def __init__(self, filename):
@@ -17,7 +17,7 @@ class Logger(object):
     def enable_debug_level(self):
         self._log_level = 'debug'
 
-    def log(self, l):
+    def log(self, l: str):
         cur_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         if self.log_depth == 0:
             log_line = cur_time + " : " + l + "\n"
@@ -28,7 +28,7 @@ class Logger(object):
         except UnicodeDecodeError as e:
             self.__log_handle.write(log_line)
 
-    def log_debug(self, l):
+    def log_debug(self, l: str):
         if self._log_level == 'debug':
             self.log(l)
 
@@ -56,11 +56,17 @@ class Logger(object):
 
         self.__log_handle.write(log_line.encode('utf-8'))
 
-    def log_uri(self, uri, verb):
+    def log_uri(self, uri: str, verb: str):
         self.log('Sending {} request via: \n{}'.format(verb, uri))
 
-    def log_xml_request(self, xml, verb):
+    def log_xml_request(self, xml: ET.Element, verb: str):
         if isinstance(xml, str):
             self.log('Sending {} request with XML: \n{}'.format(verb, xml))
         else:
             self.log('Sending {} request with XML: \n{}'.format(verb, ET.tostring(xml)))
+
+    def log_xml_response(self, xml: ET.Element):
+        if isinstance(xml, str):
+            self.log('Received response with XML: \n{}'.format(xml))
+        else:
+            self.log('Received response with XML: \n{}'.format(ET.tostring(xml)))

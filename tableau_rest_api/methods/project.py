@@ -18,6 +18,25 @@ class ProjectMethods():
         self.end_log_block()
         return projects
 
+    def query_project(self, project_name_or_luid: str) -> Project:
+        self.start_log_block()
+        luid = self.query_project_luid(project_name_or_luid)
+        # Project endpoint can be filtered on Project Name, but not project LUID in direct API request
+        proj = self.get_published_project_object(luid, self.rest_api_base.query_single_element_from_endpoint('project',
+                                                                                                             luid))
+        self.end_log_block()
+        return proj
+
+    def get_published_project_object(self, project_name_or_luid: str,
+                                     project_xml_obj: Optional[ET.Element] = None) -> Project:
+
+        luid = self.query_project_luid(project_name_or_luid)
+
+        proj_obj = Project(luid=luid, tableau_rest_api_obj=self, tableau_server_version=self.version,
+                             logger_obj=self.logger, content_xml_obj=project_xml_obj
+                           )
+        return proj_obj
+
     def create_project(self, project_name: Optional[str] = None, project_desc: Optional[str] = None,
                        locked_permissions: bool = True, publish_samples: bool = False,
                        no_return: bool = False,
@@ -136,15 +155,6 @@ class ProjectMethods27(ProjectMethods):
         self.end_log_block()
         return projects
 
-
-    def query_project(self, project_name_or_luid: str) -> Project:
-        self.start_log_block()
-        luid = self.query_project_luid(project_name_or_luid)
-        proj = self.get_published_project_object(luid, self.query_single_element_from_endpoint_with_filter('project',
-                                                                                                           project_name_or_luid))
-        self.end_log_block()
-        return proj
-
     def query_project_xml_object(self, project_name_or_luid: str) -> ET.Element:
         self.start_log_block()
         luid = self.query_project_luid(project_name_or_luid)
@@ -165,7 +175,8 @@ class ProjectMethods28(ProjectMethods27):
         if project_xml_obj.get('parentProjectId'):
             parent_project_luid = project_xml_obj.get('parentProjectId')
 
-        proj_obj = Project28(luid, self, self.version, self.logger, content_xml_obj=project_xml_obj,
+        proj_obj = Project28(luid=luid, tableau_rest_api_obj=self, tableau_server_version=self.version,
+                             logger_obj=self.logger, content_xml_obj=project_xml_obj,
                              parent_project_luid=parent_project_luid)
         return proj_obj
 
@@ -245,8 +256,9 @@ class ProjectMethods28(ProjectMethods27):
 
         self.start_log_block()
         luid = self.query_project_luid(project_name_or_luid)
-        proj = self.get_published_project_object(luid, self.query_single_element_from_endpoint_with_filter('project',
-                                                                                               project_name_or_luid))
+        # Project endpoint can be filtered on Project Name, but not project LUID in direct API request
+        proj = self.get_published_project_object(luid, self.query_single_element_from_endpoint('project',
+                                                                                               luid))
         self.end_log_block()
         return proj
 
@@ -269,6 +281,19 @@ class ProjectMethods33(ProjectMethods32):
     def __init__(self, rest_api_base: TableauRestApiBase33):
         self.rest_api_base = rest_api_base
 
+    def get_published_project_object(self, project_name_or_luid: str,
+                                     project_xml_obj: Optional[ET.Element] = None) -> Project33:
+
+        luid = self.query_project_luid(project_name_or_luid)
+
+        parent_project_luid = None
+        if project_xml_obj.get('parentProjectId'):
+            parent_project_luid = project_xml_obj.get('parentProjectId')
+
+        proj_obj = Project33(luid=luid, tableau_rest_api_obj=self, tableau_server_version=self.version,
+                             logger_obj=self.logger, content_xml_obj=project_xml_obj,
+                             parent_project_luid=parent_project_luid)
+        return proj_obj
 
 class ProjectMethods34(ProjectMethods33):
     def __init__(self, rest_api_base: TableauRestApiBase34):
