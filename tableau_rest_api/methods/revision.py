@@ -7,10 +7,10 @@ class RevisionMethods():
     def __getattr__(self, attr):
         return getattr(self.rest_api_base, attr)
 
-    def get_workbook_revisions(self, workbook_name_or_luid: str, username_or_luid: Optional[str] = None,
+    def get_workbook_revisions(self, workbook_name_or_luid: str,
                                project_name_or_luid: Optional[str] = None) -> ET.Element:
         self.start_log_block()
-        wb_luid = self.query_workbook_luid(workbook_name_or_luid, project_name_or_luid, username_or_luid)
+        wb_luid = self.query_workbook_luid(workbook_name_or_luid, project_name_or_luid)
         wb_revisions = self.query_resource('workbooks/{}/revisions'.format(wb_luid))
         self.end_log_block()
         return wb_revisions
@@ -19,7 +19,7 @@ class RevisionMethods():
                                  project_name_or_luid: Optional[str] = None) -> ET.Element:
         self.start_log_block()
         ds_luid = self.query_datasource_luid(datasource_name_or_luid, project_name_or_luid)
-        wb_revisions = self.query_resource('workbooks/{}/revisions'.format(ds_luid))
+        wb_revisions = self.query_resource('datasources/{}/revisions'.format(ds_luid))
         self.end_log_block()
         return wb_revisions
 
@@ -32,10 +32,10 @@ class RevisionMethods():
         self.end_log_block()
 
     def remove_workbook_revision(self, wb_name_or_luid: str, revision_number: int,
-                                 project_name_or_luid: Optional[str] = None, username_or_luid: Optional[str] = None):
+                                 project_name_or_luid: Optional[str] = None):
 
         self.start_log_block()
-        wb_luid = self.query_workbook_luid(wb_name_or_luid, project_name_or_luid, username_or_luid)
+        wb_luid = self.query_workbook_luid(wb_name_or_luid, project_name_or_luid)
         url = self.build_api_url("workbooks/{}/revisions/{}".format(wb_luid, str(revision_number)))
         self.send_delete_request(url)
         self.end_log_block()

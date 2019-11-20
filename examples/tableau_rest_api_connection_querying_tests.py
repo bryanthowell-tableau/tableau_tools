@@ -55,29 +55,20 @@ def run_tests(server_url: str, username: str, password: str, site_content_url: s
     content_urls = t.sites.query_all_site_content_urls()
     log_obj.log("{}".format(content_urls))
 
-    # Step 2: Project tests
     project_tests(t)
-
-    # Step 3: Group tests
     group_tests(t)
-
-    # Step 5: User Tests
     user_tests(t)
-
-    # Step 6: Publishing Workbook Tests
+    favorites_tests(t)
     workbooks_tests(t)
-
-    #datasources_tests(t)
-    # Step 7: Subscription tests
-    # if isinstance(test_site, TableauRestApiConnection23):
-    #    subscription_tests(test_site)
-
-    # These capabilities are only available in later API versions
-    # Step 9: Scheduling tests
-    # if isinstance(test_site, TableauRestApiConnection23):
-    #    schedule_test(test_site)
-
-    # Step 10: Extract Refresh tests
+    datasources_tests(t)
+    #subscription_tests(t)
+    #schedule_tests(t)
+    revision_tests(t)
+    #extract_tests(t)
+    #flow_tests(t)
+    #alerts_tests(t)
+    #metadata_tests(t)  # 2019.3+ only
+    # webhook_test(t)  # 2019.4+ only
 
 
 def project_tests(t: TableauServerRest33):
@@ -186,49 +177,24 @@ def workbooks_tests(t: TableauServerRest):
     # .workbooks.query_view(vw_name_or_luid='GreatView')
 
 
-
 def datasources_tests(t: TableauServerRest):
-    print("Starting Datasource tests")
-    default_project = t.query_project('Default')
-
-    t.log("Publishing as {}".format(tdsx_content_name))
-    new_ds_luid = t.publish_datasource(tdsx_file, tdsx_content_name, default_project, overwrite=True)
-
-    time.sleep(3)
-
-    projects = t.query_projects()
-    projects_dict = t.convert_xml_list_to_name_id_dict(projects)
-    projects_list = list(projects_dict.keys())
-
-    t.log('Moving datasource to {} project'.format(projects_list[1]))
-    t.update_datasource(new_ds_luid, default_project.luid, new_project_luid=projects_dict[projects_list[1]])
-
-    t.log("Querying datasource")
-    t.query_workbook(new_ds_luid)
-
-    t.log('Downloading and saving datasource')
-    t.download_datasource(new_ds_luid, 'saved_datasource')
-
-    # Can't add to favorites until API version 2.3
-
-    t.log('Adding to Favorites')
-    t.add_datasource_to_user_favorites('The Greatest Datasource', new_ds_luid, t.username)
-
-    t.log('Removing from Favorites')
-    t.delete_datasources_from_user_favorites(new_ds_luid, t.username)
-
-    # t_site.log("Publishing TDS with credentials -- reordered args")
-    # tds_cred_luid = t_site.publish_datasource('TDS with Credentials.tds', 'TDS w Creds', project,
-    # connection_username='postgres', overwrite=True, connection_password='')
-
-    # t_site.log("Update Datasource connection")
-    # t_site.update_datasource_connection(tds_cred_luid, 'localhost', '5432', db_username, db_password)
-
-    # t_site.log("Deleting the published DS")
-    # t_site.delete_datasources(new_ds_luid)
+    print("Starting Datasources tests")
+    dses_xml = t.datasources.query_datasources(sorts=[SortAscending('name'), ])
+    dses_json = t.datasources.query_datasources_json()
+    for ds in dses_xml:
+        ds_luid = ds.get('id')
+        ds_content_url = t.datasources.query_datasource_content_url(datasource_name_or_luid=ds_luid)
+        pub_ds_obj = t.get_published_datasource_object(datasource_name_or_luid=ds_luid)
+        permissions_obj_list = pub_ds_obj.get_permissions_obj_list()
+        break
 
     print('Finished Datasource Tests')
 
+def favorites_tests(t: TableauServerRest):
+    print("Starting Favorites tests")
+    user_favorites_xml = t.favorites.query_user_favorites(username_or_luid=t.user_luid)
+    user_favorites_json = t.favorites.query_user_favorites_json(username_or_luid=t.user_luid)
+    print("Finished Favorites tests")
 
 def schedule_tests(t: TableauServerRest):
     print('Started Schedule tests')
@@ -318,10 +284,20 @@ def subscription_tests(t: TableauServerRest):
     print('Finished subscription tests')
 
 
-def revision_tests(t: TableauServerRest, workbook_name: str, project_name: str):
+def revision_tests(t: TableauServerRest):
     print('Starting revision tests')
-    revisions = t.get_workbook_revisions(workbook_name, project_name)
-    t.log('There are {} revisions of workbook {}'.format(len(revisions), workbook_name))
+    wbs = t.workbooks.query_workbooks()
+    for wb in wbs:
+        revisions = t.revisions.get_workbook_revisions(workbook_name_or_luid=wb.get('id'))
+        log_obj.log('There are {} revisions of workbook {}'.format(len(revisions), wb.get('name')))
+        log_obj.log_xml_response(revisions)
+        break
+    dses = t.datasources.query_datasources()
+    for ds in dses:
+        revisions = t.revisions.get_datasource_revisions(datasource_name_or_luid=ds.get('id'))
+        log_obj.log('There are {} revisions of datasource {}'.format(len(revisions), ds.get('name')))
+        log_obj.log_xml_response(revisions)
+        break
 
     print('Finished revision tests')
 
