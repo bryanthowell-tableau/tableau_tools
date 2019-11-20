@@ -1,4 +1,4 @@
-from tableau_rest_api.methods import *
+from tableau_rest_api import *
 #
 # This is equivalent to TableauRestApiConnection but with an extra layer of organization, by attaching
 # most of the functions as sub-objects

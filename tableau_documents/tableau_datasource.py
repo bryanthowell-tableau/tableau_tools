@@ -12,17 +12,18 @@ from typing import Union, Any, Optional, List, Dict, Tuple
 # from ..tableau_base import *
 from tableau_tools.tableau_exceptions import *
 from tableau_tools.logger import Logger
+from tableau_tools.logging_methods import LoggingMethods
 from tableau_documents.tableau_connection import TableauConnection
-from tableau_documents.tableau_document import TableauDocument
+# from tableau_documents.tableau_document import TableauDocument
 from tableau_documents.tableau_columns import TableauColumns
 
 
 # Meant to represent a TDS file, does not handle the file opening
-class TableauDatasource(TableauDocument):
+class TableauDatasource(LoggingMethods):
     def __init__(self, datasource_xml: Optional[ET.Element] = None, logger_obj: Optional[Logger] = None,
                  ds_version: Optional[str] = None):
-        TableauDocument.__init__(self)
-        self._document_type = 'datasource'
+        # TableauDocument.__init__(self)
+        self.document_type = 'datasource'
         ET.register_namespace('t', self.ns_map['t'])
         self.logger = logger_obj
         self._connections = []
@@ -189,7 +190,7 @@ class TableauDatasource(TableauDocument):
             self.existing_tde_filename = c.get('dbname')
 
         # To make work as tableau_document from TableauFile
-        self._datasources.append(self)
+        # self._datasources.append(self)
 
         self._columns = None
         # Possible, though unlikely, that there would be no columns
@@ -199,6 +200,14 @@ class TableauDatasource(TableauDocument):
 
         self._extract_filename = None
         self.ds_generator = None
+
+    #@property
+    #def datasources(self) -> List[TableauDatasource]:
+    #    return self._datasources
+
+    #@property
+    #def document_type(self) -> str:
+    #     return self._document_type
 
     @property
     def tde_filename(self) -> str:

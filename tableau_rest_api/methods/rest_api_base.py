@@ -1,24 +1,26 @@
 # -*- coding: utf-8 -*-
 
 import os
-from typing import Union, Any, Optional, List, Dict, Tuple
+from typing import Union, Optional, List, Dict, Tuple
 from urllib.parse import urlencode
 import copy
 import xml.etree.ElementTree as ET
+import random
+import re
 
-from ...logger import Logger
-from ...logging import Logging
+from tableau_tools.logger import Logger
+from tableau_tools.logging_methods import LoggingMethods
 from ._lookups import LookupMethods
-from  ...tableau_documents.tableau_file import TableauFile
-from  ...tableau_exceptions import *
-from  ...tableau_rest_api.rest_xml_request import RestXmlRequest
-from  ...tableau_rest_api.rest_json_request import RestJsonRequest
-from  ...tableau_rest_api.published_content import Project, Project28, Project33, Workbook, Datasource, Flow33
-from  ...tableau_rest_api.url_filter import *
-from  ...tableau_rest_api.sort import *
+#from ..tableau_documents.tableau_file import TableauFile
+from tableau_exceptions import *
+from tableau_rest_api.rest_xml_request import RestXmlRequest
+from tableau_rest_api.rest_json_request import RestJsonRequest
+from tableau_rest_api.published_content import Project, Project28, Project33, Workbook, Datasource, Flow33
+from tableau_rest_api.url_filter import *
+from tableau_rest_api.sort import *
 
 
-class TableauRestApiBase(LookupMethods, Logging):
+class TableauRestApiBase(LookupMethods, LoggingMethods):
     # Defines a class that represents a RESTful connection to Tableau Server. Use full URL (http:// or https://)
     def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
         if server.find('http') == -1:
@@ -43,11 +45,6 @@ class TableauRestApiBase(LookupMethods, Logging):
 
         self._request_obj: Optional[RestXmlRequest] = None
         self._request_json_obj: Optional[RestJsonRequest] = None
-
-        # All defined in TableauBase superclass
-        self._site_roles = self.site_roles
-        self._permissionable_objects = self.permissionable_objects
-        self._server_to_rest_capability_map = self.server_to_rest_capability_map
 
         # Lookup caches to minimize calls
         self.username_luid_cache = {}
@@ -89,7 +86,7 @@ class TableauRestApiBase(LookupMethods, Logging):
 
     def set_tableau_server_version(self, tableau_server_version: str) -> str:
         if str(tableau_server_version)in ["10.3", "10.4", "10.5", '2018.1', '2018.2', '2018.3', '2019.1',
-                                          '2019.2', '2019.3', '2019.4', '2019.5', '2019.6']:
+                                          '2019.2', '2019.3', '2019.4']:
             if str(tableau_server_version) == '10.3':
                 self.api_version = '2.6'
             elif str(tableau_server_version) == '10.4':
@@ -114,6 +111,7 @@ class TableauRestApiBase(LookupMethods, Logging):
             self.ns_map = {'t': 'http://tableau.com/api'}
             self.version = tableau_server_version
             self.ns_prefix = '{' + self.ns_map['t'] + '}'
+            #print("Current API Version set to: {}".format(self.api_version))
             return self.api_version
 
         else:
@@ -1061,6 +1059,7 @@ class TableauRestApiBase(LookupMethods, Logging):
         # grab the server number
         for t in server_info:
             if t.tag.find('restApiVersion') != -1:
+                self.end_log_block()
                 return t.text
 
     def query_build_number(self) -> str:
@@ -1069,6 +1068,7 @@ class TableauRestApiBase(LookupMethods, Logging):
         # grab the server number
         for t in server_info:
             if t.tag.find('restApiVersion') != -1:
+                self.end_log_block()
                 return t.get('build')
 
     def query_api_version(self):
@@ -1077,6 +1077,7 @@ class TableauRestApiBase(LookupMethods, Logging):
         # grab api version number
         for t in server_info:
             if t.tag.find('productVersion') != -1:
+                self.end_log_block()
                 return t.text
 
     def update_online_site_logo(self, image_filename: str):
@@ -1129,9 +1130,16 @@ class TableauRestApiBase(LookupMethods, Logging):
         return self.send_publish_request(url, publish_request, None, boundary_string)
 
 class TableauRestApiBase27(TableauRestApiBase):
-    pass
+    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
+        TableauRestApiBase.__init__(self, server=server, username=username, password=password,
+                                    site_content_url=site_content_url)
+        self.set_tableau_server_version('10.4')
 
 class TableauRestApiBase28(TableauRestApiBase27):
+    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
+        TableauRestApiBase.__init__(self, server=server, username=username, password=password,
+                                    site_content_url=site_content_url)
+        self.set_tableau_server_version('10.5')
 
     def get_published_project_object(self, project_name_or_luid: str,
                                      project_xml_obj: Optional[ET.Element] = None) -> Project28:
@@ -1140,6 +1148,11 @@ class TableauRestApiBase28(TableauRestApiBase27):
         return proj_obj
 
 class TableauRestApiBase30(TableauRestApiBase28):
+    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
+        TableauRestApiBase.__init__(self, server=server, username=username, password=password,
+                                    site_content_url=site_content_url)
+        self.set_tableau_server_version('2018.1')
+
     @staticmethod
     def build_site_request_xml(site_name: Optional[str] = None, content_url: Optional[str] = None,
                                admin_mode: Optional[str] = None, tier_creator_capacity: Optional[str] = None,
@@ -1172,12 +1185,22 @@ class TableauRestApiBase30(TableauRestApiBase28):
         return tsr
 
 class TableauRestApiBase31(TableauRestApiBase30):
-    pass
+    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
+        TableauRestApiBase.__init__(self, server=server, username=username, password=password,
+                                    site_content_url=site_content_url)
+        self.set_tableau_server_version('2018.2')
 
 class TableauRestApiBase32(TableauRestApiBase31):
-    pass
+    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
+        TableauRestApiBase.__init__(self, server=server, username=username, password=password,
+                                    site_content_url=site_content_url)
+        self.set_tableau_server_version('2018.3')
 
 class TableauRestApiBase33(TableauRestApiBase32):
+    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
+        TableauRestApiBase.__init__(self, server=server, username=username, password=password,
+                                    site_content_url=site_content_url)
+        self.set_tableau_server_version('2019.1')
 
     def get_published_project_object(self, project_name_or_luid: str,
                                      project_xml_obj: Optional[ET.Element] = None) -> Project33:
@@ -1194,6 +1217,11 @@ class TableauRestApiBase33(TableauRestApiBase32):
         return flow_obj
 
 class TableauRestApiBase34(TableauRestApiBase33):
+    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
+        TableauRestApiBase.__init__(self, server=server, username=username, password=password,
+                                    site_content_url=site_content_url)
+        self.set_tableau_server_version('2019.2')
+
     # Generic implementation of all the CSV/PDF/PNG requests
     def _query_data_file(self, download_type: str, view_name_or_luid: Optional[str] = None, high_resolution: bool = False,
                          view_filter_map=Dict, wb_name_or_luid: Optional[str] = None,
@@ -1242,7 +1270,10 @@ class TableauRestApiBase34(TableauRestApiBase33):
 
 # NEED TO IMPLEMENT
 class TableauRestApiBase35(TableauRestApiBase34):
-    pass
+    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
+        TableauRestApiBase.__init__(self, server=server, username=username, password=password,
+                                    site_content_url=site_content_url)
+        self.set_tableau_server_version('2019.3')
 
     @staticmethod
     def build_site_request_xml(site_name: Optional[str] = None, content_url: Optional[str] = None,
@@ -1311,7 +1342,7 @@ class TableauRestApiBase36(TableauRestApiBase35):
     def __init__(self, server: str, username: Optional[str] = None, password: Optional[str] = None,
                  pat_name: Optional[str] = None, pat_secret: Optional[str] = None,
                  site_content_url: Optional[str] = ""):
-        TableauBase.__init__(self)
+        #TableauRestApiBase.__init__()
         if server.find('http') == -1:
             raise InvalidOptionException('Server URL must include http:// or https://')
 
@@ -1333,11 +1364,6 @@ class TableauRestApiBase36(TableauRestApiBase35):
         self._request_obj: Optional[RestXmlRequest] = None
         self._request_json_obj: Optional[RestJsonRequest] = None
 
-        # All defined in TableauBase superclass
-        self._site_roles = self.site_roles
-        self._permissionable_objects = self.permissionable_objects
-        self._server_to_rest_capability_map = self.server_to_rest_capability_map
-
         # Lookup caches to minimize calls
         self.username_luid_cache = {}
         self.group_name_luid_cache = {}
@@ -1345,6 +1371,9 @@ class TableauRestApiBase36(TableauRestApiBase35):
         # For working around SSL issues
         self.verify_ssl_cert = True
 
+        self.version: Optional[str] = None
+        self.api_version: Optional[str]  = None
+        # Starting in version 5 of tableau_tools, 10.3 is the lowest supported version
         self.set_tableau_server_version("2019.4")
 
     def signin(self, user_luid_to_impersonate: Optional[str] = None):

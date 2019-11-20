@@ -5,14 +5,17 @@ import os
 import shutil
 import codecs
 from typing import Union, Any, Optional, List, Dict, Tuple
+import xml.etree.ElementTree as ET
 
-from tableau_tools.tableau_base import *
-from tableau_documents.tableau_datasource import TableauDatasource
-from tableau_documents.tableau_workbook import TableauWorkbook
-from tableau_documents.tableau_document import TableauDocument
+from tableau_tools.logging_methods import LoggingMethods
+from tableau_tools.logger import Logger
+from tableau_tools.tableau_exceptions import *
+from .tableau_datasource import TableauDatasource
+from .tableau_workbook import TableauWorkbook
+# from tableau_documents.tableau_document import TableauDocument
 
 
-class TableauFile(TableauBase):
+class TableauFile(LoggingMethods):
     def __init__(self, filename: str, logger_obj: Optional[Logger] = None,
                  create_new: bool = False, ds_version: Optional[str] = '10'):
         self.logger: Optional[Logger] = logger_obj
@@ -20,12 +23,14 @@ class TableauFile(TableauBase):
         self.packaged_file: bool = False
         self.packaged_filename: Optional[str] = None
         self.tableau_xml_file: Optional[ET.Element] = None
-        self._tableau_document: Optional[TableauDocument] = None
+        #self._tableau_document: Optional[TableauDocument] = None
         self._original_file_type: Optional[str] = None
         self._final_file_type: Optional[str] = None
         self.other_files: List[str] = []
         self.temp_filename: Optional[str] = None
         self.orig_filename: str = filename
+        self._document_type = None
+
         if filename is None:
             # Assume we start as TDS when building from scratch
             self._original_file_type = 'tds'
@@ -71,7 +76,7 @@ class TableauFile(TableauBase):
                             self.other_files.append(name)
 
                     self.tableau_xml_file = TableauFile(self.packaged_filename, self.logger)
-                    self._tableau_document = self.tableau_xml_file.tableau_document
+                    self._tableau_document = self.tableau_xml_file._tableau_document
                 elif self.file_type == 'twb':
                     self._tableau_document = TableauWorkbook(filename, self.logger)
                 elif self.file_type == 'tds':
@@ -105,12 +110,21 @@ class TableauFile(TableauBase):
             raise
 
     @property
+    def tableau_document(self) -> Union[TableauDatasource, TableauWorkbook]:
+        return self._tableau_document
+
+    @property
     def file_type(self) -> str:
         return self._original_file_type
 
     @property
-    def tableau_document(self) -> TableauDocument:
-        return self._tableau_document
+    def datasources(self) -> List[TableauDatasource]:
+        if self._tableau_document.document_type == 'workbook':
+            return self._tableau_document.datasources
+        elif self._tableau_document.document_type == 'datasource':
+            return List[self._tableau_document, ]
+        else:
+            return []
 
     # Appropriate extension added if needed
     def save_new_file(self, new_filename_no_extension: str, data_file_replacement_map: Optional[Dict],
@@ -121,7 +135,7 @@ class TableauFile(TableauBase):
             new_filename = new_filename_no_extension
         self.log('Saving to a file with new filename {}'.format(new_filename))
         # Change filetype if there are new extracts to add
-        for ds in self.tableau_document.datasources:
+        for ds in self.datasources:
             if ds.tde_filename is not None or new_data_files_map is not None:
                 if self.file_type == 'twb':
                     self._final_file_type = 'twbx'

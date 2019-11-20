@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 
 from tableau_tools.logger import Logger
 
-class Logging:
+class LoggingMethods:
     # Logging Methods
     def enable_logging(self, logger_obj: Logger):
         self.logger = logger_obj

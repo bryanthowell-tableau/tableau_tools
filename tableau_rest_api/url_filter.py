@@ -1,4 +1,4 @@
-from ..tableau_exceptions import *
+from tableau_tools.tableau_exceptions import *
 
 
 class UrlFilter:

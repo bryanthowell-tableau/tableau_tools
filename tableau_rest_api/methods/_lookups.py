@@ -1,5 +1,5 @@
-from .rest_api_base import *
-
+#from tableau_rest_api.methods.rest_api_base import *
+from typing import Union, Optional
 # These find LUIDs from real names or other aspects. They get added to the RestApiBase class because methods on
 # almost any different object might need a LUID from any of the others
 class LookupMethods():

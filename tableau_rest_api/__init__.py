@@ -1,7 +1,17 @@
-from tableau_rest_api.tableau_rest_api_connection import TableauRestApiConnection, TableauRestApiConnection27, TableauRestApiConnection28, TableauRestApiConnection30,  TableauRestApiConnection31,  TableauRestApiConnection32, TableauRestApiConnection33,  TableauRestApiConnection34, TableauRestApiConnection35, TableauRestApiConnection36
-from tableau_rest_api.tableau_server_rest import TableauServerRest, TableauServerRest27, TableauServerRest28, TableauServerRest30, TableauServerRest31, TableauServerRest32, TableauServerRest33, TableauServerRest34, TableauServerRest35, TableauServerRest36
-from tableau_rest_api.sort import Sort
-# from tableau_rest_api.methods import *
-from tableau_rest_api.url_filter import UrlFilter, UrlFilter27, UrlFilter28
-from tableau_rest_api.published_content import Project, Project28, Project33, Workbook, Datasource, Flow33
-from tableau_rest_api.permissions import *
+from tableau_rest_api.methods._lookups import *
+from tableau_rest_api.methods.alert import *
+from tableau_rest_api.methods.datasource import *
+from tableau_rest_api.methods.extract import *
+from tableau_rest_api.methods.favorites import *
+from tableau_rest_api.methods.flow import *
+from tableau_rest_api.methods.group import *
+from tableau_rest_api.methods.metadata import *
+from tableau_rest_api.methods.project import *
+from tableau_rest_api.methods.revision import *
+from tableau_rest_api.methods.schedule import *
+from tableau_rest_api.methods.site import *
+from tableau_rest_api.methods.subscription import *
+from tableau_rest_api.methods.user import *
+from tableau_rest_api.methods.webhooks import *
+from tableau_rest_api.methods.workbook import *
+

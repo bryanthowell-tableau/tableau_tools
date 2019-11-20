@@ -10,15 +10,16 @@ import sys
 import json
 from typing import Union, Any, Optional, List, Dict
 
-from ..logging import Logging
-from ..tableau_exceptions import *
+from tableau_tools.logging_methods import LoggingMethods
+from tableau_tools.logger import Logger
+from tableau_tools.tableau_exceptions import *
 
 # NOTE
 # JSON Requests are not implemented for anything besides GET requests at the moment
 # There is a lot of code in here based on the RestXmlRequest class, which would need to be cleaned up to handle
 # all of the request types.
 # Handles all of the actual HTTP calling
-class RestJsonRequest(Logging):
+class RestJsonRequest(LoggingMethods):
     def __init__(self, url: Optional[str] = None, token: Optional[str] = None, logger: Optional[Logger] = None,
                  ns_map_url: str='http://tableau.com/api',
                  verify_ssl_cert: bool = True):
@@ -48,7 +49,7 @@ class RestJsonRequest(Logging):
         self._http_verb = None
         self.__response_type = None
         self.__last_response_content_type = None
-        self.__luid_pattern = self.luid_pattern
+        self.__luid_pattern = r"[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*"
         self.__verify_ssl_cert = verify_ssl_cert
 
         try:

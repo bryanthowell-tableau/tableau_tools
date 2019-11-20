@@ -1,5 +1,5 @@
 from .rest_api_base import *
-from ..permissions import DatabasePermissions35, TablePermissions35
+from tableau_rest_api.permissions import DatabasePermissions35, TablePermissions35
 import json
 
 

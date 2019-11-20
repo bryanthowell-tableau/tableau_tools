@@ -5,88 +5,12 @@ import re
 from typing import Union, Any, Optional, List, Dict, Tuple
 
 # from ..tableau_base import *
-from tableau_documents.tableau_document import TableauDocument
+
 from tableau_tools.tableau_exceptions import *
+from tableau_tools.logging_methods import LoggingMethods
+from tableau_tools.logger import Logger
 
-
-class TableauParameters(TableauDocument):
-    def __init__(self, datasource_xml: Optional[ET.Element] = None, logger_obj: Optional[Logger] = None):
-
-        TableauDocument.__init__(self)
-        self.logger: Optional[Logger] = logger_obj
-        self._parameters: Dict = {}
-        self._highest_param_num: int = 1
-        self.log('Initializing TableauParameters object')
-        self._document_type = 'parameters'
-        # Initialize new Parameters datasource if existing xml is not passed in
-
-        if datasource_xml is None:
-            self.log('No Parameter XML passed in, building from scratch')
-            self.ds_xml = ET.Element("datasource")
-            self.ds_xml.set('name', 'Parameters')
-            # Initialization of the datasource
-            self.ds_xml.set('hasconnection', 'false')
-            self.ds_xml.set('inline', 'true')
-            a = ET.Element('aliases')
-            a.set('enabled', 'yes')
-            self.ds_xml.append(a)
-        else:
-            self.log('Parameter XML passed in, finding essential characteristics')
-            self.ds_xml = datasource_xml
-            params_xml = self.ds_xml.findall('./column')
-            numbered_parameter_regex = re.compile("\[Parameter (\d+)\]")
-            for column in params_xml:
-                alias: str = column.get('caption')
-                internal_name: str = column.get('name')
-                # Parameters are all given internal name [Parameter #], unless they are copies where they
-                # end with (copy) h/t Jeff James for discovering
-                regex_match = numbered_parameter_regex.match(internal_name)
-                if regex_match and regex_match.group(1):
-                    param_num = int(regex_match.group(1))
-                    # Move up the highest_param_num counter for when you add new ones
-                    if param_num > self._highest_param_num:
-                        self._highest_param_num = param_num
-
-                p = TableauParameter(parameter_xml=column, logger_obj=self.logger)
-                self._parameters[alias] = p
-
-    def get_datasource_xml(self) -> str:
-        self.start_log_block()
-        xmlstring = ET.tostring(self.ds_xml)
-        self.end_log_block()
-        return xmlstring
-
-    def get_parameter_by_name(self, parameter_name: str) -> TableauParameter:
-        for p in self._parameters:
-            if p.name == parameter_name:
-                return p
-        else:
-            raise NoMatchFoundException('No parameter named {}'.format(parameter_name))
-
-    def create_new_parameter(self, name: Optional[str] = None, datatype: Optional[str] = None,
-                             current_value: Optional[str] = None) -> TableauParameter:
-        # Need to check existing Parameter numbers
-        self._highest_param_num += 1
-        p = TableauParameter(parameter_xml=None, parameter_number=self._highest_param_num, logger_obj=self.logger,
-                             name=name, datatype=datatype, current_value=current_value)
-
-        return p
-
-    def add_parameter(self, parameter: TableauParameter):
-        if isinstance(parameter, TableauParameter) is not True:
-            raise InvalidOptionException('parameter must be a TableauParameter object')
-        self._parameters[parameter.name] = parameter
-
-    def delete_parameter_by_name(self, parameter_name: str):
-        if self._parameters.get(parameter_name) is not None:
-            param_xml = self.ds_xml.find('./column[@caption="{}"]'.format(parameter_name))
-            del self._parameters[parameter_name]
-            # Might be unnecessary but who am I to say what won't happen
-            if param_xml is not None:
-                self.ds_xml.remove(param_xml)
-
-
-class TableauParameter(TableauBase):
+class TableauParameter(LoggingMethods):
     def __init__(self, parameter_xml: Optional[ET.Element] = None, parameter_number: Optional[int] = None,
                  logger_obj: Optional[Logger] = None, name: Optional[str] = None, datatype: Optional[str] = None,
                  current_value: Optional[str] = None):
@@ -298,3 +222,81 @@ class TableauParameter(TableauBase):
             calc.set('formula', str(actual_value))
 
         self.p_xml.append(calc)
+
+class TableauParameters(LoggingMethods):
+    def __init__(self, datasource_xml: Optional[ET.Element] = None, logger_obj: Optional[Logger] = None):
+
+        self.logger: Optional[Logger] = logger_obj
+        self._parameters: Dict = {}
+        self._highest_param_num: int = 1
+        self.log('Initializing TableauParameters object')
+        self._document_type = 'parameters'
+        # Initialize new Parameters datasource if existing xml is not passed in
+
+        if datasource_xml is None:
+            self.log('No Parameter XML passed in, building from scratch')
+            self.ds_xml = ET.Element("datasource")
+            self.ds_xml.set('name', 'Parameters')
+            # Initialization of the datasource
+            self.ds_xml.set('hasconnection', 'false')
+            self.ds_xml.set('inline', 'true')
+            a = ET.Element('aliases')
+            a.set('enabled', 'yes')
+            self.ds_xml.append(a)
+        else:
+            self.log('Parameter XML passed in, finding essential characteristics')
+            self.ds_xml = datasource_xml
+            params_xml = self.ds_xml.findall('./column')
+            numbered_parameter_regex = re.compile("\[Parameter (\d+)\]")
+            for column in params_xml:
+                alias: str = column.get('caption')
+                internal_name: str = column.get('name')
+                # Parameters are all given internal name [Parameter #], unless they are copies where they
+                # end with (copy) h/t Jeff James for discovering
+                regex_match = numbered_parameter_regex.match(internal_name)
+                if regex_match and regex_match.group(1):
+                    param_num = int(regex_match.group(1))
+                    # Move up the highest_param_num counter for when you add new ones
+                    if param_num > self._highest_param_num:
+                        self._highest_param_num = param_num
+
+                p = TableauParameter(parameter_xml=column, logger_obj=self.logger)
+                self._parameters[alias] = p
+
+    def get_datasource_xml(self) -> str:
+        self.start_log_block()
+        xmlstring = ET.tostring(self.ds_xml)
+        self.end_log_block()
+        return xmlstring
+
+    def get_parameter_by_name(self, parameter_name: str) -> TableauParameter:
+        for p in self._parameters:
+            if p.name == parameter_name:
+                return p
+        else:
+            raise NoMatchFoundException('No parameter named {}'.format(parameter_name))
+
+    def create_new_parameter(self, name: Optional[str] = None, datatype: Optional[str] = None,
+                             current_value: Optional[str] = None) -> TableauParameter:
+        # Need to check existing Parameter numbers
+        self._highest_param_num += 1
+        p = TableauParameter(parameter_xml=None, parameter_number=self._highest_param_num, logger_obj=self.logger,
+                             name=name, datatype=datatype, current_value=current_value)
+
+        return p
+
+    def add_parameter(self, parameter: TableauParameter):
+        if isinstance(parameter, TableauParameter) is not True:
+            raise InvalidOptionException('parameter must be a TableauParameter object')
+        self._parameters[parameter.name] = parameter
+
+    def delete_parameter_by_name(self, parameter_name: str):
+        if self._parameters.get(parameter_name) is not None:
+            param_xml = self.ds_xml.find('./column[@caption="{}"]'.format(parameter_name))
+            del self._parameters[parameter_name]
+            # Might be unnecessary but who am I to say what won't happen
+            if param_xml is not None:
+                self.ds_xml.remove(param_xml)
+
+
+

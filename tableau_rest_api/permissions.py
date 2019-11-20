@@ -1,10 +1,157 @@
 from typing import Union, Any, Optional, List, Dict
 
-from ..logging import Logging
-from ..tableau_exceptions import *
+from tableau_tools.logging_methods import LoggingMethods
+from tableau_tools.tableau_exceptions import *
+import xml.etree.ElementTree as ET
 
 # Represents the Permissions from any given user or group. Equivalent to GranteeCapabilities in the API
-class Permissions(Logging):
+class Permissions(LoggingMethods):
+    capabilities_2_1 = {
+        "project": ("Read", "Write", 'ProjectLeader'),
+        "workbook": (
+            'Read',
+            'ExportImage',
+            'ExportData',
+            'ViewComments',
+            'AddComment',
+            'Filter',
+            'ViewUnderlyingData',
+            'ShareView',
+            'WebAuthoring',
+            'Write',
+            'ExportXml',
+            'ChangeHierarchy',
+            'Delete',
+            'ChangePermissions',
+
+        ),
+        "datasource": (
+            'Read',
+            'Connect',
+            'Write',
+            'ExportXml',
+            'Delete',
+            'ChangePermissions'
+        )
+    }
+
+    capabilities_2_8 = {
+        "project": ("Read", "Write", 'ProjectLeader', 'InheritedProjectLeader'),
+        "workbook": (
+            'Read',
+            'ExportImage',
+            'ExportData',
+            'ViewComments',
+            'AddComment',
+            'Filter',
+            'ViewUnderlyingData',
+            'ShareView',
+            'WebAuthoring',
+            'Write',
+            'ExportXml',
+            'ChangeHierarchy',
+            'Delete',
+            'ChangePermissions',
+
+        ),
+        "datasource": (
+            'Read',
+            'Connect',
+            'Write',
+            'ExportXml',
+            'Delete',
+            'ChangePermissions'
+        )
+    }
+
+    capabilities_3_3 = {
+        "project": ("Read", "Write", 'ProjectLeader', 'InheritedProjectLeader'),
+        "workbook": (
+            'Read',
+            'ExportImage',
+            'ExportData',
+            'ViewComments',
+            'AddComment',
+            'Filter',
+            'ViewUnderlyingData',
+            'ShareView',
+            'WebAuthoring',
+            'Write',
+            'ExportXml',
+            'ChangeHierarchy',
+            'Delete',
+            'ChangePermissions',
+
+        ),
+        "datasource": (
+            'Read',
+            'Connect',
+            'Write',
+            'ExportXml',
+            'Delete',
+            'ChangePermissions'
+        ),
+        'flow': (
+            'ChangeHierarchy',
+            'ChangePermissions',
+            'Delete',
+            'ExportXml',
+            'Read',
+            'Write'
+        )
+    }
+
+    capabilities_3_5 = {
+        "project": ("Read", "Write", 'ProjectLeader', 'InheritedProjectLeader'),
+        "workbook": (
+            'Read',
+            'ExportImage',
+            'ExportData',
+            'ViewComments',
+            'AddComment',
+            'Filter',
+            'ViewUnderlyingData',
+            'ShareView',
+            'WebAuthoring',
+            'Write',
+            'ExportXml',
+            'ChangeHierarchy',
+            'Delete',
+            'ChangePermissions',
+
+        ),
+        "datasource": (
+            'Read',
+            'Connect',
+            'Write',
+            'ExportXml',
+            'Delete',
+            'ChangePermissions'
+        ),
+        'flow': (
+            'ChangeHierarchy',
+            'ChangePermissions',
+            'Delete',
+            'ExportXml',
+            'Read',
+            'Write'
+        )
+    }
+
+    available_capabilities = {
+        '2.6': capabilities_2_1,
+        '2.7': capabilities_2_1,
+        '2.8': capabilities_2_8,
+        '3.0': capabilities_2_8,
+        '3.1': capabilities_2_8,
+        '3.2': capabilities_2_8,
+        '3.3': capabilities_3_3,
+        '3.4': capabilities_3_3,
+        '3.5': capabilities_3_5,
+        '3.6': capabilities_3_5
+
+    }
+
     def __init__(self, group_or_user: str, luid: str, content_type: Optional[str] = None):
         if group_or_user not in ['group', 'user']:
             raise InvalidOptionException('group_or_user must be "group" or "user"')
@@ -13,7 +160,6 @@ class Permissions(Logging):
         self._luid = luid
         # Get total set of capabilities, set to None by default
         self.capabilities = {}
-        self.__server_to_rest_capability_map = self.server_to_rest_capability_map
         self.__allowable_modes = ['Allow', 'Deny', None]
         self.role_set = {
             'Publisher': {
@@ -158,7 +304,7 @@ class Permissions(Logging):
             '3.6': server_content_roles_3_5
         }
 
-        self.server_to_rest_capability_map = {
+        self.__server_to_rest_capability_map = {
             'Add Comment': 'AddComment',
             'Move': 'ChangeHierarchy',
             'Set Permissions': 'ChangePermissions',
@@ -183,151 +329,7 @@ class Permissions(Logging):
             'all': 'all'  # special command to do everything
         }
 
-        capabilities_2_1 = {
-                "project": ("Read", "Write", 'ProjectLeader'),
-                "workbook": (
-                    'Read',
-                    'ExportImage',
-                    'ExportData',
-                    'ViewComments',
-                    'AddComment',
-                    'Filter',
-                    'ViewUnderlyingData',
-                    'ShareView',
-                    'WebAuthoring',
-                    'Write',
-                    'ExportXml',
-                    'ChangeHierarchy',
-                    'Delete',
-                    'ChangePermissions',
 
-                ),
-                "datasource": (
-                    'Read',
-                    'Connect',
-                    'Write',
-                    'ExportXml',
-                    'Delete',
-                    'ChangePermissions'
-                )
-            }
-
-        capabilities_2_8 = {
-                "project": ("Read", "Write", 'ProjectLeader', 'InheritedProjectLeader'),
-                "workbook": (
-                    'Read',
-                    'ExportImage',
-                    'ExportData',
-                    'ViewComments',
-                    'AddComment',
-                    'Filter',
-                    'ViewUnderlyingData',
-                    'ShareView',
-                    'WebAuthoring',
-                    'Write',
-                    'ExportXml',
-                    'ChangeHierarchy',
-                    'Delete',
-                    'ChangePermissions',
-
-                ),
-                "datasource": (
-                    'Read',
-                    'Connect',
-                    'Write',
-                    'ExportXml',
-                    'Delete',
-                    'ChangePermissions'
-                )
-            }
-
-        capabilities_3_3 = {
-                "project": ("Read", "Write", 'ProjectLeader', 'InheritedProjectLeader'),
-                "workbook": (
-                    'Read',
-                    'ExportImage',
-                    'ExportData',
-                    'ViewComments',
-                    'AddComment',
-                    'Filter',
-                    'ViewUnderlyingData',
-                    'ShareView',
-                    'WebAuthoring',
-                    'Write',
-                    'ExportXml',
-                    'ChangeHierarchy',
-                    'Delete',
-                    'ChangePermissions',
-
-                ),
-                "datasource": (
-                    'Read',
-                    'Connect',
-                    'Write',
-                    'ExportXml',
-                    'Delete',
-                    'ChangePermissions'
-                ),
-                'flow': (
-                    'ChangeHierarchy',
-                    'ChangePermissions',
-                    'Delete',
-                    'ExportXml',
-                    'Read',
-                    'Write'
-                )
-            }
-
-        capabilities_3_5 = {
-                "project": ("Read", "Write", 'ProjectLeader', 'InheritedProjectLeader'),
-                "workbook": (
-                    'Read',
-                    'ExportImage',
-                    'ExportData',
-                    'ViewComments',
-                    'AddComment',
-                    'Filter',
-                    'ViewUnderlyingData',
-                    'ShareView',
-                    'WebAuthoring',
-                    'Write',
-                    'ExportXml',
-                    'ChangeHierarchy',
-                    'Delete',
-                    'ChangePermissions',
-
-                ),
-                "datasource": (
-                    'Read',
-                    'Connect',
-                    'Write',
-                    'ExportXml',
-                    'Delete',
-                    'ChangePermissions'
-                ),
-                'flow': (
-                    'ChangeHierarchy',
-                    'ChangePermissions',
-                    'Delete',
-                    'ExportXml',
-                    'Read',
-                    'Write'
-                )
-            }
-
-        self.available_capabilities = {
-            '2.6': capabilities_2_1,
-            '2.7': capabilities_2_1,
-            '2.8': capabilities_2_8,
-            '3.0': capabilities_2_8,
-            '3.1': capabilities_2_8,
-            '3.2': capabilities_2_8,
-            '3.3': capabilities_3_3,
-            '3.4': capabilities_3_3,
-            '3.5': capabilities_3_5,
-            '3.6': capabilities_3_5
-
-        }
 
     def convert_server_permission_name_to_rest_permission(self, permission_name: str) -> str:
         if permission_name in self.server_to_rest_capability_map:
@@ -457,10 +459,10 @@ class Permissions(Logging):
             elif role_capabilities[cap] is None:
                 self.set_capability_to_unspecified(cap)
 
-class WorkbookPermissions21(Permissions):
+class WorkbookPermissions(Permissions):
     def __init__(self, group_or_user, group_or_user_luid):
         Permissions.__init__(self, group_or_user, group_or_user_luid, u'workbook')
-        for cap in self.available_capabilities[u'2.1'][u'workbook']:
+        for cap in self.available_capabilities[u'2.6'][u'workbook']:
             if cap != u'all':
                 self.capabilities[cap] = None
         self.role_set = {
@@ -513,10 +515,10 @@ class WorkbookPermissions28(Permissions):
                     }
                 }
 
-class ProjectPermissions21(Permissions):
+class ProjectPermissions(Permissions):
     def __init__(self, group_or_user, group_or_user_luid):
         Permissions.__init__(self, group_or_user, group_or_user_luid, u'project')
-        for cap in self.available_capabilities[u'2.1'][u'project']:
+        for cap in self.available_capabilities[u'2.6'][u'project']:
             if cap != u'all':
                 self.capabilities[cap] = None
         self.role_set = {
@@ -558,10 +560,10 @@ class ProjectPermissions28(Permissions):
             }
         }
 
-class DatasourcePermissions21(Permissions):
+class DatasourcePermissions(Permissions):
     def __init__(self, group_or_user, group_or_user_luid):
         Permissions.__init__(self, group_or_user, group_or_user_luid, u'datasource')
-        for cap in self.available_capabilities[u'2.1'][u'datasource']:
+        for cap in self.available_capabilities[u'2.6'][u'datasource']:
             if cap != u'all':
                 self.capabilities[cap] = None
         self.role_set = {

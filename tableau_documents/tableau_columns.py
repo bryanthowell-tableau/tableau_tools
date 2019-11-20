@@ -2,13 +2,15 @@
 from typing import Union, Any, Optional, List, Dict, Tuple
 import xml.etree.ElementTree as ET
 
-from tableau_tools.tableau_base import TableauBase
-from tableau_tools.logger import Logger
+# from tableau_tools.tableau_base import TableauBase
 from tableau_tools.tableau_exceptions import *
+from tableau_tools.logger import Logger
+from tableau_tools.logging_methods import LoggingMethods
+
 from tableau_documents.tableau_parameters import TableauParameter
 
 
-class TableauColumns(TableauBase):
+class TableauColumns(LoggingMethods):
     def __init__(self, columns_list: List[ET.Element], logger_obj: Optional[Logger] = None):
         self.logger = logger_obj
         self.log_debug('Initializing a TableauColumns object')
@@ -36,7 +38,7 @@ class TableauColumns(TableauBase):
             raise NoMatchFoundException('No column named {}'.format(column_name))
 
 
-class TableauColumn(TableauBase):
+class TableauColumn(LoggingMethods):
     def __init__(self, column_xml_obj: ET.Element, logger_obj: Optional[Logger] = None):
         self.logger = logger_obj
         self.log_debug('Initializing TableauColumn object')
@@ -95,7 +97,7 @@ class TableauColumn(TableauBase):
         self.xml_obj.set('type', final_aggregation_type)
 
 
-class TableauHierarchies(TableauBase):
+class TableauHierarchies(LoggingMethods):
     def __init__(self, hierarchies_xml: ET.Element, logger_obj: Optional[Logger] = None):
         self.logger = logger_obj
         self.log_debug('Initializing TableauHierarchies object')
@@ -110,7 +112,7 @@ class TableauHierarchies(TableauBase):
             raise NoMatchFoundException('No hierarchy named {}'.format(hierarchy_name))
 
 
-class TableauHierarchy(TableauBase):
+class TableauHierarchy(LoggingMethods):
     def __init__(self, hierarchy_xml: ET.Element, logger_obj: Optional[Logger] = None):
         self.logger = logger_obj
         self.log_debug('Initializing TableauHierarchies object')

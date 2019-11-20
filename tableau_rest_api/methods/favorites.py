@@ -1,5 +1,7 @@
 from .rest_api_base import *
 
+import xml.etree.ElementTree as ET
+
 class FavoritesMethods():
     def __init__(self, rest_api_base: TableauRestApiBase):
         self.rest_api_base = rest_api_base
@@ -8,15 +10,15 @@ class FavoritesMethods():
         return getattr(self.rest_api_base, attr)
 
     def add_workbook_to_user_favorites(self, favorite_name: str, wb_name_or_luid: str,
-                                       username_or_luid: str, proj_name_or_luid: Optional[str] = None) -> etree.Element:
+                                       username_or_luid: str, proj_name_or_luid: Optional[str] = None) -> ET.Element:
         self.start_log_block()
         wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
         user_luid =  self.query_user_luid(username_or_luid)
 
-        tsr = etree.Element('tsRequest')
-        f = etree.Element('favorite')
+        tsr = ET.Element('tsRequest')
+        f = ET.Element('favorite')
         f.set('label', favorite_name)
-        w = etree.Element('workbook')
+        w = ET.Element('workbook')
         w.set('id', wb_luid)
         f.append(w)
         tsr.append(f)
@@ -29,7 +31,7 @@ class FavoritesMethods():
     def add_view_to_user_favorites(self, favorite_name: str, username_or_luid: str,
                                    view_name_or_luid: Optional[str]= None, view_content_url: Optional[str] = None,
                                    wb_name_or_luid: Optional[str] = None,
-                                   proj_name_or_luid: Optional[str] = None) -> etree.Element:
+                                   proj_name_or_luid: Optional[str] = None) -> ET.Element:
         self.start_log_block()
         if self.is_luid(view_name_or_luid):
             view_luid = view_name_or_luid
@@ -41,10 +43,10 @@ class FavoritesMethods():
             self.log('View luid found {}'.format(view_luid))
 
         user_luid = self.query_user_luid(username_or_luid)
-        tsr = etree.Element('tsRequest')
-        f = etree.Element('favorite')
+        tsr = ET.Element('tsRequest')
+        f = ET.Element('favorite')
         f.set('label', favorite_name)
-        v = etree.Element('view')
+        v = ET.Element('view')
         v.set('id', view_luid)
         f.append(v)
         tsr.append(f)
@@ -54,7 +56,7 @@ class FavoritesMethods():
         self.end_log_block()
         return update_response
 
-    def query_user_favorites(self, username_or_luid: str) -> etree.Element:
+    def query_user_favorites(self, username_or_luid: str) -> ET.Element:
         self.start_log_block()
         user_luid = self.query_user_luid(username_or_luid)
         favorites = self.query_resource("favorites/{}/".format(user_luid))
@@ -102,10 +104,10 @@ class FavoritesMethods():
         for ds in dses:
             datasource_luid = self.query_datasource_luid(ds, p_name_or_luid)
 
-            tsr = etree.Element('tsRequest')
-            f = etree.Element('favorite')
+            tsr = ET.Element('tsRequest')
+            f = ET.Element('favorite')
             f.set('label', favorite_name)
-            d = etree.Element('datasource')
+            d = ET.Element('datasource')
             d.set('id', datasource_luid)
             f.append(d)
             tsr.append(f)
@@ -142,14 +144,14 @@ class FavoritesMethods31(FavoritesMethods30):
     def __init__(self, rest_api_base: TableauRestApiBase31):
         self.rest_api_base = rest_api_base
 
-    def add_project_to_user_favorites(self, favorite_name: str, proj_name_or_luid: str) -> etree.Element:
+    def add_project_to_user_favorites(self, favorite_name: str, proj_name_or_luid: str) -> ET.Element:
         self.start_log_block()
         proj_luid = self.query_project_luid(proj_name_or_luid)
 
-        tsr = etree.Element('tsRequest')
-        f = etree.Element('favorite')
+        tsr = ET.Element('tsRequest')
+        f = ET.Element('favorite')
         f.set('label', favorite_name)
-        w = etree.Element('project')
+        w = ET.Element('project')
         w.set('id', proj_luid)
         f.append(w)
         tsr.append(f)

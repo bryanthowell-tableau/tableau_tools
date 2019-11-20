@@ -1,6 +1,6 @@
-from ..logging import Logging
-from ..tableau_exceptions import *
-from ..logger import Logger
+from tableau_tools.logging_methods import LoggingMethods
+from tableau_tools.tableau_exceptions import *
+from tableau_tools.logger import Logger
 import xml.etree.ElementTree as ET
 # from HTMLParser import HTMLParser
 # from StringIO import StringIO
@@ -14,7 +14,7 @@ from typing import Union, Any, Optional, List, Dict, Tuple
 
 
 # Handles all of the actual HTTP calling
-class RestXmlRequest(Logging):
+class RestXmlRequest(LoggingMethods):
     def __init__(self, url: Optional[str] = None, token: Optional[str] = None, logger: Optional[Logger] = None,
                  ns_map_url: str ='http://tableau.com/api',
                  verify_ssl_cert: bool = True):
@@ -33,6 +33,7 @@ class RestXmlRequest(Logging):
         self.__last_url_request = None
         self.__last_response_headers = None
         self.__xml_object = None
+        self.__luid_pattern = r"[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*"
 
         # This sets the namespace globally so you can do XPath with t:
         self.ns_map = {'t': ns_map_url}
@@ -46,7 +47,6 @@ class RestXmlRequest(Logging):
         self._http_verb = None
         self.__response_type = None
         self.__last_response_content_type = None
-        self.__luid_pattern = self.luid_pattern
         self.__verify_ssl_cert = verify_ssl_cert
 
         try:

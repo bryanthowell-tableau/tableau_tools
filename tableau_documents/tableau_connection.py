@@ -1,14 +1,16 @@
 import xml.etree.ElementTree as ET
 from typing import Union, Any, Optional, List, Dict, Tuple
 
-from tableau_tools.tableau_base import *
+# from tableau_tools.tableau_base import *
 from tableau_tools.tableau_exceptions import *
+from tableau_tools.logger import Logger
+from tableau_tools.logging_methods import LoggingMethods
 
 
 # Represents the actual Connection tag of a given datasource
-class TableauConnection(TableauBase):
+class TableauConnection(LoggingMethods):
     def __init__(self, connection_xml_obj: ET.Element, logger_obj: Optional[Logger] = None):
-        TableauBase.__init__(self)
+        #TableauBase.__init__(self)
         self.logger = logger_obj
         self.connection_name = None
         # Differentiate between named-connection and connection itself

@@ -4,16 +4,19 @@ import codecs
 import xml.etree.ElementTree as ET
 from typing import Union, Any, Optional, List, Dict, Tuple
 
-from tableau_tools.tableau_base import *
-from tableau_documents.tableau_datasource import TableauDatasource
-from tableau_documents.tableau_parameters import TableauParameters
-from tableau_documents.tableau_document import TableauDocument
+from tableau_tools.logging_methods import LoggingMethods
+from tableau_tools.logger import Logger
+from tableau_tools.tableau_exceptions import *
+
+from .tableau_datasource import TableauDatasource
+from .tableau_parameters import TableauParameters
+# from tableau_documents.tableau_document import TableauDocument
 
 
-class TableauWorkbook(TableauDocument):
+class TableauWorkbook(LoggingMethods):
     def __init__(self, twb_filename: str, logger_obj: Optional[Logger] = None):
-        TableauDocument.__init__(self)
-        self._document_type = 'workbook'
+        #TableauDocument.__init__(self)
+        self.document_type = 'workbook'
         self.parameters = None
         self.logger = logger_obj
         self.log('Initializing a TableauWorkbook object')
@@ -22,6 +25,7 @@ class TableauWorkbook(TableauDocument):
         if self.twb_filename.find('.twb') == -1:
             raise InvalidOptionException('Must input a .twb filename that exists')
         self.build_document_objects(self.twb_filename)
+        self.datasources: List[TableauDatasource] = []
 
     def build_document_objects(self, filename: str):
         wb_fh = codecs.open(filename, 'r', encoding='utf-8')
