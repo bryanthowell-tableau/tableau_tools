@@ -56,11 +56,6 @@ class MetadataMethods35():
         self.rest_api_base.send_delete_request(url)
         self.end_log_block()
 
-
-    # UNFINISHED
-    def query_database_permissions(self, database_name_or_luid: str) -> DatabasePermissions35:
-        pass
-
     def query_tables(self) -> ET.Element:
         self.start_log_block()
         response = self.query_resource("tables")
@@ -211,11 +206,18 @@ class MetadataMethods35():
     # Need to implement POST on the RestJsonRequest object to be able to do this
     def graphql(self, graphql_query: str) -> Dict:
         self.start_log_block()
-        json_dict = json.loads(graphql_query)
+        graphql_json = {"query": graphql_query}
         url = self.rest_api_base.build_api_url("metadata")
-        response = self.rest_api_base.send_add_request_json(url, json_dict)
-        self.end_log_block()
-        return response
+        try:
+            response = self.rest_api_base.send_add_request_json(url, graphql_json)
+            self.end_log_block()
+            return response
+        except RecoverableHTTPException as e:
+            if e.tableau_error_code == '404003':
+                self.end_log_block()
+                raise InvalidOptionException("The metadata API is not turned on for this server at this time")
+
+
 
     # Database and Table Permissions are implemented in the Permissions and PublishedContent classes
 

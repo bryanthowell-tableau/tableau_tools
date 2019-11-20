@@ -49,13 +49,13 @@ class SubscriptionMethods():
                 filters_dict['content_luid'] = 'content[@id="{}"'.format(content_luid)
 
         if 'subject' in filters_dict:
-            subscriptions = subscriptions.findall('.//t:subscription{}'.format(filters_dict['subject']))
+            subscriptions = subscriptions.findall('.//t:subscription{}'.format(filters_dict['subject']), self.ns_map)
         if 'user' in filters_dict:
-            subscriptions = subscriptions.findall('.//t:subscription/{}/..'.format(filters_dict['user']))
+            subscriptions = subscriptions.findall('.//t:subscription/{}/..'.format(filters_dict['user']), self.ns_map)
         if 'sched' in filters_dict:
-            subscriptions = subscriptions.findall('.//t:subscription/{}/..'.format(filters_dict['sched']))
+            subscriptions = subscriptions.findall('.//t:subscription/{}/..'.format(filters_dict['sched']), self.ns_map)
         if 'content_luid' in filters_dict:
-            subscriptions = subscriptions.findall('.//t:subscription/{}/..'.format(filters_dict['content_luid']))
+            subscriptions = subscriptions.findall('.//t:subscription/{}/..'.format(filters_dict['content_luid']), self.ns_map)
         self.end_log_block()
         return subscriptions
 

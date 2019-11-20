@@ -6,7 +6,7 @@ import json
 # from tableau_tools.tableau_server_rest import TableauServerRest, TableauServerRest33, TableauServerRest35
 # from tableau_tools.tableau_rest_api.url_filter import *
 # from tableau_tools.tableau_rest_api.sort import *
-from ...tableau_tools import *
+from tableau_tools import *
 
 # This is meant to test all querying functionality of the tableau_tools library.
 # It is intended to be pointed at existing sites on existing Tableau Servers, with enough content for
@@ -62,12 +62,12 @@ def run_tests(server_url: str, username: str, password: str, site_content_url: s
     workbooks_tests(t)
     datasources_tests(t)
     subscription_tests(t)
-    schedule_tests(t)
+    # schedule_tests(t)
     revision_tests(t)
-    #extract_tests(t)
-    #flow_tests(t)
-    #alerts_tests(t)
-    #metadata_tests(t)  # 2019.3+ only
+    extract_tests(t)
+    alerts_tests(t) # 2018.3+
+    flow_tests(t) # 2019.2+
+    metadata_tests(t)  # 2019.3+ only
     # webhook_test(t)  # 2019.4+ only
 
 
@@ -134,7 +134,6 @@ def user_tests(t: TableauServerRest):
     t.users.query_users_json()
     t.users.get_users_json()
 
-    t.users.query_users_in_group(group_name_or_luid="All Users")
 
     users_dict = t.convert_xml_list_to_name_id_dict(users)
     t.log(str(list(users_dict.keys())))
@@ -198,46 +197,6 @@ def favorites_tests(t: TableauServerRest):
     user_favorites_json = t.favorites.query_user_favorites_json(username_or_luid=t.user_luid)
     print("Finished Favorites tests")
 
-def schedule_tests(t: TableauServerRest):
-    print('Started Schedule tests')
-    all_schedules = t.query_schedules()
-    schedule_dict = t.convert_xml_list_to_name_id_dict(all_schedules)
-    t.log('All schedules on Server: {}'.format(str(schedule_dict)))
-    try:
-        t.log('Creating a daily extract schedule')
-        t.create_daily_extract_schedule('Afternoon Delight', start_time='13:00:00')
-    except AlreadyExistsException as e:
-        t.log('Skipping the add since it already exists')
-
-    try:
-        t.log('Creating a monthly subscription schedule')
-        new_monthly_luid = t.create_monthly_subscription_schedule('First of the Month', '1',
-                                                                  start_time='03:00:00', parallel_or_serial='Serial')
-        t.log('Deleting monthly subscription schedule LUID {}'.format(new_monthly_luid))
-        time.sleep(4)
-        t.delete_schedule(new_monthly_luid)
-    except AlreadyExistsException as e:
-        t.log('Skipping the add since it already exists')
-    try:
-        t.log('Creating a monthly extract schedule')
-        t.create_monthly_extract_schedule('Last Day of Month', 'LastDay', start_time='03:00:00', priority=25)
-    except AlreadyExistsException as e:
-        t.log('Skipping the add since it already exists')
-
-    try:
-        t.log('Creating a weekly extract schedule')
-        weekly_luid = t.create_weekly_subscription_schedule('Mon Wed Fri', ['Monday', 'Wednesday', 'Friday'],
-                                                            start_time='05:00:00')
-        time.sleep(4)
-
-        t.log('Updating schedule with LUID {}'.format(weekly_luid))
-        t.update_schedule(weekly_luid, new_name='Wed Fri', interval_value_s=['Wednesday', 'Friday'])
-    except AlreadyExistsException as e:
-        t.log('Skipping the add since it already exists')
-
-    print('Finished Schedule tests')
-
-
 def subscription_tests(t: TableauServerRest):
     print('Starting Subscription tests')
 
@@ -281,17 +240,86 @@ def revision_tests(t: TableauServerRest):
 
 
 def extract_tests(t: TableauServerRest):
-    print('Starting Extract Refresh tests')
-    tasks = t.extracts.get_extract_refresh_tasks()
-    t.extracts.get
+    print('Starting Extract tests')
+    response = t.extracts.get_extract_refresh_tasks()
+    log_obj.log_xml_response(response)
+    for tasks in response:
+        for task in tasks:
+            # This is obviously unnecessary but it's just to test the functioning of the method
+            try:
+                t.extracts.get_extract_refresh_task(task_luid=task.get('id'))
+            except NoMatchFoundException as e:
+                log_obj.log(e.msg)
+            break
 
     refresh_schedules = t.schedules.query_extract_schedules()
     for sched in refresh_schedules:
-        refresh_tasks = t.schedules.query_extract_refresh_tasks_by_schedule(schedule_name_or_luid=sched.get('id'))
+        try:
+            refresh_tasks = t.extracts.get_extract_refresh_tasks_on_schedule(schedule_name_or_luid=sched.get('id'))
+        except NoMatchFoundException as e:
+            log_obj.log(e.msg)
         break
+
+    # Only possible in 2019.3+, also risky to run as tests, so commented out
+    # t.extracts.encrypt_extracts()
+    # t.extracts.decrypt_extracts()
+    # t.extracts.reencrypt_extracts()
+
+    # See the Add / Update / Delete test suite for the commands to run the extract refreshes or encrypt them
 
     print('Finished Extract Refresh tests')
 
+def alerts_tests(t: TableauServerRest32):
+    print("Starting Alerts tests")
+    alerts = t.alerts.query_data_driven_alerts()
+    for alert in alerts:
+        t.alerts.query_data_driven_alert_details(data_alert_luid=alert.get('id'))
+        break
+    vws = t.workbooks.query_views()
+    for vw in vws:
+        view_alerts = t.alerts.query_data_driven_alerts_for_view(view_luid=vw.get('id'))
+        break
+    print("Finished Alerts tests")
+
+def flow_tests(t: TableauServerRest33):
+    print("Starting Flows tests")
+    response = t.flows.get_flow_run_tasks()
+    for flow_tasks in response:
+        for flow_task in flow_tasks:
+            t.flows.get_flow_run_task(task_luid=flow_task.get('id'))
+    print("Finished Flows tests")
+
+def metadata_tests(t: TableauServerRest35):
+    print("Starting Metadata tests")
+    dbs = t.metadata.query_databases()
+    for db in dbs:
+        t.metadata.query_database(database_name_or_luid=db.get('id'))
+
+        break
+    tables = t.metadata.query_tables()
+    for table in tables:
+        t.metadata.query_table(table_name_or_luid=table.get('id'))
+        t.metadata.query_columns_in_a_table(table_name_or_luid=table.get('id'))
+        break
+
+    # GraphQL queries
+    # Does this need to be wrapped further?
+    my_query = """
+query ShowMeOneTableCalledOrders{
+  tables ("filter": {"name": "Orders"}){
+    name
+    columns {
+      name
+    }
+  }
+}
+"""
+    try:
+        graphql_response = t.metadata.graphql(graphql_query=my_query)
+        log_obj.log(json.dumps(graphql_response))
+    except InvalidOptionException as e:
+        log_obj.log(e.msg)
+    print("Finished Metadata tests")
 
 for server in servers:
     print("Logging in to {}".format(servers[server]['server']))
