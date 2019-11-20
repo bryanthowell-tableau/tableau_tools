@@ -14,4 +14,3 @@ from tableau_rest_api.methods.subscription import *
 from tableau_rest_api.methods.user import *
 from tableau_rest_api.methods.webhooks import *
 from tableau_rest_api.methods.workbook import *
-

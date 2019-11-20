@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
+from typing import Optional, List, Dict
+import time, datetime
+import json
+# from tableau_tools.logger import Logger
+# from tableau_tools.tableau_server_rest import TableauServerRest, TableauServerRest33, TableauServerRest35
+# from tableau_tools.tableau_rest_api.url_filter import *
+# from tableau_tools.tableau_rest_api.sort import *
+from ...tableau_tools import *
 
-from tableau_tools.tableau_rest_api import *
-from tableau_tools import *
-import time
 # This is meant to test all querying functionality of the tableau_tools library.
 # It is intended to be pointed at existing sites on existing Tableau Servers, with enough content for
 # the methods to be tested in a serious way
@@ -14,23 +19,23 @@ import time
 
 # Allows for testing against multiple versions of Tableau Server. Feel free to use just one
 servers = {
-           #"2019.3 Windows": {"server": "http://127.0.0.1", "username": "", "password": "", "site_content_url": ""},
-           "2019.3 Linux": {"server": "http://35.155.172.157", "username": "djangoEmbedDemos", "password": "test", "site_content_url": "retail"},
-           #"2019.4 Windows": {"server": "http://127.0.0.1", "username": "", "password": "", "site_content_url": ""},
-           #"2019.4 Linux": {"server": "http://127.0.0.1", "username": "", "password": "", "site_content_url": ""}
-           }
+    # "2019.3 Windows": {"server": "http://127.0.0.1", "username": "", "password": "", "site_content_url": ""},
+
+    # "2019.4 Windows": {"server": "http://127.0.0.1", "username": "", "password": "", "site_content_url": ""},
+    # "2019.4 Linux": {"server": "http://127.0.0.1", "username": "", "password": "", "site_content_url": ""}
+}
+
+log_obj = Logger('tableau_rest_api_connection_querying_tests.log')
+rest_request_log_obj = Logger('tableau_rest_api_connection_querying_tests_rest.log')
 
 
 # Configure which tests you want to run in here
 def run_tests(server_url: str, username: str, password: str, site_content_url: str = 'default'):
-
-    log_obj = Logger('tableau_rest_api_connection_querying_tests.log')
-
     # Create a default connection, test pulling server information
     t = TableauServerRest35(server=server_url, username=username, password=password,
-                                       site_content_url=site_content_url)
+                            site_content_url=site_content_url)
     t.signin()
-    t.enable_logging(log_obj)
+    t.enable_logging(rest_request_log_obj)
 
     # Server info and methods
     server_info = t.query_server_info()
@@ -41,10 +46,14 @@ def run_tests(server_url: str, username: str, password: str, site_content_url: s
     log_obj.log("Server Version {} with API Version {}, build {}".format(server_version, api_version, build_version))
 
     # What can you know about the Sites
-    t.sites.query_sites()
-    t.sites.query_all_site_content_urls()
-    t.sites.query_sites_json()
+    sites = t.sites.query_sites()
+    log_obj.log_xml_response(sites)
 
+    sites_json = t.sites.query_sites_json()
+    log_obj.log(json.dumps(sites_json))
+
+    content_urls = t.sites.query_all_site_content_urls()
+    log_obj.log("{}".format(content_urls))
 
     # Step 2: Project tests
     project_tests(t)
@@ -56,28 +65,30 @@ def run_tests(server_url: str, username: str, password: str, site_content_url: s
     user_tests(t)
 
     # Step 6: Publishing Workbook Tests
-    #workbooks_test(test_site, twbx_filename, twbx_content_name)
+    workbooks_tests(t)
 
+    #datasources_tests(t)
     # Step 7: Subscription tests
-    #if isinstance(test_site, TableauRestApiConnection23):
+    # if isinstance(test_site, TableauRestApiConnection23):
     #    subscription_tests(test_site)
-
-    # Step 8: Publishing Datasource tests
-    #publishing_datasources_test(test_site, tdsx_filename, tdsx_content_name)
 
     # These capabilities are only available in later API versions
     # Step 9: Scheduling tests
-    #if isinstance(test_site, TableauRestApiConnection23):
+    # if isinstance(test_site, TableauRestApiConnection23):
     #    schedule_test(test_site)
 
     # Step 10: Extract Refresh tests
 
-def project_tests(t: TableauServerRest33):
 
+def project_tests(t: TableauServerRest33):
     print('Testing project methods')
     all_projects = t.projects.query_projects()
+    log_obj.log_xml_response(all_projects)
     all_projects_dict = t.convert_xml_list_to_name_id_dict(all_projects)
+    log_obj.log("{}".format(all_projects_dict))
 
+    all_projects_json = t.projects.query_projects_json()
+    log_obj.log("{}".format(all_projects_json))
     # Grab one project randomly
     for project_name in all_projects_dict:
         project_obj = t.projects.query_project(project_name_or_luid=project_name)
@@ -99,7 +110,6 @@ def project_tests(t: TableauServerRest33):
 
         break
 
-
     print("Finished testing project methods")
 
 
@@ -119,9 +129,9 @@ def group_tests(t: TableauServerRest):
     all_users_luid = t.query_group_luid("All Users")
     all_users_name = t.groups.query_group_name(group_luid=all_users_luid)
 
-
     print('Finished group tests')
     return groups_dict
+
 
 def user_tests(t: TableauServerRest):
     print('Starting User tests')
@@ -138,7 +148,15 @@ def user_tests(t: TableauServerRest):
 
     # Filtering and Sorting
     explorer_filter = UrlFilter.create_site_role_filter(site_role="Explorer")
-    last_login_filter = UrlFilter.create_last_login_filter(operator="gte", last_login_time="")
+
+    # Create a filter that was last updated by
+    today = datetime.datetime.now()
+    offset_time = datetime.timedelta(days=15)
+    time_to_filter_by = today - offset_time
+    # Tableau Time Filters require this format: YYYY-MM-DDTHH:MM:SSZ
+    filter_time_string = time_to_filter_by.isoformat('T')[:19] + 'Z'
+
+    last_login_filter = UrlFilter.create_last_login_filter(operator="gte", last_login_time=filter_time_string)
 
     filtered_users = t.users.query_users(site_role_filter=explorer_filter, last_login_filter=last_login_filter,
                                          sorts=[SortAscending("name"), ])
@@ -146,85 +164,30 @@ def user_tests(t: TableauServerRest):
     print('Finished User tests')
 
 
-def workbooks_test(t: TableauRestApiConnection, twbx_filename:str, twbx_content_name:str,
-                   twb_filename: Optional[str] = None, twb_content_name: Optional[str] = None):
+def workbooks_tests(t: TableauServerRest):
     print("Starting Workbook tests")
 
-    default_project = t.query_project('Default')
-    t.log('Publishing workbook as {}'.format(twbx_content_name))
-    new_wb_luid = t.publish_workbook(twbx_filename, twbx_content_name, default_project, overwrite=True)
+    default_project = t.projects.query_project('Default')
+    wbs_on_site = t.workbooks.query_workbooks()
+    wbs_in_project = t.workbooks.query_workbooks_in_project(project_name_or_luid=default_project.luid)
+    for wb in wbs_in_project:
+        wb_luid_from_obj = wb.get('id')
+        wb_luid_lookup = t.query_workbook_luid(wb_name=wb.get('name'), proj_name_or_luid=default_project.luid)
+        vws_in_wb = t.workbooks.query_workbook_views(wb_name_or_luid=wb_luid_from_obj)
+        vws_in_wb_json = t.workbooks.query_workbook_views_json(wb_name_or_luid=wb_luid_from_obj)
+        t.workbooks.query_workbook_connections(wb_name_or_luid=wb_luid_from_obj)
+        # Published Workbook Options
+        wb_obj = t.get_published_workbook_object(workbook_name_or_luid=wb_luid_from_obj)
+        permissions_obj_list = wb_obj.get_permissions_obj_list()
+        break
 
-    # Repeat Multiple times to creates some revisions
-    time.sleep(3)
-    new_wb_luid = t.publish_workbook(twbx_filename, twbx_content_name, default_project, overwrite=True)
-
-    time.sleep(3)
-    new_wb_luid = t.publish_workbook(twbx_filename, twbx_content_name, default_project, overwrite=True)
-
-    time.sleep(3)
-
-    # Publish second one to be deleted
-    new_wb_luid_2 = t.publish_workbook(twbx_filename, "{} - 2".format(twbx_content_name),
-                                       default_project, overwrite=True)
-    time.sleep(3)
-
-    projects = t.query_projects()
-    projects_dict = t.convert_xml_list_to_name_id_dict(projects)
-    projects_list = list(projects_dict.keys())
-
-    t.log('Moving workbook to {} project'.format(projects_list[0]))
-    t.update_workbook(new_wb_luid, default_project.luid, new_project_luid=projects_dict[projects_list[0]], show_tabs=True)
-
-    t.log("Querying workbook")
-    t.query_workbook(new_wb_luid)
-
-    # Save workbook preview image
-    t.log("Saving workbook preview image")
-    t.save_workbook_preview_image(new_wb_luid, 'Workbook preview')
-
-    t.log("Downloading workbook file")
-    t.download_workbook(new_wb_luid, 'saved workbook')
-
-    t.log("Query workbook connections")
-    t.query_workbook_connections(new_wb_luid)
-
-    t.log("Querying workbook views")
-    wb_views = t.query_workbook_views(new_wb_luid)
-    wb_views_dict = t.convert_xml_list_to_name_id_dict(wb_views)
-
-    t.log(str(wb_views_dict))
-
-    for wb_view in wb_views_dict:
-        t.log("Adding {} to favorites for me".format(wb_view))
-        t.add_view_to_user_favorites('Fav - {}'.format(wb_view), t.username, wb_view, wb_name_or_luid=new_wb_luid)
-
-    for wb_view in wb_views_dict:
-        t.log("Deleting {} from favorites for me".format(wb_view))
-        t.delete_views_from_user_favorites(wb_views_dict.get(wb_view), t.username, new_wb_luid)
-
-    t.log('Adding tags to workbook')
-    t.add_tags_to_workbook(new_wb_luid, ['workbooks', 'flights', 'cool', '晚飯'])
-
-    t.log('Deleting a tag from workbook')
-    t.delete_tags_from_workbook(new_wb_luid, 'flights')
-
-    t.log("Add workbook to favorites for me")
-    t.add_workbook_to_user_favorites('My favorite workbook', new_wb_luid, t.username)
-
-    t.log("Deleting workbook from favorites for me")
-    t.delete_workbooks_from_user_favorites(new_wb_luid, t.username)
-
-    #    # Saving view as file
-    #    for wb_view in wb_views_dict:
-    #        t_site.log(u"Saving a png for {}".format(wb_view)
-    #        t_site.save_workbook_view_preview_image(wb_luid, wb_views_dict.get(wb_view), '{}_preview'.format(wb_view))
-
-    t.log('Deleting workbook')
-    t.delete_workbooks(new_wb_luid_2)
-    print('Finished Workbook tests')
+    vws_on_site = t.workbooks.query_views()
+    vws_json = t.workbooks.query_views_json()
+    # .workbooks.query_view(vw_name_or_luid='GreatView')
 
 
-def publishing_datasources_test(t: TableauRestApiConnection, tdsx_file: str, tdsx_content_name: str):
+
+def datasources_tests(t: TableauServerRest):
     print("Starting Datasource tests")
     default_project = t.query_project('Default')
 
@@ -267,7 +230,7 @@ def publishing_datasources_test(t: TableauRestApiConnection, tdsx_file: str, tds
     print('Finished Datasource Tests')
 
 
-def schedule_test(t: TableauRestApiConnection):
+def schedule_tests(t: TableauServerRest):
     print('Started Schedule tests')
     all_schedules = t.query_schedules()
     schedule_dict = t.convert_xml_list_to_name_id_dict(all_schedules)
@@ -307,7 +270,7 @@ def schedule_test(t: TableauRestApiConnection):
     print('Finished Schedule tests')
 
 
-def subscription_tests(t: TableauRestApiConnection):
+def subscription_tests(t: TableauServerRest):
     print('Starting Subscription tests')
     # All users in a Group
     groups = t.query_groups()
@@ -355,7 +318,7 @@ def subscription_tests(t: TableauRestApiConnection):
     print('Finished subscription tests')
 
 
-def revision_tests(t: TableauRestApiConnection, workbook_name: str, project_name: str):
+def revision_tests(t: TableauServerRest, workbook_name: str, project_name: str):
     print('Starting revision tests')
     revisions = t.get_workbook_revisions(workbook_name, project_name)
     t.log('There are {} revisions of workbook {}'.format(len(revisions), workbook_name))
@@ -363,7 +326,7 @@ def revision_tests(t: TableauRestApiConnection, workbook_name: str, project_name
     print('Finished revision tests')
 
 
-def extract_refresh_test(t: TableauRestApiConnection):
+def extract_refresh_tests(t: TableauServerRest):
     print('Starting Extract Refresh tests')
     tasks = t.get_extract_refresh_tasks()
 

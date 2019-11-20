@@ -17,16 +17,15 @@ class WorkbookMethods():
             if all_fields is True:
                 fields = ['_all_']
 
-        user_luid = self.query_user_luid(username_or_luid)
-
         filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter,
                          'ownerName': owner_name_filter}
         filters = self._check_filter_objects(filter_checks)
 
         if username_or_luid is not None:
+            user_luid = self.query_user_luid(username_or_luid)
             wbs = self.query_resource("users/{}/workbooks".format(user_luid))
         else:
-            wbs = self.query_resource("workbooks".format(user_luid), sorts=sorts, filters=filters, fields=fields)
+            wbs = self.query_resource("workbooks", sorts=sorts, filters=filters, fields=fields)
 
         if project_name_or_luid is not None:
             project_luid = self.query_project_luid(project_name_or_luid)
@@ -108,8 +107,11 @@ class WorkbookMethods():
         self.start_log_block()
 
         project_luid = self.query_project_luid(project_name_or_luid)
-        user_luid = self.query_user_luid(username_or_luid)
-        workbooks = self.query_workbooks(user_luid)
+        if username_or_luid is not None:
+            user_luid = self.query_user_luid(username_or_luid)
+            workbooks = self.query_workbooks(user_luid)
+        else:
+            workbooks = self.query_workbooks()
         # This brings back the workbook itself
         wbs_in_project = workbooks.findall('.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
         wbs = ET.Element(self.ns_prefix + 'workbooks')
