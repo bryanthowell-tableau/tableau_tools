@@ -40,12 +40,7 @@ class ScheduleMethods():
         self.end_log_block()
         return schedule
 
-    def query_extract_refresh_tasks_by_schedule(self, schedule_name_or_luid: str) -> ET.Element:
-        self.start_log_block()
-        luid = self.query_schedule_luid(schedule_name_or_luid)
-        tasks = self.query_resource("schedules/{}/extracts".format(luid))
-        self.end_log_block()
-        return tasks
+
 
     def create_schedule(self, name: Optional[str] = None, extract_or_subscription: Optional[str] = None,
                         frequency: Optional[str] = None, parallel_or_serial: Optional[str] = None,

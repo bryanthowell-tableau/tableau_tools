@@ -61,8 +61,8 @@ def run_tests(server_url: str, username: str, password: str, site_content_url: s
     favorites_tests(t)
     workbooks_tests(t)
     datasources_tests(t)
-    #subscription_tests(t)
-    #schedule_tests(t)
+    subscription_tests(t)
+    schedule_tests(t)
     revision_tests(t)
     #extract_tests(t)
     #flow_tests(t)
@@ -118,7 +118,9 @@ def group_tests(t: TableauServerRest):
 
     t.groups.query_group(group_name_or_luid="All Users")
     all_users_luid = t.query_group_luid("All Users")
-    all_users_name = t.groups.query_group_name(group_luid=all_users_luid)
+    all_users_name = t.query_group_name(group_luid=all_users_luid)
+
+    users_in_group = t.groups.query_users_in_group(group_name_or_luid="All Users")
 
     print('Finished group tests')
     return groups_dict
@@ -238,51 +240,27 @@ def schedule_tests(t: TableauServerRest):
 
 def subscription_tests(t: TableauServerRest):
     print('Starting Subscription tests')
-    # All users in a Group
-    groups = t.query_groups()
-    groups_dict = t.convert_xml_list_to_name_id_dict(groups)
-    group_names = list(groups_dict.keys())
 
-    users_in_group = t.query_users_in_group(groups_dict[group_names[0]])
-    users_dict = t.convert_xml_list_to_name_id_dict(users_in_group)
-    usernames = list(users_dict.keys())
+    all_subscriptions = t.subscriptions.query_subscriptions()
+    sub_dict = t.convert_xml_list_to_name_id_dict(all_subscriptions)
 
-    wbs = t.query_workbooks()
-    wbs_dict = t.convert_xml_list_to_name_id_dict(wbs)
-    wb_names = list(wbs_dict.keys())
-
-    # Grab first workbook
-    wb_luid = wbs_dict[wb_names[0]]
-
-    sub_schedules = t.query_subscription_schedules()
-    sched_dict = t.convert_xml_list_to_name_id_dict(sub_schedules)
-    sched_names = list(sched_dict.keys())
-
-    # Grab first schedule
-    sched_luid = sched_dict[sched_names[0]]
-
-    # Subscribe them to the first workbook
-    t.log('Adding subscription with subject Important weekly update to first workbook for all users in group 1')
-    for user in users_dict:
-        t.create_subscription_to_workbook('Important weekly update', wb_luid, sched_luid, users_dict[user])
-
-    # Find the subscriptions for user 1, delete
-    t.query_subscriptions()
-    user_1_subs = t.query_subscriptions(username_or_luid=usernames[0])
-    t.log('Deleting all subscriptions for user 1')
-    for sub in user_1_subs:
-        luid = sub.get('id')
-        t.delete_subscriptions(luid)
-
-    # Update user 2 subscriptions
-    t.log('Updating user 2s subscriptions to second schedule')
-    user_2_subs = t.query_subscriptions(username_or_luid=usernames[1])
-    for sub in user_2_subs:
-        luid = sub.get('id')
-        t.update_subscription(luid, schedule_luid=sched_dict[sched_names[1]])
+    # Subscriptions for one user
+    users = t.users.query_users()
+    for user in users:
+        user_luid = user.get('id')
+        one_user_subscriptions = t.subscriptions.query_subscriptions(username_or_luid=user_luid)
+        break
 
     print('Finished subscription tests')
 
+def schedules_tests(t: TableauServerRest):
+    print("Starting Schedules tests")
+    schedules = t.schedules.query_schedules()
+    schedules_json = t.schedules.query_schedules_json()
+
+    sub_schedules = t.schedules.query_subscription_schedules()
+
+    print("Finished Schedules tests")
 
 def revision_tests(t: TableauServerRest):
     print('Starting revision tests')
@@ -302,9 +280,15 @@ def revision_tests(t: TableauServerRest):
     print('Finished revision tests')
 
 
-def extract_refresh_tests(t: TableauServerRest):
+def extract_tests(t: TableauServerRest):
     print('Starting Extract Refresh tests')
-    tasks = t.get_extract_refresh_tasks()
+    tasks = t.extracts.get_extract_refresh_tasks()
+    t.extracts.get
+
+    refresh_schedules = t.schedules.query_extract_schedules()
+    for sched in refresh_schedules:
+        refresh_tasks = t.schedules.query_extract_refresh_tasks_by_schedule(schedule_name_or_luid=sched.get('id'))
+        break
 
     print('Finished Extract Refresh tests')
 

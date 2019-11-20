@@ -42,34 +42,6 @@ class GroupMethods():
         self.end_log_block()
         return group
 
-    # Groups luckily cannot have the same 'pretty name' on one site
-    def query_group_luid(self, group_name: str) -> str:
-        self.start_log_block()
-        if group_name in self.group_name_luid_cache:
-            group_luid = self.group_name_luid_cache[group_name]
-            self.log('Found group name {} in cache with luid {}'.format(group_name, group_luid))
-        else:
-            group_luid = self.query_luid_from_name(content_type='group', name=group_name)
-            self.group_name_luid_cache[group_name] = group_luid
-        self.end_log_block()
-        return group_luid
-
-    def query_group_name(self, group_luid: str) -> str:
-        self.start_log_block()
-        for name, luid in list(self.group_name_luid_cache.items()):
-            if luid == group_luid:
-                group_name = name
-                self.log('Found group name {} in cache with luid {}'.format(group_name, group_luid))
-                return group_name
-        # If match is found
-        group = self.query_single_element_from_endpoint('group', group_luid)
-        group_luid = group.get("id")
-        group_name = group.get('name')
-        self.log('Loading the Group: LUID cache')
-        self.group_name_luid_cache[group_name] = group_luid
-        self.end_log_block()
-        return group_name
-
     # Returns the LUID of an existing group if one already exists
     def create_group(self, group_name: Optional[str] = None, direct_xml_request: Optional[ET.Element] = None) -> str:
         self.start_log_block()
@@ -148,6 +120,13 @@ class GroupMethods():
             except RecoverableHTTPException as e:
                 self.log("Recoverable HTTP exception {} with Tableau Error Code {}, skipping".format(str(e.http_code), e.tableau_error_code))
         self.end_log_block()
+
+    def query_users_in_group(self, group_name_or_luid: str) -> ET.Element:
+        self.start_log_block()
+        luid = self.query_group_luid(group_name_or_luid)
+        users = self.query_resource("groups/{}/users".format(luid))
+        self.end_log_block()
+        return users
 
     # Local Authentication update group
     def update_group(self, name_or_luid: str, new_group_name: str) -> ET.Element:

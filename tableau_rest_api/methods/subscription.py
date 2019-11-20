@@ -38,7 +38,7 @@ class SubscriptionMethods():
                 filters_dict['content_luid'] = 'content[@id="{}"'.format(content_name_or_luid)
             else:
                 if view_or_workbook is None:
-                    raise InvalidOptionException('view_or_workbook must be specified for content: "Workook" or "View"')
+                    raise InvalidOptionException('view_or_workbook must be specified for content: "Workbook" or "View"')
                 if view_or_workbook == 'View':
                     if wb_name_or_luid is None:
                         raise InvalidOptionException('Must include wb_name_or_luid for a View name lookup')

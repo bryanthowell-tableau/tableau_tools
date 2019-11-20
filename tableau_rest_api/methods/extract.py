@@ -20,8 +20,8 @@ class ExtractMethods():
         self.start_log_block()
         return extract_task
 
-    def get_extract_refresh_tasks_on_schedule(self, schedule_name_or_luid: str):
-
+    # From API 2.6. This gives back much more information
+    def get_extract_refresh_tasks_on_schedule(self, schedule_name_or_luid: str) -> ET.Element:
         self.start_log_block()
         schedule_luid = self.query_schedule_luid(schedule_name_or_luid)
         tasks = self.get_extract_refresh_tasks()
@@ -31,6 +31,15 @@ class ExtractMethods():
             raise NoMatchFoundException(
                 "No extract refresh tasks found on schedule {}".format(schedule_name_or_luid))
         self.end_log_block()
+        return tasks_on_sched
+
+    # From API 2.2, commented out for lack of being useful compared to _on_schedule above
+    #def query_extract_refresh_tasks_in_a_schedule(self, schedule_name_or_luid: str) -> ET.Element:
+    #    self.start_log_block()
+    #    luid = self.query_schedule_luid(schedule_name_or_luid)
+    #   tasks = self.query_resource("schedules/{}/extracts".format(luid))
+    #    self.end_log_block()
+    #    return tasks
 
     def run_extract_refresh_task(self, task_luid:str) -> str:
         self.start_log_block()

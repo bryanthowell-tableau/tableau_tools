@@ -78,10 +78,26 @@ class LookupMethods():
             group_luid = self.group_name_luid_cache[group_name]
             self.log('Found group name {} in cache with luid {}'.format(group_name, group_luid))
         else:
-            group_luid = self.query_single_element_luid_from_endpoint_with_filter('group', group_name)
+            group_luid = self.query_luid_from_name(content_type='group', name=group_name)
             self.group_name_luid_cache[group_name] = group_luid
         self.end_log_block()
         return group_luid
+
+    def query_group_name(self, group_luid: str) -> str:
+        self.start_log_block()
+        for name, luid in list(self.group_name_luid_cache.items()):
+            if luid == group_luid:
+                group_name = name
+                self.log('Found group name {} in cache with luid {}'.format(group_name, group_luid))
+                return group_name
+        # If match is found
+        group = self.query_single_element_from_endpoint('group', group_luid)
+        group_luid = group.get("id")
+        group_name = group.get('name')
+        self.log('Loading the Group: LUID cache')
+        self.group_name_luid_cache[group_name] = group_luid
+        self.end_log_block()
+        return group_name
 
     def query_project_luid(self, project_name: str) -> str:
         self.start_log_block()

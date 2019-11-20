@@ -80,13 +80,6 @@ class UserMethods():
         self.end_log_block()
         return username
 
-    def query_users_in_group(self, group_name_or_luid: str) -> ET.Element:
-        self.start_log_block()
-        luid = self.query_group_luid(group_name_or_luid)
-        users = self.query_resource("groups/{}/users".format(luid))
-        self.end_log_block()
-        return users
-
     def add_user_by_username(self, username: Optional[str] = None, site_role: Optional[str] = 'Unlicensed',
                              auth_setting: Optional[str] = None, update_if_exists: bool = False,
                              direct_xml_request: Optional[ET.Element] = None) -> str:
