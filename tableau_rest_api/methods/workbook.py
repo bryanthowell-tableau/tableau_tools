@@ -1,10 +1,20 @@
 from .rest_api_base import *
+from tableau_tools.tableau_rest_api.published_content import Workbook, Workbook28
+
+
 class WorkbookMethods():
     def __init__(self, rest_api_base: TableauRestApiBase):
         self.rest_api_base = rest_api_base
 
     def __getattr__(self, attr):
         return getattr(self.rest_api_base, attr)
+
+    def get_published_workbook_object(self, workbook_name_or_luid: str,
+                                      project_name_or_luid: Optional[str] = None) -> Workbook:
+        luid = self.query_workbook_luid(workbook_name_or_luid, project_name_or_luid)
+        wb_obj = Workbook(luid=luid, tableau_rest_api_obj=self,
+                          default=False, logger_obj=self.logger)
+        return wb_obj
 
     # This uses the logged in username for convenience by default
     def query_workbooks(self, username_or_luid: Optional[str] = None, project_name_or_luid: Optional[str] = None,
@@ -535,6 +545,13 @@ class WorkbookMethods27(WorkbookMethods):
 class WorkbookMethods28(WorkbookMethods27):
     def __init__(self, rest_api_base: TableauRestApiBase28):
         self.rest_api_base = rest_api_base
+
+    def get_published_workbook_object(self, workbook_name_or_luid: str,
+                                      project_name_or_luid: Optional[str] = None) -> Workbook28:
+        luid = self.query_workbook_luid(workbook_name_or_luid, project_name_or_luid)
+        wb_obj = Workbook28(luid=luid, tableau_rest_api_obj=self,
+                          default=False, logger_obj=self.logger)
+        return wb_obj
 
     def query_view_pdf(self, wb_name_or_luid: str, view_name_or_luid: str, proj_name_or_luid=None,
                        view_filter_map=None):

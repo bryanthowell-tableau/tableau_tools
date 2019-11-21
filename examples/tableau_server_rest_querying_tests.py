@@ -2,10 +2,7 @@
 from typing import Optional, List, Dict
 import time, datetime
 import json
-# from tableau_tools.logger import Logger
-# from tableau_tools.tableau_server_rest import TableauServerRest, TableauServerRest33, TableauServerRest35
-# from tableau_tools.tableau_rest_api.url_filter import *
-# from tableau_tools.tableau_rest_api.sort import *
+
 from tableau_tools import *
 
 # This is meant to test all querying functionality of the tableau_tools library.
@@ -27,7 +24,6 @@ servers = {
 
 log_obj = Logger('tableau_rest_api_connection_querying_tests.log')
 rest_request_log_obj = Logger('tableau_rest_api_connection_querying_tests_rest.log')
-
 
 # Configure which tests you want to run in here
 def run_tests(server_url: str, username: str, password: str, site_content_url: str = 'default'):
@@ -169,7 +165,7 @@ def workbooks_tests(t: TableauServerRest):
         vws_in_wb_json = t.workbooks.query_workbook_views_json(wb_name_or_luid=wb_luid_from_obj)
         t.workbooks.query_workbook_connections(wb_name_or_luid=wb_luid_from_obj)
         # Published Workbook Options
-        wb_obj = t.get_published_workbook_object(workbook_name_or_luid=wb_luid_from_obj)
+        wb_obj = t.workbooks.get_published_workbook_object(workbook_name_or_luid=wb_luid_from_obj)
         permissions_obj_list = wb_obj.get_permissions_obj_list()
         break
 
@@ -185,7 +181,7 @@ def datasources_tests(t: TableauServerRest):
     for ds in dses_xml:
         ds_luid = ds.get('id')
         ds_content_url = t.datasources.query_datasource_content_url(datasource_name_or_luid=ds_luid)
-        pub_ds_obj = t.get_published_datasource_object(datasource_name_or_luid=ds_luid)
+        pub_ds_obj = t.datasources.get_published_datasource_object(datasource_name_or_luid=ds_luid)
         permissions_obj_list = pub_ds_obj.get_permissions_obj_list()
         break
 

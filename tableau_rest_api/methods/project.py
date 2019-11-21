@@ -1,4 +1,6 @@
 from .rest_api_base import *
+from tableau_tools.tableau_rest_api.published_content import *
+
 class ProjectMethods():
     def __init__(self, rest_api_base: TableauRestApiBase):
         self.rest_api_base = rest_api_base
@@ -175,7 +177,7 @@ class ProjectMethods28(ProjectMethods27):
         if project_xml_obj.get('parentProjectId'):
             parent_project_luid = project_xml_obj.get('parentProjectId')
 
-        proj_obj = Project28(luid=luid, tableau_rest_api_obj=self, tableau_server_version=self.version,
+        proj_obj = Project28(luid=luid, tableau_rest_api_obj=self,
                              logger_obj=self.logger, content_xml_obj=project_xml_obj,
                              parent_project_luid=parent_project_luid)
         return proj_obj
@@ -291,7 +293,7 @@ class ProjectMethods33(ProjectMethods32):
         if project_xml_obj.get('parentProjectId'):
             parent_project_luid = project_xml_obj.get('parentProjectId')
 
-        proj_obj = Project33(luid=luid, tableau_rest_api_obj=self, tableau_server_version=self.version,
+        proj_obj = Project33(luid=luid, tableau_rest_api_obj=self,
                              logger_obj=self.logger, content_xml_obj=project_xml_obj,
                              parent_project_luid=parent_project_luid)
         return proj_obj

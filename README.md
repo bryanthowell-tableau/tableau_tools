@@ -87,7 +87,7 @@ The TableauDatasource class uses the `TDEFileGenerator` and/or the `HyperFileGen
     + [1.3.7 Schedules (Extract and Subscriptions)](#137-schedules-extract-and-subscriptions)
     + [1.3.8 Subscriptions (API 2.3+)](#138-subscriptions-api-23)
   * [1.4 Permissions](#14-permissions)
-    + [1.4.1 PublishedContent Classes (Project20/Project21, Workbook, Datasource)](#141-publishedcontent-classes-project20project21-workbook-datasource)
+    + [1.4.1 PublishedContent Classes (Project/Project28/Project33, Workbook, Datasource, Flow, Database, Table)](#141-publishedcontent-classes-project20project21-workbook-datasource)
     + [1.4.2 Permissions Classes](#142-permissions-classes)
     + [1.4.2 Setting Capabilities](#142-setting-capabilities)
     + [1.4.2 Permissions Setting](#142-permissions-setting)
@@ -909,23 +909,25 @@ The most efficient algorithm for sending an update is thus:
 
 `tableau_rest_api` handles this through two concepts -- the `Permissions` object that represents the permissions / capabilities, and the `PublishedContent` classes, which represent the objects on the server that have permissions.
 
-#### 1.4.1 PublishedContent Classes (Project20/Project21, Workbook, Datasource, View)
-There are three classes that represent the state of published content to a server; they all descend from the PublishedContent class, but there is no reason to ever access `PublishedContent` directly. Each of these require passing in an active and signed-in `TableauRestApiConnection` object so that they can perform actions against the Tableau Server.
+#### 1.4.1 PublishedContent Classes (Project20/Project21, Workbook, Datasource, View, Database, Table)
+Because of the complexity of Permissions, there are classes that represent the state of published content to a server; they all descend from the PublishedContent class, but there is no reason to ever access `PublishedContent` directly. Each of these require passing in an active and signed-in `TableauRestApiConnection` or `TableauServerRest` object so that they can perform actions against the Tableau Server.
 
-Project obviously represents a project. In API Version 2.1, a Project also contains a child `Workbook` and `Datasource` object that represent the Default Permissions that can be set for that project. In API Version 2.0, the project simply has a full set of capabilities that include those that apply to a workbook or a datasource. This reflects the difference in Tableau Server itself. If you are still on 9.1 or before, make sure to set your `tableau_server_version` argument so that the `Project` class behaves correctly.
+Project obviously represents a project on the server. But a `Project` also contains a child `Workbook` and `Datasource` object that represent the Default Permissions that can be set for that project, and starting with `Project33` contains a Flow object as well to represent its defaults. 
 
 Starting in API 3.2 (2018.3+), there is a View object which represents published Views that were not published as Tabs. Since views have the same permissions as workbooks, use the WorkbookPermissions objects just like with the Workbook object.
+
+The `TableauRestApiConnection` and `TableauServerRest` classes have factory methods to get you the right object type for the right version of the API. Use these instead of constructing the objects directly.
+
+`TableauRestApiConnection.get_published_project_object(project_name_or_luid)`
+
 `TableauRestApiConnection.get_published_datasource_object(datasource_name_or_luid, project_name_or_luid)`
 
 `TableauRestApiConnection.get_published_workbook_object(workbook_name_or_luid, project_name_or_luid)`
 
-There is also a `get_published_project_object` method, but the standard `query_project()` method returns the Project object in tableau_tools 4.0+, so you can just use that method.
 
-`TableauRestApiConnection.get_published_project_object(project_name_or_luid, project_xml_obj=None)`
+For Projects, since the standard `query_project()` method returns the Project object, so you can just use that method rather than the longer factory method above.
 
-`Project` represents the Project objects from API 2.1 onward, which have workbook and datasouce defaults, as well as locking and unlocking.
-
-The `TableauRestApiConnectionXX` class will give you the right `Project object for its version.
+Projects have additional commands that the other classes do not:
 
 `Project.lock_permissions()`
 
@@ -933,7 +935,7 @@ The `TableauRestApiConnectionXX` class will give you the right `Project object f
 
 `Project.are_permissions_locked()`
 
-You access the default permissions objects with the following, which are Workbook or Datasource object:
+You access the default permissions objects with the following, which reference the objects of the correct type that have already been built within the Project object:
 
 `Project.workbook_defaults`
 
@@ -941,17 +943,19 @@ You access the default permissions objects with the following, which are Workboo
 
 Project28 expands the project definition to include a Parent Project LUID
 
-Project33 expands the project defintion to include a `.flow_defaults` sub-object for setting Default Permissions for Flows.
+Project33 expands the project definition to include a `.flow_defaults` sub-object for setting Default Permissions for Flows.
+
+`Project33.flow_defaults`
 
 #### 1.4.2 Permissions Classes
-Any time you want to set or change permissions, you should instantiate one of the `Permissions` classes to represent that set of permissions/capabilities available.
+Any time you want to set or change permissions, you must use one of the `Permissions` classes to represent that set of permissions/capabilities available. You do not need to construct them directly, as below. Instead please use the factory method mentioned directly after:
 
 
-`WorkbookPermissions21(group_or_user, group_or_user_luid)`
+`WorkbookPermissions(group_or_user, group_or_user_luid)`
 
-`DatasourcePermissions21(group_or_user, group_or_user_luid)`
+`DatasourcePermissions(group_or_user, group_or_user_luid)`
 
-`ProjectPermissions21(group_or_user, group_or_user_luid)`
+`ProjectPermissions(group_or_user, group_or_user_luid)`
 
 `WorkbookPermissions28(group_or_user, group_or_user_luid)`
 
@@ -961,7 +965,23 @@ Any time you want to set or change permissions, you should instantiate one of th
 
 `FlowPermission33(group_or_user, group_or_user_luid)`
 
-You can get the correct permissions object through factory methods on the `Project` classes. The option role parameter sets the permissions to match one of the named roles in Tableau Server. It is a shortcut to the `set_capabilities_to_match_role` method:
+`DatabasePermissions35(group_or_user, group_or_user_luid)`
+
+`TablePermission35(group_or_user, group_or_user_luid)`
+
+Any PublishedContent object (Project, Workbook, etc.) will return the correct Permissions object type for itself with the following method. The optional `role` parameter sets the permissions to match one of the named roles in Tableau Server. It is a shortcut to the `set_capabilities_to_match_role` method. 
+
+    get_permissions_obj(group_name_or_luid: Optional[str] = None, username_or_luid: Optional[str] = None, role: Optional[str] = None)
+
+So if you want to set the default permissions for workbooks in a project, you can do
+
+    proj_obj = t.query_project('My Project')
+    wb_perms_1 = proj_obj.workbook_defaults.get_permissions_obj(group_name_or_luid='My Favorite Group')
+    wb_perms_1.set_all_to_allow()
+    wb_perms_1.set_capability_to_deny('Download Full Data')
+    proj_obj.workbook_defaults.set_permissions(permissions=[wb_perms, ])
+
+For compatibility with older releases, the `Project` classes still contain these much longer legacy methods that bring back permissions objects of the different class types. Please use the `get_permissions_obj()` method in newer code. :
 
 `Project.create_datasource_permissions_object_for_group(group_name_or_luid, role=None)`
 
@@ -975,23 +995,10 @@ You can get the correct permissions object through factory methods on the `Proje
 
 `Project.create_project_permissions_object_for_user(username_or_luid, role=None)`
 
-
-Project28 has the same methods as above.
-
-Project33 has the same methods, with the addition of:
-
 `Project33.create_flow_permissions_object_for_group(group_name_or_luid, role=None)`
 
 `Project33.create_flow_permissions_object_for_user(username_or_luid, role=None)`
 
-
-This `ProjectXX` object should be acquired by querying or creating a project, returning the correct `Project` object. You shouldn't ever need to construct any of them manually.
-
-Ex. 
-
-    proj = t.query_project('My Project')
-    best_group_perms_obj = proj.get_workbook_permissions_object_for_group('Best Group')
-    second_best_group_perms_obh = proj.get_workbook_permissions_object_for_group('Second Best Group', role='Interactor')
 
 #### 1.4.2 Setting Capabilities
 The Permissions classes have methods for setting capabilities individually, or matching the selectable "roles" in the Tableau Server UI. 
@@ -1017,10 +1024,10 @@ There is also a method to match the roles from the Tableau Server UI. It is awar
 Ex. 
     
     proj = t.query_project('My Project')
-    best_group_perms_obj = proj.create_workbook_permissions_object_for_group('Best Group')
+    best_group_perms_obj = proj.get_permissions_obj(group_name_or_luid='Best Group')
     best_group_perms_obj.set_capabilities_to_match_role("Publisher")
     # alternatively, you can set this in the factory method
-    # best_group_perms_obj = proj.create_workbook_permissions_object_for_group('Best Group', role='Publisher')
+    # best_group_perms_obj = proj.get_permissions_obj(group_name_or_luid='Best Group', role='Publisher')
 
 #### 1.4.2 Permissions Setting
 All of the PublishedContent classes (Workbook, ProjectXX and Datasource) inherit the following method for setting permissions:
@@ -1040,18 +1047,18 @@ This method does all of the necessary checks to send the simplest set of calls t
 Ex.
 
         proj = t.query_project('My Project')
-        best_group_perms_obj = proj.create_project_permissions_object_for_group('Best Group')
+        best_group_perms_obj = proj.get_permissions_obj(group_name_or_luid='Best Group')
         best_group_perms_obj.set_capabilities_to_match_role("Publisher")
-        proj.set_permissions_by_permissions_obj_list([best_group_perms_obj, ]) # Note creating a list for singular item
+        proj.set_permissions(permissions=[best_group_perms_obj, ]) # Note creating a list for singular item
     
     # Setting default permissions for workbook
-    best_group_perms_obj = proj.create_workbook_permissions_object_for_group('Best Group')
+    best_group_perms_obj = proj.workbook_defaults.get_permissions_obj(group_name_or_luid='Best Group')
     best_group_perms_obj.set_capabilities_to_match_role("Interactor")
-    proj.workbook_defaults.set_permissions_by_permissions_obj_list([best_group_perms_obj, ])
+    proj.workbook_defaults.set_permissions(permissions=[best_group_perms_obj, ])
     
     # Setting default permissions for data source
-    best_group_perms_obj = proj.create_datasource_permissions_object_for_group('Best Group', role='Editor')
-    proj.datasource_defaults.set_permissions_by_permissions_obj_list([best_group_perms_obj, ])
+    best_group_perms_obj = proj.datasource_defaults.get_permissions_obj(group_name_or_luid='Best Group', role='Editor')
+    proj.datasource_defaults.set_permissions(permissions=[best_group_perms_obj, ])
 
 #### 1.4.3 Reusing Permissions Objects
 If you have a Permissions object that represents a set of permissions you want to reuse, you should use the two copy methods here, which create actual new Permissions objects with the appropriate changes:

@@ -12,12 +12,12 @@ from tableau_tools.logger import Logger
 from tableau_tools.logging_methods import LoggingMethods
 from ._lookups import LookupMethods
 #from ..tableau_documents.tableau_file import TableauFile
-from tableau_exceptions import *
-from tableau_rest_api.rest_xml_request import RestXmlRequest
-from tableau_rest_api.rest_json_request import RestJsonRequest
-from tableau_rest_api.published_content import Project, Project28, Project33, Workbook, Datasource, Flow33
-from tableau_rest_api.url_filter import *
-from tableau_rest_api.sort import *
+from tableau_tools.tableau_exceptions import *
+from tableau_tools.tableau_rest_api.rest_xml_request import RestXmlRequest
+from tableau_tools.tableau_rest_api.rest_json_request import RestJsonRequest
+from tableau_tools.tableau_rest_api.published_content import Project, Project28, Project33, Workbook, Datasource, Flow33
+from tableau_tools.tableau_rest_api.url_filter import *
+from tableau_tools.tableau_rest_api.sort import *
 
 
 class TableauRestApiBase(LookupMethods, LoggingMethods):
@@ -306,26 +306,8 @@ class TableauRestApiBase(LookupMethods, LoggingMethods):
     #
     # Factory methods for PublishedContent and Permissions objects
     #
-    def get_published_project_object(self, project_name_or_luid: str,
-                                     project_xml_obj: Optional[ET.Element] = None) -> Project:
-        luid = self.query_project_luid(project_name_or_luid)
-        proj_obj = Project(luid=luid, tableau_rest_api_obj=self, tableau_server_version=self.version,
-                           logger_obj=self.logger, content_xml_obj=project_xml_obj)
-        return proj_obj
 
-    def get_published_workbook_object(self, workbook_name_or_luid: str,
-                                      project_name_or_luid: Optional[str] = None) -> Workbook:
-        luid = self.query_workbook_luid(workbook_name_or_luid, project_name_or_luid)
-        wb_obj = Workbook(luid=luid, tableau_rest_api_obj=self, tableau_server_version=self.version,
-                          default=False, logger_obj=self.logger)
-        return wb_obj
 
-    def get_published_datasource_object(self, datasource_name_or_luid: str,
-                                        project_name_or_luid: Optional[str] = None) -> Datasource:
-        luid = self.query_datasource_luid(datasource_name_or_luid, project_name_or_luid)
-        ds_obj = Datasource(luid=luid, tableau_rest_api_obj=self, tableau_server_version=self.version,
-                            default=False, logger_obj=self.logger)
-        return ds_obj
 
     #
     # Sign-in and Sign-out

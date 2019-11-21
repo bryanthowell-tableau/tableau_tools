@@ -1,5 +1,5 @@
 from .rest_api_base import *
-
+from tableau_tools.tableau_rest_api.published_content import Datasource, Datasource28
 
 class DatasourceMethods():
     def __init__(self, rest_api_base: TableauRestApiBase):
@@ -7,6 +7,13 @@ class DatasourceMethods():
 
     def __getattr__(self, attr):
         return getattr(self.rest_api_base, attr)
+
+    def get_published_datasource_object(self, datasource_name_or_luid: str,
+                                        project_name_or_luid: Optional[str] = None) -> Datasource:
+        luid = self.query_datasource_luid(datasource_name_or_luid, project_name_or_luid)
+        ds_obj = Datasource(luid=luid, tableau_rest_api_obj=self,
+                            default=False, logger_obj=self.logger)
+        return ds_obj
 
     def query_datasources(self, project_name_or_luid: Optional[str] = None, all_fields: Optional[bool] = True,
                           updated_at_filter: Optional[UrlFilter] = None, created_at_filter: Optional[UrlFilter] = None,
@@ -255,6 +262,13 @@ class DatasourceMethods27(DatasourceMethods):
 class DatasourceMethods28(DatasourceMethods27):
     def __init__(self, rest_api_base: TableauRestApiBase28):
         self.rest_api_base = rest_api_base
+
+    def get_published_datasource_object(self, datasource_name_or_luid: str,
+                                        project_name_or_luid: Optional[str] = None) -> Datasource28:
+        luid = self.query_datasource_luid(datasource_name_or_luid, project_name_or_luid)
+        ds_obj = Datasource28(luid=luid, tableau_rest_api_obj=self,
+                            default=False, logger_obj=self.logger)
+        return ds_obj
 
 class DatasourceMethods30(DatasourceMethods28):
     def __init__(self, rest_api_base: TableauRestApiBase30):

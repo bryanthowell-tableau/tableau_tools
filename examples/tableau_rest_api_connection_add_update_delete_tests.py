@@ -92,7 +92,7 @@ def create_test_site(tableau_server_default_connection: TableauRestApiConnection
     logger.log('Creating test site')
     default_site = tableau_server_default_connection
     # Assign this however you'd like
-    new_site_content_url = 'tableau_tools'
+    new_site_content_url = 'tableau_tools_test_site'
     new_site_name = 'Test Site 1'
     new_site_name_to_change_to = 'Test Site - tableau_tools'
 

@@ -208,6 +208,14 @@ class UserMethods():
             self.send_delete_request(url)
         self.end_log_block()
 
+    def unlicense_users(self, username_or_luid_s: Union[List[str], str]):
+        self.start_log_block()
+        users = self.to_list(username_or_luid_s)
+        for user in users:
+            user_luid = self.query_user_luid(user)
+            self.update_user(username_or_luid=user_luid, site_role="Unlicensed")
+        self.end_log_block()
+
 class UserMethods27(UserMethods):
     def __init__(self, rest_api_base: TableauRestApiBase27):
         self.rest_api_base = rest_api_base
