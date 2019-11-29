@@ -1,4 +1,4 @@
-from tableau_tools.tableau_exceptions import *
+from ..tableau_exceptions import *
 
 
 class Sort:
@@ -12,12 +12,10 @@ class Sort:
         sort_string = '{}:{}'.format(self.field, self.direction)
         return sort_string
 
-class SortAscending(Sort):
-    def __init__(self, field: str):
-        Sort.__init__(self, field=field, direction='asc')
+    @staticmethod
+    def Ascending(field: str) -> 'Sort':
+        return Sort(field=field, direction='asc')
 
-
-class SortDescending(Sort):
-    def __init__(self, field: str):
-        Sort.__init__(self, field=field, direction='desc')
-
+    @staticmethod
+    def Descending(field: str) -> 'Sort':
+        return Sort(field=field, direction='desc')

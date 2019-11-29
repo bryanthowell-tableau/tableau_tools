@@ -1,5 +1,5 @@
 from .rest_api_base import *
-
+from requests.exceptions import HTTPError
 class SubscriptionMethods():
     def __init__(self, rest_api_base: TableauRestApiBase):
         self.rest_api_base = rest_api_base
@@ -111,13 +111,18 @@ class SubscriptionMethods():
         except RecoverableHTTPException as e:
             self.end_log_block()
             raise e
+        except HTTPError as e:
+            self.end_log_block()
+            raise InvalidOptionException('Please check to make sure that you have an SMTP server configured and Subscriptions are enabled for this Server and Site')
+
 
     def create_subscription_to_workbook(self, subscription_subject: str, wb_name_or_luid: str, 
                                         schedule_name_or_luid: str, username_or_luid: str, 
                                         project_name_or_luid: Optional[str] = None) -> str:
         self.start_log_block()
-        luid = self.create_subscription(subscription_subject, 'Workbook', wb_name_or_luid, schedule_name_or_luid,
-                                        username_or_luid, project_name_or_luid=project_name_or_luid)
+        luid = self.create_subscription(subscription_subject=subscription_subject, view_or_workbook='Workbook',
+                                        content_name_or_luid=wb_name_or_luid, schedule_name_or_luid=schedule_name_or_luid,
+                                        username_or_luid=username_or_luid, project_name_or_luid=project_name_or_luid)
         self.end_log_block()
         return luid
 
@@ -125,8 +130,10 @@ class SubscriptionMethods():
                                     username_or_luid: str, wb_name_or_luid: Optional[str] = None, 
                                     project_name_or_luid: Optional[str] = None) -> str:
         self.start_log_block()
-        luid = self.create_subscription(subscription_subject, 'View', view_name_or_luid, schedule_name_or_luid,
-                                        username_or_luid, wb_name_or_luid=wb_name_or_luid, project_name_or_luid=project_name_or_luid)
+        luid = self.create_subscription(subscription_subject=subscription_subject, view_or_workbook='View',
+                                        content_name_or_luid=view_name_or_luid, schedule_name_or_luid=schedule_name_or_luid,
+                                        username_or_luid=username_or_luid, wb_name_or_luid=wb_name_or_luid,
+                                        project_name_or_luid=project_name_or_luid)
         self.end_log_block()
         return luid
 
@@ -247,6 +254,10 @@ class SubscriptionMethods35(SubscriptionMethods34):
         except RecoverableHTTPException as e:
             self.end_log_block()
             raise e
+        except HTTPError as e:
+            self.end_log_block()
+            raise InvalidOptionException('Please check to make sure that you have an SMTP server configured and Subscriptions are enabled for this Server and Site')
+
 
     def update_subscription(self, subscription_luid: str, subject: Optional[str] = None,
                             schedule_luid: Optional[str] = None, image_attachment: Optional[bool] = None,

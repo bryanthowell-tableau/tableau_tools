@@ -125,6 +125,8 @@ class SiteMethods30(SiteMethods28):
                 self.end_log_block()
                 raise AlreadyExistsException("Site with content_url {} already exists".format(new_content_url),
                                              new_content_url)
+            else:
+                raise e
 
     # Can only update the site you are signed into, so take site_luid from the object
     def update_site(self, site_name: Optional[str] = None, content_url: Optional[str] = None,

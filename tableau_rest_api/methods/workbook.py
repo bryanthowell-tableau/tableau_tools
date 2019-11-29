@@ -1,5 +1,5 @@
 from .rest_api_base import *
-from tableau_tools.tableau_rest_api.published_content import Workbook, Workbook28
+from ..published_content import Workbook, Workbook28
 
 
 class WorkbookMethods():
@@ -130,22 +130,24 @@ class WorkbookMethods():
         self.end_log_block()
         return wbs
 
-    def update_workbook(self, workbook_name_or_luid: str, workbook_project_name_or_luid: str,
+    def update_workbook(self, workbook_name_or_luid: str, workbook_project_name_or_luid: Optional[str] = None,
                         new_project_name_or_luid: Optional[str] = None, new_owner_username_or_luid: Optional[str] = None,
                         show_tabs: bool = True) -> ET.Element:
         self.start_log_block()
-        workbook_luid = self.query_workbook_luid(workbook_name_or_luid, workbook_project_name_or_luid, self.username)
-        new_owner_luid = self.query_user_luid(new_owner_username_or_luid)
-        new_project_luid = self.query_project_luid(new_project_name_or_luid)
+        workbook_luid = self.query_workbook_luid(workbook_name_or_luid, workbook_project_name_or_luid)
+
         tsr = ET.Element("tsRequest")
         w = ET.Element("workbook")
         w.set('showTabs', str(show_tabs).lower())
-        if new_project_luid is not None:
+
+        if new_project_name_or_luid is not None:
+            new_project_luid = self.query_project_luid(new_project_name_or_luid)
             p = ET.Element('project')
             p.set('id', new_project_luid)
             w.append(p)
 
-        if new_owner_luid is not None:
+        if new_owner_username_or_luid is not None:
+            new_owner_luid = self.query_user_luid(new_owner_username_or_luid)
             o = ET.Element('owner')
             o.set('id', new_owner_luid)
             w.append(o)
@@ -212,7 +214,7 @@ class WorkbookMethods():
         self.start_log_block()
         if usage not in [True, False]:
             raise InvalidOptionException('Usage can only be set to True or False')
-        wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
+        wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
         vws = self.query_resource("workbooks/{}/views?includeUsageStatistics={}".format(wb_luid, str(usage).lower()))
         self.end_log_block()
         return vws
@@ -223,7 +225,7 @@ class WorkbookMethods():
         self.start_log_block()
         if usage not in [True, False]:
             raise InvalidOptionException('Usage can only be set to True or False')
-        wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
+        wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
         url_params = self.rest_api_base.build_url_parameter_string(map_dict={'includeUsageStatistics': str(usage).lower()})
         vws = self.query_resource_json("workbooks/{}/views".format(wb_luid),
                                        additional_url_ending=url_params, page_number=page_number)
@@ -237,7 +239,7 @@ class WorkbookMethods():
         self.start_log_block()
         if usage not in [True, False]:
             raise InvalidOptionException('Usage can only be set to True or False')
-        wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
+        wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
         vws = self.query_resource("workbooks/{}/views?includeUsageStatistics={}".format(wb_luid, str(usage).lower()))
 
         if view_content_url is not None:
@@ -261,7 +263,7 @@ class WorkbookMethods():
     def query_workbook_connections(self, wb_name_or_luid: str, proj_name_or_luid: Optional[str] = None,
                                    username_or_luid: Optional[str] = None) -> ET.Element:
         self.start_log_block()
-        wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid, username_or_luid)
+        wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
         conns = self.query_resource("workbooks/{}/connections".format(wb_luid))
         self.end_log_block()
         return conns
@@ -618,7 +620,7 @@ class WorkbookMethods30(WorkbookMethods28):
     def __init__(self, rest_api_base: TableauRestApiBase30):
         self.rest_api_base = rest_api_base
 
-    def publish_workbook(self, workbook_filename: str, workbook_name: str, project_obj: Project,
+    def publish_workbook(self, workbook_filename: str, workbook_name: str, project_obj: 'Project',
                          overwrite: bool = False, async_publish: bool = False,
                          connection_username: Optional[str] = None,
                          connection_password: Optional[str] = None, save_credentials: bool = True,

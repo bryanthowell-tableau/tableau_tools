@@ -11,7 +11,7 @@ import re
 from tableau_tools.logger import Logger
 from tableau_tools.logging_methods import LoggingMethods
 from ._lookups import LookupMethods
-#from ..tableau_documents.tableau_file import TableauFile
+from tableau_tools.tableau_documents.tableau_file import TableauFile
 from tableau_tools.tableau_exceptions import *
 from tableau_tools.tableau_rest_api.rest_xml_request import RestXmlRequest
 from tableau_tools.tableau_rest_api.rest_json_request import RestJsonRequest
@@ -60,6 +60,23 @@ class TableauRestApiBase(LookupMethods, LoggingMethods):
 
         # Try to see if this gets the composition right
         self.rest_api_base = self
+
+        self.site_roles = (
+            u'Interactor',
+            u'Publisher',
+            u'SiteAdministrator',
+            u'Unlicensed',
+            u'UnlicensedWithPublish',  # This was sunset at some point
+            u'Viewer',
+            u'ViewerWithPublish',
+            u'ServerAdministrator',
+            u'ReadOnly',
+            u'Explorer',
+            u'ExplorerCanPublish',
+            u'SiteAdministratorExplorer',
+            u'Creator',
+            u'SiteAdministratorCreator'
+        )
 
     # URI is different form actual URL you need to load a particular view in iframe
     @staticmethod
@@ -815,20 +832,22 @@ class TableauRestApiBase(LookupMethods, LoggingMethods):
                 file_extension = ending[1:]
 
                 # If twb or twbx, open up and check for any published data sources
-                if file_extension.lower() in ['twb', 'twbx'] and check_published_ds is True:
-                    self.log("Adjusting any published datasources")
-                    t_file = TableauFile(content_filename, self.logger)
-                    dses = t_file.tableau_document.datasources
-                    for ds in dses:
-                        # Set to the correct site
-                        if ds.published is True:
-                            self.log("Published datasource found")
-                            self.log("Setting publish datasource repository to {}".format(self.site_content_url))
-                            ds.published_ds_site = self.site_content_url
+                # Legacy and think it is unnecessary in any current version. Keeping code in case that proves untrue
+                #if file_extension.lower() in ['twb', 'twbx'] and check_published_ds is True:
+                #    self.log("Adjusting any published datasources")
+                #    t_file = TableauFile(content_filename, self.logger)
+                #    dses = t_file.tableau_document.datasources
+                #    for ds in dses:
+                #        # Set to the correct site
+                #        if ds.published is True:
+                #            self.log("Published datasource found")
+                #            self.log("Setting publish datasource repository to {}".format(self.site_content_url))
+                #            ds.published_ds_site = self.site_content_url
 
-                    temp_wb_filename = t_file.save_new_file('temp_wb')
-                    content_filename = temp_wb_filename
-                    # Open the file to be uploaded
+                #    temp_wb_filename = t_file.save_new_file('temp_wb')
+                #    content_filename = temp_wb_filename
+
+                # Open the file to be uploaded
                 try:
                     content_file = open(content_filename, 'rb')
                     file_size = os.path.getsize(content_filename)

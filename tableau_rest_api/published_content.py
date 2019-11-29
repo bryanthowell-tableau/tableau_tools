@@ -357,16 +357,16 @@ class PublishedContent(LoggingMethods):
             if capabilities_dict[cap] not in ['Allow', 'Deny']:
                 raise InvalidOptionException('Capability mode can only be "Allow",  "Deny" (case-sensitive)')
             if obj_type == 'project':
-                if cap not in self.available_capabilities[self.api_version]["project"]:
+                if cap not in Permissions.available_capabilities[self.api_version]["project"]:
                     raise InvalidOptionException('{} is not a valid capability for a project'.format(cap))
             if obj_type == 'datasource':
                 # Ignore if not available for datasource
-                if cap not in self.available_capabilities[self.api_version]["datasource"]:
+                if cap not in Permissions.available_capabilities[self.api_version]["datasource"]:
                     self.log('{} is not a valid capability for a datasource'.format(cap))
                     continue
             if obj_type == 'workbook':
                 # Ignore if not available for workbook
-                if cap not in self.available_capabilities[self.api_version]["workbook"]:
+                if cap not in Permissions.available_capabilities[self.api_version]["workbook"]:
                     self.log('{} is not a valid capability for a workbook'.format(cap))
                     continue
             capab = ET.Element('capability')

@@ -102,8 +102,11 @@ class ScheduleMethods():
             self.end_log_block()
             return new_schedule_luid
         except RecoverableHTTPException as e:
+            self.end_log_block()
             if e.tableau_error_code == '409021':
-                raise AlreadyExistsException('Schedule Already exists on the server', None)
+                raise AlreadyExistsException('Schedule With this Name Already exists on the server', None)
+            else:
+                raise e
 
     def update_schedule(self, schedule_name_or_luid: str, new_name: Optional[str] = None,
                         frequency: Optional[str] = None, parallel_or_serial: Optional[str] = None,
@@ -165,9 +168,17 @@ class ScheduleMethods():
 
         # Schedule requests happen at the server rather than site level, like a login
         url = self.build_api_url("schedules/{}".format(luid), server_level=True)
-        response = self.send_update_request(url, tsr)
-        self.end_log_block()
-        return response
+
+        try:
+            response = self.send_update_request(url, tsr)
+            self.end_log_block()
+            return response
+        except RecoverableHTTPException as e:
+            self.end_log_block()
+            if e.tableau_error_code == '409021':
+                raise AlreadyExistsException('Schedule With this Name Already exists on the server', None)
+            else:
+                raise e
 
     def disable_schedule(self, schedule_name_or_luid: str):
         self.start_log_block()

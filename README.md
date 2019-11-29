@@ -1928,11 +1928,4 @@ Ex.
     for row in sessions_for_username:
         t.signout(row[0])
 
-### 4.4 Setting Datasources and Workbooks on Extract Refresh Schedules (pre 10.5)
-This is extra extra not supported and should only be used in an emergency with a clean backup and great recovery plan in place. If you can update to 10.5 to use the appropriate REST API commands, you should. But if for some reason you can't, if you have logged in via the tblwgadmin user, you can put a workbook or datasource on an extract refresh schedule:
-
-`TableauRepository.set_workbook_on_schedule(workbook_luid, schedule_name)`
-
-`TableauRepository.set_datasource_on_schedule(datasource_luid, schedule_name)`
-
 Yes, there are all sorts of other IDs besides the LUID in the repository, but you need to have gone through the work to confirm you want to do this.

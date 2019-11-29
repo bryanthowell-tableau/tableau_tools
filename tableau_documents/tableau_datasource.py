@@ -24,7 +24,7 @@ class TableauDatasource(LoggingMethods):
                  ds_version: Optional[str] = None):
         # TableauDocument.__init__(self)
         self.document_type = 'datasource'
-        ET.register_namespace('t', self.ns_map['t'])
+
         self.logger = logger_obj
         self._connections = []
         self.ds_name = None
@@ -33,7 +33,8 @@ class TableauDatasource(LoggingMethods):
         self._published = False
         self.relation_xml_obj = None
         self.existing_tde_filename = None
-        self.nsmap = {"user": 'http://www.tableausoftware.com/xml/user'}
+        self.ns_map = {"user": 'http://www.tableausoftware.com/xml/user', 't': 'http://tableau.com/api'}
+        ET.register_namespace('t', self.ns_map['t'])
         self.parameters = None
 
         # All used for creating from scratch
@@ -1010,11 +1011,11 @@ class TableauDatasource(LoggingMethods):
             elif filter_def['type'] == 'categorical':
                 gf = ET.Element('groupfilter')
                 # This attribute has a user namespace
-                gf.set('{' + '{}'.format(self.nsmap['user']) + '}ui-domain', 'database')
-                gf.set('{' + '{}'.format(self.nsmap['user']) + '}ui-enumeration', filter_def['ui-enumeration'])
-                gf.set('{' + '{}'.format(self.nsmap['user']) + '}ui-marker', 'enumerate')
+                gf.set('{' + '{}'.format(self.ns_map['user']) + '}ui-domain', 'database')
+                gf.set('{' + '{}'.format(self.ns_map['user']) + '}ui-enumeration', filter_def['ui-enumeration'])
+                gf.set('{' + '{}'.format(self.ns_map['user']) + '}ui-marker', 'enumerate')
                 if filter_def['ui-manual-selection'] is True:
-                    gf.set('{' + '{}'.format(self.nsmap['user']) + '}ui-manual-selection', 'true')
+                    gf.set('{' + '{}'.format(self.ns_map['user']) + '}ui-manual-selection', 'true')
                 if len(filter_def['values']) == 1:
                     if filter_def['ui-enumeration'] == 'exclusive':
                         gf.set('function', 'except')

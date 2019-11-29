@@ -49,8 +49,11 @@ class TableauFile(LoggingMethods):
         elif filename.lower().find('.tds') != -1:
             self._original_file_type = 'tds'
             self._final_file_type = 'tds'
+        elif filename.lower().find('tfl') != -1:
+            self._original_file_type = 'tfl'
+            self._final_file_type = 'tfl'
         else:
-            raise InvalidOptionException('Must open a Tableau file with ending of tds, tdsx, twb, or twbx')
+            raise InvalidOptionException('Must open a Tableau file with ending of tds, tdsx, twb, twbx, tfl')
         try:
             if create_new is True:
                 if self._original_file_type in ['tds', 'tdsx']:

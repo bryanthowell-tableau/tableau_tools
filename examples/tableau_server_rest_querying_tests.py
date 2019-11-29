@@ -3,7 +3,7 @@ from typing import Optional, List, Dict
 import time, datetime
 import json
 
-from tableau_tools import *
+from ...tableau_tools import *
 
 # This is meant to test all querying functionality of the tableau_tools library.
 # It is intended to be pointed at existing sites on existing Tableau Servers, with enough content for
@@ -81,6 +81,7 @@ def project_tests(t: TableauServerRest33):
         project_obj = t.projects.query_project(project_name_or_luid=project_name)
         project_xml = t.projects.query_project_xml_object(project_name_or_luid=project_name)
         permissions_locked = project_obj.are_permissions_locked()
+
         # Permissions querying
         project_permissions = project_obj.get_permissions_obj_list()
         project_permissions_xml = project_obj.get_permissions_xml()
@@ -147,7 +148,7 @@ def user_tests(t: TableauServerRest):
     last_login_filter = UrlFilter.create_last_login_filter(operator="gte", last_login_time=filter_time_string)
 
     filtered_users = t.users.query_users(site_role_filter=explorer_filter, last_login_filter=last_login_filter,
-                                         sorts=[SortAscending("name"), ])
+                                         sorts=[Sort.Ascending("name"), ])
 
     print('Finished User tests')
 
@@ -176,7 +177,7 @@ def workbooks_tests(t: TableauServerRest):
 
 def datasources_tests(t: TableauServerRest):
     print("Starting Datasources tests")
-    dses_xml = t.datasources.query_datasources(sorts=[SortAscending('name'), ])
+    dses_xml = t.datasources.query_datasources(sorts=[Sort.Ascending('name'), ])
     dses_json = t.datasources.query_datasources_json()
     for ds in dses_xml:
         ds_luid = ds.get('id')

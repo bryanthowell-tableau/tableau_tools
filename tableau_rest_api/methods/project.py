@@ -1,5 +1,5 @@
 from .rest_api_base import *
-from tableau_tools.tableau_rest_api.published_content import *
+from ..published_content import *
 
 class ProjectMethods():
     def __init__(self, rest_api_base: TableauRestApiBase):
@@ -34,7 +34,7 @@ class ProjectMethods():
 
         luid = self.query_project_luid(project_name_or_luid)
 
-        proj_obj = Project(luid=luid, tableau_rest_api_obj=self, tableau_server_version=self.version,
+        proj_obj = Project(luid=luid, tableau_rest_api_obj=self,
                              logger_obj=self.logger, content_xml_obj=project_xml_obj
                            )
         return proj_obj

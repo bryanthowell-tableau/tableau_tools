@@ -1,5 +1,5 @@
 from .rest_api_base import *
-from tableau_tools.tableau_rest_api.published_content import Datasource, Datasource28
+from ..published_content import Datasource, Datasource28
 
 class DatasourceMethods():
     def __init__(self, rest_api_base: TableauRestApiBase):
@@ -93,7 +93,7 @@ class DatasourceMethods():
         self.end_log_block()
 
     def update_datasource(self, datasource_name_or_luid: str, datasource_project_name_or_luid: Optional[str] = None,
-                          new_datasource_name: Optional[str] = None, new_project_luid: Optional[str] = None,
+                          new_datasource_name: Optional[str] = None, new_project_name_or_luid: Optional[str] = None,
                           new_owner_luid: Optional[str] = None) -> ET.Element:
         self.start_log_block()
         datasource_luid = self.query_datasource_luid(datasource_name_or_luid, datasource_project_name_or_luid)
@@ -102,7 +102,8 @@ class DatasourceMethods():
         d = ET.Element("datasource")
         if new_datasource_name is not None:
             d.set('name', new_datasource_name)
-        if new_project_luid is not None:
+        if new_project_name_or_luid is not None:
+            new_project_luid = self.query_project_luid(new_project_name_or_luid)
             p = ET.Element('project')
             p.set('id', new_project_luid)
             d.append(p)
@@ -226,7 +227,7 @@ class DatasourceMethods27(DatasourceMethods):
         self.rest_api_base = rest_api_base
 
     def update_datasource(self, datasource_name_or_luid: str, datasource_project_name_or_luid: Optional[str] = None,
-                          new_datasource_name: Optional[str] = None, new_project_luid: Optional[str] = None,
+                          new_datasource_name: Optional[str] = None, new_project_name_or_luid: Optional[str] = None,
                           new_owner_luid: Optional[str] = None, certification_status: Optional[bool] = None,
                           certification_note: Optional[str] = None) -> ET.Element:
         self.start_log_block()
@@ -243,7 +244,8 @@ class DatasourceMethods27(DatasourceMethods):
             d.set('isCertified', '{}'.format(str(certification_status).lower()))
         if certification_note is not None:
             d.set('certificationNote', certification_note)
-        if new_project_luid is not None:
+        if new_project_name_or_luid is not None:
+            new_project_luid = self.query_project_luid(new_project_name_or_luid)
             p = ET.Element('project')
             p.set('id', new_project_luid)
             d.append(p)
