@@ -830,8 +830,10 @@ class TableauDatasource(LoggingMethods):
 
         self.column_mapping[tableau_field_alias] = "[{}].[{}]".format(table_alias, table_field_name)
 
-    def add_column_alias(self, tableau_field_alias, caption=None, dimension_or_measure=None,
-                         discrete_or_continuous=None, datatype=None, calculation=None):
+    def add_column_alias(self, tableau_field_alias: str, caption: Optional[str] = None,
+                         dimension_or_measure: Optional[str] = None,
+                         discrete_or_continuous: Optional[str] = None, datatype: Optional[str] = None,
+                         calculation: Optional[str] = None):
         if dimension_or_measure.lower() in ['dimension', 'measure']:
             role = dimension_or_measure.lower()
         else:
@@ -917,7 +919,7 @@ class TableauDatasource(LoggingMethods):
                                                      to_date)
         self.extract_filters.append(ds_filter)
 
-    def create_continuous_filter(self, column_name, min_value=None, max_value=None, date=False):
+    def create_continuous_filter(self, column_name: str, min_value=None, max_value=None, date=False) -> Dict:
         # Dates need to be wrapped in # #
         if date is True:
             if min_value is not None:
@@ -943,7 +945,7 @@ class TableauDatasource(LoggingMethods):
         }
         return ds_filter
 
-    def create_relative_date_filter(self, column_name, period_type, number_of_periods,
+    def create_relative_date_filter(self, column_name: str, period_type, number_of_periods,
                                     previous_next_current='previous', to_date=False):
         if period_type.lower() not in ['quarter', 'year', 'month', 'day', 'hour', 'minute']:
             raise InvalidOptionException('period_type must be one of : quarter, year, month, day, hour, minute')
@@ -1058,7 +1060,7 @@ class TableauDatasource(LoggingMethods):
             return_array.append(f)
         return return_array
 
-    def generate_datasource_filters_section(self):
+    def generate_datasource_filters_section(self) -> List[ET.Element]:
         filters = self.generate_filters(self.datasource_filters)
         filters_array = []
         for f in filters:

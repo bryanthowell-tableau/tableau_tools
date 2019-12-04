@@ -12,7 +12,8 @@ from .tableau_datasource import TableauDatasource
 from .tableau_parameters import TableauParameters
 # from tableau_documents.tableau_document import TableauDocument
 
-
+# Historically, this was just a file wrapper. That functionality has moved to the TWB class
+# This is now a stub for any eventual XML modification within the workbook
 class TableauWorkbook(LoggingMethods):
     def __init__(self, twb_filename: str, logger_obj: Optional[Logger] = None):
         #TableauDocument.__init__(self)
@@ -76,6 +77,7 @@ class TableauWorkbook(LoggingMethods):
             self.parameters = TableauParameters(logger_obj=self.logger)
             return self.parameters
 
+    # Opens the original file, but substitutes in the new data sources
     def save_file(self, filename_no_extension: str, save_to_directory: Optional[str] = None):
         self.start_log_block()
         try:
@@ -125,3 +127,22 @@ class TableauWorkbook(LoggingMethods):
             self.log("Error: File '{} cannot be opened to write to".format(filename_no_extension))
             self.end_log_block()
             raise
+
+    def get_datasource_xml_text(self) -> str:
+        self.start_log_block()
+        xml_text = ""
+        final_datasources = []
+        if self.parameters is not None:
+            final_datasources.append(self.parameters)
+            final_datasources.extend(self.datasources)
+        else:
+            final_datasources = self.datasources
+        for ds in final_datasources:
+            ds_string = ds.get_datasource_xml()
+            if isinstance(ds_string, bytes):
+                final_string = ds_string.decode('utf-8')
+            else:
+                final_string = ds_string
+            xml_text += final_string
+        self.end_log_block()
+        return xml_text
