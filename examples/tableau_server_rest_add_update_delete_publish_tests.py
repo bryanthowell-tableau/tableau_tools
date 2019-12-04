@@ -615,11 +615,16 @@ def extract_tests(t: TableauServerRest):
     t.extracts.reencrypt_extracts()
 
     # Grab Extract workbook
-    t.extracts.run_extract_refresh_for_workbook(wb_name_or_luid=)
+    t.extracts.run_extract_refresh_for_workbook(wb_name_or_luid=extract_workbook_publish_name)
 
-    t.extracts.run_extract_refresh_for_datasource(ds_name_or_luid=)
+    t.extracts.run_extract_refresh_for_datasource(ds_name_or_luid=extract_datasource_publish_name)
 
-    t.extracts.run_all_extract_refreshes_for_schedule(schedule_name_or_luid=)
+    extract_scheds = t.schedules.query_extract_schedules()
+    extract_scheds_dict = t.convert_xml_list_to_name_id_dict(extract_scheds)
+    extract_luids = list(extract_scheds_dict.values())
+    # Run the first one if it exists
+    if len(extract_luids) > 0:
+        t.extracts.run_all_extract_refreshes_for_schedule(schedule_name_or_luid=extract_luids[0])
 
     extract_refresh_tasks = t.extracts.get_extract_refresh_tasks()
     for task in extract_refresh_tasks:
