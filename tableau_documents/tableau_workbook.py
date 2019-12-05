@@ -26,7 +26,6 @@ class TableauWorkbook(LoggingMethods, TableauDocument):
         # Check the filename
         if self.twb_filename.find('.twb') == -1:
             raise InvalidOptionException('Must input a .twb filename that exists')
-        self.build_document_objects(self.twb_filename)
         self.datasources: List[TableauDatasource] = []
 
     def build_datasource_objects(self, datasource_xml: ET.Element):
@@ -39,7 +38,7 @@ class TableauWorkbook(LoggingMethods, TableauDocument):
                 self.parameters = TableauParameters(datasource, self.logger)
             else:
                 ds = TableauDatasource(datasource, self.logger)
-                self._datasources.append(ds)
+                self.datasources.append(ds)
 
     def add_parameters_to_workbook(self) -> TableauParameters:
         if self.parameters is not None:

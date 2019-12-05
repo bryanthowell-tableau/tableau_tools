@@ -365,7 +365,7 @@ class TableauXmlFile(LoggingMethods, ABC):
 class TWB(DatasourceMethods, TableauXmlFile):
     def __init__(self, filename: str, logger_obj: Optional[Logger] = None):
         TableauXmlFile.__init__(self, filename=filename, logger_obj=logger_obj)
-        self._open_and_initialize(logger_obj=logger_obj)
+        self._open_and_initialize(filename=filename, logger_obj=logger_obj)
 
     def _open_and_initialize(self, filename, logger_obj):
         try:
@@ -394,7 +394,6 @@ class TWB(DatasourceMethods, TableauXmlFile):
                     metadata_flag = False
 
                 if line.find("</datasources>") != -1 and ds_flag is True:
-                    ds_fh.close()
                     break
             wb_fh.close()
 
@@ -497,7 +496,7 @@ class TableauPackagedFile(LoggingMethods, ABC):
 
     @property
     def tableau_document(self) -> Union[TableauDatasource, TableauWorkbook]:
-        return self._tableau_document
+        return self.tableau_xml_file.tableau_document
 
     @property
     @abstractmethod
@@ -672,7 +671,7 @@ class TDSX(DatasourceMethods, TableauPackagedFile):
 
     @property
     def datasources(self) -> List[TableauDatasource]:
-        return [self._tableau_document, ]
+        return [self.tableau_document, ]
 
     @property
     def file_type(self) -> str:
@@ -680,7 +679,7 @@ class TDSX(DatasourceMethods, TableauPackagedFile):
 
     @property
     def tableau_document(self) -> TableauDatasource:
-        return self._tableau_document
+        return self.tableau_xml_file.tableau_document
 
     # This would be useful for interrogating Hyper files named within (should just be 1 per TDSX)
     def get_files_in_package(self):
@@ -814,11 +813,19 @@ class TWBX(DatasourceMethods, TableauPackagedFile):
 
     @property
     def datasources(self) -> List[TableauDatasource]:
-        return self._tableau_document.datasources
+        return self.tableau_document.datasources
 
     @property
     def tableau_document(self) -> TableauWorkbook:
-        return self._tableau_document
+        return self.tableau_xml_file.tableau_document
+
+
+    @property
+    def file_type(self) -> str:
+        return 'twbx'
+
+    def get_files_in_package(self):
+        pass
 
 
 class TFL(TableauXmlFile):
