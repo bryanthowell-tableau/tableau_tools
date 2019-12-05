@@ -3,6 +3,7 @@ import os
 import codecs
 import xml.etree.ElementTree as ET
 from typing import Union, Any, Optional, List, Dict, Tuple
+import io
 
 from tableau_tools.logging_methods import LoggingMethods
 from tableau_tools.logger import Logger
@@ -95,6 +96,59 @@ class TableauWorkbook(LoggingMethods, TableauDocument):
 
         except IOError:
             self.log("Error: File '{} cannot be opened to write to".format(filename_no_extension))
+            self.end_log_block()
+            raise
+
+    def get_xml_string(self) -> str:
+        self.start_log_block()
+        try:
+            orig_wb = codecs.open(self.twb_filename, 'r', encoding='utf-8')
+
+            # Handle all in-memory as a file-like object
+            lh = io.StringIO()
+            # Stream through the file, only pulling the datasources section
+            ds_flag = None
+
+            for line in orig_wb:
+                # Skip the lines of the original datasource and sub in the new one
+                if line.find("<datasources") != -1 and ds_flag is None:
+                    self.log('Found the first of the datasources section')
+                    ds_flag = True
+
+                if ds_flag is not True:
+                    lh.write(line)
+
+                # Add in the modified datasources
+                if line.find("</datasources>") != -1 and ds_flag is True:
+                    self.log('Adding in the newly modified datasources')
+                    ds_flag = False
+                    lh.write('<datasources>\n')
+
+                    final_datasources = []
+                    if self.parameters is not None:
+                        self.log('Adding parameters datasource back in')
+                        final_datasources.append(self.parameters)
+                        final_datasources.extend(self.datasources)
+                    else:
+                        final_datasources = self.datasources
+                    for ds in final_datasources:
+                        self.log('Writing datasource XML into the workbook')
+                        ds_string = ds.get_datasource_xml()
+                        if isinstance(ds_string, bytes):
+                            final_string = ds_string.decode('utf-8')
+                        else:
+                            final_string = ds_string
+                        lh.write(final_string)
+                    lh.write('</datasources>\n')
+            # Reset back to the beginning
+            lh.seek(0)
+            final_xml_string = lh.getvalue()
+            lh.close()
+            self.end_log_block()
+            return final_xml_string
+
+        except IOError:
+            self.log("Error: File '{} cannot be opened to read from".format(self.twb_filename))
             self.end_log_block()
             raise
 

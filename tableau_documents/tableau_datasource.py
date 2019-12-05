@@ -343,7 +343,7 @@ class TableauDatasource(LoggingMethods, TableauDocument):
         return conn_obj
 
 
-    def get_datasource_xml(self) -> str:
+    def get_xml_string(self) -> str:
         # The TableauDatasource object basically stores all properties separately and doesn't actually create
         # the final XML until this function is called.
         self.start_log_block()
