@@ -7,6 +7,7 @@ import codecs
 from typing import Union, Any, Optional, List, Dict, Tuple
 import xml.etree.ElementTree as ET
 import io
+from abc import ABC, abstractmethod
 
 from tableau_tools.logging_methods import LoggingMethods
 from tableau_tools.logger import Logger
@@ -261,34 +262,219 @@ class TableauFile(LoggingMethods):
 
 # This is a helper class with factory and static methods
 class TableauFileManager(LoggingMethods):
-    def __init__(self, logger_obj: Optional[Logger] = None):
 
     @staticmethod
-    def open(self, filename: str, logger_obj: Optional[Logger] = None):
-        self.log('Opening {}'.format(filename))
+    def open(filename: str, logger_obj: Optional[Logger] = None):
+        # logger_obj.log('Opening {}'.format(filename))
         # Packaged (X) files must come first because they are supersets
         if filename.lower().find('.tdsx') != -1:
-            self._original_file_type = 'tdsx'
+
             return TDSX(filename=filename, logger_obj=logger_obj)
         elif filename.lower().find('.twbx') != -1:
-            self._original_file_type = 'twbx'
-            #self._final_file_type = 'twbx'
+
             return TWBX(filename=filename, logger_obj=logger_obj)
         elif filename.lower().find('.tflx') != -1:
-            self._original_file_type = 'tflx'
+
             return TFLX(filename=filename, logger_obj=logger_obj)
         elif filename.lower().find('.twb') != -1:
-            self._original_file_type = 'twb'
+
             return TWB(filename=filename, logger_obj=logger_obj)
         elif filename.lower().find('.tds') != -1:
-            self._original_file_type = 'tds'
+
             return TDS(filename=filename, logger_obj=logger_obj)
         elif filename.lower().find('tfl') != -1:
-            self._original_file_type = 'tfl'
+
             return TFL(filename=filename, logger_obj=logger_obj)
         else:
             raise InvalidOptionException('Must open a Tableau file with ending of tds, tdsx, twb, twbx, tfl, tflx')
 
+
+
+    # For saving a TWB or TDS (or other) from a document object. Actually should be
+    @staticmethod
+    def create_new_tds(tableau_datasource: TableauDatasource):
+        pass
+
+    @staticmethod
+    def create_new_tdsx(tableau_datasource: TableauDatasource):
+        pass
+
+    @staticmethod
+    def create_new_twb(tableau_workbook: TableauWorkbook):
+        pass
+
+    @staticmethod
+    def create_new_twbx(tableau_workbook: TableauWorkbook):
+        pass
+
+class DatasourceMethods(ABC):
+    @property
+    @abstractmethod
+    def datasources(self) -> List[TableauDatasource]:
+        #return self._datasources
+        pass
+
+# Abstract implementation
+class TableauXmlFile(LoggingMethods, ABC):
+    def __init__(self, filename: str, logger_obj: Optional[Logger] = None):
+        self.logger: Optional[Logger] = logger_obj
+        self.tableau_document = None
+        self.packaged_file: bool = False
+
+    @property
+    @abstractmethod
+    def file_type(self) -> str:
+        pass
+
+
+    # Appropriate extension added if needed
+    def save_new_file(self, new_filename_no_extension: str) -> str:
+        self.start_log_block()
+        new_filename = new_filename_no_extension.split('.')[0]  # simple algorithm to kill extension
+        if new_filename is None:
+            new_filename = new_filename_no_extension
+        self.log('Saving to a file with new filename {}'.format(new_filename))
+
+        initial_save_filename = "{}.{}".format(new_filename_no_extension, self.file_type)
+        # Make sure you don't overwrite the existing original file
+        files = list(filter(os.path.isfile, os.listdir(os.curdir)))  # files only
+        save_filename = initial_save_filename
+        file_versions = 1
+        while save_filename in files:
+            name_parts = initial_save_filename.split(".")
+            save_filename = "{} ({}).{}".format(name_parts[0], file_versions, name_parts[1])
+            file_versions += 1
+
+        self.tableau_document.save_file(save_filename)
+        return save_filename
+
+
+class TWB(DatasourceMethods, TableauXmlFile):
+    def __init__(self, filename: str, logger_obj: Optional[Logger] = None):
+        TableauXmlFile.__init__(self, filename=filename, logger_obj=logger_obj)
+        self._open_and_initialize()
+
+    def _open_and_initialize(self, filename):
+        try:
+            file_obj = open(filename, 'rb')
+            wb_fh = codecs.open(filename, 'r', encoding='utf-8')
+            ds_fh = codecs.open('temp_ds.txt', 'w', encoding='utf-8')
+
+            # Stream through the file, only pulling the datasources section
+            ds_flag = None
+            # Skip all the metadata
+            metadata_flag = None
+            for line in wb_fh:
+                # Grab the datasources
+
+                if line.find("<metadata-records") != -1 and metadata_flag is None:
+                    metadata_flag = True
+                if ds_flag is True and metadata_flag is not True:
+                    ds_fh.write(line)
+                if line.find("<datasources") != -1 and ds_flag is None:
+                    ds_flag = True
+                    ds_fh.write("<datasources xmlns:user='http://www.tableausoftware.com/xml/user'>\n")
+                if line.find("</metadata-records") != -1 and metadata_flag is True:
+                    metadata_flag = False
+
+                if line.find("</datasources>") != -1 and ds_flag is True:
+                    ds_fh.close()
+                    break
+            wb_fh.close()
+
+            utf8_parser = ET.XMLParser(encoding='utf-8')
+            ds_xml = ET.parse('temp_ds.txt', parser=utf8_parser)
+            os.remove('temp_ds.txt')
+
+            self.tableau_document = TableauWorkbook(filename, self.logger)
+            file_obj.close()
+        except IOError:
+            self.log("Cannot open file {}".format(filename))
+            raise
+
+    @property
+    def file_type(self) -> str:
+        return 'twb'
+
+    @property
+    def datasources(self) -> List[TableauDatasource]:
+        return self.tableau_document.datasources
+
+class TDS(DatasourceMethods, TableauXmlFile):
+    def __init__(self, filename: str, logger_obj: Optional[Logger] = None):
+        TableauXmlFile.__init__(self, filename=filename, logger_obj=logger_obj)
+        self._open_and_initialize(filename=filename, logger_obj=logger_obj)
+
+    def _open_and_initialize(self, filename, logger_obj):
+        try:
+
+            # The file needs to be opened as string so that String methods can be used to read each line
+            o_ds_fh = codecs.open(filename, 'r', encoding='utf-8')
+            # Rather than a temporary file, open up a file-like string object
+            ds_fh = io.StringIO()
+
+            # Here we throw out metadata-records even when opening a workbook from disk, they take up space
+            # and are recreate automatically. Very similar to what we do in initialization of TableauWorkbook
+            metadata_flag = None
+            for line in o_ds_fh:
+                # Grab the datasources
+                if line.find("<metadata-records") != -1 and metadata_flag is None:
+                    metadata_flag = True
+                if metadata_flag is not True:
+                    ds_fh.write(line)
+                if line.find("</metadata-records") != -1 and metadata_flag is True:
+                    metadata_flag = False
+            o_ds_fh.close()
+            # File-like object has to be reset from the start for the next read
+            ds_fh.seek(0)
+
+            # Make ElementTree read it as XML (this may be overkill left over from Python2.7)
+            utf8_parser = ET.XMLParser(encoding='utf-8')
+            ds_xml = ET.parse(ds_fh, parser=utf8_parser)
+
+            self.tableau_document = TableauDatasource(datasource_xml=ds_xml.getroot(), logger_obj=logger_obj)
+            ds_fh.close()
+        except IOError:
+            self.log("Cannot open file {}".format(filename))
+
+    @property
+    def file_type(self) -> str:
+        return 'tds'
+
+    @property
+    def datasources(self) -> List[TableauDatasource]:
+        return [self.tableau_document, ]
+
+# Abstract implementation
+class TableauPackagedFile(LoggingMethods, ABC):
+    def __init__(self, filename: str, logger_obj: Optional[Logger] = None):
+        self.logger: Optional[Logger] = logger_obj
+        self.log('TableauFile initializing for {}'.format(filename))
+        self.packaged_file: bool = True
+        self.packaged_filename: Optional[str] = None
+        self.tableau_xml_file: TableauXmlFile
+
+        self._original_file_type: Optional[str] = None
+
+        self.other_files: List[str] = []
+        self.temp_filename: Optional[str] = None
+        self.orig_filename: str = filename
+        self._document_type = None
+
+        self._open_file_and_intialize(filename=filename)
+
+    @abstractmethod
+    def _open_file_and_intialize(self, filename):
+        pass
+
+    @property
+    def tableau_document(self) -> Union[TableauDatasource, TableauWorkbook]:
+        return self._tableau_document
+
+    @property
+    @abstractmethod
+    def file_type(self) -> str:
+        return self._original_file_type
 
     # Appropriate extension added if needed
     def save_new_file(self, new_filename_no_extension: str, data_file_replacement_map: Optional[Dict],
@@ -417,166 +603,28 @@ class TableauFileManager(LoggingMethods):
             return save_filename
 
 
-    # For saving a TWB or TDS (or other) from a document object. Actually should be
-    @staticmethod
-    def create_new_tds(tableau_datasource: TableauDatasource):
-        pass
-
-    @staticmethod
-    def create_new_tdsx(tableau_datasource: TableauDatasource):
-        pass
-
-    @staticmethod
-    def create_new_twb(tableau_workbook: TableauWorkbook):
-        pass
-
-    @staticmethod
-    def create_new_twbx(tableau_workbook: TableauWorkbook):
-        pass
 
 
-class TableauXmlFile(LoggingMethods):
-    def __init__(self, filename: str, logger_obj: Optional[Logger] = None):
-        self.logger: Optional[Logger] = logger_obj
-        self._tableau_document = None
-        self.packaged_file: bool = False
-        self.file_type: str
+class TDSX(DatasourceMethods, TableauPackagedFile):
 
-    # Appropriate extension added if needed
-    def save_new_file(self, new_filename_no_extension: str) -> str:
-        self.start_log_block()
-        new_filename = new_filename_no_extension.split('.')[0]  # simple algorithm to kill extension
-        if new_filename is None:
-            new_filename = new_filename_no_extension
-        self.log('Saving to a file with new filename {}'.format(new_filename))
-
-        initial_save_filename = "{}.{}".format(new_filename_no_extension, self.file_type)
-        # Make sure you don't overwrite the existing original file
-        files = list(filter(os.path.isfile, os.listdir(os.curdir)))  # files only
-        save_filename = initial_save_filename
-        file_versions = 1
-        while save_filename in files:
-            name_parts = initial_save_filename.split(".")
-            save_filename = "{} ({}).{}".format(name_parts[0], file_versions, name_parts[1])
-            file_versions += 1
-
-        self.tableau_document.save_file(save_filename)
-        return save_filename
-
-
-class TWB(TableauXmlFile):
-    def __init__(self, filename: str, logger_obj: Optional[Logger] = None):
-        TableauXmlFile.__init__(self, filename=filename, logger_obj=logger_obj)
-
-        self.file_type: str = '.twb'
-        try:
-            file_obj = open(filename, 'rb')
-            wb_fh = codecs.open(filename, 'r', encoding='utf-8')
-            ds_fh = codecs.open('temp_ds.txt', 'w', encoding='utf-8')
-
-            # Stream through the file, only pulling the datasources section
-            ds_flag = None
-            # Skip all the metadata
-            metadata_flag = None
-            for line in wb_fh:
-                # Grab the datasources
-
-                if line.find("<metadata-records") != -1 and metadata_flag is None:
-                    metadata_flag = True
-                if ds_flag is True and metadata_flag is not True:
-                    ds_fh.write(line)
-                if line.find("<datasources") != -1 and ds_flag is None:
-                    ds_flag = True
-                    ds_fh.write("<datasources xmlns:user='http://www.tableausoftware.com/xml/user'>\n")
-                if line.find("</metadata-records") != -1 and metadata_flag is True:
-                    metadata_flag = False
-
-                if line.find("</datasources>") != -1 and ds_flag is True:
-                    ds_fh.close()
-                    break
-            wb_fh.close()
-
-            utf8_parser = ET.XMLParser(encoding='utf-8')
-            ds_xml = ET.parse('temp_ds.txt', parser=utf8_parser)
-            os.remove('temp_ds.txt')
-
-            self._tableau_document = TableauWorkbook(filename, self.logger)
-            file_obj.close()
-        except IOError:
-            self.log("Cannot open file {}".format(filename))
-            raise
-
-class TDS(TableauXmlFile):
-    def __init__(self, filename: str, logger_obj: Optional[Logger] = None):
-        TableauXmlFile.__init__(self, filename=filename, logger_obj=logger_obj)
-
-        self.file_type: str = '.tds'
-        try:
-            # Here we throw out metadata-records even when opening a workbook from disk, they take up space
-            # and are recreate automatically. Very similar to what we do in initialization of TableauWorkbook
-            o_ds_fh = codecs.open(filename, 'r', encoding='utf-8')
-            WriterClass = codecs.getwriter('utf-8')
-            #ds_fh = codecs.open('temp_file.txt', 'w', encoding='utf-8')
-            ds_stream = io.StringIO()
-            ds_fh = WriterClass(ds_stream)
-            #self.temp_filename = 'temp_file.txt'
-            metadata_flag = None
-            for line in o_ds_fh:
-                # Grab the datasources
-                if line.find("<metadata-records") != -1 and metadata_flag is None:
-                    metadata_flag = True
-                if metadata_flag is not True:
-                    ds_fh.write(line)
-                if line.find("</metadata-records") != -1 and metadata_flag is True:
-                    metadata_flag = False
-            o_ds_fh.close()
-
-            utf8_parser = ET.XMLParser(encoding='utf-8')
-
-            ds_xml = ET.parse(ds_stream, parser=utf8_parser)
-
-            self._tableau_document = TableauDatasource(datasource_xml=ds_xml.getroot(), logger_obj=logger_obj)
-            ds_fh.close()
-        except IOError:
-            self.log("Cannot open file {}".format(filename))
-
-class TableauPackagedFile(LoggingMethods):
-    def __init__(self, filename: str, logger_obj: Optional[Logger] = None):
-        self.logger: Optional[Logger] = logger_obj
-        self.log('TableauFile initializing for {}'.format(filename))
-        self.packaged_file: bool = True
-        self.packaged_filename: Optional[str] = None
-        self.tableau_xml_file: TableauXmlFile
-
-        self._original_file_type: Optional[str] = None
-
-        self.other_files: List[str] = []
-        self.temp_filename: Optional[str] = None
-        self.orig_filename: str = filename
-        self._document_type = None
-
+    def _open_file_and_intialize(self, filename):
         try:
             file_obj = open(filename, 'rb')
             self.log('File type is {}'.format(self.file_type))
             # Extract the TWB or TDS file to disk, then create a sub TableauFile
-            if self.file_type in ['twbx', 'tdsx']:
-                self.zf = zipfile.ZipFile(file_obj)
-                # Ignore anything in the subdirectories
-                for name in self.zf.namelist():
-                    if name.find('/') == -1:
-                        if name.endswith('.tds'):
-                            self.log('Detected a TDS file in archive, saving temporary file')
-                            self.packaged_filename = os.path.basename(self.zf.extract(name))
-                        elif name.endswith('.twb'):
-                            self.log('Detected a TWB file in archive, saving temporary file')
-                            self.packaged_filename = os.path.basename(self.zf.extract(name))
-                    else:
-                        self.other_files.append(name)
 
-                self.tableau_xml_file = TableauFile(self.packaged_filename, self.logger)
-                self._tableau_document = self.tableau_xml_file._tableau_document
-            elif self.file_type == 'twb':
-                self._tableau_document = TableauWorkbook(filename, self.logger)
+            self.zf = zipfile.ZipFile(file_obj)
+            # Ignore anything in the subdirectories
+            for name in self.zf.namelist():
+                if name.find('/') == -1:
+                    if name.endswith('.tds'):
+                        self.log('Detected a TDS file in archive, saving temporary file')
+                        self.packaged_filename = os.path.basename(self.zf.extract(name))
+                else:
+                    self.other_files.append(name)
+
+            self.tableau_xml_file = TableauFile(self.packaged_filename, self.logger)
+            self._tableau_document = self.tableau_xml_file._tableau_document
 
             self.xml_name = None
             file_obj.close()
@@ -585,34 +633,63 @@ class TableauPackagedFile(LoggingMethods):
             raise
 
     @property
-    def tableau_document(self) -> Union[TableauDatasource, TableauWorkbook]:
-        return self._tableau_document
+    def datasources(self) -> List[TableauDatasource]:
+        return List[self._tableau_document,]
 
     @property
     def file_type(self) -> str:
-        return self._original_file_type
+        return 'tdsx'
+
+    @property
+    def tableau_document(self) -> TableauDatasource:
+        return self._tableau_document
+
+
+class TWBX(DatasourceMethods, TableauPackagedFile):
+
+    #self._open_file_and_intialize(filename=filename)
+
+    def _open_file_and_intialize(self, filename):
+        try:
+            file_obj = open(filename, 'rb')
+            self.log('File type is {}'.format(self.file_type))
+            # Extract the TWB or TDS file to disk, then create a sub TableauFile
+
+            self.zf = zipfile.ZipFile(file_obj)
+            # Ignore anything in the subdirectories
+            for name in self.zf.namelist():
+                if name.find('/') == -1:
+                    if name.endswith('.twb'):
+                        self.log('Detected a TWB file in archive, saving temporary file')
+                        self.packaged_filename = os.path.basename(self.zf.extract(name))
+                else:
+                    self.other_files.append(name)
+
+            self.tableau_xml_file = TWB(self.packaged_filename, self.logger)
+            # self._tableau_document = self.tableau_xml_file._tableau_document
+
+            file_obj.close()
+        except IOError:
+            self.log("Cannot open file {}".format(filename))
+            raise
 
     @property
     def datasources(self) -> List[TableauDatasource]:
-        if self._tableau_document.document_type == 'workbook':
-            return self._tableau_document.datasources
-        elif self._tableau_document.document_type == 'datasource':
-            return List[self._tableau_document, ]
-        else:
-            return []
+        return self._tableau_document.datasources
 
+    @property
+    def tableau_document(self) -> TableauWorkbook:
+        return self._tableau_document
 
-
-class TDSX(TableauPackagedFile):
-    pass
-
-
-
-class TWBX(TableauPackagedFile):
-    pass
 
 class TFL(TableauXmlFile):
-    pass
+
+    @property
+    def file_type(self) -> str:
+        return 'tfl'
 
 class TFLX(TableauPackagedFile):
-    pass
+
+    @property
+    def file_type(self) -> str:
+        return 'tflx'

@@ -11,7 +11,7 @@ import re
 from tableau_tools.logger import Logger
 from tableau_tools.logging_methods import LoggingMethods
 from ._lookups import LookupMethods
-from tableau_tools.tableau_documents.tableau_file import TableauFile
+# from tableau_tools.tableau_documents.tableau_file import TableauFile
 from tableau_tools.tableau_exceptions import *
 from tableau_tools.tableau_rest_api.rest_xml_request import RestXmlRequest
 from tableau_tools.tableau_rest_api.rest_json_request import RestJsonRequest
