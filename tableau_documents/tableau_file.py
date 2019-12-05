@@ -561,7 +561,7 @@ class TableauPackagedFile(LoggingMethods, ABC):
         self._document_type = None
 
         # Internal storage for use with swapping in new files from disk at save time
-        self.file_replacement_map:Optional[Dict] = None
+        self.file_replacement_map: Dict = {}
 
         # Packaged up nicely but always run in constructor
         self._open_file_and_intialize(filename=filename)
@@ -590,132 +590,8 @@ class TableauPackagedFile(LoggingMethods, ABC):
         self.file_replacement_map[filename_in_package] = replacement_filname_on_disk
 
     # Appropriate extension added if needed
-    def save_new_file(self, new_filename_no_extension: str, data_file_replacement_map: Optional[Dict],
-                      new_data_files_map: Optional[Dict]) -> str:
-        self.start_log_block()
-        new_filename = new_filename_no_extension.split('.')[0]  # simple algorithm to kill extension
-        if new_filename is None:
-            new_filename = new_filename_no_extension
-        self.log('Saving to a file with new filename {}'.format(new_filename))
-        # Change filetype if there are new extracts to add
-        for ds in self.datasources:
-            if ds.tde_filename is not None or new_data_files_map is not None:
-                if self.file_type == 'twb':
-                    self._final_file_type = 'twbx'
-                    self.packaged_filename = "{}.twb".format(new_filename)
-                    self.log('Final filetype will be TWBX')
-                    break
-                if self.file_type == 'tds' or new_data_files_map is not None:
-                    self._final_file_type = 'tdsx'
-                    self.packaged_filename = "{}.tds".format(new_filename)
-                    self.log('Final filetype will be TDSX')
-                    break
-
-        if self._final_file_type in ['twbx', 'tdsx']:
-            initial_save_filename = "{}.{}".format(new_filename, self._final_file_type)
-            # Make sure you don't overwrite the existing original file
-            files = list(filter(os.path.isfile, os.listdir(os.curdir)))  # files only
-            save_filename = initial_save_filename
-            file_versions = 1
-            while save_filename in files:
-                name_parts = initial_save_filename.split(".")
-                save_filename = "{} ({}).{}".format(name_parts[0],file_versions, name_parts[1])
-                file_versions += 1
-            new_zf = zipfile.ZipFile(save_filename, 'w', zipfile.ZIP_DEFLATED)
-            # Save the object down
-            self.log('Creating temporary XML file {}'.format(self.packaged_filename))
-            # Have to extract the original TWB to temporary file
-            self.log('Creating from original file {}'.format(self.orig_filename))
-            if self._original_file_type == 'twbx':
-                file_obj = open(self.orig_filename, 'rb')
-                o_zf = zipfile.ZipFile(file_obj)
-                o_zf.extract(self.tableau_document.twb_filename)
-                shutil.copy(self.tableau_document.twb_filename, 'temp.twb')
-                os.remove(self.tableau_document.twb_filename)
-                self.tableau_document.twb_filename = 'temp.twb'
-                file_obj.close()
-
-            # Call to the tableau_document object to write the Tableau XML
-            self.tableau_document.save_file(self.packaged_filename)
-            new_zf.write(self.packaged_filename)
-            self.log('Removing file {}'.format(self.packaged_filename))
-            os.remove(self.packaged_filename)
-
-            if self._original_file_type == 'twbx':
-                os.remove('temp.twb')
-                self.log('Removed file temp.twb'.format(self.packaged_filename))
-
-            temp_directories_to_remove = {}
-
-            if len(self.other_files) > 0:
-                file_obj = open(self.orig_filename, 'rb')
-                o_zf = zipfile.ZipFile(file_obj)
-
-                # Find datasources with new extracts, and skip their files
-                extracts_to_skip = []
-                for ds in self.tableau_document.datasources:
-                    if ds.existing_tde_filename is not None and ds.tde_filename is not None:
-                        extracts_to_skip.append(ds.existing_tde_filename)
-
-                for filename in self.other_files:
-                    self.log('Looking into additional files: {}'.format(filename))
-
-                    # Skip extracts listed for replacement
-                    if filename in extracts_to_skip:
-                        self.log('File {} is from an extract that has been replaced, skipping'.format(filename))
-                        continue
-
-                    # If file is listed in the data_file_replacement_map, write data from the mapped in file
-                    if data_file_replacement_map and filename in data_file_replacement_map:
-                        new_zf.write(data_file_replacement_map[filename], "/" + filename)
-                        # Delete from the data_file_replacement_map to reduce down to end
-                        del data_file_replacement_map[filename]
-                    else:
-                        o_zf.extract(filename)
-                        new_zf.write(filename)
-                        os.remove(filename)
-                    self.log('Removed file {}'.format(filename))
-                    lowest_level = filename.split('/')
-                    temp_directories_to_remove[lowest_level[0]] = True
-                file_obj.close()
-
-            # Loop through remaining files in data_file_replacement_map to just add
-            for filename in new_data_files_map:
-                new_zf.write(new_data_files_map[filename], "/" + filename)
-
-            # If new extract, write that file
-            for ds in self.tableau_document.datasources:
-                if ds.tde_filename is not None:
-                    new_zf.write(ds.tde_filename, '/Data/Datasources/{}'.format(ds.tde_filename))
-                    os.remove(ds.tde_filename)
-                    self.log('Removed file {}'.format(ds.tde_filename))
-
-            # Cleanup all the temporary directories
-            for directory in temp_directories_to_remove:
-                self.log('Removing directory {}'.format(directory))
-                try:
-                    shutil.rmtree(directory)
-                except OSError as e:
-                    # Just means that directory didn't exist for some reason, probably a swap occurred
-                    pass
-            new_zf.close()
-
-            return save_filename
-        else:
-            initial_save_filename = "{}.{}".format(new_filename_no_extension, self.file_type)
-            # Make sure you don't overwrite the existing original file
-            files = list(filter(os.path.isfile, os.listdir(os.curdir)))  # files only
-            save_filename = initial_save_filename
-            file_versions = 1
-            while save_filename in files:
-                name_parts = initial_save_filename.split(".")
-                save_filename = "{} ({}).{}".format(name_parts[0],file_versions, name_parts[1])
-                file_versions += 1
-
-            self.tableau_document.save_file(save_filename)
-            return save_filename
-
-
+    def save_new_file(self, new_filename_no_extension: str) -> str:
+        pass
 
 
 class TDSX(DatasourceMethods, TableauPackagedFile):
@@ -763,9 +639,7 @@ class TDSX(DatasourceMethods, TableauPackagedFile):
     def get_files_in_package(self):
         pass
 
-    # Appropriate extension added if needed
-    def save_new_file(self, new_filename_no_extension: str, data_file_replacement_map: Optional[Dict],
-                      new_data_files_map: Optional[Dict]) -> str:
+    def save_new_file(self, new_filename_no_extension: str):
         self.start_log_block()
         new_filename = new_filename_no_extension.split('.')[0]  # simple algorithm to kill extension
         if new_filename is None:
@@ -782,21 +656,9 @@ class TDSX(DatasourceMethods, TableauPackagedFile):
             save_filename = "{} ({}).{}".format(name_parts[0],file_versions, name_parts[1])
             file_versions += 1
         new_zf = zipfile.ZipFile(save_filename, 'w', zipfile.ZIP_DEFLATED)
-        # Save the object down
-        self.log('Creating temporary XML file {}'.format(self.packaged_filename))
-        # Have to extract the original TWB to temporary file
-        self.log('Creating from original file {}'.format(self.orig_filename))
-        if self._original_file_type == 'twbx':
-            file_obj = open(self.orig_filename, 'rb')
-            o_zf = zipfile.ZipFile(file_obj)
-            o_zf.extract(self.tableau_document.twb_filename)
-            shutil.copy(self.tableau_document.twb_filename, 'temp.twb')
-            os.remove(self.tableau_document.twb_filename)
-            self.tableau_document.twb_filename = 'temp.twb'
-            file_obj.close()
 
-        # Call to the tableau_document object to write the Tableau XML
-        self.tableau_document.save_file(self.packaged_filename)
+        # Call to the TableauXmlFile object to write the file to disk
+        self.tableau_xml_file.save_new_file(filename_no_extension=self.packaged_filename)
         new_zf.write(self.packaged_filename)
         self.log('Removing file {}'.format(self.packaged_filename))
         os.remove(self.packaged_filename)
@@ -807,25 +669,13 @@ class TDSX(DatasourceMethods, TableauPackagedFile):
             file_obj = open(self.orig_filename, 'rb')
             o_zf = zipfile.ZipFile(file_obj)
 
-            # Find datasources with new extracts, and skip their files
-            extracts_to_skip = []
-            for ds in self.tableau_document.datasources:
-                if ds.existing_tde_filename is not None and ds.tde_filename is not None:
-                    extracts_to_skip.append(ds.existing_tde_filename)
-
             for filename in self.other_files:
                 self.log('Looking into additional files: {}'.format(filename))
 
-                # Skip extracts listed for replacement
-                if filename in extracts_to_skip:
-                    self.log('File {} is from an extract that has been replaced, skipping'.format(filename))
-                    continue
-
-                # If file is listed in the data_file_replacement_map, write data from the mapped in file
-                if data_file_replacement_map and filename in data_file_replacement_map:
-                    new_zf.write(data_file_replacement_map[filename], "/" + filename)
+                if self.file_replacement_map and filename in self.file_replacement_map:
+                    new_zf.write(self.file_replacement_map[filename], "/" + filename)
                     # Delete from the data_file_replacement_map to reduce down to end
-                    del data_file_replacement_map[filename]
+                    del self.file_replacement_map[filename]
                 else:
                     o_zf.extract(filename)
                     new_zf.write(filename)
@@ -836,16 +686,8 @@ class TDSX(DatasourceMethods, TableauPackagedFile):
             file_obj.close()
 
         # Loop through remaining files in data_file_replacement_map to just add
-        for filename in new_data_files_map:
-            new_zf.write(new_data_files_map[filename], "/" + filename)
-
-        # DEPRECATED
-        # If new extract, write that file
-        #or ds in self.tableau_document.datasources:
-        #    if ds.tde_filename is not None:
-        #        new_zf.write(ds.tde_filename, '/Data/Datasources/{}'.format(ds.tde_filename))
-        #        os.remove(ds.tde_filename)
-        #        self.log('Removed file {}'.format(ds.tde_filename))
+        for filename in self.file_replacement_map:
+            new_zf.write(self.file_replacement_map[filename], "/" + filename)
 
         # Cleanup all the temporary directories
         for directory in temp_directories_to_remove:
@@ -858,7 +700,6 @@ class TDSX(DatasourceMethods, TableauPackagedFile):
         new_zf.close()
 
         return save_filename
-
 
 
 class TWBX(DatasourceMethods, TableauPackagedFile):
@@ -907,6 +748,82 @@ class TWBX(DatasourceMethods, TableauPackagedFile):
     def get_files_in_package(self):
         pass
 
+    # Make sure to open save the original TWB file to disk PRIOR to asking for the XML from TableauWorkbook, because it
+    # won't be able to find it via that filename if it doesn't exist!
+    # Appropriate extension added if needed
+    def save_new_file(self, new_filename_no_extension: str):
+        self.start_log_block()
+        new_filename = new_filename_no_extension.split('.')[0]  # simple algorithm to kill extension
+        if new_filename is None:
+            new_filename = new_filename_no_extension
+        self.log('Saving to a file with new filename {}'.format(new_filename))
+
+        initial_save_filename = "{}.{}".format(new_filename, self._final_file_type)
+        # Make sure you don't overwrite the existing original file
+        files = list(filter(os.path.isfile, os.listdir(os.curdir)))  # files only
+        save_filename = initial_save_filename
+        file_versions = 1
+        while save_filename in files:
+            name_parts = initial_save_filename.split(".")
+            save_filename = "{} ({}).{}".format(name_parts[0],file_versions, name_parts[1])
+            file_versions += 1
+        new_zf = zipfile.ZipFile(save_filename, 'w', zipfile.ZIP_DEFLATED)
+        # Save the object down
+        self.log('Creating temporary XML file {}'.format(self.packaged_filename))
+        # Have to extract the original TWB to temporary file, with different name, then prep the TableauWorkbook object
+        # with that filename so it can insert in any changed datasources
+        self.log('Creating from original file {}'.format(self.orig_filename))
+        file_obj = open(self.orig_filename, 'rb')
+        o_zf = zipfile.ZipFile(file_obj)
+        o_zf.extract(self.tableau_document.twb_filename)
+        shutil.copy(self.tableau_document.twb_filename, 'temp.twb')
+        os.remove(self.tableau_document.twb_filename)
+        self.tableau_document.twb_filename = 'temp.twb'
+        file_obj.close()
+
+        # Call to the TableauXmlFile object to write the file to disk
+        self.tableau_xml_file.save_new_file(filename_no_extension=self.packaged_filename)
+        new_zf.write(self.packaged_filename)
+        self.log('Removing file {}'.format(self.packaged_filename))
+        os.remove(self.packaged_filename)
+
+        temp_directories_to_remove = {}
+
+        if len(self.other_files) > 0:
+            file_obj = open(self.orig_filename, 'rb')
+            o_zf = zipfile.ZipFile(file_obj)
+
+            for filename in self.other_files:
+                self.log('Looking into additional files: {}'.format(filename))
+
+                if self.file_replacement_map and filename in self.file_replacement_map:
+                    new_zf.write(self.file_replacement_map[filename], "/" + filename)
+                    # Delete from the data_file_replacement_map to reduce down to end
+                    del self.file_replacement_map[filename]
+                else:
+                    o_zf.extract(filename)
+                    new_zf.write(filename)
+                    os.remove(filename)
+                self.log('Removed file {}'.format(filename))
+                lowest_level = filename.split('/')
+                temp_directories_to_remove[lowest_level[0]] = True
+            file_obj.close()
+
+        # Loop through remaining files in data_file_replacement_map to just add
+        for filename in self.file_replacement_map:
+            new_zf.write(self.file_replacement_map[filename], "/" + filename)
+
+        # Cleanup all the temporary directories
+        for directory in temp_directories_to_remove:
+            self.log('Removing directory {}'.format(directory))
+            try:
+                shutil.rmtree(directory)
+            except OSError as e:
+                # Just means that directory didn't exist for some reason, probably a swap occurred
+                pass
+        new_zf.close()
+
+        return save_filename
 
 class TFL(TableauXmlFile):
 
