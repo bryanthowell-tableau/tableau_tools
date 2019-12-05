@@ -646,7 +646,7 @@ class TDSX(DatasourceMethods, TableauPackagedFile):
             new_filename = new_filename_no_extension
         self.log('Saving to a file with new filename {}'.format(new_filename))
 
-        initial_save_filename = "{}.{}".format(new_filename, self._final_file_type)
+        initial_save_filename = "{}.{}".format(new_filename, 'tdsx')
         # Make sure you don't overwrite the existing original file
         files = list(filter(os.path.isfile, os.listdir(os.curdir)))  # files only
         save_filename = initial_save_filename
@@ -758,7 +758,7 @@ class TWBX(DatasourceMethods, TableauPackagedFile):
             new_filename = new_filename_no_extension
         self.log('Saving to a file with new filename {}'.format(new_filename))
 
-        initial_save_filename = "{}.{}".format(new_filename, self._final_file_type)
+        initial_save_filename = "{}.{}".format(new_filename, 'twbx')
         # Make sure you don't overwrite the existing original file
         files = list(filter(os.path.isfile, os.listdir(os.curdir)))  # files only
         save_filename = initial_save_filename
@@ -774,18 +774,21 @@ class TWBX(DatasourceMethods, TableauPackagedFile):
         # with that filename so it can insert in any changed datasources
         self.log('Creating from original file {}'.format(self.orig_filename))
         file_obj = open(self.orig_filename, 'rb')
+        temp_wb_filename = 'temp.twb'
         o_zf = zipfile.ZipFile(file_obj)
         o_zf.extract(self.tableau_document.twb_filename)
-        shutil.copy(self.tableau_document.twb_filename, 'temp.twb')
+        shutil.copy(self.tableau_document.twb_filename, temp_wb_filename)
         os.remove(self.tableau_document.twb_filename)
-        self.tableau_document.twb_filename = 'temp.twb'
+        self.tableau_document.twb_filename = temp_wb_filename
         file_obj.close()
 
         # Call to the TableauXmlFile object to write the file to disk
         self.tableau_xml_file.save_new_file(filename_no_extension=self.packaged_filename)
         new_zf.write(self.packaged_filename)
-        self.log('Removing file {}'.format(self.packaged_filename))
+
+        # Clean up the new file and the temp file 
         os.remove(self.packaged_filename)
+        os.remove(temp_wb_filename)
 
         temp_directories_to_remove = {}
 

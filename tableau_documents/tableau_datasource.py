@@ -27,7 +27,7 @@ class TableauDatasource(LoggingMethods, TableauDocument):
 
         self.logger = logger_obj
         self._connections = []
-        self.ds_name = None
+        self._ds_name = None
         self.ds_version_type = None
         self._ds_version = None
         self._published = False
@@ -120,9 +120,9 @@ class TableauDatasource(LoggingMethods, TableauDocument):
         else:
             self.xml = datasource_xml
             if self.xml.get("caption"):
-                self.ds_name = self.xml.attrib["caption"]
+                self._ds_name = self.xml.attrib["caption"]
             elif self.xml.get("name"):
-                self.ds_name = self.xml.attrib['name']
+                self._ds_name = self.xml.attrib['name']
             xml_version = self.xml.attrib['version']
             # Determine whether it is a 9 style or 10 style federated datasource
             if xml_version in ['9.0', '9.1', '9.2', '9.3']:
@@ -190,9 +190,6 @@ class TableauDatasource(LoggingMethods, TableauDocument):
             c = e.find('connection')
             self.existing_tde_filename = c.get('dbname')
 
-        # To make work as tableau_document from TableauFile
-        # self._datasources.append(self)
-
         self._columns = None
         # Possible, though unlikely, that there would be no columns
         if self.xml.find('column') is not None:
@@ -202,13 +199,13 @@ class TableauDatasource(LoggingMethods, TableauDocument):
         self._extract_filename = None
         self.ds_generator = None
 
-    #@property
-    #def datasources(self) -> List[TableauDatasource]:
-    #    return self._datasources
+    @property
+    def ds_name(self) -> str:
+        return self._ds_name
 
-    #@property
-    #def document_type(self) -> str:
-    #     return self._document_type
+    @ds_name.setter
+    def ds_name(self, new_name: str):
+        self.xml.set("caption", new_name)
 
     @property
     def tde_filename(self) -> str:
@@ -270,7 +267,6 @@ class TableauDatasource(LoggingMethods, TableauDocument):
             if relation.get('type') == "table":
                 relation.set('table', relation.get('table').replace("[{}]".format(original_db_or_schema),
                                                                       "[{}]".format(new_db_or_schema)))
-
 
     @staticmethod
     def create_new_datasource_xml(version: str) -> ET.Element:
