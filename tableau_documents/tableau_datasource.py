@@ -14,12 +14,12 @@ from tableau_tools.tableau_exceptions import *
 from tableau_tools.logger import Logger
 from tableau_tools.logging_methods import LoggingMethods
 from tableau_documents.tableau_connection import TableauConnection
-# from tableau_documents.tableau_document import TableauDocument
+from tableau_documents.tableau_document import TableauDocument
 from tableau_documents.tableau_columns import TableauColumns
 
 
 # Meant to represent a TDS file, does not handle the file opening
-class TableauDatasource(LoggingMethods):
+class TableauDatasource(LoggingMethods, TableauDocument):
     def __init__(self, datasource_xml: Optional[ET.Element] = None, logger_obj: Optional[Logger] = None,
                  ds_version: Optional[str] = None):
         # TableauDocument.__init__(self)

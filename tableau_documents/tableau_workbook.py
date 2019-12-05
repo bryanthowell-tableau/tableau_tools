@@ -10,11 +10,11 @@ from tableau_tools.tableau_exceptions import *
 
 from .tableau_datasource import TableauDatasource
 from .tableau_parameters import TableauParameters
-# from tableau_documents.tableau_document import TableauDocument
+from tableau_documents.tableau_document import TableauDocument
 
 # Historically, this was just a file wrapper. That functionality has moved to the TWB class
 # This is now a stub for any eventual XML modification within the workbook
-class TableauWorkbook(LoggingMethods):
+class TableauWorkbook(LoggingMethods, TableauDocument):
     def __init__(self, twb_filename: str, logger_obj: Optional[Logger] = None):
         #TableauDocument.__init__(self)
         self.document_type = 'workbook'
@@ -28,38 +28,8 @@ class TableauWorkbook(LoggingMethods):
         self.build_document_objects(self.twb_filename)
         self.datasources: List[TableauDatasource] = []
 
-    def build_document_objects(self, filename: str):
-        wb_fh = codecs.open(filename, 'r', encoding='utf-8')
-        ds_fh = codecs.open('temp_ds.txt', 'w', encoding='utf-8')
-
-        # Stream through the file, only pulling the datasources section
-        ds_flag = None
-        # Skip all the metadata
-        metadata_flag = None
-        for line in wb_fh:
-            # Grab the datasources
-
-            if line.find("<metadata-records") != -1 and metadata_flag is None:
-                metadata_flag = True
-            if ds_flag is True and metadata_flag is not True:
-                ds_fh.write(line)
-            if line.find("<datasources") != -1 and ds_flag is None:
-                ds_flag = True
-                ds_fh.write("<datasources xmlns:user='http://www.tableausoftware.com/xml/user'>\n")
-            if line.find("</metadata-records") != -1 and metadata_flag is True:
-                metadata_flag = False
-
-            if line.find("</datasources>") != -1 and ds_flag is True:
-                ds_fh.close()
-                break
-        wb_fh.close()
-
-        utf8_parser = ET.XMLParser(encoding='utf-8')
-        ds_xml = ET.parse('temp_ds.txt', parser=utf8_parser)
-        os.remove('temp_ds.txt')
-
-        self.log("Building TableauDatasource objects")
-        datasource_elements = ds_xml.getroot().findall('datasource')
+    def build_datasource_objects(self, datasource_xml: ET.Element):
+        datasource_elements = datasource_xml.getroot().findall('datasource')
         if datasource_elements is None:
             raise InvalidOptionException('Error with the datasources from the workbook')
         for datasource in datasource_elements:
