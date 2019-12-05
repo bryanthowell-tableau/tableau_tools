@@ -429,7 +429,7 @@ class TWB(DatasourceMethods, TableauXmlFile):
         try:
             # In case the .tds gets passed in from earlier
             filename_no_extension = filename_no_extension.split('.twb')[0]
-            initial_save_filename = "{}{}".format(filename_no_extension, self.file_extension)
+            initial_save_filename = "{}{}".format(filename_no_extension, file_extension)
             # Make sure you don't overwrite the existing original file
             files = list(filter(os.path.isfile, os.listdir(os.curdir)))  # files only
             save_filename = initial_save_filename
@@ -513,7 +513,7 @@ class TDS(DatasourceMethods, TableauXmlFile):
 
             # In case the .tds gets passed in from earlier
             filename_no_extension = filename_no_extension.split('.tds')[0]
-            initial_save_filename = "{}{}".format(filename_no_extension, self.file_extension)
+            initial_save_filename = "{}{}".format(filename_no_extension, file_extension)
             # Make sure you don't overwrite the existing original file
             files = list(filter(os.path.isfile, os.listdir(os.curdir)))  # files only
             save_filename = initial_save_filename
@@ -741,6 +741,8 @@ class TDSX(DatasourceMethods, TableauPackagedFile):
 
             self.xml_name = None
             file_obj.close()
+            # Clean up the file that was opened
+            os.remove(self.packaged_filename)
         except IOError:
             self.log("Cannot open file {}".format(filename))
             raise
@@ -883,6 +885,8 @@ class TWBX(DatasourceMethods, TableauPackagedFile):
             # self._tableau_document = self.tableau_xml_file._tableau_document
 
             file_obj.close()
+            # Clean up the file that was opened
+            os.remove(self.packaged_filename)
         except IOError:
             self.log("Cannot open file {}".format(filename))
             raise
