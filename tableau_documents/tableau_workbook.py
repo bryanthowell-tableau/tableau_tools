@@ -9,9 +9,11 @@ from tableau_tools.logging_methods import LoggingMethods
 from tableau_tools.logger import Logger
 from tableau_tools.tableau_exceptions import *
 
+# TableauDocument defines ABC - interface
+from .tableau_document import TableauDocument
 from .tableau_datasource import TableauDatasource
 from .tableau_parameters import TableauParameters
-from tableau_documents.tableau_document import TableauDocument
+
 
 # Historically, this was just a file wrapper. That functionality has moved to the TWB class
 # This is now a stub for any eventual XML modification within the workbook
@@ -46,57 +48,6 @@ class TableauWorkbook(LoggingMethods, TableauDocument):
         else:
             self.parameters = TableauParameters(logger_obj=self.logger)
             return self.parameters
-
-    # Opens the original file, but substitutes in the new data sources
-    def save_file(self, filename_no_extension: str, save_to_directory: Optional[str] = None):
-        self.start_log_block()
-        try:
-            orig_wb = codecs.open(self.twb_filename, 'r', encoding='utf-8')
-            if filename_no_extension.find('.twb') == -1:
-                filename_no_extension += '.twb'
-            self.log('Saving to {}'.format(filename_no_extension))
-            lh = codecs.open(filename_no_extension, 'w', encoding='utf-8')
-            # Stream through the file, only pulling the datasources section
-            ds_flag = None
-
-            for line in orig_wb:
-                # Skip the lines of the original datasource and sub in the new one
-                if line.find("<datasources") != -1 and ds_flag is None:
-                    self.log('Found the first of the datasources section')
-                    ds_flag = True
-
-                if ds_flag is not True:
-                    lh.write(line)
-
-                # Add in the modified datasources
-                if line.find("</datasources>") != -1 and ds_flag is True:
-                    self.log('Adding in the newly modified datasources')
-                    ds_flag = False
-                    lh.write('<datasources>\n')
-
-                    final_datasources = []
-                    if self.parameters is not None:
-                        self.log('Adding parameters datasource back in')
-                        final_datasources.append(self.parameters)
-                        final_datasources.extend(self.datasources)
-                    else:
-                        final_datasources = self.datasources
-                    for ds in final_datasources:
-                        self.log('Writing datasource XML into the workbook')
-                        ds_string = ds.get_datasource_xml()
-                        if isinstance(ds_string, bytes):
-                            final_string = ds_string.decode('utf-8')
-                        else:
-                            final_string = ds_string
-                        lh.write(final_string)
-                    lh.write('</datasources>\n')
-            lh.close()
-            self.end_log_block()
-
-        except IOError:
-            self.log("Error: File '{} cannot be opened to write to".format(filename_no_extension))
-            self.end_log_block()
-            raise
 
     def get_xml_string(self) -> str:
         self.start_log_block()
@@ -150,22 +101,3 @@ class TableauWorkbook(LoggingMethods, TableauDocument):
             self.log("Error: File '{} cannot be opened to read from".format(self.twb_filename))
             self.end_log_block()
             raise
-
-    def get_datasource_xml_text(self) -> str:
-        self.start_log_block()
-        xml_text = ""
-        final_datasources = []
-        if self.parameters is not None:
-            final_datasources.append(self.parameters)
-            final_datasources.extend(self.datasources)
-        else:
-            final_datasources = self.datasources
-        for ds in final_datasources:
-            ds_string = ds.get_datasource_xml()
-            if isinstance(ds_string, bytes):
-                final_string = ds_string.decode('utf-8')
-            else:
-                final_string = ds_string
-            xml_text += final_string
-        self.end_log_block()
-        return xml_text

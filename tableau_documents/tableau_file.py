@@ -334,8 +334,8 @@ class TableauXmlFile(LoggingMethods, ABC):
     def file_type(self) -> str:
         pass
 
-
     # Appropriate extension added if needed
+    @abstractmethod
     def save_new_file(self, new_filename_no_extension: str) -> str:
         self.start_log_block()
         new_filename = new_filename_no_extension.split('.')[0]  # simple algorithm to kill extension
@@ -422,6 +422,43 @@ class TWB(DatasourceMethods, TableauXmlFile):
     def datasources(self) -> List[TableauDatasource]:
         return self.tableau_document.datasources
 
+    def save_new_file(self, filename_no_extension: str, save_to_directory: Optional[str] = None):
+        self.start_log_block()
+        file_extension = '.twb'
+
+        try:
+            # In case the .tds gets passed in from earlier
+            filename_no_extension = filename_no_extension.split('.twb')[0]
+            initial_save_filename = "{}{}".format(filename_no_extension, self.file_extension)
+            # Make sure you don't overwrite the existing original file
+            files = list(filter(os.path.isfile, os.listdir(os.curdir)))  # files only
+            save_filename = initial_save_filename
+            file_versions = 1
+            while save_filename in files:
+                name_parts = initial_save_filename.split(".")
+                save_filename = "{} ({}).{}".format(name_parts[0], file_versions, name_parts[1])
+                file_versions += 1
+
+            if save_to_directory is not None:
+                lh = codecs.open(save_to_directory + save_filename, 'w', encoding='utf-8')
+            else:
+                lh = codecs.open(save_filename, 'w', encoding='utf-8')
+
+            # Write the XML header line
+            #lh.write("<?xml version='1.0' encoding='utf-8' ?>\n\n")
+            # Write the datasource XML itself
+            wb_string = self.tableau_document.get_xml_string()
+            if isinstance(wb_string, bytes):
+                final_string = wb_string.decode('utf-8')
+            else:
+                final_string = wb_string
+            lh.write(final_string)
+            lh.close()
+
+        except IOError:
+            self.log("Error: File '{} cannot be opened to write to".format(filename_no_extension + file_extension))
+            self.end_log_block()
+            raise
 
 class TDS(DatasourceMethods, TableauXmlFile):
     def __init__(self, filename: str, logger_obj: Optional[Logger] = None):
@@ -467,6 +504,45 @@ class TDS(DatasourceMethods, TableauXmlFile):
     @property
     def datasources(self) -> List[TableauDatasource]:
         return [self.tableau_document, ]
+
+    def save_new_file(self, filename_no_extension: str, save_to_directory: Optional[str] = None):
+        self.start_log_block()
+        file_extension = '.tds'
+
+        try:
+
+            # In case the .tds gets passed in from earlier
+            filename_no_extension = filename_no_extension.split('.tds')[0]
+            initial_save_filename = "{}{}".format(filename_no_extension, self.file_extension)
+            # Make sure you don't overwrite the existing original file
+            files = list(filter(os.path.isfile, os.listdir(os.curdir)))  # files only
+            save_filename = initial_save_filename
+            file_versions = 1
+            while save_filename in files:
+                name_parts = initial_save_filename.split(".")
+                save_filename = "{} ({}).{}".format(name_parts[0], file_versions, name_parts[1])
+                file_versions += 1
+
+            if save_to_directory is not None:
+                lh = codecs.open(save_to_directory + save_filename, 'w', encoding='utf-8')
+            else:
+                lh = codecs.open(save_filename, 'w', encoding='utf-8')
+
+            # Write the XML header line
+            lh.write("<?xml version='1.0' encoding='utf-8' ?>\n\n")
+            # Write the datasource XML itself
+            ds_string = self.tableau_document.get_xml_string()
+            if isinstance(ds_string, bytes):
+                final_string = ds_string.decode('utf-8')
+            else:
+                final_string = ds_string
+            lh.write(final_string)
+            lh.close()
+
+        except IOError:
+            self.log("Error: File '{} cannot be opened to write to".format(filename_no_extension + file_extension))
+            self.end_log_block()
+            raise
 
 # Abstract implementation
 class TableauPackagedFile(LoggingMethods, ABC):

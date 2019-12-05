@@ -342,7 +342,6 @@ class TableauDatasource(LoggingMethods, TableauDocument):
         conn_obj.username = 'tableau_internal_user'
         return conn_obj
 
-
     def get_xml_string(self) -> str:
         # The TableauDatasource object basically stores all properties separately and doesn't actually create
         # the final XML until this function is called.
@@ -407,35 +406,6 @@ class TableauDatasource(LoggingMethods, TableauDocument):
         self.end_log_block()
         return xmlstring
 
-    def save_file(self, filename_no_extension: str, save_to_directory: Optional[str] = None):
-        self.start_log_block()
-        file_extension = '.tds'
-        #if self.tde_filename is not None:
-        #    file_extension = u'.tdsx'
-        try:
-            # In case the .tds gets passed in from earlier
-            filename_no_extension = filename_no_extension.split('.tds')[0]
-            tds_filename = filename_no_extension + '.tds'
-            if save_to_directory is not None:
-                lh = codecs.open(save_to_directory + tds_filename, 'w', encoding='utf-8')
-            else:
-                lh = codecs.open(tds_filename, 'w', encoding='utf-8')
-
-            # Write the XML header line
-            lh.write("<?xml version='1.0' encoding='utf-8' ?>\n\n")
-            # Write the datasource XML itself
-            ds_string = self.get_datasource_xml()
-            if isinstance(ds_string, bytes):
-                final_string = ds_string.decode('utf-8')
-            else:
-                final_string = ds_string
-            lh.write(final_string)
-            lh.close()
-
-        except IOError:
-            self.log("Error: File '{} cannot be opened to write to".format(filename_no_extension + file_extension))
-            self.end_log_block()
-            raise
 
     def translate_columns(self, translation_dict: Dict):
         self.start_log_block()
