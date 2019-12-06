@@ -2,10 +2,10 @@
 
 from tableausdk import *
 from tableausdk.HyperExtract import *
-from ..tableau_base import *
+from tableau_tools.logging_methods import LoggingMethods
 
 
-class HyperFileGenerator(TableauBase):
+class HyperFileGenerator(LoggingMethods):
     def __init__(self, logger_obj=None):
         super(self.__class__, self).__init__()
         self.logger = logger_obj
