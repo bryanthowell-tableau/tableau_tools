@@ -56,7 +56,6 @@ The TableauDatasource class uses the `TDEFileGenerator` and/or the `HyperFileGen
 ## --- Table(au) of Contents ---
 ------
 
-- [0. Getting Started](#0-getting-started)
   * [0.0 tableau_tools Library Structure](#00-tableau_tools-library-structure)
   * [0.1 Importing tableau_tools library](#01-importing-tableau_tools-library)
   * [0.2 Logger class](#02-logger-class)
@@ -65,14 +64,18 @@ The TableauDatasource class uses the `TDEFileGenerator` and/or the `HyperFileGen
   * [0.5 ElementTree.Element for XML handling](#05-elementtree)
 - [1. tableau_rest_api sub-package](#1-tableau-rest-api-sub-package)
   * [1.1 Connecting](#11-connecting)
-    + [1.1.2 Enabling logging for TableauRestApiConnection classes](#112-enabling-logging-for-tableaurestapiconnection-classes)
+  	+ [1.1.1 TableauRestApiConnection & TableauServerRest classes](#111-tableaurestapiconnection-and-tableauserverrest-classes)
+    + [1.1.2 Enabling Logging](#112-enabling-logging)
     + [1.1.3 Signing in](#113-signing-in)
     + [1.1.4 Connecting to multiple sites](#114-connecting-to-multiple-sites)
+    + [1.1.5 Signout, Killing Other Sessions, and Swapping Tokens](#115-signout-killing-other-sessions-swapping-tokens)
   * [1.2 Basics and Querying](#12-basics-and-querying)
-    + [1.2.1 LUIDs - Locally Unique IDentifiers](#121-luids---locally-unique-identifiers)
+  	+ [1.2.0 ElementTree.Element XML Responses](#120-elementree-element-xml-responses)
+  	  - [1.2.0.1 Underlying Base Methods](#1201-underlying-base-methods)
+  	+ [1.2.1 LUIDs - Locally Unique IDentifiers](#121-luids---locally-unique-identifiers)
     + [1.2.2 Plural querying methods](#122-plural-querying-methods)
-      - [1.2.2.1 Filtering and Sorting (Tableau Server 9.3+)](#1221-filtering-and-sorting-tableau-server-93)
-      - [1.2.2.2 Fields (API 2.5+)](#1222-fields-api-25)
+      - [1.2.2.1 Filtering and Sorting](#1221-filtering-and-sorting-tableau-server-93)
+      - [1.2.2.2 Fields](#1222-fields-api-25)
     + [1.2.3 LUID Lookup Methods](#123-luid-lookup-methods)
     + [1.2.4 Singular querying methods](#124-singular-querying-methods)
     + [1.2.5 Querying Permissions](#125-querying-permissions)
@@ -80,14 +83,15 @@ The TableauDatasource class uses the `TDEFileGenerator` and/or the `HyperFileGen
   * [1.3 Administrative Actions (adding, removing, and syncing)](#13-administrative-actions-adding-removing-and-syncing)
     + [1.3.1 Adding Users](#131-adding-users)
     + [1.3.2 Create Methods for other content types](#132-create-methods-for-other-content-types)
+      - [1.3.2.1 direct_xml_request arguments on ADD / CREATE methods for duplicating site information](#1321-direct-xml-request-arguments-on-ADD-CREATE-methods)
     + [1.3.3 Adding users to a Group](#133-adding-users-to-a-group)
     + [1.3.4 Update Methods](#134-update-methods)
     + [1.3.5 Deleting / Removing Content](#135-deleting--removing-content)
     + [1.3.6 Deleting a Site](#136-deleting-a-site)
     + [1.3.7 Schedules (Extract and Subscriptions)](#137-schedules-extract-and-subscriptions)
-    + [1.3.8 Subscriptions (API 2.3+)](#138-subscriptions-api-23)
+    + [1.3.8 Subscriptions](#138-subscriptions-api-23)
   * [1.4 Permissions](#14-permissions)
-    + [1.4.1 PublishedContent Classes (Project/Project28/Project33, Workbook, Datasource, Flow, Database, Table)](#141-publishedcontent-classes-project20project21-workbook-datasource)
+    + [1.4.1 PublishedContent Classes (Project, Workbook, Datasource, Flow, Database, Table)](#141-publishedcontent-classes-project20project21-workbook-datasource)
     + [1.4.2 Permissions Classes](#142-permissions-classes)
     + [1.4.2 Setting Capabilities](#142-setting-capabilities)
     + [1.4.2 Permissions Setting](#142-permissions-setting)
@@ -95,13 +99,17 @@ The TableauDatasource class uses the `TDEFileGenerator` and/or the `HyperFileGen
     + [1.4.4 Replicating Permissions from One Site to Another](#144-replicating-permissions-from-one-site-to-another)
   * [1.5 Publishing Content](#15-publishing-content)
     + [1.5.1 Publishing a Workbook or Datasource](#151-publishing-a-workbook-or-datasource)
-    + [1.5.2 Workbook and Datasource Revisions (2.3+)](#152-workbook-and-datasource-revisions-23)
+    + [1.5.2 Workbook and Datasource Revisions](#152-workbook-and-datasource-revisions-23)
     + [1.5.3 Asynchronous Publishing (API 3.0+)](#153-asynchronous-publishing-api-30)
-  * [1.6 Refreshing Extracts (Tableau 10.3+ / API 2.6)](#16-refreshing-extracts-tableau-103-api-26)
-    + [1.6.1 Running an Extract Refresh Schedule (Tableau 10.3+ / API 2.6)](#161-running-an-extract-refresh-schedule-tableau-103-api-26)
+  * [1.6 Refreshing Extracts](#16-refreshing-extracts-tableau-103-api-26)
+    + [1.6.1 Running an Extract Refresh Schedule](#161-running-an-extract-refresh-schedule-tableau-103-api-26)
     + [1.6.2 Running an Extract Refresh (no schedule) (10.5/ API 2.8)](#162-running-an-extract-refresh--no-schedule-105-api-28)
     + [1.6.3 Putting Published Content on an Extract Schedule (10.5+)](#163-putting-published-content-on-an-extract-schedule-105)
-    + [1.6.4 Putting published content on an Extract Schedule Prior to 10.5 (high risk)](#164-putting-published-content-on-an-extract-schedule-prior-to-105-high-risk)
+  * [1.7 Data Driven Alerts (2018.3+)](#17-data-drive-alerts)
+  * [1.8 Tableau Prep Flows (2019.1+)](#18-tableau-prep-flows)
+  * [1.9 Favorites](#19-favorites)
+  * [1.10 Metadata (2019.3+)](#110-metadata)
+  * [1.11 Webhooks (2019.4+)](#111-webhooks)
 - [2 tableau_documents: Modifying Tableau Documents (for Template Publishing)](#2-tableau-documents-modifying-tableau-documents-for-template-publishing)
   * [2.1 Document classes](#21-document-classes)
   * [2.2 TableauFile Class](#22-tableaufile-class)
@@ -124,12 +132,11 @@ The TableauDatasource class uses the `TDEFileGenerator` and/or the `HyperFileGen
 - [3 tabcmd](#3-tabcmd)
   * [3.1 Tabcmd Class](#31-tabcmd-class)
   * [3.2 Triggering an Extract Refresh](#32-triggering-an-extract-refresh)
-  * [3.3 Creating an Export](#33-creating-an-export)
 - [4 tableau_repository](#4-tableau-repository)
   * [4.1 TableauRepository Class](#41-tableaurepository-class)
   * [4.2 query() Method](#42-query---method)
   * [4.3 Querying (and killing) Sessions](#43-querying--and-killing--sessions)
-  * [4.4 Setting Datasources and Workbooks on Extract Refresh Schedules (pre 10.5)](#44-setting-datasources-and-workbooks-on-extract-refresh-schedules--pre-105-)
+
 
 ## 0. Getting Started
 ### 0.0 tableau_tools Library Structure
@@ -285,7 +292,7 @@ Ex.:
     
 The actual methods, whether attached directly or as sub-classes, are implemented in the same class files. This means that the two object types are equivalent -- they are calling the same code in the end, and yo'll ever have to choose between the two styles to get a particular feature.
 
-#### 1.1.2 Enabling logging for TableauRestApiConnection classes
+#### 1.1.2 Enabling Logging 
 
     logger = Logger("log_file.txt")
     TableauRestApiConnection.enable_logging(logger) 
@@ -884,7 +891,7 @@ You can update a subscription with
 
 `TableauRestApiConnection.delete_subscriptions(subscription_luid_s)`
 
-Yo'll note that the update and delete subscriptions methods only take LUIDs, unlike most other methods in tableau_tools. This is because Subscriptions do not have a reasonably unique identifier -- to find the LUID, you would use a combination of things to filter on.
+You'll note that the update and delete subscriptions methods only take LUIDs, unlike most other methods in tableau_tools. This is because Subscriptions do not have a reasonably unique identifier -- to find the LUID, you would use a combination of things to filter on.
 
 This brings us to how to find subscriptions to do things to via `query_subscriptions`
 
@@ -909,7 +916,7 @@ The most efficient algorithm for sending an update is thus:
 
 `tableau_rest_api` handles this through two concepts -- the `Permissions` object that represents the permissions / capabilities, and the `PublishedContent` classes, which represent the objects on the server that have permissions.
 
-#### 1.4.1 PublishedContent Classes (Project20/Project21, Workbook, Datasource, View, Database, Table)
+#### 1.4.1 PublishedContent Classes (Project, Workbook, Datasource, View, Database, Table)
 Because of the complexity of Permissions, there are classes that represent the state of published content to a server; they all descend from the PublishedContent class, but there is no reason to ever access `PublishedContent` directly. Each of these require passing in an active and signed-in `TableauRestApiConnection` or `TableauServerRest` object so that they can perform actions against the Tableau Server.
 
 Project obviously represents a project on the server. But a `Project` also contains a child `Workbook` and `Datasource` object that represent the Default Permissions that can be set for that project, and starting with `Project33` contains a Flow object as well to represent its defaults. 
@@ -1128,7 +1135,7 @@ The `check_published_ds` argument for publish_workbook causes the tableau_docume
 ##### 1.5.1.1 Workbooks Connected to Published Data Sources 
 Tableau Server only requires unique names for Workbooks and Data Sources within a Project, rather than within the Site. This means you can have multiple workbooks or data sources with the same “visible name”. Internally, Tableau Server generates a unique “contentUrl” property using a pattern which removes spaces and other characters, and appends numbers if the pattern would result in overwriting any existing contentUrl. However, there is no guarantee that you will get the same contentUrl from Site to Site, since the publish order could result in the numbering being different.
 
-To publish a workbook connected to Published Data Sources, you need to be aware of what the Destination contentUrl property will be of any Data Source, and then substitute that value into the definition of the Published Data Source in the workbook file prior to publish (in addition to the Site Content Url, which otherwise would be handled automatically).
+To publish a workbook connected to Published Data Sources, you need to be aware of what the Destination contentUrl property will be of any Data Source, and then substitute that value into the definition of the Published Data Source in the workbook file prior to publish (in addition to the Site Content Url, which otherwise would be handled automatically). This is done using tableau_documents, which is covered in section 2 of this README.
 
 There's a very thorough explanation of this availabe at 
 <https://tableauandbehold.com/2018/05/17/replicating-workbooks-with-published-data-sources/>. 
@@ -1218,10 +1225,10 @@ Here's an example of an async publish, then polling every second to see if it ha
         time.sleep(1)
     print('Finished publishing')
 
-### 1.6 Refreshing Extracts (Tableau 10.3+ / API 2.6)
+### 1.6 Refreshing Extracts
 
-#### 1.6.1 Running an Extract Refresh Schedule (Tableau 10.3+ / API 2.6)
-The TableauRestApiConnection26 class, representing the API for Tableau 10.3, includes methods for triggering extract refreshes via the REST API.
+#### 1.6.1 Running an Extract Refresh Schedule 
+The TableauRestApiConnection class, representing the API for Tableau 10.3 and above, includes methods for triggering extract refreshes via the REST API.
 
 `TableauRestApiConnection.run_all_extract_refreshes_for_schedule(schedule_name_or_luid) `
 
@@ -1268,6 +1275,7 @@ Starting in Tableau 10.5 (API 2.8), you can put a workbook or datasource on an E
 #### 1.6.4 Putting published content on an Extract Schedule Prior to 10.5 (high risk)
 Just upgrade your server at this point, that is a long long time to go without an upgrade
 
+
 ### 1.7 Data Driven Alerts (2018.3+)
 Starting in API 3.2 (2018.3+), you can manage Data Driven Alerts via the APIs. The methods for this functionality follows the exact naming pattern of the REST API Reference.
 
@@ -1287,6 +1295,16 @@ Ex.
                                     proj_name_or_luid: Optional[str] = None) -> etree.Element
     delete_views_from_user_favorites(view_name_or_luid_s: Union[List[str], str],
                                      username_or_luid: str, wb_name_or_luid: Optional[str] = None)
+
+### 1.10 Metadata (2019.3+)
+The Metadata methods are implemented under `TableauServerRest.metata` in `TableauServerRest`. They have not been fully tested in 5.0.0 release. 
+
+Of note, there is a method for accessing the GraphQL API. Note that you send a string (please look at the Tableau GraphQL API documentation for examples of correct queries) but it will return back on object, representing the result of Python running `json.dumps()` on the resulting JSON string returned by GraphQL.
+
+    graphql(graphql_query: str) -> Dict
+
+### 1.11 Webhooks (2019.4+)
+The Webhooks methods are implemented under `TableauServerRest.webhooks` in `TableauServerRest`. They have not been fully tested in 5.0.0 release. 
 
 ## 2 tableau_documents: Modifying Tableau Documents (for Template Publishing)
 tableau_documents implements some features that go beyond the Tableau REST API, but are extremely useful when dealing with a large number of workbooks or datasources, particularly for multi-tenented Sites. It also provides a mechanism for utilizing newly updated Hyper files generated by Extract API or Hyper API to update existing TWBX and TDSX files. These methods actually allow unsupported changes to the Tableau workbook or datasource XML. If something breaks with them, blame the author of the library and not Tableau Support, who won't help you with them.
