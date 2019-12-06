@@ -34,7 +34,7 @@ class TableauFileManager():
 
         elif filename.lower().find('.tflx') != -1:
             return TFLX(filename=filename, logger_obj=logger_obj)
-        
+
         elif filename.lower().find('.twb') != -1:
             return TWB(filename=filename, logger_obj=logger_obj)
 
@@ -339,9 +339,8 @@ class TableauPackagedFile(LoggingMethods, ABC):
         return self._original_file_type
 
     # This would be useful for interrogating Hyper files named within (should just be 1 per TDSX)
-    @abstractmethod
-    def get_files_in_package(self):
-        pass
+    def get_filenames_in_package(self):
+        return self.other_files
 
     # If you know a file exists in the package, you can set it for replacement during the next save
     def set_file_for_replacement(self, filename_in_package: str, replacement_filname_on_disk: str):

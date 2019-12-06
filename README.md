@@ -1367,58 +1367,74 @@ ex.
 ### 2.3 TableauPackagedFile Classes (TDSX, TWBX, TFLX)
 When publishing to the REST API, the most common file type is actually a Tableau Packaged file, which is really just a ZIP file with a particular structure and a different file ending. 
 
-#### 2.3.1 Replacing Static Data Files
-`TableauPackagedFile` has an optional argument on the save_new_file method to allow swapping in new data files (CSV, XLS or Hyper) into an existing TWBX or TDSX. 
+Within these ZIP files exists a Tableau XML file (.tds, .twb, .tfl) and any associated assets that are needed for publishing, including Extract files and static file sources like Excel or CSV files. 
 
-    TableauFile.save_new_file(new_filename_no_extension, data_file_replacement_map=None)  # returns new filename
+The TableauPackagedFile classes give you access to the TableauXmlFile object through the property:
 
-data_file_replacement_map accepts a dict in format { 'TableauFileFilename' : 'FilenameOfNewFileOnDisk' }. To find out the TableauFileFilename, print out the `other_files` property of the TableauFile object:
-
-    t_file = TableauFile('My AmazingWorkbook.twbx')
-    for file in t_file.other_files:
-        print(file)
-        
-You should be able to find the exact naming of the data file you want to replace. Copy that exactly and use it as the key in your dictionary. For the value, use a fully qualified filename on your machine:
+    TableauPackagedFile.tableau_xml_file
     
-    t_file = TableauFile('My AmazingWorkbook.twbx')
-    file_map = { 'Data/en_US-US/Sample - Superstore.xls' : '/Users/bhowell/Documents/My Tableau Repository/Datasources/2018.3/en_US-EU/Sample - EU Superstore.xls'}
-    t_file.save_new_file('My AmazingWorkbook - Updated', data_file_replacement_map=file_map)
+As well as have functionality for working with the static files (see next session)
 
-### 2.3 TableauDocument Class
-The TableauDocument class helps map the differences between `TableauWorkbook` and `TableauDatasource`. It only implements two properties:
+There is a save_new_file method:
 
-`TableauDocument.document_type  : return either ['datasource', 'workbook']`. More generic than `TableauFile.file_type`
+    TableauPackagedFile.save_new_file(new_filename_no_extension: str)
+    
+which works similiarly to the save_new_file function of TableauXmlFile, in that it will append a number rather than overwrite an existing file. It will actually call the underlying TableauXmlFile object, which means any changes you have made will be saved into the file placed into the final packaged file. 
 
-`TableauDocument.datasources` : returns an array of TableauDatasource objects. 
+#### 2.3.1 Replacing Static Data Files
+`TableauPackagedFile` maintains an internal dictionary of files to replace during the `save_new_file()` process. This is useful for swapping in Hyper files or different CSV or Excel files (and potentially anything else stored in an packaged workbook).
 
-For a `TableauDatasource`, `TableauDocument.datasources` will only have a single datasource, itself, in `datasources[0]`. `TableauWorkbooks` might have more than one. This property thus allows you to do modifications on both individual datasources and those embedded within workbooks without worrying about whether the document is a workbook or a datasource.
+    TableauPackagedFile.get_filenames_in_package() -> List[str]
+    
+will tell you the names of any file that lives within the ZIP directory structure. Given that name, you can set it for replacement with another file from disk using
 
+    TableauPackagedFile.set_file_for_replacement(self, filename_in_package: str, replacement_filname_on_disk: str)
+
+When you call `save_new_file()`, the replacement file from disk will be written into the new packaged file on disk with the original name as it was in the packaged. If there was no original file by that name, it will be placed into the packaged file (not sure the use for this, but it is possible) 
 
 ### 2.4 TableauWorkbook Class
 At this point in time, the `TableauWorkbook` class is really just a container for `TableauDatasources`, which it creates automatically when initialized. Because workbook files can get very very large, the initializer algorithm only reads through the datasources, which are at the beginning of the document, and then leaves the rest of the file on disk.
 
 The save method, which you do not call directly, also uses the algorithm from the initializer method to read the existing TWB file from disk, line by line. It skips the original datasource section and instead writes in the new datasource XML from the array of `TableauDatasource` objects. The benefit of this is that the majority of the workbook is untouched, and larger documents do not cause high memory usage.
 
-At the current time, this means that you cannot modify any of the other functionality that is specified in the workbook itself. Additional methods could be implemented in the future based on a similar algorithm (picking out specific subsections and representing them in memory as `ElementTree` objects, then inserting back into place later). 
+### 2.5 TableauDatasource Class and the DatasourceFileInterface
+The TableauDatasource class is represents the XML contained within a TDS or an embedded datasource within a TWB file. 
 
-### 2.5 TableauDatasource Class
-The TableauDatasource class is represents the XML contained within a TDS (or an embedded datasource within a workbook). 
+Any class which implements the DatasourceFileInterface class (TWB, TWBX, TDS, TDSX) make a list of all included TableauDatasource objects available via the `datasources` property. 
 
-Tableau Datasources changed considerably from the 9 series to the 10 series; Tableau 10 introduced the concept of Cross-Database JOIN, known internally as Federated Connections. So a datasource in 10.0+ can have multiple connections. tableau_tools handles determinig the all of this automatically, unless you are creating a `TableauDatasource` object from scratch (more on this later), in which case you need to specify which type of datasource you want.
+You can also transverse the various object types to get to the inner TableauDatasources, but this is usually unnecessary. 
 
-
-If you are opening a TDS file, you should use `TableauFile` to open it, where the `TableauDatasource` object will be available via `TableauFile.tableau_document`. You really only need to create `TableauDatasource` object yourself when creating one from scratch, in which case you initialize it like:
+You would only initialize a `TableauDatasource` object directly when creating a datasource from scratch in which case you initialize it like:
 
 `TableauDatasource(datasource_xml=None, logger_obj=None, ds_version=None)`
 
 ex. 
 
     logger = Logger('ds_log.txt')
-    new_ds = TableauDatasource(ds_version='10', logger_obj=logger)
+    new_ds = TableauDatasource(logger_obj=logger)
     
-    ds_version takes either '9' or '10, because it is more on basic structure and the individual point numbers don't matter.
+#### 2.5.1 Iterating through .datasources
+The main pattern for accessing datasources from any of the objects is
 
-#### 2.5.6 TableauColumns Class
+    DatasourceFileInterface.datasources
+
+This abstraction allows you to iterate through all different file types without worrying about what they are and use the same code to make changes to the datasource properties. 
+
+Ex.
+
+    a_logger = Logger('my_log.log')
+    list_o_files = ['A Twb.twb', 'A TDSX.tdsx', 'An TWBX.twbx', 'This here TDS.tds']
+    for file in list_o_files:
+        t_file = TableauFileManager.open(filename=file, logger_obj=a_logger)
+        # This just makes sure you can do these actions. You could also catch and ignore exceptions I guess
+        if isinstance(t_file, DatasourceFileInterface):
+            datasources = t_file.datasources
+            for ds in datasources:
+                # do some stuff to the data source
+                for conn in ds.connections:
+                    # Do some stuff to the connection
+
+#### 2.5.2 TableauColumns Class
 A TableauDatasource will have a set of column tags, which define the visible aliases that the end user sees and how those map to the actual columns in the overall datasource. Calculations are also defined as a column, with an additional calculation tag within. These tags to do not have any sort of columns tag that contains them; they are simply appended near the end of the datasources node, after all the connections node section.
 
 The TableauColumns class encapsulates the column tags as if they were contained in a collection. The TableauDatasource object automatically creates a TableauColumns object at instantiation, which can be accessed through the `TableauDatasource.columns` property. 
@@ -1580,7 +1596,7 @@ Here is an examples of setting many dimension filters:
     mod_filename = existing_tableau_file.save_new_file('Modified from Desktop')
 
 ### 2.10 Defining Calculated Fields Programmatically
-For certain filters, you made need to define a calculation in the data source itself, that the filter can reference. This is particularly useful for row level security type filters. Yo'll note that there are a lot of particulars to declare with a given calculation. If you are wondering what values you might need, it might be advised to create the calculation in Tableau Desktop, then save the TDS file and open it in a text editor to take a look.
+For certain filters, you made need to define a calculation in the data source itself, that the filter can reference. This is particularly useful for row level security type filters. You'll note that there are a lot of particulars to declare with a given calculation. If you are wondering what values you might need, it might be advised to create the calculation in Tableau Desktop, then save the TDS file and open it in a text editor to take a look.
 
 `TableauDatasource.add_calculation(calculation, calculation_name, dimension_or_measure, discrete_or_continuous, datatype)`
 
@@ -1817,31 +1833,6 @@ Ex.
     param.set_allowable_values_to_list(allowable_values)
     param.set_current_value('Spring 2018')
 
-### 2.14 HyperFileGenerator and TDEFileGenerator Classes
-The "add extract" functionality in tableau_tools uses the Extract API/Tableau SDK (they are the same thing, the names changed back and forth over time). The HyperFileGenerator and TDEFileGenerator classes are replicas of one another, but HyperFileGenerator uses the Extract API 2.0, which is capable of creating Hyper files. 
-
-You can use them in conjunction with PyODBC (install via pip) to create extracts very simply from a query to an ODBC connection. In essence, the classes will map any of the PyODBC data types to the Extract API data types automatically when you provide a PyODBC cursor from an executed query.
-
-`HyperFileGenerator(logger_obj)`
-
-There are two steps to creating an extract. You first must create a Table Definition, then you insert the rows of data.
-
-The most basic way to set a Table Definition is defining a dict in the form of {'column_name' : 'data_type'}.
-
-`HyperFileGenerator.set_table_definition(column_name_type_dict, collation=Collation.EN_US)`
-
-However, you can use the a pyodbc cursor to the same effect, which basically lets you just write a query and pass everything through directly:
-
-`HyperFileGenerator.create_table_definition_from_pyodbc_cursor(pydobc_cursor, collation=Collation.EN_US)`
-
-This will return the TableDefinition object from the Extract API, but it also sets the internal table_definition for the particular instance of the HyperFileGenerator object so you don't need to do anything other than run this method and anything afterward you do will take the current TableDefinition.
-
-To generate the extract:
-`HyperFileGenerator.create_extract(tde_filename, append=False, table_name='Extract', pyodbc_cursor=None)`
-
-You do need to specify an actual filename for it to write to, because the Extract API always works on a file on disk. You can specify multiple tables within this file by giving different table names, and you can even append by specifying append=True while using the same table_name that previously has been created within the file. The pyodbc_cursor= optional parameter will run through all of the rows from the cursor and add them to the Extract. 
-
-At the current time, the only exposed method to add data to the extract is the pyodbc cursor.
 
 ## 3 tabcmd
 The Tableau Server REST API can do most of the things that the tabcmd command line tool can, but if you are using older versions of Tableau Server, some of those features may not have been implemented yet. If you need a functionality from tabcmd, the `tabcmd.py` file in the main part of tableau_tools library wraps most of the commonly used functionality to allow for easier scripting of calls (rather than doing it directly on the command line or using batch files)
