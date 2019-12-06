@@ -13,7 +13,7 @@ class SiteMethods():
     #
     @staticmethod
     def build_site_request_xml(site_name: Optional[str] = None, content_url: Optional[str] = None,
-                               admin_mode: Optional[str] = None, user_quota: Optional[str] = None,
+                               admin_mode: Optional[str] = None, user_quota: Optional[int] = None,
                                storage_quota: Optional[str] = None, disable_subscriptions: Optional[bool] = None,
                                state: Optional[str] = None,
                                revision_history_enabled: Optional[bool] = None, revision_limit: Optional[str] = None):
@@ -80,7 +80,7 @@ class SiteMethods():
 
     # Both SiteName and ContentUrl must be unique to add a site
     def create_site(self, new_site_name: str, new_content_url: str, admin_mode: Optional[str] = None,
-                    user_quota: Optional[str] = None, storage_quota: Optional[str] = None,
+                    user_quota: Optional[int] = None, storage_quota: Optional[str] = None,
                     disable_subscriptions: Optional[bool] = None, revision_history_enabled: Optional[bool] = None,
                     revision_limit: Optional[str] = None,
                     direct_xml_request: Optional[ET.Element] = None) -> str:
@@ -88,8 +88,10 @@ class SiteMethods():
         if direct_xml_request is not None:
             add_request = direct_xml_request
         else:
-            add_request = self.build_site_request_xml(new_site_name, new_content_url, admin_mode, user_quota,
-                                                      storage_quota, disable_subscriptions,
+            add_request = self.build_site_request_xml(site_name=new_site_name, content_url=new_content_url,
+                                                      admin_mode=admin_mode,
+                                                      user_quota=user_quota, storage_quota=storage_quota,
+                                                      disable_subscriptions=disable_subscriptions,
                                                       revision_history_enabled=revision_history_enabled,
                                                       revision_limit=revision_limit)
         url = self.build_api_url("sites/",
@@ -106,13 +108,21 @@ class SiteMethods():
 
     # Can only update the site you are signed into, so take site_luid from the object
     def update_site(self, site_name: Optional[str] = None, content_url: Optional[str] = None,
-                    admin_mode: Optional[str] = None, user_quota: Optional[str] = None,
+                    admin_mode: Optional[str] = None, user_quota: Optional[int] = None,
                     storage_quota: Optional[str] = None, disable_subscriptions: Optional[bool] = None,
                     state: Optional[str] = None, revision_history_enabled: Optional[bool] = None,
-                    revision_limit: Optional[str] = None) -> ET.Element:
+                    revision_limit: Optional[str] = None,
+                    direct_xml_request: Optional[ET.Element] = None) -> ET.Element:
         self.start_log_block()
-        tsr = self.build_site_request_xml(site_name, content_url, admin_mode, user_quota, storage_quota,
-                                          disable_subscriptions, state, revision_limit=revision_limit)
+        if direct_xml_request is not None:
+            tsr = direct_xml_request
+        else:
+            tsr = self.build_site_request_xml(site_name=site_name, content_url=content_url,
+                                              admin_mode=admin_mode,
+                                              user_quota=user_quota, storage_quota=storage_quota,
+                                              disable_subscriptions=disable_subscriptions,
+                                              revision_history_enabled=revision_history_enabled,
+                                              revision_limit=revision_limit)
         url = self.build_api_url("")
         response = self.send_update_request(url, tsr)
         self.end_log_block()
@@ -137,79 +147,6 @@ class SiteMethods30(SiteMethods28):
     def __init__(self, rest_api_base: TableauRestApiBase30):
         self.rest_api_base = rest_api_base
 
-    @staticmethod
-    def build_site_request_xml(site_name: Optional[str] = None, content_url: Optional[str] = None,
-                               admin_mode: Optional[str] = None, tier_creator_capacity: Optional[str] = None,
-                               tier_explorer_capacity: Optional[str] = None, tier_viewer_capacity: Optional[str] = None,
-                               storage_quota: Optional[str] = None, disable_subscriptions: Optional[bool] = None,
-                               state: Optional[str] = None) -> ET.Element:
-        tsr = ET.Element("tsRequest")
-        s = ET.Element('site')
-
-        if site_name is not None:
-            s.set('name', site_name)
-        if content_url is not None:
-            s.set('contentUrl', content_url)
-        if admin_mode is not None:
-            s.set('adminMode', admin_mode)
-        if tier_creator_capacity is not None:
-            s.set('tierCreatorCapacity', str(tier_creator_capacity))
-        if tier_explorer_capacity is not None:
-            s.set('tierExplorerCapacity', str(tier_explorer_capacity))
-        if tier_viewer_capacity is not None:
-            s.set('tierViewerCapacity', str(tier_viewer_capacity))
-        if state is not None:
-            s.set('state', state)
-        if storage_quota is not None:
-            s.set('storageQuota', str(storage_quota))
-        if disable_subscriptions is not None:
-            s.set('disableSubscriptions', str(disable_subscriptions).lower())
-
-        tsr.append(s)
-        return tsr
-
-    # Both SiteName and ContentUrl must be unique to add a site
-    def create_site(self, new_site_name: str, new_content_url: str, admin_mode: Optional[str] = None,
-                    tier_creator_capacity=None, tier_explorer_capacity=None, tier_viewer_capacity=None,
-                    storage_quota: Optional[str] = None,
-                    disable_subscriptions: Optional[bool] = None, revision_history_enabled: Optional[bool] = None,
-                    revision_limit: Optional[str] = None,
-                    direct_xml_request: Optional[ET.Element] = None) -> str:
-        add_request = self.build_site_request_xml(new_site_name, new_content_url, admin_mode, tier_creator_capacity,
-                                                  tier_explorer_capacity, tier_viewer_capacity, storage_quota,
-                                                  disable_subscriptions,
-                                                  revision_history_enabled=revision_history_enabled,
-                                                  revision_limit=revision_limit)
-        url = self.build_api_url("sites/",
-                                 server_level=True)  # Site actions drop back out of the site ID hierarchy like login
-        try:
-            new_site = self.send_add_request(url, add_request)
-            return new_site.findall('.//t:site', self.ns_map)[0].get("id")
-        except RecoverableHTTPException as e:
-            if e.http_code == 409:
-                self.log("Site with content_url {} already exists".format(new_content_url))
-                self.end_log_block()
-                raise AlreadyExistsException("Site with content_url {} already exists".format(new_content_url),
-                                             new_content_url)
-            else:
-                raise e
-
-    # Can only update the site you are signed into, so take site_luid from the object
-    def update_site(self, site_name: Optional[str] = None, content_url: Optional[str] = None,
-                    admin_mode: Optional[str] = None,
-                    tier_creator_capacity=None, tier_explorer_capacity=None, tier_viewer_capacity=None,
-                    storage_quota: Optional[str] = None,
-                    disable_subscriptions: Optional[bool] = None, revision_history_enabled: Optional[bool] = None,
-                    revision_limit: Optional[str] = None, state: Optional[str] = None,
-                    direct_xml_request: Optional[ET.Element] = None) -> ET.Element:
-        self.start_log_block()
-        tsr = self.build_site_request_xml(site_name, content_url, admin_mode, tier_creator_capacity,
-                                          tier_explorer_capacity, tier_viewer_capacity, storage_quota,
-                                          disable_subscriptions, state)
-        url = self.build_api_url("")
-        response = self.send_update_request(url, tsr)
-        self.end_log_block()
-        return response
 
 class SiteMethods31(SiteMethods30):
     def __init__(self, rest_api_base: TableauRestApiBase31):
@@ -233,8 +170,7 @@ class SiteMethods35(SiteMethods34):
 
     @staticmethod
     def build_site_request_xml(site_name: Optional[str] = None, content_url: Optional[str] = None,
-                               admin_mode: Optional[str] = None, tier_creator_capacity: Optional[str] = None,
-                               tier_explorer_capacity: Optional[str] = None, tier_viewer_capacity: Optional[str] = None,
+                               admin_mode: Optional[str] = None, user_quota: Optional[int] = None,
                                storage_quota: Optional[str] = None,
                                disable_subscriptions: Optional[bool] = None,
                                flows_enabled: Optional[bool] = None,
@@ -257,12 +193,8 @@ class SiteMethods35(SiteMethods34):
             s.set('contentUrl', content_url)
         if admin_mode is not None:
             s.set('adminMode', admin_mode)
-        if tier_creator_capacity is not None:
-            s.set('tierCreatorCapacity', str(tier_creator_capacity))
-        if tier_explorer_capacity is not None:
-            s.set('tierExplorerCapacity', str(tier_explorer_capacity))
-        if tier_viewer_capacity is not None:
-            s.set('tierViewerCapacity', str(tier_viewer_capacity))
+        if user_quota is not None:
+            s.set('userQuota', str(user_quota))
         if state is not None:
             s.set('state', state)
         if storage_quota is not None:
@@ -296,7 +228,6 @@ class SiteMethods35(SiteMethods34):
     # Both SiteName and ContentUrl must be unique to add a site
     def create_site(self, new_site_name: str, new_content_url: str, admin_mode: Optional[str] = None,
                     user_quota: Optional[int] = None,
-                    tier_creator_capacity=None, tier_explorer_capacity=None, tier_viewer_capacity=None,
                     storage_quota: Optional[str] = None,
                     disable_subscriptions: Optional[bool] = None,
                     flows_enabled: Optional[bool] = None,
@@ -310,14 +241,28 @@ class SiteMethods35(SiteMethods34):
                     extract_encryption_mode: Optional[str] = None,
                     request_access_enabled: Optional[bool] = None,
                     direct_xml_request: Optional[ET.Element] = None) -> str:
+        self.start_log_block()
         if extract_encryption_mode is not None:
             if extract_encryption_mode not in ['enforced', 'enabled', 'disabled']:
                 raise InvalidOptionException('extract_encryption_mode must be one of: enforced, enabled, disabled')
-        add_request = self.build_site_request_xml(new_site_name, new_content_url, admin_mode, tier_creator_capacity,
-                                                  tier_explorer_capacity, tier_viewer_capacity, storage_quota,
-                                                  disable_subscriptions, user_quota=user_quota,
-                                                  revision_history_enabled=revision_history_enabled,
-                                                  revision_limit=revision_limit)
+
+        if direct_xml_request is None:
+            add_request = self.build_site_request_xml(site_name=new_site_name, content_url=new_content_url, admin_mode=admin_mode,
+                                              user_quota=user_quota, storage_quota=storage_quota,
+                                              disable_subscriptions=disable_subscriptions,
+                                              flows_enabled=flows_enabled,
+                                              allow_subscription_attachments=allow_subscription_attachments,
+                                              guest_access_enabled=guest_access_enabled,
+                                              cache_warmup_enabled=cache_warmup_enabled,
+                                              commenting_enabled=commenting_enabled,
+                                              revision_history_enabled=revision_history_enabled,
+                                              revision_limit=revision_limit,
+                                              subscribe_others_enabled=subscribe_others_enabled,
+                                              extract_encryption_mode=extract_encryption_mode,
+                                              request_access_enabled=request_access_enabled)
+        else:
+            add_request = direct_xml_request
+
         url = self.build_api_url("sites/",
                                  server_level=True)  # Site actions drop back out of the site ID hierarchy like login
         try:
@@ -333,7 +278,7 @@ class SiteMethods35(SiteMethods34):
     # Can only update the site you are signed into, so take site_luid from the object
     def update_site(self, site_name: Optional[str] = None, content_url: Optional[str] = None,
                     admin_mode: Optional[str] = None,
-                    tier_creator_capacity=None, tier_explorer_capacity=None, tier_viewer_capacity=None,
+                    user_quota: Optional[int] = None,
                     storage_quota: Optional[str] = None,
                     disable_subscriptions: Optional[bool] = None,
                     flows_enabled: Optional[bool] = None,
@@ -349,9 +294,26 @@ class SiteMethods35(SiteMethods34):
                     state: Optional[str] = None,
                     direct_xml_request: Optional[ET.Element] = None) -> ET.Element:
         self.start_log_block()
-        tsr = self.build_site_request_xml(site_name, content_url, admin_mode, tier_creator_capacity,
-                                          tier_explorer_capacity, tier_viewer_capacity, storage_quota,
-                                          disable_subscriptions, state)
+        if extract_encryption_mode is not None:
+            if extract_encryption_mode not in ['enforced', 'enabled', 'disabled']:
+                raise InvalidOptionException('extract_encryption_mode must be one of: enforced, enabled, disabled')
+        if direct_xml_request is None:
+            tsr = self.build_site_request_xml(site_name=site_name, content_url=content_url, admin_mode=admin_mode,
+                                              user_quota=user_quota, storage_quota=storage_quota,
+                                              disable_subscriptions=disable_subscriptions, state=state,
+                                              flows_enabled=flows_enabled,
+                                              allow_subscription_attachments=allow_subscription_attachments,
+                                              guest_access_enabled=guest_access_enabled,
+                                              cache_warmup_enabled=cache_warmup_enabled,
+                                              commenting_enabled=commenting_enabled,
+                                              revision_history_enabled=revision_history_enabled,
+                                              revision_limit=revision_limit,
+                                              subscribe_others_enabled=subscribe_others_enabled,
+                                              extract_encryption_mode=extract_encryption_mode,
+                                              request_access_enabled=request_access_enabled)
+        else:
+            tsr = direct_xml_request
+
         url = self.build_api_url("")
         response = self.send_update_request(url, tsr)
         self.end_log_block()
