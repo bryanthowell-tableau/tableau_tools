@@ -224,7 +224,7 @@ class TableauDatasource(LoggingMethods, TableauDocument):
         return self._columns
 
     @property
-    def published(self) -> bool:
+    def is_published(self) -> bool:
         return self._published
 
     @property
@@ -255,7 +255,7 @@ class TableauDatasource(LoggingMethods, TableauDocument):
 
     @published_ds_content_url.setter
     def published_ds_content_url(self, new_content_url: str):
-        if self.published is False:
+        if self.is_published is False:
             return
         else:
             self.repository_location.attrib['id'] = new_content_url

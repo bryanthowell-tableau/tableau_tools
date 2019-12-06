@@ -1392,10 +1392,6 @@ will tell you the names of any file that lives within the ZIP directory structur
 
 When you call `save_new_file()`, the replacement file from disk will be written into the new packaged file on disk with the original name as it was in the packaged. If there was no original file by that name, it will be placed into the packaged file (not sure the use for this, but it is possible) 
 
-### 2.4 TableauWorkbook Class
-At this point in time, the `TableauWorkbook` class is really just a container for `TableauDatasources`, which it creates automatically when initialized. Because workbook files can get very very large, the initializer algorithm only reads through the datasources, which are at the beginning of the document, and then leaves the rest of the file on disk.
-
-The save method, which you do not call directly, also uses the algorithm from the initializer method to read the existing TWB file from disk, line by line. It skips the original datasource section and instead writes in the new datasource XML from the array of `TableauDatasource` objects. The benefit of this is that the majority of the workbook is untouched, and larger documents do not cause high memory usage.
 
 ### 2.5 TableauDatasource Class and the DatasourceFileInterface
 The TableauDatasource class is represents the XML contained within a TDS or an embedded datasource within a TWB file. 
@@ -1434,35 +1430,26 @@ Ex.
                 for conn in ds.connections:
                     # Do some stuff to the connection
 
-#### 2.5.2 TableauColumns Class
-A TableauDatasource will have a set of column tags, which define the visible aliases that the end user sees and how those map to the actual columns in the overall datasource. Calculations are also defined as a column, with an additional calculation tag within. These tags to do not have any sort of columns tag that contains them; they are simply appended near the end of the datasources node, after all the connections node section.
+#### 2.5.2 Published Datasources in a Workbook
+Datasources in a workbook come in two types: Embedded and Published. An embedded datasource looks just like a standard TDS file, except that there can be multiple in a workbook. Published Datasources have an additional tag called `<repository-location>` which tells the information about the Site and the published Datasource name
 
-The TableauColumns class encapsulates the column tags as if they were contained in a collection. The TableauDatasource object automatically creates a TableauColumns object at instantiation, which can be accessed through the `TableauDatasource.columns` property. 
+To see if a datasource is published, use the following property to check:
+`TableauDatasource.is_published -> bool` 
 
-Columns can have an alias, which is conveniently represented by the `caption` attribute. They also have a `name` attribute which maps to the actual name of the column in the datasource itself. For this reason, the methods that deal with "Column Names" tend to search through both the name and the caption attributes.
+If is_published is True, you can get or set the Site of the published DS. This was necessary in Tableau 9.2 and 9.3 to publish to different sites, and it still might be best practice, so that there is no information about other sites passed in (see notes)
 
-The primary use case for adjusting column tags is to change the aliases for translation. To achieve this, there is a method designed to take in a dictionary of names to search and replace: 
+ex.
 
-`TableauColumns.translate_captions(translation_dict)`
-
-The dictionary should be a simple mapping of the caption from the template to the caption you want in the final translated version. Some customers have tokenized the captions to make it obvious which is the template:
-
-    english_dict = { '{token1}': 'category', '{token2}': 'sub-category'}
-    german_dict = { '{token1}': 'Kategorie', '{token2}': 'Unterkategorie'}
-    tab_file = TableauFile('template_file.tds')
-    dses = tab_file.tableau_document.datasources  #type: list[TableauDatasource]
+    twb = TableauFileManager('My TWB.twb')
+    dses = twb.datasources
     for ds in dses:
-        ds.columns.translate_captions(english_dict)
-    new_eng_filename = tab_file.save_new_file('English Version')
-    # Reload template again
-    tab_file = TableauFile('template_file.tds')
-    dses = tab_file.tableau_document.datasources  #type: list[TableauDatasource]
-    for ds in dses:
-        ds.columns.translate_captions(german_dict)
-    new_ger_filename = tab_file.save_new_file('German Version')
+        if ds.is_published is True:
+            print(ds.published_ds_site)
+            # Change the ds_site
+            ds.published_ds_site = 'new_site'  # Remember to use content_url rather than the pretty site name
 
-### 2.6 TableauConnection Class
-In a '9' version `TableauDatasource`, there is only `connections[0]` because there was only one connection. A '10' version can have any number of federated connections in this array. If you are creating connections from scratch, I highly recommend doing single connections. There hasn't been any work to make sure federated connections work correctly with modifications.
+#### 2.5.3 TableauConnection Class: Most of the stuff you want to change
+Since Tableau version 10, a single datasource can have any number of federated connections. 
 
 The TableauConnection class represents the connection to the datasource, whether it is a database, a text file. It should be created automatically for you through the `TableauDatasource` object. 
 
@@ -1503,24 +1490,103 @@ ex.
                     
     twb.save_new_file('Modified Workbook')
 
+#### 2.5.4 TableauColumns Class
+A TableauDatasource will have a set of column tags, which define the visible aliases that the end user sees and how those map to the actual columns in the overall datasource. Calculations are also defined as a column, with an additional calculation tag within. These tags to do not have any sort of columns tag that contains them; they are simply appended near the end of the datasources node, after all the connections node section.
 
-### 2.7 Published Datasources in a Workbook
-Datasources in a workbook come in two types: Embedded and Published. An embedded datasource looks just like a standard TDS file, except that there can be multiple in a workbook. Published Datasources have an additional tag called `<repository-location>` which tells the information about the Site and the published Datasource name
+The TableauColumns class encapsulates the column tags as if they were contained in a collection. The TableauDatasource object automatically creates a TableauColumns object at instantiation, which can be accessed through the `TableauDatasource.columns` property. 
 
-To see if a datasource is published, use the property
-`TableauDatasource.published` : returns True or False
+Columns can have an alias, which is conveniently represented by the `caption` attribute. They also have a `name` attribute which maps to the actual name of the column in the datasource itself. For this reason, the methods that deal with "Column Names" tend to search through both the name and the caption attributes.
 
-If published is True, you can get or set the Site of the published DS. This was necessary in Tableau 9.2 and 9.3 to publish to different sites, and it still might be best practice, so that there is no information about other sites passed in (see notes). `TableauRestApiConnection.publish_workbook` and `.publish_datasource` both do this check and modification for you automatically so that the site is always correct.
+The primary use case for adjusting column tags is to change the aliases for translation. To achieve this, there is a method designed to take in a dictionary of names to search and replace: 
 
-ex.
+`TableauColumns.translate_captions(translation_dict)`
 
-    twb = TableauFile('My TWB.twb')
-    dses = twb.tableau_document.datasources
+The dictionary should be a simple mapping of the caption from the template to the caption you want in the final translated version. Some customers have tokenized the captions to make it obvious which is the template:
+
+    english_dict = { '{token1}': 'category', '{token2}': 'sub-category'}
+    german_dict = { '{token1}': 'Kategorie', '{token2}': 'Unterkategorie'}
+    tab_file = TableauFileManager('template_file.tds')
+    dses = tab_file.datasources 
     for ds in dses:
-        if ds.published is True:
-            print ds.published_ds_site
-            # Change the ds_site
-            ds.published_ds_site = 'new_site'  # Remember to use content_url rather than the pretty site name
+        ds.columns.translate_captions(english_dict)
+    new_eng_filename = tab_file.save_new_file('English Version')
+    # Reload template again
+    tab_file = TableauFile('template_file.tds')
+    dses = tab_file.datasources 
+    for ds in dses:
+        ds.columns.translate_captions(german_dict)
+    new_ger_filename = tab_file.save_new_file('German Version')
+
+#### 2.5.5 Modifying Table JOIN Structure in a Datasource
+The way that Tableau stores the relationships between the various tables, stored procedures, and custom SQL definitions is fairly convoluted. It is explained in some detail here https://tableauandbehold.com/2016/06/29/defining-a-tableau-data-source-programmatically/ .
+
+The long and short of it is that the first / left-most table you see in the Data Connections pane in Tableau Desktop is the "main table"  which other relations connect to. At the current time , tableau_tools can consistently identify and modify this "main table", which suffices for the vast majority of data source swapping use cases.
+
+You can access the main table relationship using
+
+`TableauDatasource.main_table_relation`
+
+To determine the type, use:
+
+`TableauDatasource.main_table_relation.get('type')`
+
+which should return either `'table', 'stored-proc' or 'text'` (which represents Custom SQL)
+
+##### 2.5.5.1 Database Table Relations
+If the type is 'table', then unsurprisingly this relation represents a real table or view in the database. The actual table name in the database is stored in the 'table' attribute, with brackets around the name (regardless of the database type).
+
+Access it via:
+`TableauDatasource.main_table_relation.get('table')`
+
+Set it via:
+`TableauDatasource.main_table_relation.set('table', table_name_in_brackets)`
+
+Ex.
+
+    for ds in dses:
+        if ds.main_table_relation.get('type') == 'table':
+            if ds.main_table_relation.get('table') == '[Test Table]':
+                ds.main_table_relation.set('table','[Real Data]')
+
+##### 2.5.5.2 Custom SQL Relations
+Custom SQL relations are stored with a type of 'text' (don't ask me, I didn't come up with it). The text of the query is stored as the actual text value of the relation tag in the XML, which is also unusual for the Tableau XML files.
+
+To retrieve the Custom SQL itself, use:
+
+`TableauDatasource.main_table_relation.text`
+
+And to set it, use:
+
+`TableauDatasource.main_table_relation.text = new_custom_sql`
+
+Ex.
+
+    for ds in dses:
+        if ds.main_table_relation.get('type') == 'text':
+            ds.main_table_relation.text = 'SELECT * FROM my_cool_table'
+
+##### 2.5.5.3 Stored Procedure Relations
+Stored Procedures are thankfully referred to as 'stored-proc' types in the XML, so they are easy to find. Stored Procedures differ from the other relation types by having parameters for the input values of the Stored Procedure. They also can only connect to that one Stored Procedure (no JOINing of other tables or Custom SQL). This means that a Stored Procedure Data Source only has one relation, the `main_table_relation`.
+
+There are actually two ways to set Stored Procedure Parameters in Tableau -- either with Direct Value or linking them to a Tableau Parameter. Currently, tableau_tools allows you to set Direct Values only.
+
+To see the current value of a Stored Procedure Parameter, use (remember to search for the exact parameter name. If SQL Server or Sybase, include the @ at the beginning):
+`TableauDatasource.get_stored_proc_parameter_value_by_name(parameter_name)`
+
+To set the value:
+`TableauDatasource.set_stored_proc_parameter_value_by_name(parameter_name, parameter_value)`
+
+For time or datetime values, it is best to pass in a `datetime.date` or `datetime.datetime` variable, but you can also pass in unicode text in the exact format that Tablea's XML uses:
+
+datetime: '#YYYY-MM-DD HH:MM:SS#'
+date: '#YYYY-MM-DD#'
+
+Ex.
+
+    for ds in dses:
+        if ds.main_table_relation.get('type') == 'stored-proc':
+            ds.set_stored_proc_parameter_value_by_name('@StartDate', datetime.date(2018, 1, 1))
+            ds.set_stored_proc_parameter_value_by_name('@EndDate', "#2019-01-01#")
 
 
 \*\*\*NOTE: From this point on, things become increasingly experimental and less supported. However, I can assure you that many Tableau customers do these very things, and we are constantly working to improve the functionality for making datasources dynamically.
@@ -1610,78 +1676,6 @@ The following is an example:
     # Create a data source filter that references the calculation
     ds.add_dimension_datasource_filter(calc_id, [1, ], custom_value_list=True)
 
-### 2.11 Modifying Table JOIN Structure in a Connection
-The way that Tableau stores the relationships between the various tables, stored procedures, and custom SQL definitions is fairly convoluted. It is explained in some detail here https://tableauandbehold.com/2016/06/29/defining-a-tableau-data-source-programmatically/ .
-
-The long and short of it is that the first / left-most table you see in the Data Connections pane in Tableau Desktop is the "main table"  which other relations connect to. At the current time (4.4.0+), tableau_tools can identify and modify this "main table", which allows for the vast majority of data source swapping use cases.
-
-You can access the main table relationship using
-
-`TableauDatasource.main_table_relation`
-
-which is a standard `ElementTree.Element object`.
-
-To determine the type, use:
-
-`TableauDatasource.main_table_relation.get('type')`
-
-which should return either `'table', 'stored-proc' or 'text'` (which represents Custom SQL)
-
-#### 2.11.1 Database Table Relations
-If the type is 'table', then unsurprisingly this relation represents a real table or view in the database. The actual table name in the database is stored in the 'table' attribute, with brackets around the name (regardless of the database type).
-
-Access it via:
-`TableauDatasource.main_table_relation.get('table')`
-
-Set it via:
-`TableauDatasource.main_table_relation.set('table', table_name_in_brackets)`
-
-Ex.
-
-    for ds in dses:
-        if ds.main_table_relation.get('type') == 'table':
-            if ds.main_table_relation.get('table') == '[Test Table]':
-                ds.main_table_relation.set('table','[Real Data]'
-
-#### 2.11.2 Custom SQL Relations
-Custom SQL relations are stored with a type of 'text' (don't ask me, I didn't come up with it). The text of the query is stored as the actual text value of the relation tag in the XML, which is also unusual for the Tableau XML files.
-
-To retrieve the Custom SQL itself, use:
-
-`TableauDatasource.main_table_relation.text`
-
-And to set it, use:
-
-`TableauDatasource.main_table_relation.text = new_custom_sql`
-
-Ex.
-
-    for ds in dses:
-        if ds.main_table_relation.get('type') == 'text':
-            ds.main_table_relation.text = 'SELECT * FROM my_cool_table'
-
-#### 2.11.3 Stored Procedure Relations
-Stored Procedures are thankfully referred to as 'stored-proc' types in the XML, so they are easy to find. Stored Procedures differ from the other relation types by having parameters for the input values of the Stored Procedure. They also can only connect to that one Stored Procedure (no JOINing of other tables or Custom SQL). This means that a Stored Procedure Data Source only has one relation, the `main_table_relation`.
-
-There are actually two ways to set Stored Procedure Parameters in Tableau -- either with Direct Value or linking them to a Tableau Parameter. Currently, tableau_tools allows you to set Direct Values only.
-
-To see the current value of a Stored Procedure Parameter, use (remember to search for the exact parameter name. If SQL Server or Sybase, include the @ at the beginning):
-`TableauDatasource.get_stored_proc_parameter_value_by_name(parameter_name)`
-
-To set the value:
-`TableauDatasource.set_stored_proc_parameter_value_by_name(parameter_name, parameter_value)`
-
-For time or datetime values, it is best to pass in a `datetime.date` or `datetime.datetime` variable, but you can also pass in unicode text in the exact format that Tablea's XML uses:
-
-datetime: '#YYYY-MM-DD HH:MM:SS#'
-date: '#YYYY-MM-DD#'
-
-Ex.
-
-    for ds in dses:
-        if ds.main_table_relation.get('type') == 'stored-proc':
-            ds.set_stored_proc_parameter_value_by_name('@StartDate', datetime.date(2018, 1, 1))
-            ds.set_stored_proc_parameter_value_by_name('@EndDate', "#2019-01-01#")
 
 
 ### 2.12 Creating a TableauDatasource from Scratch
