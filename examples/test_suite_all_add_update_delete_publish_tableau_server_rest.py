@@ -133,14 +133,12 @@ def create_test_site(tableau_server_default_connection: TableauServerRest, serve
 
         # THis could be different depending on the version / if Named Users
         test_site.sites.update_site(content_url=new_site_content_url, admin_mode='ContentAndUsers',
-                                    tier_creator_capacity='10',
-                                    tier_explorer_capacity='30', tier_viewer_capacity='50',
+                                    user_quota=100,
                                     storage_quota='400', state='Active',
                                     revision_history_enabled=True, revision_limit='15', disable_subscriptions=False)
     else:
         test_site.sites.update_site(content_url=new_site_content_url, admin_mode='ContentAndUsers',
-                                    tier_creator_capacity='10',
-                                    tier_explorer_capacity='30', tier_viewer_capacity='50',
+                                    user_quota=100,
                                     storage_quota='400', disable_subscriptions=False, state='Active')
 
     print('Finished creating new site')
