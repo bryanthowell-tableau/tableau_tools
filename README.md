@@ -55,7 +55,7 @@ tableau_tools was *programmed using PyCharm and works very well in that IDE. It 
 ------
 
 - [0. Installing and Getting Started](#0-installing-and-getting-started)
-  * [0.0 tableau_tools Library Structure](#00-tableau_tools-library-structure)
+  * [0.0 Examples](#00-examples)
   * [0.1 Importing tableau_tools library](#01-importing-tableau_tools-library)
   * [0.2 Logger class](#02-logger-class)
   * [0.3 TableauBase class](#03-tableaubase-class)
@@ -136,58 +136,11 @@ tableau_tools was *programmed using PyCharm and works very well in that IDE. It 
   * [4.1 TableauRepository Class](#41-tableaurepository-class)
   * [4.2 query() Method](#42-query---method)
   * [4.3 Querying (and killing) Sessions](#43-querying--and-killing--sessions)
-
+- [5 Internal Library Workings](#5-internals)
+  * [5.1 tableau_tools Library Structure](#51-tableau-tools-library-structure)
 
 ## 0. Getting Started
-### 0.0 tableau_tools Library Structure
-tableau_tools
-* tableau_rest_api
-    * methods
-        * _lookups
-        * alert
-        * datasource
-        * extract
-        * favorites
-        * flow
-        * group
-        * metadata
-        * project
-        * rest_api_base
-        * revision
-        * schedule
-        * site
-        * subscription
-        * user
-        * webhooks
-        * workbook
-    * permissions
-    * published_content (Project, Workbook, Datasource)
-    * rest_xml_request
-    * rest_json_request
-    * sort
-    * tableau_rest_api_server_connection
-    * url_filter
-* tableau_documents
-    * table_relations
-    * tableau_columns
-    * tableau_connection
-    * tableau_datasource 
-    * tableau_document
-    * tableau_file
-    * tableau_parameters
-    * tableau_workbook
-    * hyper_file_generator   (legacy)
-* tableau_rest_api_connection
-* tableau_server_rest
-* logger
-* logging_methods
-* tableau_exceptions
-* tableau_repository
-* tabcmd
-* tableau_http
-* tableau_emailer (legacy, unsupported)
-    
-#### 0.0.1 Examples 
+### 0.0 Examples 
 Within the installed package, there is an examples sub-directory with a bunch of functional examples as well as ones that start with "test_suite" that show how to use almost any method in the library.
 
 It may be easier just to find them all on GitHub at https://github.com/bryantbhowell/tableau_tools/tree/5.0.0/examples , and then download them to your own local directories and start trying them out.
@@ -1886,3 +1839,54 @@ Ex.
         t.signout(row[0])
 
 Yes, there are all sorts of other IDs besides the LUID in the repository, but you need to have gone through the work to confirm you want to do this.
+
+## 5 Internal Library Workings
+This section contains explanations of how everything is put together for anyone looking to work on the library or investigating errors.
+
+### 5.1 tableau_tools Library Structure
+tableau_tools
+* tableau_rest_api
+    * methods
+        * _lookups
+        * alert
+        * datasource
+        * extract
+        * favorites
+        * flow
+        * group
+        * metadata
+        * project
+        * rest_api_base
+        * revision
+        * schedule
+        * site
+        * subscription
+        * user
+        * webhooks
+        * workbook
+    * permissions
+    * published_content (Project, Workbook, Datasource)
+    * rest_xml_request
+    * rest_json_request
+    * sort
+    * tableau_rest_api_server_connection
+    * url_filter
+* tableau_documents
+    * table_relations
+    * tableau_columns
+    * tableau_connection
+    * tableau_datasource 
+    * tableau_document
+    * tableau_file
+    * tableau_parameters
+    * tableau_workbook
+    * hyper_file_generator   (legacy)
+* tableau_rest_api_connection
+* tableau_server_rest
+* logger
+* logging_methods
+* tableau_exceptions
+* tableau_repository
+* tabcmd
+* tableau_http
+* tableau_emailer (legacy, unsupported)
