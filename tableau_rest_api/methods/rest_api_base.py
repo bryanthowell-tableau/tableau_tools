@@ -118,7 +118,40 @@ class TableauRestApiBase(LookupMethods, LoggingMethods):
                 d[name] = e_id
         return d
 
-    # This corrects for the first element in any response by the plural collection tag,
+    @staticmethod
+    def luid_name_dict_from_xml(xml_obj: ET.Element) -> Dict:
+        d = {}
+        for element in xml_obj:
+            e_id = element.get("id")
+            # If list is collection, have to run one deeper
+            if e_id is None:
+                for list_element in element:
+                    e_id = list_element.get("id")
+                    name = list_element.get("name")
+                    d[e_id] = name
+            else:
+                name = element.get("name")
+                d[e_id] = name
+        return d
+
+    @staticmethod
+    def luid_content_url_dict_from_xml(xml_obj: ET.Element) -> Dict:
+        d = {}
+        for element in xml_obj:
+            e_id = element.get("id")
+            # If list is collection, have to run one deeper
+            if e_id is None:
+                for list_element in element:
+                    e_id = list_element.get("id")
+                    name = list_element.get("contentUrl")
+                    d[e_id] = name
+            else:
+                name = element.get("contentUrl")
+                d[e_id] = name
+        return d
+
+    # This corrects for the first element in any response by the plural collection tag, which leads to differences
+    # with the XPath search currently
     @staticmethod
     def make_xml_list_iterable(xml_obj: ET.Element) -> List[ET.Element]:
         pass
