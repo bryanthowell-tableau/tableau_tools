@@ -13,7 +13,9 @@ def live_db_connection_changes():
         print(ds)
         print(ds.connections)
         ds.ds_name = 'New Datasource Name'
-        ds.set
+        if ds.is_stored_proc is False:
+            if ds.main_table_type == 'table':
+                ds.tables.main_table_name = '[some other table]'
         for conn in ds.connections:
             conn.connection_name = 'Changed Connection Name'
     t_file.save_new_file('New TDS')
@@ -37,7 +39,7 @@ def live_db_connection_changes():
         print(ds)
         print(ds.connections)
         print(ds.ds_name)
-        print(ds.published)
+        print(ds.is_published)
         for conn in ds.connections:
             print(conn.connection_name)
             print(conn.connection_type)

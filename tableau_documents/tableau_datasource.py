@@ -173,7 +173,6 @@ class TableauDatasource(LoggingMethods, TableauDocument):
             if self.xml.get('name') != 'Parameters':
                 self.relation_xml_obj = self.xml.find('.//relation', self.ns_map)
                 self._table_relations = TableRelations(relation_xml_obj=self.relation_xml_obj)
-                self._read_existing_relations()
             else:
                 self.log('Found a Parameters datasource')
 

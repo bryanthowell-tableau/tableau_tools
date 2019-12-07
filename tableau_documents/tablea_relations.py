@@ -19,6 +19,7 @@ class TableRelations():
         self.join_relations = []
         self.ns_map = {"user": 'http://www.tableausoftware.com/xml/user', 't': 'http://tableau.com/api'}
         ET.register_namespace('t', self.ns_map['t'])
+        self._read_existing_relations()
 
     def _read_existing_relations(self):
         # Test for single relation
