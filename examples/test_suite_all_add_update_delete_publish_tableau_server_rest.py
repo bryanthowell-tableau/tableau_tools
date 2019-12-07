@@ -202,7 +202,7 @@ def group_tests(t: TableauServerRest):
         # t.groups.create_group_from_ad_group()
 
     all_users = t.users.query_users()
-    all_users_dict = t.convert_xml_list_to_name_id_dict(all_users)
+    all_users_dict = t.xml_list_to_dict(all_users)
     all_user_luids = list(all_users_dict.values())  # .values() returns a ValuesView, which needs to be cast to list
     # Just picking one Group at random here basically
     t.groups.add_users_to_group(username_or_luid_s=all_user_luids, group_name_or_luid=group_luids[0])
@@ -275,7 +275,7 @@ def workbooks_tests(t: TableauServerRest):
     time.sleep(3)
 
     projects = t.projects.query_projects()
-    projects_dict = t.convert_xml_list_to_name_id_dict(projects)
+    projects_dict = t.xml_list_to_dict(projects)
     projects_list = list(projects_dict.keys())
 
     log_obj.log('Moving workbook to {} project'.format(projects_list[0]))
@@ -293,14 +293,14 @@ def workbooks_tests(t: TableauServerRest):
     all_users_perms.set_capability_to_deny(capability_name='Save')
 
     groups = t.groups.query_groups()
-    groups_dict = t.convert_xml_list_to_name_id_dict(groups)
+    groups_dict = t.xml_list_to_dict(groups)
     group_perms = wb_obj.get_permissions_obj(group_name_or_luid=list(groups_dict.keys())[1])
     group_perms.set_all_to_deny()
 
     wb_obj.set_permissions(permissions=[all_users_perms, group_perms])
 
     wb_views = t.workbooks.query_workbook_views(new_wb_luid)
-    wb_views_dict = t.convert_xml_list_to_name_id_dict(wb_views)
+    wb_views_dict = t.xml_list_to_dict(wb_views)
 
     t.log(str(wb_views_dict))
 
@@ -341,7 +341,7 @@ def datasources_tests(t: TableauServerRest):
     time.sleep(3)
 
     projects = t.projects.query_projects()
-    projects_dict = t.convert_xml_list_to_name_id_dict(projects)
+    projects_dict = t.xml_list_to_dict(projects)
     projects_list = list(projects_dict.keys())
 
     log_obj.log('Moving datasource to {} project'.format(projects_list[0]))
@@ -359,7 +359,7 @@ def datasources_tests(t: TableauServerRest):
     all_users_perms.set_capability_to_deny(capability_name='Connect')
 
     groups = t.groups.query_groups()
-    groups_dict = t.convert_xml_list_to_name_id_dict(groups)
+    groups_dict = t.xml_list_to_dict(groups)
     group_perms = ds_obj.get_permissions_obj(group_name_or_luid=list(groups_dict.keys())[1])
     group_perms.set_all_to_deny()
 
@@ -386,7 +386,7 @@ def favorites_tests(t: TableauServerRest31):
 
     # Add a favorite for Workbook
     wbs = t.workbooks.query_workbooks()
-    wbs_dict = t.convert_xml_list_to_name_id_dict(wbs)
+    wbs_dict = t.xml_list_to_dict(wbs)
     wb_luid = list(wbs_dict.values())[0]
     t.favorites.add_workbook_to_user_favorites(favorite_name="My Favorite Workbook 1", username_or_luid=t.user_luid,
                                                wb_name_or_luid=wb_luid)
@@ -401,7 +401,7 @@ def favorites_tests(t: TableauServerRest31):
 
     # A View to favorites
     wb_views = t.workbooks.query_workbook_views(wb_luid)
-    wb_views_dict = t.convert_xml_list_to_name_id_dict(wb_views)
+    wb_views_dict = t.xml_list_to_dict(wb_views)
     t.favorites.add_view_to_user_favorites(favorite_name="A favored view!", username_or_luid=t.user_luid,
                                            view_name_or_luid=list(wb_views_dict.values())[0])
     view_fav = t.favorites.add_view_to_user_favorites(favorite_name="A lesser view", username_or_luid=t.user_luid,
@@ -411,7 +411,7 @@ def favorites_tests(t: TableauServerRest31):
 
     # Datasource Favorite
     dses = t.datasources.query_datasources()
-    dses_dict = t.convert_xml_list_to_name_id_dict(dses)
+    dses_dict = t.xml_list_to_dict(dses)
     ds_luid = list(dses_dict.values())[0]
     t.favorites.add_datasource_to_user_favorites(favorite_name="My Favorite DS 1", username_or_luid=t.user_luid,
                                                  ds_name_or_luid=ds_luid)
@@ -424,7 +424,7 @@ def favorites_tests(t: TableauServerRest31):
 
     # API 3.1 and later you can favorite a Project
     projects = t.projects.query_projects()
-    p_dict = t.convert_xml_list_to_name_id_dict(projects)
+    p_dict = t.xml_list_to_dict(projects)
     p_luids = list(p_dict.values())
     t.favorites.add_project_to_user_favorites(favorite_name="My favorite project 1", username_or_luid=t.user_luid,
                                               proj_name_or_luid=p_luids[0])
@@ -445,22 +445,22 @@ def subscription_tests(t: TableauServerRest):
 
     # All users in a Group
     groups = t.groups.query_groups()
-    groups_dict = t.convert_xml_list_to_name_id_dict(groups)
+    groups_dict = t.xml_list_to_dict(groups)
     group_names = list(groups_dict.keys())
 
     users_in_group = t.groups.query_users_in_group(group_name_or_luid=groups_dict[group_names[0]])
-    users_dict = t.convert_xml_list_to_name_id_dict(users_in_group)
+    users_dict = t.xml_list_to_dict(users_in_group)
     usernames = list(users_dict.keys())
 
     wbs = t.workbooks.query_workbooks()
-    wbs_dict = t.convert_xml_list_to_name_id_dict(wbs)
+    wbs_dict = t.xml_list_to_dict(wbs)
     wb_names = list(wbs_dict.keys())
 
     # Grab first workbook
     wb_luid = wbs_dict[wb_names[0]]
 
     sub_schedules = t.schedules.query_subscription_schedules()
-    sched_dict = t.convert_xml_list_to_name_id_dict(sub_schedules)
+    sched_dict = t.xml_list_to_dict(sub_schedules)
     sched_names = list(sched_dict.keys())
 
     # Grab first schedule
@@ -620,7 +620,7 @@ def extract_tests(t: TableauServerRest):
     t.extracts.run_extract_refresh_for_datasource(ds_name_or_luid=extract_datasource_publish_name)
 
     extract_scheds = t.schedules.query_extract_schedules()
-    extract_scheds_dict = t.convert_xml_list_to_name_id_dict(extract_scheds)
+    extract_scheds_dict = t.xml_list_to_dict(extract_scheds)
     extract_luids = list(extract_scheds_dict.values())
     # Run the first one if it exists
     if len(extract_luids) > 0:

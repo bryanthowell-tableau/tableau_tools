@@ -71,7 +71,7 @@ def project_tests(t: TableauServerRest33):
     print('Testing project methods')
     all_projects = t.projects.query_projects()
     log_obj.log_xml_response(all_projects)
-    all_projects_dict = t.convert_xml_list_to_name_id_dict(all_projects)
+    all_projects_dict = t.xml_list_to_dict(all_projects)
     log_obj.log("{}".format(all_projects_dict))
 
     all_projects_json = t.projects.query_projects_json()
@@ -108,7 +108,7 @@ def group_tests(t: TableauServerRest):
     groups_on_site = t.groups.query_groups()
 
     # Convert the list to a dict {name : luid}
-    groups_dict = t.convert_xml_list_to_name_id_dict(groups_on_site)
+    groups_dict = t.xml_list_to_dict(groups_on_site)
     t.log(str(groups_dict))
 
     t.groups.query_groups_json()
@@ -132,7 +132,7 @@ def user_tests(t: TableauServerRest):
     t.users.get_users_json()
 
 
-    users_dict = t.convert_xml_list_to_name_id_dict(users)
+    users_dict = t.xml_list_to_dict(users)
     t.log(str(list(users_dict.keys())))
 
     # Filtering and Sorting
@@ -198,7 +198,7 @@ def subscription_tests(t: TableauServerRest):
     print('Starting Subscription tests')
 
     all_subscriptions = t.subscriptions.query_subscriptions()
-    sub_dict = t.convert_xml_list_to_name_id_dict(all_subscriptions)
+    sub_dict = t.xml_list_to_dict(all_subscriptions)
 
     # Subscriptions for one user
     users = t.users.query_users()

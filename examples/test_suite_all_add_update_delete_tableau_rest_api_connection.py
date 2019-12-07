@@ -197,7 +197,7 @@ def group_tests(t: TableauRestApiConnection, group_names: List[str]) -> Dict:
     groups_on_site = t.query_groups()
 
     # Convert the list to a dict {name : luid}
-    groups_dict = t.convert_xml_list_to_name_id_dict(groups_on_site)
+    groups_dict = t.xml_list_to_dict(groups_on_site)
     t.log(str(groups_dict))
     print('Finished group tests')
     time.sleep(3)  # Let everything update
@@ -207,11 +207,11 @@ def group_tests(t: TableauRestApiConnection, group_names: List[str]) -> Dict:
 def project_permissions_tests(t:TableauRestApiConnection):
     print("Starting Permissions tests")
     projects = t.query_projects()
-    projects_dict = t.convert_xml_list_to_name_id_dict(projects)
+    projects_dict = t.xml_list_to_dict(projects)
     project_names = list(projects_dict.keys())
 
     groups = t.query_groups()
-    groups_dict = t.convert_xml_list_to_name_id_dict(groups)
+    groups_dict = t.xml_list_to_dict(groups)
     group_names = list(groups_dict.keys())
 
     # Set permissions for one project
@@ -284,7 +284,7 @@ def user_tests(t: TableauRestApiConnection, names: List[str]):
 
     # This takes Users x Groups amount of time to complete, can really stretch out the test
     groups = t.query_groups()
-    groups_dict = t.convert_xml_list_to_name_id_dict(groups)
+    groups_dict = t.xml_list_to_dict(groups)
     group_names = list(groups_dict.keys())
 
     # Add all users to first group
@@ -312,7 +312,7 @@ def user_tests(t: TableauRestApiConnection, names: List[str]):
     # Sleep to let updates happen
     time.sleep(4)
     users = t.query_users()
-    users_dict = t.convert_xml_list_to_name_id_dict(users)
+    users_dict = t.xml_list_to_dict(users)
     t.log(str(list(users_dict.keys())))
 
     if isinstance(t, TableauRestApiConnection):
@@ -354,7 +354,7 @@ def workbooks_test(t: TableauRestApiConnection, twbx_filename:str, twbx_content_
     time.sleep(3)
 
     projects = t.query_projects()
-    projects_dict = t.convert_xml_list_to_name_id_dict(projects)
+    projects_dict = t.xml_list_to_dict(projects)
     projects_list = list(projects_dict.keys())
 
     t.log('Moving workbook to {} project'.format(projects_list[0]))
@@ -375,7 +375,7 @@ def workbooks_test(t: TableauRestApiConnection, twbx_filename:str, twbx_content_
 
     t.log("Querying workbook views")
     wb_views = t.query_workbook_views(new_wb_luid)
-    wb_views_dict = t.convert_xml_list_to_name_id_dict(wb_views)
+    wb_views_dict = t.xml_list_to_dict(wb_views)
 
     t.log(str(wb_views_dict))
 
@@ -419,7 +419,7 @@ def publishing_datasources_test(t: TableauRestApiConnection, tdsx_file: str, tds
     time.sleep(3)
 
     projects = t.query_projects()
-    projects_dict = t.convert_xml_list_to_name_id_dict(projects)
+    projects_dict = t.xml_list_to_dict(projects)
     projects_list = list(projects_dict.keys())
 
     t.log('Moving datasource to {} project'.format(projects_list[1]))
@@ -455,7 +455,7 @@ def publishing_datasources_test(t: TableauRestApiConnection, tdsx_file: str, tds
 def schedule_test(t: TableauRestApiConnection):
     print('Started Schedule tests')
     all_schedules = t.query_schedules()
-    schedule_dict = t.convert_xml_list_to_name_id_dict(all_schedules)
+    schedule_dict = t.xml_list_to_dict(all_schedules)
     t.log('All schedules on Server: {}'.format(str(schedule_dict)))
     try:
         t.log('Creating a daily extract schedule')
@@ -496,22 +496,22 @@ def subscription_tests(t: TableauRestApiConnection):
     print('Starting Subscription tests')
     # All users in a Group
     groups = t.query_groups()
-    groups_dict = t.convert_xml_list_to_name_id_dict(groups)
+    groups_dict = t.xml_list_to_dict(groups)
     group_names = list(groups_dict.keys())
 
     users_in_group = t.query_users_in_group(groups_dict[group_names[0]])
-    users_dict = t.convert_xml_list_to_name_id_dict(users_in_group)
+    users_dict = t.xml_list_to_dict(users_in_group)
     usernames = list(users_dict.keys())
 
     wbs = t.query_workbooks()
-    wbs_dict = t.convert_xml_list_to_name_id_dict(wbs)
+    wbs_dict = t.xml_list_to_dict(wbs)
     wb_names = list(wbs_dict.keys())
 
     # Grab first workbook
     wb_luid = wbs_dict[wb_names[0]]
 
     sub_schedules = t.query_subscription_schedules()
-    sched_dict = t.convert_xml_list_to_name_id_dict(sub_schedules)
+    sched_dict = t.xml_list_to_dict(sub_schedules)
     sched_names = list(sched_dict.keys())
 
     # Grab first schedule

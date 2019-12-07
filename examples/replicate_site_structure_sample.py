@@ -18,7 +18,7 @@ new_site_content_url = 'test_site_replica'
 
 
 # Sign in to the original site with an administrator level user
-o = TableauRestApiConnection31(server=o_server, username=o_username,
+o = TableauServerRest31(server=o_server, username=o_username,
                                password=o_password, site_content_url=original_content_url)
 o.signin()
 logger = Logger('replicate_site_sample.log')
@@ -27,14 +27,15 @@ logger.enable_debug_level()
 o.enable_logging(logger)
 
 # Sign in to the new Server on default as a Server Admin
-n_default = TableauRestApiConnection31(server=n_server, username=n_username,
+n_default = TableauServerRest31(server=n_server, username=n_username,
                                        password=n_password, site_content_url="default")
 n_default.signin()
 n_default.enable_logging(logger)
 
 # Die if the new site already exists
 try:
-    n_default.create_site(new_site_name, new_site_content_url, admin_mode='ContentOnly')
+    n_default.sites.create_site(new_site_name=new_site_name, new_content_url=new_site_content_url,
+                                admin_mode='ContentOnly')
     print('New Site Created')
 except AlreadyExistsException as e:
 #    print(e.msg)
@@ -42,13 +43,13 @@ except AlreadyExistsException as e:
 #    exit()
     # Alternative pathway blows away the existing site if it finds one with that site_content_url
     print('Site with name already existed, removing and then creating the new site')
-    n_existing_to_replace = TableauRestApiConnection31(server=n_server, username=n_username,
+    n_existing_to_replace = TableauServerRest31(server=n_server, username=n_username,
                                                        password=n_password, site_content_url=new_site_content_url)
     n_existing_to_replace.signin()
     n_existing_to_replace.enable_logging(logger)
-    n_existing_to_replace.delete_current_site()
+    n_existing_to_replace.sites.delete_current_site()
     # Now Create the new site
-    n_default.create_site(new_site_name, new_site_content_url)
+    n_default.sites.create_site(new_site_name=new_site_name, new_content_url=new_site_content_url)
     print('New Site Created')
 n_default.signout()
 
@@ -63,17 +64,17 @@ print("Signed in to new site, beginning replication")
 # Now we start replicating from one site to the other
 print("Starting groups")
 # Replicate Groups first, so you can put users in them
-groups = o.query_groups()
+groups = o.groups.query_groups()
 for group in groups:
     # Can't add All Users because it is generated automatically
     if group.get('name') == 'All Users':
         continue
 
-    n.create_group(direct_xml_request=n.build_request_from_response(group))
+    n.groups.create_group(direct_xml_request=n.build_request_from_response(group))
 print("Finished groups")
 # Replicate Users
 print("Starting users")
-users = o.query_users()
+users = o.users.query_users()
 # Loop through the Element objects themselves because of more details to add
 excluded_server_admins = []
 for user in users:
@@ -88,7 +89,7 @@ for user in users:
         #user.set(u'siteRole', u'SiteAdministratorCreator')
 
         # If you are on a Tableau Server and already a Server Administrator, you need to be excluded from
-        print(("Excluded this ServerAdministrator {}".format(user.get('name'))))
+        print("Excluded this ServerAdministrator {}".format(user.get('name')))
         excluded_server_admins.append(user.get('name'))
         continue
 
@@ -101,7 +102,7 @@ for user in users:
     #user_request.set(u'name', new_username)
 
     # This actually sends the request (for Tableau Server)
-    n.add_user(direct_xml_request=user_request)
+    n.users.add_user(direct_xml_request=user_request)
 
     # Tableau Online variation
     # Tableau Online only allows you to add an e-mail address, as the name field, so you shouldn't use the dir
@@ -122,7 +123,7 @@ groups_dict = o.convert_xml_list_to_name_id_dict(groups)
 for group in groups_dict:
     if group == 'All Users':
         continue
-    group_users = o.query_users_in_group(group)
+    group_users = o.groups.query_users_in_group(group)
     group_users_dict = o.convert_xml_list_to_name_id_dict(group_users)
 
     # If names match exactly, use this
@@ -147,11 +148,11 @@ for group in groups_dict:
     #    new_name = u'{}@{}'.format(user.get(u'name'), u'mydomain.net')
     #    new_group_users.append(new_name)
 
-    n.add_users_to_group(new_group_users, group)
+    n.groups.add_users_to_group(new_group_users, group)
 print("Finished users into groups")
 # Create all of the projects
 print("Started projects")
-projects = o.query_projects()
+projects = o.projects.query_projects()
 proj_dict = o.convert_xml_list_to_name_id_dict(projects)
 for proj in projects:
     if proj.get('name') == 'Default':
@@ -165,7 +166,7 @@ for proj in projects:
         if p.get('parentProjectId') is not None:
             del(p.attrib['parentProjectId'])
 
-    n.create_project(direct_xml_request=proj_request, no_return=True)
+    n.projects.create_project(direct_xml_request=proj_request, no_return=True)
 
 # Let the projects get all settled in
 print("Finished groups, sleeping for a few moments")
@@ -181,7 +182,7 @@ for proj in child_projects:
         # Get the Name of the Project that is the Parent
         o_parent_project = o.query_project_xml_object(proj.get('parentProjectId'))
         new_parent_project_name = o_parent_project.get('name')
-        n.update_project(proj.get('name'),
+        n.projects.update_project(proj.get('name'),
                          parent_project_name_or_luid=new_parent_project_name)
 
 
@@ -192,8 +193,8 @@ time.sleep(4)
 # Set Permissions for all the Projects to Match when usernames and group names perfectly match between the systems
 print('Starting project permissions')
 for proj_name in proj_dict:
-    orig_proj = o.query_project(proj_name)
-    new_proj = n.query_project(proj_name)
+    orig_proj = o.projects.query_project(proj_name)
+    new_proj = n.projects.query_project(proj_name)
 
     # If you are transferring where the usernames may vary (say to Online where all usernames are e-mail addresses
     # must come up with a mechanism for mapping the username.
@@ -217,12 +218,12 @@ print('Starting schedules')
 # Schedules are Server wide, so you must be a Server admin to sync them
 # You probably don't want to override existing schedules on the new Server
 # So you might comment this whole thing out, or do a name check like:
-existing_schedules_new_server = n.query_schedules()
+existing_schedules_new_server = n.schedules.query_schedules()
 
 # Let's assume a quick name match is enough to know whether to bother to add
 existing_schedules_dict = n.convert_xml_list_to_name_id_dict(existing_schedules_new_server)
 
-schedules = o.query_schedules()
+schedules = o.schedules.query_schedules()
 
 # element_luid : new_schedule_luid
 wb_extract_tasks = {}
@@ -236,12 +237,12 @@ for sched in schedules:
 
     else:
         sched_request = n.build_request_from_response(sched)
-        final_sched_luid = n.create_schedule(direct_xml_request=sched_request)
+        final_sched_luid = n.schedules.create_schedule(direct_xml_request=sched_request)
 
     # Now pull all of the Extract Refresh tasks for each schedule, so that you can assign them to the newly published
     # workbooks and datasources when you do that
     if sched.get('type') == 'Extract':
-        extracts_for_o_schedule = o.query_extract_refresh_tasks_by_schedule(sched.get('id'))
+        extracts_for_o_schedule = o.extracts.query_extract_refresh_tasks_on_schedule(sched.get('id'))
         for extract_task in extracts_for_o_schedule:
             # this will be either workbook or datasource tag
             for element in extract_task:
@@ -287,12 +288,12 @@ error_wbs = []
 
 
 # Go Project by Project because workbook names are unique within Projects at least
-o_projects = o.query_projects()
+o_projects = o.projets.query_projects()
 o_proj_dict = o.convert_xml_list_to_name_id_dict(o_projects)
 for proj in o_proj_dict:
     # use a LUID lookup through o_proj_dict[proj] to reduce name lookups
     print(('Starting workbooks in project {}'.format(proj)))
-    wbs_in_proj = o.query_workbooks_in_project(o_proj_dict[proj])
+    wbs_in_proj = o.workbooks.query_workbooks_in_project(o_proj_dict[proj])
     workbook_name_or_luids = o.convert_xml_list_to_name_id_dict(wbs_in_proj)
 
     # which is necessary to make sure there is no name duplication

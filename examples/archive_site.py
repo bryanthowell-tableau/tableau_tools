@@ -11,7 +11,7 @@ def archive_tableau_site(save_to_directory, server, username, password, site_con
                                    password=password, site_content_url=site_content_url)
     t.signin()
     all_projects = t.projects.query_projects()
-    all_projects_dict = t.convert_xml_list_to_name_id_dict(all_projects)
+    all_projects_dict = t.xml_list_to_dict(all_projects)
 
     # This gives you the Project name; the values of the dict are the LUIDs
     for project in all_projects_dict:

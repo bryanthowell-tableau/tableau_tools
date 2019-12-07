@@ -40,7 +40,7 @@ with open('permissions_audit.txt', 'wb') as output_file:
         t.enable_logging(logger)
         t.signin()
         projects = t.query_projects()
-        projects_dict = t.convert_xml_list_to_name_id_dict(projects)
+        projects_dict = t.xml_list_to_dict(projects)
         print(projects_dict)
         for project in projects_dict:
             # combined_permissions = luid : {type, name, proj, def_wb, def_ds}

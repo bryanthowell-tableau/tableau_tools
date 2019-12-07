@@ -101,6 +101,28 @@ class TableauRestApiBase(LookupMethods, LoggingMethods):
                 d[name] = e_id
         return d
 
+    # Repeat of above method with shorter name
+    @staticmethod
+    def xml_list_to_dict(xml_obj: ET.Element) -> Dict:
+        d = {}
+        for element in xml_obj:
+            e_id = element.get("id")
+            # If list is collection, have to run one deeper
+            if e_id is None:
+                for list_element in element:
+                    e_id = list_element.get("id")
+                    name = list_element.get("name")
+                    d[name] = e_id
+            else:
+                name = element.get("name")
+                d[name] = e_id
+        return d
+
+    # This corrects for the first element in any response by the plural collection tag,
+    @staticmethod
+    def make_xml_list_iterable(xml_obj: ET.Element) -> List[ET.Element]:
+        pass
+
     def set_tableau_server_version(self, tableau_server_version: str) -> str:
         if str(tableau_server_version)in ["10.3", "10.4", "10.5", '2018.1', '2018.2', '2018.3', '2019.1',
                                           '2019.2', '2019.3', '2019.4']:

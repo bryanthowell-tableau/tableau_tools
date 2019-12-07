@@ -32,7 +32,7 @@ cur.execute(sql_statement)
 
 # Get all the groups on the Tableau Server
 groups = t.query_groups()
-groups_dict = t.convert_xml_list_to_name_id_dict(groups)
+groups_dict = t.xml_list_to_dict(groups)
 
 # Loop through the results
 for row in cur:
@@ -51,7 +51,7 @@ cur.execute(sql_statement)
 
 # Get all the users on the site
 users = t.users.query_users()
-users_dict = t.convert_xml_list_to_name_id_dict(users)
+users_dict = t.xml_list_to_dict(users)
 
 # Loop through users, make sure they exist
 for row in cur:
@@ -98,7 +98,7 @@ for group_luid in groups_and_users:
     if group_luid == groups_dict['All Users']:
         continue
     users_in_group_on_server = t.groups.query_users_in_group(group_luid)
-    users_in_group_on_server_dict = t.convert_xml_list_to_name_id_dict(users_in_group_on_server)
+    users_in_group_on_server_dict = t.xml_list_to_dict(users_in_group_on_server)
     # values() are the LUIDs in these dicts
     for user_luid in list(users_in_group_on_server_dict.values()):
         if user_luid not in groups_and_users[group_luid]:

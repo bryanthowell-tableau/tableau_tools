@@ -6,8 +6,6 @@ from tableau_documents import *
 import datetime
 import os
 
-from tableau_rest_api.tableau_rest_api_connection import *
-
 logger = Logger('template_publish.txt')
 
 # In production, you would pull this from a config file or database
@@ -35,10 +33,10 @@ def promote_from_dev_to_test(logger_obj=None):
     test_password = ''
     test_site = 'test'
 
-    dev = TableauRestApiConnection26(dev_server, dev_username, dev_password, dev_site)
+    dev = TableauServerRest33(dev_server, dev_username, dev_password, dev_site)
     dev.signin()
 
-    test = TableauRestApiConnection26(test_server, test_username, test_password, test_site)
+    test = TableauServerRest33(test_server, test_username, test_password, test_site)
     test.signin()
 
     dev.enable_logging(logger_obj)
