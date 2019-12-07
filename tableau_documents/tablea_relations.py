@@ -2,6 +2,7 @@ import xml.etree.ElementTree as ET
 from typing import Union, Any, Optional, List, Dict, Tuple
 import random
 from xml.sax.saxutils import quoteattr, unescape
+import copy
 
 from tableau_tools.tableau_exceptions import *
 
@@ -23,7 +24,7 @@ class TableRelations():
         # Test for single relation
         relation_type = self.relation_xml_obj.get('type')
         if relation_type != 'join':
-                self.main_table_relation = self.relation_xml_obj
+                self.main_table = self.relation_xml_obj
                 self.table_relations = [self.relation_xml_obj, ]
 
         else:
@@ -34,38 +35,38 @@ class TableRelations():
             for t in table_relations:
                 if t.get('type') != 'join':
                     final_table_relations.append(t)
-            self.main_table_relation = final_table_relations[0]
+            self.main_table = final_table_relations[0]
             self.table_relations = final_table_relations
 
         # Read any parameters that a stored-proc might have
-        if self.main_table_relation.get('type') == 'stored-proc':
-            self._stored_proc_parameters_xml = self.main_table_relation.find('.//actual-parameters')
+        if self.main_table.get('type') == 'stored-proc':
+            self._stored_proc_parameters_xml = self.main_table.find('.//actual-parameters')
 
     @property
     def main_custom_sql(self) -> str:
-        if self.main_table_relation.get('type') == 'stored-proc':
-            return self.main_table_relation.text
+        if self.main_table.get('type') == 'stored-proc':
+            return self.main_table.text
         else:
             raise InvalidOptionException('Data Source does not have Custom SQL defined')
 
     @main_custom_sql.setter
     def main_custom_sql(self, new_custom_sql: str):
-        if self.main_table_relation.get('type') == 'stored-proc':
-            self.main_table_relation.text = new_custom_sql
+        if self.main_table.get('type') == 'stored-proc':
+            self.main_table.text = new_custom_sql
         else:
             raise InvalidOptionException('Data Source does not have Custom SQL defined')
 
     @property
     def main_table_name(self) -> str:
-        if self.main_table_relation.get('type') == 'table':
-            return self.main_table_relation.get('table')
+        if self.main_table.get('type') == 'table':
+            return self.main_table.get('table')
         else:
             raise InvalidOptionException('Data Source main relation is not a database table (or view). Possibly Custom SQL or Stored Procedure')
 
     @main_table_name.setter
     def main_table_name(self, new_table_name:str):
-        if self.main_table_relation.get('type') == 'table':
-            self.main_table_relation.set('table', new_table_name)
+        if self.main_table.get('type') == 'table':
+            self.main_table.set('table', new_table_name)
         else:
             raise InvalidOptionException(
                 'Data Source main relation is not a database table (or view). Possibly Custom SQL or Stored Procedure')
@@ -77,22 +78,22 @@ class TableRelations():
                         extract: bool = False):
         self.ds_generator = True
         # Grab the original connection name
-        if self.main_table_relation is not None and connection is None:
-            connection = self.main_table_relation.get('connection')
-        self.main_table_relation = self.create_table_relation(db_table_name, table_alias, connection=connection,
+        if self.main_table is not None and connection is None:
+            connection = self.main_table.get('connection')
+        self.main_table = self.create_table_relation(db_table_name, table_alias, connection=connection,
                                                               extract=extract)
 
     def set_first_custom_sql(self, custom_sql: str, table_alias: str, connection: Optional[str] = None):
         self.ds_generator = True
-        if self.main_table_relation is not None and connection is None:
-            connection = self.main_table_relation.get('connection')
-        self.main_table_relation = self.create_custom_sql_relation(custom_sql, table_alias, connection=connection)
+        if self.main_table is not None and connection is None:
+            connection = self.main_table.get('connection')
+        self.main_table = self.create_custom_sql_relation(custom_sql, table_alias, connection=connection)
 
     def set_first_stored_proc(self, stored_proc_name: str, table_alias: str, connection: Optional[str] = None):
         self.ds_generator = True
-        if self.main_table_relation is not None and connection is None:
-            connection = self.main_table_relation.get('connection')
-        self.main_table_relation = self.create_stored_proc_relation(stored_proc_name, table_alias, connection=connection)
+        if self.main_table is not None and connection is None:
+            connection = self.main_table.get('connection')
+        self.main_table = self.create_stored_proc_relation(stored_proc_name, table_alias)
 
     def get_stored_proc_parameter_value_by_name(self, parameter_name: str) -> str:
         if self._stored_proc_parameters_xml is None:
@@ -224,10 +225,10 @@ class TableRelations():
         # There's only a single main relation with only one table
 
         if len(self.join_relations) == 0:
-            for item in list(self.main_table_relation.items()):
+            for item in list(self.main_table.items()):
                 rel_xml_obj.set(item[0], item[1])
-            if self.main_table_relation.text is not None:
-                rel_xml_obj.text = self.main_table_relation.text
+            if self.main_table.text is not None:
+                rel_xml_obj.text = self.main_table.text
 
         else:
             prev_relation = None
@@ -276,10 +277,10 @@ class TableRelations():
                 if join_desc["custom_sql"] is None:
                     # Append the main table first (not sure this works for more deep hierarchies, but let's see
                     main_rel_xml_obj = ET.Element('relation')
-                    for item in list(self.main_table_relation.items()):
+                    for item in list(self.main_table.items()):
                         main_rel_xml_obj.set(item[0], item[1])
-                    if self.main_table_relation.text is not None:
-                        main_rel_xml_obj.text = self.main_table_relation.text
+                    if self.main_table.text is not None:
+                        main_rel_xml_obj.text = self.main_table.text
                     main_rel_xml_obj.set('connection', connection_name)
                     r.append(main_rel_xml_obj)
 
