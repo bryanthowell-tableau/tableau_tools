@@ -187,13 +187,20 @@ tableau_tools
 * tableau_http
 * tableau_emailer (legacy, unsupported)
     
+#### 0.0.1 Examples 
+Within the installed package, there is an examples sub-directory with a bunch of functional examples as well as ones that start with "test_suite" that show how to use almost any method in the library.
 
-### 0.1 Importing tableau_tools library
-It is recommended that you import everything from the tableau_tools package like:
+It may be easier just to find them all on GitHub at https://github.com/bryantbhowell/tableau_tools/tree/5.0.0/examples , and then download them to your own local directories and start trying them out.
+
+### 0.1 Importing tableau_tools library into your scripts
+If you just import tableau_tools per the following, you will have access to the tableau_rest_api sub-package:
 
     from tableau_tools import *
-    from tableau_tools.tableau_rest_api import *
-    from tableau_tools.tableau_documents import *
+
+If you need to use tableau_documents, use the following import statements:
+
+    from tableau_tools import *
+    from tableau_documents import *
 
 ### 0.2 Logger class
 The Logger class implements useful and verbose logging to a plain text file that all of the other objects can use. You declare a single Logger object, then pass it to the other objects, resulting in a single continuous log file of all actions.

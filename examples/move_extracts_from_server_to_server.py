@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from tableau_tools.tableau_rest_api import *
 from tableau_tools import *
 import time
 
@@ -22,16 +21,20 @@ d_username = ''
 d_password = ''
 d_site_content_url = ''
 
-t = TableauRestApiConnection28(o_server, o_username, o_password, o_site_content_url)
+
+t = TableauServerRest28(server=o_server, username=o_username, password=o_password, site_content_url=o_site_content_url)
 t.signin()
 t.enable_logging(logger)
 downloaded_filename = 'File Name'
 wb_name_on_server = 'WB Name on Server'
 proj_name = 'Default'
-t.download_workbook('WB Name on Server', downloaded_filename, proj_name_or_luid=proj_name)
+t.workbooks.download_workbook(wb_name_or_luid='WB Name on Server', filename_no_extension=downloaded_filename,
+                              proj_name_or_luid=proj_name)
 
-d = TableauRestApiConnection28(d_server, d_username, d_password, d_site_content_url)
+d = TableauServerRest28(d_server, d_username, d_password, d_site_content_url)
 d.signin()
 d.enable_logging(logger)
-proj = d.query_project('Default')
-d.publish_workbook('{}.twbx'.format(downloaded_filename), wb_name_on_server, proj, save_credentials=False, overwrite=True)
+proj = d.projects.query_project('Default')
+d.workbooks.publish_workbook(workbook_filename='{}.twbx'.format(downloaded_filename),
+                             workbook_name=wb_name_on_server, project_obj=proj,
+                             save_credentials=False, overwrite=True)

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from ...tableau_tools.tableau_rest_api import *
-from ...tableau_tools import *
+from tableau_tools import *
 import time
 
 server = 'http://127.0.0.1'

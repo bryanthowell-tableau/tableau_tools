@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
-from tableau_tools.tableau_rest_api import *
 from tableau_tools import *
 import csv
-
-# There are differences between Python 2.7 and Python 3, so this may not run on Python 3 yet
 
 username = ''
 password = ''
 server = 'http://localhost'
 
 logger = Logger('permissions.log')
-default = TableauRestApiConnection25(server, username, password)
+default = TableauRestApiConnection28(server=server, username=username, password=password)
 default.enable_logging(logger)
 default.signin()
 
@@ -38,7 +35,8 @@ with open('permissions_audit.txt', 'wb') as output_file:
     output_writer.writerow(headers)
 
     for site_content_url in site_content_urls:
-        t = TableauRestApiConnection28(server, username, password, site_content_url)
+        t = TableauRestApiConnection28(server=server, username=username, password=password,
+                                       site_content_url=site_content_url)
         t.enable_logging(logger)
         t.signin()
         projects = t.query_projects()

@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 from tableau_tools import *
-from tableau_tools.tableau_rest_api import *
+from tableau_documents import *
 from tableau_tools.tableau_documents.hyper_file_generator import HyperFileGenerator
-from tableau_tools.tableau_documents.tableau_file import TableauFile
-from tableau_tools.tableau_documents.tableau_datasource import TableauDatasource, TableauConnection
+
 import pyodbc
 import sys
 
