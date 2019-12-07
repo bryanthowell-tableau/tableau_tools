@@ -34,9 +34,6 @@ Some of the methods return Element objects which can be manipulated via standard
 
 tableau_tools was *programmed using PyCharm and works very well in that IDE. It is highly recommended if you are going to code with tableau_tools.*
 
-The TableauDatasource class uses the `TDEFileGenerator` and/or the `HyperFileGenerator` class, which requires the TableauSDK and/or Extract API 2.0 to be installed. You can find the (pre-10.5) SDK at https://onlinehelp.tableau.com/current/api/sdk/en-us/SDK/tableau_sdk_installing.htm#downloading and the Extract API 2.0 (10.5+ for Hyper) at https://onlinehelp.tableau.com/current/api/extract_api/en-us/help.htm#Extract/extract_api_using_python.htm%3FTocPath%3D_____4
-
-
 
 ## **Version history** 
 ------
@@ -171,19 +168,24 @@ tableau_tools
     * tableau_rest_api_server_connection
     * url_filter
 * tableau_documents
+    * table_relations
+    * tableau_columns
     * tableau_connection
     * tableau_datasource 
     * tableau_document
     * tableau_file
+    * tableau_parameters
     * tableau_workbook
-    * tde_file_generator   
+    * hyper_file_generator   (legacy)
+* tableau_rest_api_connection
+* tableau_server_rest
 * logger
-* tabcmd
-* tableau_base
-* tableau_http
-* tableau_emailer
+* logging_methods
 * tableau_exceptions
 * tableau_repository
+* tabcmd
+* tableau_http
+* tableau_emailer (legacy, unsupported)
     
 
 ### 0.1 Importing tableau_tools library
@@ -1325,32 +1327,32 @@ The class you will use to handle existing classes is TableauFileOpener. This is 
        
 
 ### 2.1 tableau_documents basic model
-In 5.0+, tableau_documents has been updated considerably with a more consistent model than in the past. There is a hierarchy of the objects, which reflects a model of "Tableau XML File on Disk" -> "Object that manipulates the XML, built from File". For Tableau's packaged file types (the ones that end in X), there is an additional layer, which is the ZIP file that contains the XML File.  
+In 5.0+, tableau_documents has been updated considerably with a more consistent model than in the past. There is a hierarchy of the objects, which reflects a model of "Tableau XML File on Disk" -> "Object that manipulates the XML, built from File". For Tableau's packaged file types (the ones that end in X), there is an additional layer, which is the ZIP file that contains the XML File. The TableauWorkbook and TableauDatasource objects both inherit from TableauDocument, which just defines certain methods they both share. 
 
 Datasource:
 
 * TDS (TableauXmlFile, DatasourceFileInterface)
-    * TableauDatasource
+    * TableauDatasource (TableauDocument)
         * [TableauConnection]
         * TableauColumns
 
 * TDSX (TableauPackagedFile, DatasourceFileInterface)
     * TDS (TableauXmlFile, DatasourceFileInterface)
-        * TableauDatasource
+        * TableauDatasource (TableauDocument)
             * [TableauConnection]
             * TableauColumns
     
 Workbooks:
 
 * TWB (TableauXmlFile, DatasourceFileInterface)
-    * TableauWorkbook
+    * TableauWorkbook (TableauDocument)
         * [TableauDatasource]
             * [TableauConnection]
             * TableauColumns
 
 * TWBX (TableauPackagedFile, DatasourceFileInterface)
     * TWB (TableauXmlFile, DatasourceFileInterface)
-        * TableauWorkbook
+        * TableauWorkbook (TableauDocument)
             * [TableauDatasource]
                 * [TableauConnection]
                 * TableauColumns

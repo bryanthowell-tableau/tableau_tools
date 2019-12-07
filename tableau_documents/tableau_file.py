@@ -14,7 +14,6 @@ from tableau_tools.logger import Logger
 from tableau_tools.tableau_exceptions import *
 from .tableau_datasource import TableauDatasource
 from .tableau_workbook import TableauWorkbook
-# from tableau_documents.tableau_document import TableauDocument
 
 
 # Hyper files are not considered in this situation as they are binary and generated a different way

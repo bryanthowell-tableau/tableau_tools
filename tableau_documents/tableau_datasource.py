@@ -1,11 +1,8 @@
 import xml.etree.ElementTree as ET
-import zipfile
-import os
 import copy
-from xml.sax.saxutils import quoteattr, unescape
+from xml.sax.saxutils import quoteattr
 import datetime
-import codecs
-import collections
+
 import random
 from typing import Union, Any, Optional, List, Dict, Tuple
 
@@ -16,7 +13,7 @@ from tableau_tools.logging_methods import LoggingMethods
 from tableau_documents.tableau_connection import TableauConnection
 from tableau_documents.tableau_document import TableauDocument
 from tableau_documents.tableau_columns import TableauColumns
-from tableau_documents.tablea_relations import TableRelations
+from tableau_documents.table_relations import TableRelations
 
 
 # Meant to represent a TDS file, does not handle the file opening
