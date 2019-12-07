@@ -16,6 +16,7 @@ from tableau_tools.logging_methods import LoggingMethods
 from tableau_documents.tableau_connection import TableauConnection
 from tableau_documents.tableau_document import TableauDocument
 from tableau_documents.tableau_columns import TableauColumns
+from tableau_documents.tablea_relations import TableRelations
 
 
 # Meant to represent a TDS file, does not handle the file opening
@@ -49,7 +50,7 @@ class TableauDatasource(LoggingMethods, TableauDocument):
         self.column_instances = []
         self.main_table_relation = None
         self.main_table_name = None
-        self.table_relations = None
+        self._table_relations = None
         self._connection_root = None
         self._stored_proc_parameters_xml = None
 
@@ -171,6 +172,7 @@ class TableauDatasource(LoggingMethods, TableauDocument):
             # Skip the relation if it is a Parameters datasource. Eventually, build out separate object
             if self.xml.get('name') != 'Parameters':
                 self.relation_xml_obj = self.xml.find('.//relation', self.ns_map)
+                self._table_relations = TableRelations(relation_xml_obj=self.relation_xml_obj)
                 self._read_existing_relations()
             else:
                 self.log('Found a Parameters datasource')
@@ -226,6 +228,27 @@ class TableauDatasource(LoggingMethods, TableauDocument):
     @property
     def is_published(self) -> bool:
         return self._published
+
+    @property
+    def tables(self):
+        return self._table_relations
+
+    @property
+    def is_stored_proc(self) -> bool:
+        if self.tables.main_table.get('type') == 'stored-proc':
+            return True
+        else:
+            return False
+
+    @property
+    def main_table_type(self) -> str:
+        raw_type = self.tables.main_table.get('type')
+        if raw_type == 'stored-proc':
+            return 'stored-proc'
+        elif raw_type == 'text':
+            return 'custom-sql'
+        elif raw_type == 'table':
+            return 'table'
 
     @property
     def published_ds_site(self) -> str:
@@ -539,255 +562,7 @@ class TableauDatasource(LoggingMethods, TableauDocument):
             raise InvalidOptionException('tableau_tools 5.0 is Python 3.6+ compatible, but the TDE generating library is only available for Python 2.7. Please upgrade to a newer version of Tableau with Hyper extract engine (10.5+)')
         return e
 
-    #
-    # Reading existing table relations
-    #
-    def _read_existing_relations(self):
-        # Test for single relation
-        relation_type = self.relation_xml_obj.get('type')
-        if relation_type != 'join':
-                self.main_table_relation = self.relation_xml_obj
-                self.table_relations = [self.relation_xml_obj, ]
 
-        else:
-            table_relations = self.relation_xml_obj.findall('.//relation', self.ns_map)
-            final_table_relations = []
-            # ElementTree doesn't implement the != operator, so have to find all then iterate through to exclude
-            # the JOINs to only get the tables, stored-procs and Custom SQLs
-            for t in table_relations:
-                if t.get('type') != 'join':
-                    final_table_relations.append(t)
-            self.main_table_relation = final_table_relations[0]
-            self.table_relations = final_table_relations
-
-        # Read any parameters that a stored-proc might have
-        if self.main_table_relation.get('type') == 'stored-proc':
-            self._stored_proc_parameters_xml = self.main_table_relation.find('.//actual-parameters')
-
-    #
-    # For creating new table relations
-    #
-    def set_first_table(self, db_table_name: str, table_alias: str, connection: Optional[str] = None,
-                        extract: bool = False):
-        self.ds_generator = True
-        # Grab the original connection name
-        if self.main_table_relation is not None and connection is None:
-            connection = self.main_table_relation.get('connection')
-        self.main_table_relation = self.create_table_relation(db_table_name, table_alias, connection=connection,
-                                                              extract=extract)
-
-    def set_first_custom_sql(self, custom_sql: str, table_alias: str, connection: Optional[str] = None):
-        self.ds_generator = True
-        if self.main_table_relation is not None and connection is None:
-            connection = self.main_table_relation.get('connection')
-        self.main_table_relation = self.create_custom_sql_relation(custom_sql, table_alias, connection=connection)
-
-    def set_first_stored_proc(self, stored_proc_name: str, table_alias: str, connection: Optional[str] = None):
-        self.ds_generator = True
-        if self.main_table_relation is not None and connection is None:
-            connection = self.main_table_relation.get('connection')
-        self.main_table_relation = self.create_stored_proc_relation(stored_proc_name, table_alias, connection=connection)
-
-    def get_stored_proc_parameter_value_by_name(self, parameter_name: str) -> str:
-        if self._stored_proc_parameters_xml is None:
-            raise NoResultsException('There are no parameters set for this stored proc (or it is not a stored proc)')
-        param = self._stored_proc_parameters_xml.find('../column[@name="{}"]'.format(parameter_name))
-        if param is None:
-            raise NoMatchFoundException('Could not find Stored Proc parameter with name {}'.format(parameter_name))
-        else:
-            value = param.get('value')
-
-            # Maybe add deserializing of the dates and datetimes eventally?
-
-            # Remove the quoting and any escaping
-            if value[0] == '"' and value[-1] == '"':
-                return unescape(value[1:-1])
-            else:
-                return unescape(value)
-
-    def set_stored_proc_parameter_value_by_name(self, parameter_name: str, parameter_value: str):
-        # Create if there is none
-        if self._stored_proc_parameters_xml is None:
-            self._stored_proc_parameters_xml = ET.Element('actual-parameters')
-        # Find parameter with that name (if exists)
-        param = self._stored_proc_parameters_xml.find('.//column[@name="{}"]'.format(parameter_name), self.ns_map)
-
-        if param is None:
-            # create_stored... already converts to correct quoting
-            new_param = self.create_stored_proc_parameter(parameter_name, parameter_value)
-
-            self._stored_proc_parameters_xml.append(new_param)
-        else:
-            if isinstance(parameter_value, str):
-                final_val = quoteattr(parameter_value)
-            elif isinstance(parameter_value, datetime.date) or isinstance(parameter_value, datetime.datetime):
-                    time_str = "#{}#".format(parameter_value.strftime('%Y-%m-%d %H-%M-%S'))
-                    final_val = time_str
-            else:
-                final_val = str(parameter_value)
-            param.set('value', final_val)
-
-    @staticmethod
-    def create_stored_proc_parameter(parameter_name: str, parameter_value: Any) -> ET.Element:
-        c = ET.Element('column')
-        # Check to see if this varies at all depending on type or whatever
-        c.set('ordinal', '1')
-        if parameter_name[0] != '@':
-            parameter_name = "@{}".format(parameter_name)
-        c.set('name', parameter_name)
-        if isinstance(parameter_value, str):
-            c.set('value', quoteattr(parameter_value))
-        elif isinstance(parameter_value, datetime.date) or isinstance(parameter_value, datetime.datetime):
-            time_str = "#{}#".format(parameter_value.strftime('%Y-%m-%d %H-%M-%S'))
-            c.set('value', time_str)
-        else:
-            c.set('value', str(parameter_value))
-        return c
-
-    @staticmethod
-    def create_random_calculation_name() -> str:
-        n = 19
-        range_start = 10 ** (n - 1)
-        range_end = (10 ** n) - 1
-        random_digits = random.randint(range_start, range_end)
-        return 'Calculation_{}'.format(str(random_digits))
-
-    @staticmethod
-    def create_table_relation(db_table_name: str, table_alias: str, connection: Optional[str] = None,
-                              extract: bool = False) -> ET.Element:
-        r = ET.Element("relation")
-        r.set('name', table_alias)
-        if extract is True:
-            r.set("table", "[Extract].[{}]".format(db_table_name))
-        else:
-            r.set("table", "[{}]".format(db_table_name))
-        r.set("type", "table")
-        if connection is not None:
-            r.set('connection', connection)
-        return r
-
-    @staticmethod
-    def create_custom_sql_relation(custom_sql: str, table_alias: str, connection: Optional[str] = None) -> ET.Element:
-        r = ET.Element("relation")
-        r.set('name', table_alias)
-        r.text = custom_sql
-        r.set("type", "text")
-        if connection is not None:
-            r.set('connection', connection)
-        return r
-
-    # UNFINISHED, NEEDS TESTING TO COMPLETE
-    @staticmethod
-    def create_stored_proc_relation(stored_proc_name: str, connection: Optional[str] = None, actual_parameters=None):
-        r = ET.Element("relation")
-        r.set('name', stored_proc_name)
-        r.set("type", "stored-proc")
-        if connection is not None:
-            r.set('connection', connection)
-        if actual_parameters is not None:
-            r.append(actual_parameters)
-        return r
-
-    # on_clauses = [ { left_table_alias : , left_field : , operator : right_table_alias : , right_field : ,  },]
-    @staticmethod
-    def define_join_on_clause(left_table_alias, left_field, operator, right_table_alias, right_field):
-        return {"left_table_alias": left_table_alias,
-                "left_field": left_field,
-                "operator": operator,
-                "right_table_alias": right_table_alias,
-                "right_field": right_field
-                }
-
-    def join_table(self, join_type: str, db_table_name: str, table_alias: str, join_on_clauses: List[Dict],
-                   custom_sql: Optional[str] = None):
-        full_join_desc = {"join_type": join_type.lower(),
-                          "db_table_name": db_table_name,
-                          "table_alias": table_alias,
-                          "on_clauses": join_on_clauses,
-                          "custom_sql": custom_sql}
-        self.join_relations.append(full_join_desc)
-
-    def generate_relation_section(self, connection_name: Optional[str] = None) -> ET.Element:
-        # Because of the strange way that the interior definition is the last on, you need to work inside out
-        # "Middle-out" as Silicon Valley suggests.
-        # Generate the actual JOINs
-        #if self.relation_xml_obj is not None:
-        #    self.relation_xml_obj.clear()
-        #else:
-        rel_xml_obj = ET.Element("relation")
-        # There's only a single main relation with only one table
-
-        if len(self.join_relations) == 0:
-            for item in list(self.main_table_relation.items()):
-                rel_xml_obj.set(item[0], item[1])
-            if self.main_table_relation.text is not None:
-                rel_xml_obj.text = self.main_table_relation.text
-
-        else:
-            prev_relation = None
-
-            # We go through each relation, build the whole thing, then append it to the previous relation, then make
-            # that the new prev_relationship. Something like recursion
-            #print(self.join_relations)
-            for join_desc in self.join_relations:
-
-                r = ET.Element("relation")
-                r.set("join", join_desc["join_type"])
-                r.set("type", "join")
-                if len(join_desc["on_clauses"]) == 0:
-                    raise InvalidOptionException("Join clause must have at least one ON clause describing relation")
-                else:
-                    and_expression = None
-                    if len(join_desc["on_clauses"]) > 1:
-                        and_expression = ET.Element("expression")
-                        and_expression.set("op", 'AND')
-                    for on_clause in join_desc["on_clauses"]:
-                        c = ET.Element("clause")
-                        c.set("type", "join")
-                        e = ET.Element("expression")
-                        e.set("op", on_clause["operator"])
-
-                        e_field1 = ET.Element("expression")
-                        e_field1_name = '[{}].[{}]'.format(on_clause["left_table_alias"],
-                                                            on_clause["left_field"])
-                        e_field1.set("op", e_field1_name)
-                        e.append(e_field1)
-
-                        e_field2 = ET.Element("expression")
-                        e_field2_name = '[{}].[{}]'.format(on_clause["right_table_alias"],
-                                                            on_clause["right_field"])
-                        e_field2.set("op", e_field2_name)
-                        e.append(e_field2)
-                        if and_expression is not None:
-                            and_expression.append(e)
-                        else:
-                            and_expression = e
-                c.append(and_expression)
-                r.append(c)
-                if prev_relation is not None:
-                    r.append(prev_relation)
-
-                if join_desc["custom_sql"] is None:
-                    # Append the main table first (not sure this works for more deep hierarchies, but let's see
-                    main_rel_xml_obj = ET.Element('relation')
-                    for item in list(self.main_table_relation.items()):
-                        main_rel_xml_obj.set(item[0], item[1])
-                    if self.main_table_relation.text is not None:
-                        main_rel_xml_obj.text = self.main_table_relation.text
-                    main_rel_xml_obj.set('connection', connection_name)
-                    r.append(main_rel_xml_obj)
-
-                    new_table_rel = self.create_table_relation(join_desc["db_table_name"],
-                                                               join_desc["table_alias"], connection=connection_name)
-                else:
-                    new_table_rel = self.create_custom_sql_relation(join_desc['custom_sql'],
-                                                                    join_desc['table_alias'], connection=connection_name)
-                r.append(new_table_rel)
-                prev_relation = r
-                #prev_relation = copy.deepcopy(r)
-                #rel_xml_obj.append(copy.deepcopy(r))
-            rel_xml_obj = copy.deepcopy(prev_relation)
-        return rel_xml_obj
 
     def add_table_column(self, table_alias: str, table_field_name: str, tableau_field_alias: str):
         # Check to make sure the alias has been added

@@ -13,6 +13,7 @@ def live_db_connection_changes():
         print(ds)
         print(ds.connections)
         ds.ds_name = 'New Datasource Name'
+        ds.set
         for conn in ds.connections:
             conn.connection_name = 'Changed Connection Name'
     t_file.save_new_file('New TDS')

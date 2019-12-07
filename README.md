@@ -53,9 +53,11 @@ The TableauDatasource class uses the `TDEFileGenerator` and/or the `HyperFileGen
 * 4.8.0 Introduces the RestJsonRequest object and _json plural querying methods for passing JSON responses to other systems
 * 4.9.0 API 3.3 (2019.1) compatibility, as well as ability to swap in static files using TableauDocument and other bug fixes.
 * 5.0.0 Python 3.6+ native rewrite. Completely re-organized in the backend, with two models for accessing Rest API methods: TableauRestApiConnection (backwards-compatible) and TableauServerRest, with subclasses grouping the methods.
-## --- Table(au) of Contents ---
+
+--- Table(au) of Contents ---
 ------
 
+- [0. Installing and Getting Started](#0-installing-and-getting-started)
   * [0.0 tableau_tools Library Structure](#00-tableau_tools-library-structure)
   * [0.1 Importing tableau_tools library](#01-importing-tableau_tools-library)
   * [0.2 Logger class](#02-logger-class)
@@ -1530,7 +1532,7 @@ The dictionary should be a simple mapping of the caption from the template to th
         ds.columns.translate_captions(english_dict)
     new_eng_filename = tab_file.save_new_file('English Version')
     # Reload template again
-    tab_file = TableauFile('template_file.tds')
+    tab_file = TableauFileManager('template_file.tds')
     dses = tab_file.datasources 
     for ds in dses:
         ds.columns.translate_captions(german_dict)
@@ -1541,48 +1543,55 @@ The way that Tableau stores the relationships between the various tables, stored
 
 The long and short of it is that the first / left-most table you see in the Data Connections pane in Tableau Desktop is the "main table"  which other relations connect to. At the current time , tableau_tools can consistently identify and modify this "main table", which suffices for the vast majority of data source swapping use cases.
 
+There is a TableRelations (note not TableauRelations) object within each TableauDatasource object, representing the table names and their relationships, accesible through the `.tables` property. Any methods for modifying will go through `TableauDatasource.tables`
+
 You can access the main table relationship using
 
-`TableauDatasource.main_table_relation`
+`TableauDatasource.tables.main_table`
 
-To determine the type, use:
+To see if the datasource is connected to a Stored Procedure, check
 
-`TableauDatasource.main_table_relation.get('type')`
+`TableauDatasource.is_stored_procedure: bool`
 
-which should return either `'table', 'stored-proc' or 'text'` (which represents Custom SQL)
+like:
+
+    tab_file = TableauFileManager('template_file.tds')
+        dses = tab_file.datasources 
+        for ds in dses:
+            if ds.is_stored_procedure:
+                # do stored proc things
+
+You can also determine the type of the main table, using:
+
+`TableauDatasource.main_table_type`
+
+which should return either `'table', 'stored-proc' or 'custom-sql'`
 
 ##### 2.5.5.1 Database Table Relations
-If the type is 'table', then unsurprisingly this relation represents a real table or view in the database. The actual table name in the database is stored in the 'table' attribute, with brackets around the name (regardless of the database type).
+If the type is 'table', then unsurprisingly this relation represents a real table or view in the database. The actual table name in the database is stored in a 'table' attribute, with brackets around the name (regardless of the database type).
 
-Access it via:
-`TableauDatasource.main_table_relation.get('table')`
-
-Set it via:
-`TableauDatasource.main_table_relation.set('table', table_name_in_brackets)`
+Access and set via property:
+`TableauDatasource.tables.main_table_name`
 
 Ex.
 
     for ds in dses:
-        if ds.main_table_relation.get('type') == 'table':
-            if ds.main_table_relation.get('table') == '[Test Table]':
-                ds.main_table_relation.set('table','[Real Data]')
+        if ds.main_table_type == 'table':
+            if ds.tables.main_table_name == '[Test Table]':
+                ds.tables.main_table_name = '[Real Data]'
 
 ##### 2.4.5.2 Custom SQL Relations
 Custom SQL relations are stored with a type of 'text' (don't ask me, I didn't come up with it). The text of the query is stored as the actual text value of the relation tag in the XML, which is also unusual for the Tableau XML files.
 
-To retrieve the Custom SQL itself, use:
+To retrieve the Custom SQL itself, use the property to get or set:
 
-`TableauDatasource.main_table_relation.text`
-
-And to set it, use:
-
-`TableauDatasource.main_table_relation.text = new_custom_sql`
+`TableauDatasource.tables.main_custom_sql`
 
 Ex.
 
     for ds in dses:
-        if ds.main_table_relation.get('type') == 'text':
-            ds.main_table_relation.text = 'SELECT * FROM my_cool_table'
+        if ds.is_custom_sql:
+            ds.tables.main_custom_sql = 'SELECT * FROM my_cool_table'
 
 ##### 2.4.5.3 Stored Procedure Relations
 Stored Procedures are thankfully referred to as 'stored-proc' types in the XML, so they are easy to find. Stored Procedures differ from the other relation types by having parameters for the input values of the Stored Procedure. They also can only connect to that one Stored Procedure (no JOINing of other tables or Custom SQL). This means that a Stored Procedure Data Source only has one relation, the `main_table_relation`.
@@ -1590,10 +1599,10 @@ Stored Procedures are thankfully referred to as 'stored-proc' types in the XML, 
 There are actually two ways to set Stored Procedure Parameters in Tableau -- either with Direct Value or linking them to a Tableau Parameter. Currently, tableau_tools allows you to set Direct Values only.
 
 To see the current value of a Stored Procedure Parameter, use (remember to search for the exact parameter name. If SQL Server or Sybase, include the @ at the beginning):
-`TableauDatasource.get_stored_proc_parameter_value_by_name(parameter_name)`
+`TableauDatasource.tables.get_stored_proc_parameter_value_by_name(parameter_name)`
 
 To set the value:
-`TableauDatasource.set_stored_proc_parameter_value_by_name(parameter_name, parameter_value)`
+`TableauDatasource.tables.set_stored_proc_parameter_value_by_name(parameter_name, parameter_value)`
 
 For time or datetime values, it is best to pass in a `datetime.date` or `datetime.datetime` variable, but you can also pass in unicode text in the exact format that Tableau's XML uses:
 
@@ -1603,9 +1612,9 @@ date: '#YYYY-MM-DD#'
 Ex.
 
     for ds in dses:
-        if ds.main_table_relation.get('type') == 'stored-proc':
-            ds.set_stored_proc_parameter_value_by_name('@StartDate', datetime.date(2018, 1, 1))
-            ds.set_stored_proc_parameter_value_by_name('@EndDate', "#2019-01-01#")
+        if ds.is_stored_proc:
+            ds.tables.set_stored_proc_parameter_value_by_name('@StartDate', datetime.date(2018, 1, 1))
+            ds.tables.set_stored_proc_parameter_value_by_name('@EndDate', "#2019-01-01#")
 
 
 \*\*\*NOTE: From this point on, things become increasingly experimental and less supported. However, I can assure you that many Tableau customers do these very things, and we are constantly working to improve the functionality for making datasources dynamically.
