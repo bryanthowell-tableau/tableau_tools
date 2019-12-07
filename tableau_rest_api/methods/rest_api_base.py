@@ -47,8 +47,8 @@ class TableauRestApiBase(LookupMethods, LoggingMethods):
         self._request_json_obj: Optional[RestJsonRequest] = None
 
         # UrlFilter object for factory methods
-        self.url_filters = UrlFilter()
-        self.sorts = Sort()
+        self.url_filters = UrlFilter
+        self.sorts = Sort
 
         # Lookup caches to minimize calls
         self.username_luid_cache = {}
