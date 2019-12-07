@@ -525,77 +525,81 @@ For example, `query_projects` will run by itself, but it also contains optional 
 `TableauRestApiConnection.query_projects(self, name_filter=None, owner_name_filter=None, updated_at_filter=None, created_at_filter=None,
                        owner_domain_filter=None, owner_email_filter=None, sorts=None)`
 
-Filters can be passed via a `UrlFilter` class object. However, you do not need to generate them directly, but instead should use factory methods to make sure you get them created with the right options.
+Filters can be passed via a `UrlFilter` class object. However, you do not need to generate them directly, but instead should use factory methods (all starting with "get_" to make sure you get them created with the right options. Both TableauServerRest and TableauRestApiConnection have a `.url_filters` property which gives you access to the correct UrlFilters object for that version of the API. This is the easiest access point and can be used like:
 
-Each API version has an associated UrlFilter class which implements static factory methods to generate objects with the correct settings for each type of filter you might want to pass. The latest version always has all of the previous capabilities available. The following lists out in which version each filter factory method was implemented:
+    t = TableauServerRest(server='', username='', password='')
+    name_filter = t.url_filters.get_name_filter(name='some name to look for')
 
-`UrlFilter.create_name_filter(name)`
+The following lists all of the available factory methods (although check with the IDE using autocomplete as there may be more): 
 
-`UrlFilter.create_site_role_filter(site_role)`
+`UrlFilter.get_name_filter(name)`
 
-`UrlFilter.create_owner_name_filter(owner_name)`
+`UrlFilter.get_site_role_filter(site_role)`
 
-`UrlFilter.create_created_at_filter(operator, created_at_time)`
+`UrlFilter.get_owner_name_filter(owner_name)`
 
-`UrlFilter.create_updated_at_filter(operator, updated_at_time)`
+`UrlFilter.get_created_at_filter(operator, created_at_time)`
 
-`UrlFilter.create_last_login_filter(operator, last_login_time)`
+`UrlFilter.get_updated_at_filter(operator, updated_at_time)`
 
-`UrlFilter.create_tags_filter(tags)`
+`UrlFilter.get_last_login_filter(operator, last_login_time)`
 
-`UrlFilter.create_tag_filter(tag)`
+`UrlFilter.get_tags_filter(tags)`
 
-`UrlFilter.create_datasource_type_filter(ds_type)`
+`UrlFilter.get_tag_filter(tag)`
 
-`UrlFilter27.create_names_filter(names)`
+`UrlFilter.get_datasource_type_filter(ds_type)`
 
-`UrlFilter27.create_site_roles_filter(site_roles)`
+`UrlFilter27.get_names_filter(names)`
 
-`UrlFilter27.create_owner_names_filter(owner_names)`
+`UrlFilter27.get_site_roles_filter(site_roles)`
 
-`UrlFilter27.create_domain_names_filter(domain_names)`
+`UrlFilter27.get_owner_names_filter(owner_names)`
 
-`UrlFilter27.create_domain_nicknames_filter(domain_nicknames)`
+`UrlFilter27.get_domain_names_filter(domain_names)`
 
-`UrlFilter27.create_domain_name_filter(domain_name)`
+`UrlFilter27.get_domain_nicknames_filter(domain_nicknames)`
 
-`UrlFilter27.create_domain_nickname_filter(domain_nickname)`
+`UrlFilter27.get_domain_name_filter(domain_name)`
 
-`UrlFilter27.create_minimum_site_roles_filter(minimum_site_roles)`
+`UrlFilter27.get_domain_nickname_filter(domain_nickname)`
 
-`UrlFilter27.create_minimum_site_role_filter(minimum_site_role)`
+`UrlFilter27.get_minimum_site_roles_filter(minimum_site_roles)`
 
-`UrlFilter27.create_is_local_filter(is_local)`
+`UrlFilter27.get_minimum_site_role_filter(minimum_site_role)`
 
-`UrlFilter27.create_user_count_filter(operator, user_count)`
+`UrlFilter27.get_is_local_filter(is_local)`
 
-`UrlFilter27.create_owner_domains_filter(owner_domains)`
+`UrlFilter27.get_user_count_filter(operator, user_count)`
 
-`UrlFilter27.create_owner_domain_filter(owner_domain)`
+`UrlFilter27.get_owner_domains_filter(owner_domains)`
 
-`UrlFilter27.create_owner_emails_filter(owner_emails)`
+`UrlFilter27.get_owner_domain_filter(owner_domain)`
 
-`UrlFilter27.create_owner_email_filter(owner_email)`
+`UrlFilter27.get_owner_emails_filter(owner_emails)`
 
-`UrlFilter27.create_hits_total_filter(operator, hits_total)`
+`UrlFilter27.get_owner_email_filter(owner_email)`
+
+`UrlFilter27.get_hits_total_filter(operator, hits_total)`
 
 Note that times must be specified with a full ISO 8601 format as shown below;
 
 Ex. 
+    
+    # t = TableauServerRest...
+    bryant_filter = t.url_filters.get_owner_name_filter('Bryant')
+    t_filter = t.url_filters.get_tags_filter(['sales', 'sandbox'])
+    ca_filter = t.url_filters.get_created_at_filter('gte', '2016-01-01T00:00:00:00Z')
+    t.workbooks.query_workbooks(owner_name_filter=bryant_filter, tags_filter=t_filter, created_at_filter=ca_filter)
 
-    bryant_filter = UrlFilter27.create_owner_name_filter('Bryant')
-    t_filter = UrlFilter27.create_tags_filter(['sales', 'sandbox'])
-    ca_filter = UrlFilter27.create_created_at_filter('gte', '2016-01-01T00:00:00:00Z')
-    t.query_workbooks(owner_name_filter=bryant_filter, tags_filter=t_filter, created_at_filter=ca_filter)
+There is also a Sort object, but it is best to use the static factory methods:
 
-There is also a Sort object, but it is better to initialize a SortAscending or SortDescending object
-
-`SortAscending(field: str)`
-`SortDescending(field:str)`
+`Sort.Ascending(field: str) -> Sort`
+`Sort.Descending(field:str) -> Sort`
 
 Sorts can be passed as a list to those methods that can accept them like the following:
 
-    s = SortAscending('name')
+    s = Sort.Ascending('name')
     t.query_workbooks(owner_name_filter=bryant_filter, tags_filter=t_filter, sorts=[s,])
 
 ##### 1.2.2.2 Fields 
