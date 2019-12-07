@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from ...tableau_tools import *
+from tableau_tools import *
 from tableau_documents import *
 import time
 import os
@@ -55,7 +55,7 @@ n_default.signout()
 
 
 # Connect to the newly created site
-n = TableauRestApiConnection31(server=n_server, username=n_username,
+n = TableauServerRest31(server=n_server, username=n_username,
                                password=n_password, site_content_url=new_site_content_url)
 n.signin()
 n.enable_logging(logger)
@@ -117,14 +117,14 @@ time.sleep(4)
 # Put users in groups
 print("Starting users in groups")
 # Grab all the group names from the original site
-groups_dict = o.convert_xml_list_to_name_id_dict(groups)
+groups_dict = o.xml_list_to_dict(groups)
 
 # Loop through all the original groups, then request the users in each one from the original site
 for group in groups_dict:
     if group == 'All Users':
         continue
     group_users = o.groups.query_users_in_group(group)
-    group_users_dict = o.convert_xml_list_to_name_id_dict(group_users)
+    group_users_dict = o.xml_list_to_dict(group_users)
 
     # If names match exactly, use this
     new_group_users = list(group_users_dict.keys())
@@ -153,7 +153,7 @@ print("Finished users into groups")
 # Create all of the projects
 print("Started projects")
 projects = o.projects.query_projects()
-proj_dict = o.convert_xml_list_to_name_id_dict(projects)
+proj_dict = o.xml_list_to_dict(projects)
 for proj in projects:
     if proj.get('name') == 'Default':
         continue
@@ -180,7 +180,7 @@ for proj in child_projects:
     # Double check it's working correctly
     if proj.get('parentProjectId') is not None:
         # Get the Name of the Project that is the Parent
-        o_parent_project = o.query_project_xml_object(proj.get('parentProjectId'))
+        o_parent_project = o.projects.query_project_xml_object(proj.get('parentProjectId'))
         new_parent_project_name = o_parent_project.get('name')
         n.projects.update_project(proj.get('name'),
                          parent_project_name_or_luid=new_parent_project_name)
@@ -221,7 +221,7 @@ print('Starting schedules')
 existing_schedules_new_server = n.schedules.query_schedules()
 
 # Let's assume a quick name match is enough to know whether to bother to add
-existing_schedules_dict = n.convert_xml_list_to_name_id_dict(existing_schedules_new_server)
+existing_schedules_dict = n.xml_list_to_dict(existing_schedules_new_server)
 
 schedules = o.schedules.query_schedules()
 
@@ -288,13 +288,13 @@ error_wbs = []
 
 
 # Go Project by Project because workbook names are unique within Projects at least
-o_projects = o.projets.query_projects()
-o_proj_dict = o.convert_xml_list_to_name_id_dict(o_projects)
+o_projects = o.projects.query_projects()
+o_proj_dict = o.xml_list_to_dict(o_projects)
 for proj in o_proj_dict:
     # use a LUID lookup through o_proj_dict[proj] to reduce name lookups
     print(('Starting workbooks in project {}'.format(proj)))
     wbs_in_proj = o.workbooks.query_workbooks_in_project(o_proj_dict[proj])
-    workbook_name_or_luids = o.convert_xml_list_to_name_id_dict(wbs_in_proj)
+    workbook_name_or_luids = o.xml_list_to_dict(wbs_in_proj)
 
     # which is necessary to make sure there is no name duplication
     wb_files = {}
@@ -310,8 +310,8 @@ for proj in o_proj_dict:
             wb_files[wb] = wb_filename
             # Open up the file using the tableau_documents sub-module to find out if the
             # data sources are published. This is easier and more exact than using the REST API
-            wb_obj = TableauFile(wb_filename, logger)
-            dses = wb_obj.tableau_document.datasources  # type: list[TableauDatasource]
+            wb_obj = TableauFileManager.open(filename=wb_filename, logger_obj=logger)
+            dses = wb_obj.datasources
             for ds in dses:
                 # Add any published datasources to the dict with the object to hold the details
                 if ds.published is True:
@@ -326,7 +326,7 @@ for proj in o_proj_dict:
     print(("Found {} published data sources to move over".format(len(orig_ds_content_url))))
 
     # Look up all these data sources and find their LUIDs so they can be downloaded
-    all_dses = o.query_datasources()
+    all_dses = o.datasources.query_datasources()
 
     for ds_content_url in orig_ds_content_url:
         print(ds_content_url)
@@ -352,11 +352,11 @@ for proj in o_proj_dict:
     dest_project = n.query_project(proj)
 
     for ds in orig_ds_content_url:
-        ds_filename = o.download_datasource(orig_ds_content_url[ds].orig_luid, 'downloaded ds')
-        proj_obj = n.query_project(orig_ds_content_url[ds].orig_proj_name)
+        ds_filename = o.datasources.download_datasource(orig_ds_content_url[ds].orig_luid, 'downloaded ds')
+        proj_obj = n.projects.query_project(orig_ds_content_url[ds].orig_proj_name)
 
-        ds_obj = TableauFile(ds_filename)
-        ds_dses = ds_obj.tableau_document.datasources  # type: list[TableauDatasource]
+        ds_obj = TableauFileManager.open(filename=ds_filename)
+        ds_dses = ds_obj.datasources
         # You may need to change details of the data source connections here
         # Uncomment below if you have things to change
         credentials = None
@@ -371,18 +371,18 @@ for proj in o_proj_dict:
 
         # Here is also where any credential mapping would need to happen, because credentials can't be retrieved
         if credentials is not None:
-            orig_ds_content_url[ds].new_luid = n.publish_datasource(new_ds_filename, orig_ds_content_url[ds].orig_name,
+            orig_ds_content_url[ds].new_luid = n.datasources.publish_datasource(new_ds_filename, orig_ds_content_url[ds].orig_name,
                                                                     proj_obj, overwrite=True,
                                                                     connection_username=credentials['username'],
                                                                     connection_password=credentials['password'])
         else:
-            orig_ds_content_url[ds].new_luid = n.publish_datasource(new_ds_filename, orig_ds_content_url[ds].orig_name,
+            orig_ds_content_url[ds].new_luid = n.datasources.publish_datasource(new_ds_filename, orig_ds_content_url[ds].orig_name,
                                                                     proj_obj, overwrite=True)
-        print(('Published data source, resulting in new luid {}'.format(orig_ds_content_url[ds].new_luid)))
+        print('Published data source, resulting in new luid {}'.format(orig_ds_content_url[ds].new_luid))
 
         # Add to an Extract Schedule if one was scheduled
         if orig_ds_content_url[ds].orig_luid in ds_extract_tasks:
-            n.add_datasource_to_schedule(ds_name_or_luid=orig_ds_content_url[ds].new_luid,
+            n.schedules.add_datasource_to_schedule(ds_name_or_luid=orig_ds_content_url[ds].new_luid,
                                          schedule_name_or_luid=ds_extract_tasks[orig_ds_content_url[ds].orig_luid])
 
         # Add to the list that don't need to be republished
@@ -392,13 +392,13 @@ for proj in o_proj_dict:
         os.remove(new_ds_filename)
 
         try:
-            new_ds = n.query_datasource(orig_ds_content_url[ds].new_luid)
+            new_ds = n.datasources.query_datasource(orig_ds_content_url[ds].new_luid)
             orig_ds_content_url[ds].new_content_url = new_ds[0].get('contentUrl')
-            print(('New Content URL is {}'.format(orig_ds_content_url[ds].new_content_url)))
+            print('New Content URL is {}'.format(orig_ds_content_url[ds].new_content_url))
         except RecoverableHTTPException as e:
-            print((e.tableau_error_code))
-            print((e.http_code))
-            print((e.luid))
+            print(e.tableau_error_code)
+            print(e.http_code)
+            print(e.luid)
 
     print('Finished republishing all data sources to the new site')
 
@@ -406,8 +406,8 @@ for proj in o_proj_dict:
     # and you know the DSes have been pushed across, you can open up the workbook and
     # make sure that all of the contentUrls are correct
     for wb in wb_files:
-        t_file = TableauFile(wb_files[wb], logger_obj=logger)
-        dses = t_file.tableau_document.datasources  # type: list[TableauDatasource]
+        t_file = TableauFileManager.open(filename=wb_files[wb], logger_obj=logger)
+        dses = t_file.datasources
         for ds in dses:
             if ds.published is True:
                 # Set the Site of the published data source
@@ -428,17 +428,17 @@ for proj in o_proj_dict:
 
         # Map any credentials for embedded datasources in the workbook here as well
 
-        new_workbook_luid = n.publish_workbook(workbook_filename=temp_wb_file, workbook_name=wb,
+        new_workbook_luid = n.workbooks.publish_workbook(workbook_filename=temp_wb_file, workbook_name=wb,
                                                project_obj=dest_project,
                                                overwrite=True, check_published_ds=False)
-        print(('Published new workbook {}'.format(new_workbook_luid)))
+        print('Published new workbook {}'.format(new_workbook_luid))
         os.remove(temp_wb_file)
 
         # Add to an Extract Schedule if one was scheduled
         o_wb_luid = workbook_name_or_luids[wb]
         if o_wb_luid in wb_extract_tasks:
             print('Adding to Extract Refresh Schedule')
-            n.add_workbook_to_schedule(wb_name_or_luid=new_workbook_luid,
+            n.schedules.add_workbook_to_schedule(wb_name_or_luid=new_workbook_luid,
                                        schedule_name_or_luid=wb_extract_tasks[o_wb_luid])
 
     print(('Finished workbooks for project {}'.format(proj)))
@@ -450,21 +450,21 @@ print('Finished publishing all workbooks')
 # Must publish Data Sources
 
 # Look up all the data sources, go project by project to avoid naming issues
-o_projects = o.query_projects()
-proj_dict = o.convert_xml_list_to_name_id_dict(o_projects)
+o_projects = o.projects.query_projects()
+proj_dict = o.xml_list_to_dict(o_projects)
 for proj in proj_dict:
 
-    all_dses_in_proj = o.query_datasources(project_name_or_luid=proj_dict[proj])
-    all_dses_in_proj_dict = o.convert_xml_list_to_name_id_dict(all_dses_in_proj)
+    all_dses_in_proj = o.datasources.query_datasources(project_name_or_luid=proj_dict[proj])
+    all_dses_in_proj_dict = o.xml_list_to_dict(all_dses_in_proj)
     for ds_name in all_dses_in_proj_dict:
         o_ds_luid = all_dses_in_proj_dict[ds_name]
         # Only publish data sources that had not been moved over (unused data sources)
         if o_ds_luid not in replicated_datasources_luid_list:
             # Download data source and republish
-            ds_filename = o.download_datasource(o_ds_luid, 'downloaded ds')
-            proj_obj = n.query_project(proj_dict[proj])
+            ds_filename = o.datasources.download_datasource(o_ds_luid, 'downloaded ds')
+            proj_obj = n.projects.query_project(proj_dict[proj])
 
-            ds_obj = TableauFile(ds_filename)
+            ds_obj = TableauFileManager.open(filename=ds_filename)
             ds_dses = ds_obj.tableau_document.datasources  # type: list[TableauDatasource]
             # You may need to change details of the data source connections here
             # Uncomment below if you have things to change
@@ -478,12 +478,12 @@ for proj in proj_dict:
 
             # Here is also where any credential mapping would need to happen, because credentials can't be retrieved
 
-            new_ds_luid = n.publish_datasource(new_ds_filename, ds_name, proj_obj, overwrite=True)
+            new_ds_luid = n.datasources.publish_datasource(new_ds_filename, ds_name, proj_obj, overwrite=True)
             print(('Published data source, resulting in new luid {}'.format(new_ds_luid)))
 
             # Add to an Extract Schedule if one was scheduled
             if o_ds_luid in ds_extract_tasks:
-                n.add_datasource_to_schedule(ds_name_or_luid=new_ds_luid,
+                n.schedules.add_datasource_to_schedule(ds_name_or_luid=new_ds_luid,
                                              schedule_name_or_luid=ds_extract_tasks[o_ds_luid])
 
 
@@ -499,7 +499,7 @@ for proj in proj_dict:
 
 
 print('Starting subscriptions')
-subscriptions = o.query_subscriptions()
+subscriptions = o.subscriptions.query_subscriptions()
 
 # Subscriptions actually require 3 different IDs to line up --
 # the content (workbook or view), the user and the subscription
@@ -508,14 +508,14 @@ subscriptions = o.query_subscriptions()
 # If migrating to Tableau Online, build a translation dictionary for the original schedule name and the new schedule name
 
 # If changing names from one site to another, user you mapping dictionary here instead of querying for users
-#n_users = n.query_users()
-#n_users_dict = n.convert_xml_list_to_name_id_dict(n_users)
+#n_users = n.users.query_users()
+#n_users_dict = n.xml_list_to_dict(n_users)
 
 
 #for sub in subscriptions:
 #    sub_request = n.build_request_from_response(sub)
 
-    #n.create_subscription()
+    #n.subscriptions.create_subscription()
 
 
 
