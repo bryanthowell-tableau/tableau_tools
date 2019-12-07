@@ -380,7 +380,7 @@ class TableauDatasource(LoggingMethods, TableauDocument):
             connection_root = new_xml.find('.//connection', self.ns_map)
             named_connection = connection_root.find('.//named-connection', self.ns_map)
             connection_name = named_connection.get('name')
-            new_rel_xml = self.generate_relation_section(connection_name=connection_name)
+            new_rel_xml = self.tables.generate_relation_section(connection_name=connection_name)
             connection_root.append(new_rel_xml)
             cas = self.generate_aliases_column_section()
             # If there is no existing aliases tag, gotta add one. Unlikely but safety first
