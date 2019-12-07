@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from tableau_tools.tableau_rest_api import *
-from tableau_tools.tableau_documents import *
-from tableau_tools import *
-from tableau_tools.tableau_repository import TableauRepository
-import urllib.request, urllib.error, urllib.parse
-import time
+from ...tableau_tools import *
+from tableau_documents import *
+
 import datetime
 import os
 

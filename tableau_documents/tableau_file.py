@@ -392,10 +392,6 @@ class TDSX(DatasourceFileInterface, TableauPackagedFile):
     def tableau_document(self) -> TableauDatasource:
         return self.tableau_xml_file.tableau_document
 
-    # This would be useful for interrogating Hyper files named within (should just be 1 per TDSX)
-    def get_files_in_package(self):
-        pass
-
     def save_new_file(self, new_filename_no_extension: str):
         self.start_log_block()
         new_filename = new_filename_no_extension.split('.')[0]  # simple algorithm to kill extension
@@ -501,9 +497,6 @@ class TWBX(DatasourceFileInterface, TableauPackagedFile):
     @property
     def file_type(self) -> str:
         return 'twbx'
-
-    def get_files_in_package(self):
-        pass
 
     # Make sure to open save the original TWB file to disk PRIOR to asking for the XML from TableauWorkbook, because it
     # won't be able to find it via that filename if it doesn't exist!
