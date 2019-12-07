@@ -3,7 +3,7 @@ from typing import Optional, List, Dict
 import time, datetime
 import json
 
-from ...tableau_tools import *
+from tableau_tools import *
 
 # This is meant to test all querying functionality of the tableau_tools library.
 # It is intended to be pointed at existing sites on existing Tableau Servers, with enough content for

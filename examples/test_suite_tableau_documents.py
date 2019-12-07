@@ -1,4 +1,4 @@
-from ...tableau_tools import *
+from tableau_tools import *
 from tableau_documents import *
 
 #

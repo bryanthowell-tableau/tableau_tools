@@ -3,7 +3,7 @@ from typing import Optional, List, Dict
 import time, datetime
 import json
 
-from ...tableau_tools import *
+from tableau_tools import *
 
 # This is meant to test all non-querying functionality of the tableau_tools library.
 # It creates a new site on whatever Tableau Server it has been pointed to
