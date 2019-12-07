@@ -1,6 +1,10 @@
 from ...tableau_tools import *
 from tableau_documents import *
 
+#
+# WIP and will be more fully built out in the future. See template_publish_sample.py for other uses as well as the README
+#
+
 def live_db_connection_changes():
     t_file: TDS = TableauFileManager.open(filename='Live PostgreSQL.tds')
     if isinstance(t_file, DatasourceFileInterface):
