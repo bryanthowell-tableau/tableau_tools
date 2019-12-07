@@ -48,6 +48,7 @@ class TableauRestApiBase(LookupMethods, LoggingMethods):
 
         # UrlFilter object for factory methods
         self.url_filters = UrlFilter()
+        self.sorts = Sort()
 
         # Lookup caches to minimize calls
         self.username_luid_cache = {}

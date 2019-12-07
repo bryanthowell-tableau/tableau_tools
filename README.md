@@ -592,14 +592,15 @@ Ex.
     ca_filter = t.url_filters.get_created_at_filter('gte', '2016-01-01T00:00:00:00Z')
     t.workbooks.query_workbooks(owner_name_filter=bryant_filter, tags_filter=t_filter, created_at_filter=ca_filter)
 
-There is also a Sort object, but it is best to use the static factory methods:
+There is also a Sort object, but it is best to use the static factory methods through the `.sorts` property of the main REST connection objects:
 
 `Sort.Ascending(field: str) -> Sort`
 `Sort.Descending(field:str) -> Sort`
 
 Sorts can be passed as a list to those methods that can accept them like the following:
-
-    s = Sort.Ascending('name')
+    
+    # t = TableauServerRest( ...
+    s = t.sorts.Ascending('name')
     t.query_workbooks(owner_name_filter=bryant_filter, tags_filter=t_filter, sorts=[s,])
 
 ##### 1.2.2.2 Fields 

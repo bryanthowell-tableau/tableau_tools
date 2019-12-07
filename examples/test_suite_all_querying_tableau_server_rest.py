@@ -136,7 +136,7 @@ def user_tests(t: TableauServerRest):
     t.log(str(list(users_dict.keys())))
 
     # Filtering and Sorting
-    explorer_filter = UrlFilter.create_site_role_filter(site_role="Explorer")
+    explorer_filter = t.url_filters.get_site_role_filter(site_role="Explorer")
 
     # Create a filter that was last updated by
     today = datetime.datetime.now()
@@ -145,10 +145,10 @@ def user_tests(t: TableauServerRest):
     # Tableau Time Filters require this format: YYYY-MM-DDTHH:MM:SSZ
     filter_time_string = time_to_filter_by.isoformat('T')[:19] + 'Z'
 
-    last_login_filter = UrlFilter.create_last_login_filter(operator="gte", last_login_time=filter_time_string)
+    last_login_filter = t.url_filters.get_last_login_filter(operator="gte", last_login_time=filter_time_string)
 
     filtered_users = t.users.query_users(site_role_filter=explorer_filter, last_login_filter=last_login_filter,
-                                         sorts=[Sort.Ascending("name"), ])
+                                         sorts=[t.sorts.Ascending("name"), ])
 
     print('Finished User tests')
 
