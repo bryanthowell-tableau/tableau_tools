@@ -1,14 +1,15 @@
 import json
 import urllib.request, urllib.parse, urllib.error
 import xml.etree.ElementTree as ET
+import os
 
-from .tableau_rest_api.tableau_rest_api_connection import *
 from tableau_tools.tableau_repository import *
-from tableau_tools.tableau_http import *
-from tableau_tools.tableau_base import TableauBase
+from .tableau_http import *
+from .logger import Logger
+from .logging_methods import LoggingMethods
 
 
-class Tabcmd(TableauBase):
+class Tabcmd(LoggingMethods):
     def __init__(self, tabcmd_folder, tableau_server_url, username, password, site='default',
                  repository_password=None, tabcmd_config_location=None):
         super(self.__class__, self).__init__()

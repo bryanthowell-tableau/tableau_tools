@@ -26,34 +26,39 @@ class TableauConnection(LoggingMethods):
 
     @property
     def dbname(self) -> Optional[str]:
-        # Looks for schema tag as well in case it's an Oracle system
-        if self.xml_obj.get('dbname'):
-            return self.xml_obj.get('dbname')
-        elif self.xml_obj.get('schema'):
+        # Looks for schema tag as well in case it's an Oracle system (potentially others)
+        if self.connection_type in ['oracle', ]:
             return self.xml_obj.get('schema')
+        elif self.xml_obj.get('dbname'):
+            return self.xml_obj.get('dbname')
         else:
             return None
 
     @dbname.setter
     def dbname(self, new_db_name: str):
-        if self.xml_obj.get("dbname") is not None:
-            self.xml_obj.attrib["dbname"] = new_db_name
-        elif self.xml_obj.get('schema') is not None:
-            self.xml_obj.attrib['schema'] = new_db_name
+        # Potentially could be others with the oracle issue, for later
+        if self.connection_type in ['oracle', ]:
+            self.xml_obj.set('schema', new_db_name)
         else:
-            if self.connection_type == 'oracle':
-                self.xml_obj.set('schema', new_db_name)
-            else:
-                self.xml_obj.set('dbname', new_db_name)
+            self.xml_obj.set('dbname', new_db_name)
 
     @property
     def schema(self) -> Optional[str]:
-        # dbname already handles this for Oracle, just here for the heck of it
-        return self.dbname
+
+        if self.xml_obj.get("schema") is not None:
+            return self.xml_obj.get('schema')
+        # This is just in case you are trying schema with dbname only type database
+        else:
+            return self.xml_obj.get('dbname')
 
     @schema.setter
     def schema(self, new_schema: str):
-        self.dbname = new_schema
+        if self.xml_obj.get("schema") is not None:
+            self.xml_obj.set('schema', new_schema)
+        # This is just in case you are trying schema with dbname only type database
+        else:
+            self.dbname = new_schema
+
 
     @property
     def server(self) -> str:
