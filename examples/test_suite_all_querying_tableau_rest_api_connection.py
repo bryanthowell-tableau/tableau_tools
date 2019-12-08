@@ -3,7 +3,7 @@ from typing import Optional, List, Dict
 import time, datetime
 import json
 
-from tableau_tools.tableau_server_rest import *
+from tableau_tools import *
 
 # This is meant to test all querying functionality of the tableau_tools library.
 # It is intended to be pointed at existing sites on existing Tableau Servers, with enough content for
@@ -22,13 +22,13 @@ servers = {
     # "2019.4 Linux": {"server": "http://127.0.0.1", "username": "", "password": "", "site_content_url": ""}
 }
 
-log_obj = Logger('tableau_server_rest_connection_querying_tests.log')
-rest_request_log_obj = Logger('tableau_server_rest_connection_querying_tests_rest_requests.log')
+log_obj = Logger('tableau_rest_api_connection_querying_tests.log')
+rest_request_log_obj = Logger('tableau_rest_api_connection_querying_tests_rest_requests.log')
 
 # Configure which tests you want to run in here
 def run_tests(server_url: str, username: str, password: str, site_content_url: str = 'default'):
     # Create a default connection, test pulling server information
-    t = TableauServerRest35(server=server_url, username=username, password=password,
+    t = TableauRestApiConnection35(server=server_url, username=username, password=password,
                             site_content_url=site_content_url)
     t.signin()
     t.enable_logging(rest_request_log_obj)
@@ -42,13 +42,13 @@ def run_tests(server_url: str, username: str, password: str, site_content_url: s
     log_obj.log("Server Version {} with API Version {}, build {}".format(server_version, api_version, build_version))
 
     # What can you know about the Sites
-    sites = t.sites.query_sites()
+    sites = t.query_sites()
     log_obj.log_xml_response(sites)
 
-    sites_json = t.sites.query_sites_json()
+    sites_json = t.query_sites_json()
     log_obj.log(json.dumps(sites_json))
 
-    content_urls = t.sites.query_all_site_content_urls()
+    content_urls = t.query_all_site_content_urls()
     log_obj.log("{}".format(content_urls))
 
     project_tests(t)
@@ -67,19 +67,19 @@ def run_tests(server_url: str, username: str, password: str, site_content_url: s
     # webhook_test(t)  # 2019.4+ only
 
 
-def project_tests(t: TableauServerRest33):
+def project_tests(t: TableauRestApiConnection33):
     print('Testing project methods')
-    all_projects = t.projects.query_projects()
+    all_projects = t.query_projects()
     log_obj.log_xml_response(all_projects)
     all_projects_dict = t.xml_list_to_dict(all_projects)
     log_obj.log("{}".format(all_projects_dict))
 
-    all_projects_json = t.projects.query_projects_json()
+    all_projects_json = t.query_projects_json()
     log_obj.log("{}".format(all_projects_json))
     # Grab one project randomly
     for project_name in all_projects_dict:
-        project_obj = t.projects.query_project(project_name_or_luid=project_name)
-        project_xml = t.projects.query_project_xml_object(project_name_or_luid=project_name)
+        project_obj = t.query_project(project_name_or_luid=project_name)
+        project_xml = t.query_project_xml_object(project_name_or_luid=project_name)
         permissions_locked = project_obj.are_permissions_locked()
 
         # Permissions querying
@@ -101,35 +101,35 @@ def project_tests(t: TableauServerRest33):
     print("Finished testing project methods")
 
 
-def group_tests(t: TableauServerRest):
+def group_tests(t: TableauRestApiConnection):
     print("Starting group tests")
 
     t.log("Querying all the groups")
-    groups_on_site = t.groups.query_groups()
+    groups_on_site = t.query_groups()
 
     # Convert the list to a dict {name : luid}
     groups_dict = t.xml_list_to_dict(groups_on_site)
     t.log(str(groups_dict))
 
-    t.groups.query_groups_json()
+    t.query_groups_json()
 
-    t.groups.query_group(group_name_or_luid="All Users")
+    t.query_group(group_name_or_luid="All Users")
     all_users_luid = t.query_group_luid("All Users")
     all_users_name = t.query_group_name(group_luid=all_users_luid)
 
-    users_in_group = t.groups.query_users_in_group(group_name_or_luid="All Users")
+    users_in_group = t.query_users_in_group(group_name_or_luid="All Users")
 
     print('Finished group tests')
     return groups_dict
 
 
-def user_tests(t: TableauServerRest):
+def user_tests(t: TableauRestApiConnection):
     print('Starting User tests')
-    users = t.users.query_users()
-    t.users.get_users()
+    users = t.query_users()
+    t.get_users()
 
-    t.users.query_users_json()
-    t.users.get_users_json()
+    t.query_users_json()
+    t.get_users_json()
 
 
     users_dict = t.xml_list_to_dict(users)
@@ -147,88 +147,88 @@ def user_tests(t: TableauServerRest):
 
     last_login_filter = t.url_filters.get_last_login_filter(operator="gte", last_login_time=filter_time_string)
 
-    filtered_users = t.users.query_users(site_role_filter=explorer_filter, last_login_filter=last_login_filter,
+    filtered_users = t.query_users(site_role_filter=explorer_filter, last_login_filter=last_login_filter,
                                          sorts=[t.sorts.Ascending("name"), ])
 
     print('Finished User tests')
 
 
-def workbooks_tests(t: TableauServerRest):
+def workbooks_tests(t: TableauRestApiConnection):
     print("Starting Workbook tests")
 
-    default_project = t.projects.query_project('Default')
-    wbs_on_site = t.workbooks.query_workbooks()
-    wbs_in_project = t.workbooks.query_workbooks_in_project(project_name_or_luid=default_project.luid)
+    default_project = t.query_project('Default')
+    wbs_on_site = t.query_workbooks()
+    wbs_in_project = t.query_workbooks_in_project(project_name_or_luid=default_project.luid)
     for wb in wbs_in_project:
         wb_luid_from_obj = wb.get('id')
         wb_luid_lookup = t.query_workbook_luid(wb_name=wb.get('name'), proj_name_or_luid=default_project.luid)
-        vws_in_wb = t.workbooks.query_workbook_views(wb_name_or_luid=wb_luid_from_obj)
-        vws_in_wb_json = t.workbooks.query_workbook_views_json(wb_name_or_luid=wb_luid_from_obj)
-        t.workbooks.query_workbook_connections(wb_name_or_luid=wb_luid_from_obj)
+        vws_in_wb = t.query_workbook_views(wb_name_or_luid=wb_luid_from_obj)
+        vws_in_wb_json = t.query_workbook_views_json(wb_name_or_luid=wb_luid_from_obj)
+        t.query_workbook_connections(wb_name_or_luid=wb_luid_from_obj)
         # Published Workbook Options
-        wb_obj = t.workbooks.get_published_workbook_object(workbook_name_or_luid=wb_luid_from_obj)
+        wb_obj = t.get_published_workbook_object(workbook_name_or_luid=wb_luid_from_obj)
         permissions_obj_list = wb_obj.get_permissions_obj_list()
         break
 
-    vws_on_site = t.workbooks.query_views()
-    vws_json = t.workbooks.query_views_json()
+    vws_on_site = t.query_views()
+    vws_json = t.query_views_json()
     # .workbooks.query_view(vw_name_or_luid='GreatView')
 
 
-def datasources_tests(t: TableauServerRest):
+def datasources_tests(t: TableauRestApiConnection):
     print("Starting Datasources tests")
-    dses_xml = t.datasources.query_datasources(sorts=[Sort.Ascending('name'), ])
-    dses_json = t.datasources.query_datasources_json()
+    dses_xml = t.query_datasources(sorts=[Sort.Ascending('name'), ])
+    dses_json = t.query_datasources_json()
     for ds in dses_xml:
         ds_luid = ds.get('id')
-        ds_content_url = t.datasources.query_datasource_content_url(datasource_name_or_luid=ds_luid)
-        pub_ds_obj = t.datasources.get_published_datasource_object(datasource_name_or_luid=ds_luid)
+        ds_content_url = t.query_datasource_content_url(datasource_name_or_luid=ds_luid)
+        pub_ds_obj = t.get_published_datasource_object(datasource_name_or_luid=ds_luid)
         permissions_obj_list = pub_ds_obj.get_permissions_obj_list()
         break
 
     print('Finished Datasource Tests')
 
-def favorites_tests(t: TableauServerRest):
+def favorites_tests(t: TableauRestApiConnection):
     print("Starting Favorites tests")
-    user_favorites_xml = t.favorites.query_user_favorites(username_or_luid=t.user_luid)
-    user_favorites_json = t.favorites.query_user_favorites_json(username_or_luid=t.user_luid)
+    user_favorites_xml = t.query_user_favorites(username_or_luid=t.user_luid)
+    user_favorites_json = t.query_user_favorites_json(username_or_luid=t.user_luid)
     print("Finished Favorites tests")
 
-def subscription_tests(t: TableauServerRest):
+def subscription_tests(t: TableauRestApiConnection):
     print('Starting Subscription tests')
 
-    all_subscriptions = t.subscriptions.query_subscriptions()
+    all_subscriptions = t.query_subscriptions()
     sub_dict = t.xml_list_to_dict(all_subscriptions)
 
     # Subscriptions for one user
-    users = t.users.query_users()
+    users = t.query_users()
     for user in users:
         user_luid = user.get('id')
-        one_user_subscriptions = t.subscriptions.query_subscriptions(username_or_luid=user_luid)
+        one_user_subscriptions = t.query_subscriptions(username_or_luid=user_luid)
         break
 
     print('Finished subscription tests')
 
-def schedules_tests(t: TableauServerRest):
+def schedules_tests(t: TableauRestApiConnection):
     print("Starting Schedules tests")
-    schedules = t.schedules.query_schedules()
-    schedules_json = t.schedules.query_schedules_json()
+    schedules = t.query_schedules()
+    schedules_json = t.query_schedules_json()
 
-    sub_schedules = t.schedules.query_subscription_schedules()
+    sub_schedules = t.query_subscription_schedules()
 
     print("Finished Schedules tests")
 
-def revision_tests(t: TableauServerRest):
+def revision_tests(t: TableauRestApiConnection):
     print('Starting revision tests')
-    wbs = t.workbooks.query_workbooks()
+    wbs = t.query_workbooks()
     for wb in wbs:
-        revisions = t.revisions.get_workbook_revisions(workbook_name_or_luid=wb.get('id'))
+        revisions = t.get_workbook_revisions(workbook_name_or_luid=wb.get('id'))
         log_obj.log('There are {} revisions of workbook {}'.format(len(revisions), wb.get('name')))
         log_obj.log_xml_response(revisions)
         break
-    dses = t.datasources.query_datasources()
+    dses = t.query_datasources()
     for ds in dses:
-        revisions = t.revisions.get_datasource_revisions(datasource_name_or_luid=ds.get('id'))
+        revisions = t.get_datasource_revisions(datasource_name_or_luid=ds.get('id'))
         log_obj.log('There are {} revisions of datasource {}'.format(len(revisions), ds.get('name')))
         log_obj.log_xml_response(revisions)
         break
@@ -236,23 +236,23 @@ def revision_tests(t: TableauServerRest):
     print('Finished revision tests')
 
 
-def extract_tests(t: TableauServerRest):
+def extract_tests(t: TableauRestApiConnection):
     print('Starting Extract tests')
-    response = t.extracts.get_extract_refresh_tasks()
+    response = t.get_extract_refresh_tasks()
     log_obj.log_xml_response(response)
     for tasks in response:
         for task in tasks:
             # This is obviously unnecessary but it's just to test the functioning of the method
             try:
-                t.extracts.get_extract_refresh_task(task_luid=task.get('id'))
+                t.get_extract_refresh_task(task_luid=task.get('id'))
             except NoMatchFoundException as e:
                 log_obj.log(e.msg)
             break
 
-    refresh_schedules = t.schedules.query_extract_schedules()
+    refresh_schedules = t.query_extract_schedules()
     for sched in refresh_schedules:
         try:
-            refresh_tasks = t.extracts.get_extract_refresh_tasks_on_schedule(schedule_name_or_luid=sched.get('id'))
+            refresh_tasks = t.get_extract_refresh_tasks_on_schedule(schedule_name_or_luid=sched.get('id'))
         except NoMatchFoundException as e:
             log_obj.log(e.msg)
         break
@@ -266,37 +266,37 @@ def extract_tests(t: TableauServerRest):
 
     print('Finished Extract Refresh tests')
 
-def alerts_tests(t: TableauServerRest32):
+def alerts_tests(t: TableauRestApiConnection32):
     print("Starting Alerts tests")
-    alerts = t.alerts.query_data_driven_alerts()
+    alerts = t.query_data_driven_alerts()
     for alert in alerts:
-        t.alerts.query_data_driven_alert_details(data_alert_luid=alert.get('id'))
+        t.query_data_driven_alert_details(data_alert_luid=alert.get('id'))
         break
-    vws = t.workbooks.query_views()
+    vws = t.query_views()
     for vw in vws:
-        view_alerts = t.alerts.query_data_driven_alerts_for_view(view_luid=vw.get('id'))
+        view_alerts = t.query_data_driven_alerts_for_view(view_luid=vw.get('id'))
         break
     print("Finished Alerts tests")
 
-def flow_tests(t: TableauServerRest33):
+def flow_tests(t: TableauRestApiConnection33):
     print("Starting Flows tests")
-    response = t.flows.get_flow_run_tasks()
+    response = t.get_flow_run_tasks()
     for flow_tasks in response:
         for flow_task in flow_tasks:
-            t.flows.get_flow_run_task(task_luid=flow_task.get('id'))
+            t.get_flow_run_task(task_luid=flow_task.get('id'))
     print("Finished Flows tests")
 
-def metadata_tests(t: TableauServerRest35):
+def metadata_tests(t: TableauRestApiConnection35):
     print("Starting Metadata tests")
-    dbs = t.metadata.query_databases()
+    dbs = t.query_databases()
     for db in dbs:
-        t.metadata.query_database(database_name_or_luid=db.get('id'))
+        t.query_database(database_name_or_luid=db.get('id'))
 
         break
-    tables = t.metadata.query_tables()
+    tables = t.query_tables()
     for table in tables:
-        t.metadata.query_table(table_name_or_luid=table.get('id'))
-        t.metadata.query_columns_in_a_table(table_name_or_luid=table.get('id'))
+        t.query_table(table_name_or_luid=table.get('id'))
+        t.query_columns_in_a_table(table_name_or_luid=table.get('id'))
         break
 
     # GraphQL queries
@@ -312,7 +312,7 @@ query ShowMeOneTableCalledOrders{
 }
 """
     try:
-        graphql_response = t.metadata.graphql(graphql_query=my_query)
+        graphql_response = t.graphql(graphql_query=my_query)
         log_obj.log(json.dumps(graphql_response))
     except InvalidOptionException as e:
         log_obj.log(e.msg)
