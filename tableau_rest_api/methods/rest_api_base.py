@@ -1162,7 +1162,7 @@ class TableauRestApiBase27(TableauRestApiBase):
         TableauRestApiBase.__init__(self, server=server, username=username, password=password,
                                     site_content_url=site_content_url)
         self.set_tableau_server_version('10.4')
-        self.url_filters = UrlFilter27()
+        self.url_filters = UrlFilter27
 
 class TableauRestApiBase28(TableauRestApiBase27):
     def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
@@ -1189,7 +1189,7 @@ class TableauRestApiBase31(TableauRestApiBase30):
         TableauRestApiBase.__init__(self, server=server, username=username, password=password,
                                     site_content_url=site_content_url)
         self.set_tableau_server_version('2018.2')
-        self.url_filters = UrlFilter31()
+        self.url_filters = UrlFilter31
 
 class TableauRestApiBase32(TableauRestApiBase31):
     def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
@@ -1202,7 +1202,7 @@ class TableauRestApiBase33(TableauRestApiBase32):
         TableauRestApiBase.__init__(self, server=server, username=username, password=password,
                                     site_content_url=site_content_url)
         self.set_tableau_server_version('2019.1')
-        self.url_filters = UrlFilter33()
+        self.url_filters = UrlFilter33
 
     def get_published_project_object(self, project_name_or_luid: str,
                                      project_xml_obj: Optional[ET.Element] = None) -> Project33:
