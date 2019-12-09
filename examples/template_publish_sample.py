@@ -90,6 +90,22 @@ def promote_from_dev_to_test(logger_obj=None):
 
 # promote_from_dev_to_test(logger)
 
+# This function shows changing out a Hyper file in an existing packaged workbook
+# It assumes you have used the Hyper API at least once to generate a Hyper file, then used Tableau Desktop to connect
+# to that Hyper file, and saved a packaged file (TWBX or TDSX) with that file
+def hyper_api_swap_example(logger_obj = None):
+    newly_built_hyper_filename = 'Replacement Hyper File.hyper'
+    t_file = TableauFileManager.open(filename='Packaged File.tdsx', logger_obj=logger_obj)
+    filenames = t_file.get_filenames_in_package()
+    for filename in filenames:
+        # Find my Hyper file
+        if filename.lower.find('.hyper') != -1:
+            t_file.set_file_for_replacement(filename_in_package=filename,
+                                            replacement_filname_on_disk=newly_built_hyper_filename)
+            break   # Breaking here on a TDSX, but you could do a whole mapping I suppose to replace multiples in a TDSX
+
+    t_file.save_new_file(new_filename_no_extension='Updated Packaged File')
+
 # This function shows publishing multiple workbooks from a single project
 # which will also publish across any published data sources that are linked
 # This is a complex algorithm but is necessary for working with published data sources
