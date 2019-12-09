@@ -77,11 +77,16 @@ def promote_from_dev_to_test(logger_obj=None):
 
         t_file.save_new_file('Temp TDSX')
         new_project = test.projects.query_project('Promoted Content')
-        test.datasources.publish_datasource(ds_filename='Temp TDSX.tdsx', ds_name=ds, project_obj=new_project,
-                                            overwrite=True, save_credentials=True)
+        new_ds_luid = test.datasources.publish_datasource(ds_filename='Temp TDSX.tdsx', ds_name=ds,
+                                                          project_obj=new_project, overwrite=True, save_credentials=True)
         # If you have credentials to publish
         #test.publish_datasource(temp_filename, ds, new_project, connection_username=u'', connection_password=u'', overwrite=True, save_credentials=True)
         os.remove('Temp TDSX.tdsx')
+
+        # If there is an Extract that needs to be refreshed immediately with the changes in place
+        test.extracts.run_extract_refresh_for_datasource(ds_name_or_luid=new_ds_luid)
+        # Put the Extract on a Schedule if it was not previously
+        test.schedules.add_datasource_to_schedule(ds_name_or_luid=new_ds_luid, schedule_name_or_luid='Some Schedule')
 
 # promote_from_dev_to_test(logger)
 
