@@ -535,14 +535,20 @@ The following lists all of the available factory methods (although check with th
 
 `UrlFilter27.get_hits_total_filter(operator, hits_total)`
 
-Note that times must be specified with a full ISO 8601 format as shown below;
+Note that times must be specified with a full ISO 8601 format as shown below, however you can just pass a datetime.datetime object and the methods will convert automatically
 
 Ex. 
     
+    import datetime
     # t = TableauServerRest...
     bryant_filter = t.url_filters.get_owner_name_filter('Bryant')
     t_filter = t.url_filters.get_tags_filter(['sales', 'sandbox'])
-    ca_filter = t.url_filters.get_created_at_filter('gte', '2016-01-01T00:00:00:00Z')
+    # If you manually want to set this time format:
+    # ca_filter = t.url_filters.get_created_at_filter('gte', '2016-01-01T00:00:00:00Z')
+    now = datetime.datetime.now()
+    offset_time = datetime.timedelta(days=1)
+    time_to_filter_by = now - offset_time
+    ca_filter = t.url_filters.get_created_at_filter('gte', time_to_filter_by)
     t.workbooks.query_workbooks(owner_name_filter=bryant_filter, tags_filter=t_filter, created_at_filter=ca_filter)
 
 There is also a Sort object, but it is best to use the static factory methods through the `.sorts` property of the main REST connection objects:

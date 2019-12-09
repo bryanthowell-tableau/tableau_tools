@@ -1,11 +1,20 @@
 from ..tableau_exceptions import *
 from typing import Union, Optional, List, Dict, Tuple
+import datetime
 
 class UrlFilter:
     def __init__(self, field: str, operator: str, values: List[str]):
         self.field = field
         self.operator = operator
         self.values = values
+
+    @staticmethod
+    def datetime_to_tableau_date_str(dt: Union[str, datetime.datetime]) -> str:
+        if isinstance(dt, datetime.datetime):
+            return dt.isoformat('T')[:19] + 'Z'
+        else:
+            return dt
+
 
     def get_filter_string(self) -> str:
         if len(self.values) == 0:
@@ -25,7 +34,7 @@ class UrlFilter:
 
     # Users
     @staticmethod
-    def get_last_login_filter(operator: str, last_login_time: str) -> 'UrlFilter':
+    def get_last_login_filter(operator: str, last_login_time: Union[str, datetime.datetime]) -> 'UrlFilter':
         """
         :param operator: Should be one of 'eq', 'gt', 'gte', 'lt', 'lte'
         :param last_login_time: ISO 8601 representation of time like 2016-01-01T00:00:00:00Z
@@ -34,8 +43,9 @@ class UrlFilter:
         if operator not in comparison_operators:
             raise InvalidOptionException("operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
         # Convert to the correct time format
+        time = UrlFilter.datetime_to_tableau_date_str(last_login_time)
 
-        return UrlFilter('lastLogin', operator, [last_login_time, ])
+        return UrlFilter('lastLogin', operator, [time, ])
 
     # Users
     @staticmethod
@@ -50,7 +60,7 @@ class UrlFilter:
 
     # Workbooks, Datasources, Views, Jobs
     @staticmethod
-    def get_created_at_filter(operator: str, created_at_time: str) -> 'UrlFilter':
+    def get_created_at_filter(operator: str, created_at_time: Union[str, datetime.datetime]) -> 'UrlFilter':
         """
         :param operator: Should be one of 'eq', 'gt', 'gte', 'lt', 'lte'
         :param created_at_time: ISO 8601 representation of time like 2016-01-01T00:00:00:00Z
@@ -59,12 +69,12 @@ class UrlFilter:
         if operator not in comparison_operators:
             raise InvalidOptionException("operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
         # Convert to the correct time format
-
-        return UrlFilter('createdAt', operator, [created_at_time, ])
+        time = UrlFilter.datetime_to_tableau_date_str(created_at_time)
+        return UrlFilter('createdAt', operator, [time, ])
 
     # Workbooks, Datasources, Views
     @staticmethod
-    def get_updated_at_filter(operator: str, updated_at_time: str) -> 'UrlFilter':
+    def get_updated_at_filter(operator: str, updated_at_time: Union[str, datetime.datetime]) -> 'UrlFilter':
         """
         :param operator: Should be one of 'eq', 'gt', 'gte', 'lt', 'lte'
         :param updated_at_time: ISO 8601 representation of time like 2016-01-01T00:00:00:00Z
@@ -73,8 +83,9 @@ class UrlFilter:
         if operator not in comparison_operators:
             raise InvalidOptionException("operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
         # Convert to the correct time format
+        time = updated_at_time
 
-        return UrlFilter('updatedAt', operator, [updated_at_time, ])
+        return UrlFilter('updatedAt', operator, [time, ])
 
     # Workbooks, Datasources, Views
     @staticmethod
@@ -121,7 +132,7 @@ class UrlFilter27(UrlFilter):
 
     # Groups
     @staticmethod
-    def get_domain_nicknames_filter(domain_nicknames: str) -> 'UrlFilter':
+    def get_domain_nicknames_filter(domain_nicknames: List[str]) -> 'UrlFilter':
 
         return UrlFilter('domainNickname', 'in', domain_nicknames)
 
@@ -159,7 +170,6 @@ class UrlFilter27(UrlFilter):
         comparison_operators = ['eq', 'gt', 'gte', 'lt', 'lte']
         if operator not in comparison_operators:
             raise InvalidOptionException("operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
-        # Convert to the correct time format
 
         return UrlFilter('userCount', operator, [str(user_count), ])
 
@@ -221,8 +231,8 @@ class UrlFilter31(UrlFilter30):
         if operator not in comparison_operators:
             raise InvalidOptionException("operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
         # Convert to the correct time format
-
-        return UrlFilter('createdAt', operator, [started_at_time, ])
+        time = UrlFilter.datetime_to_tableau_date_str(started_at_time)
+        return UrlFilter('createdAt', operator, [time, ])
 
     # Jobs
     @staticmethod
@@ -235,8 +245,8 @@ class UrlFilter31(UrlFilter30):
         if operator not in comparison_operators:
             raise InvalidOptionException("operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
         # Convert to the correct time format
-
-        return UrlFilter('createdAt', operator, [ended_at_time, ])
+        time = UrlFilter.datetime_to_tableau_date_str(ended_at_time)
+        return UrlFilter('createdAt', operator, [time, ])
 
     # Jobs
     @staticmethod
