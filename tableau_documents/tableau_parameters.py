@@ -15,7 +15,6 @@ class TableauParameter(LoggingMethods):
                  logger_obj: Optional[Logger] = None, name: Optional[str] = None, datatype: Optional[str] = None,
                  current_value: Optional[str] = None):
 
-        TableauBase.__init__(self)
         self.logger = logger_obj
         self._aliases = False
         self._values_list = None

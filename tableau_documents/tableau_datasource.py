@@ -10,10 +10,10 @@ from typing import Union, Any, Optional, List, Dict, Tuple
 from tableau_tools.tableau_exceptions import *
 from tableau_tools.logger import Logger
 from tableau_tools.logging_methods import LoggingMethods
-from tableau_documents.tableau_connection import TableauConnection
-from tableau_documents.tableau_document import TableauDocument
-from tableau_documents.tableau_columns import TableauColumns
-from tableau_documents.table_relations import TableRelations
+from .tableau_connection import TableauConnection
+from .tableau_document import TableauDocument
+from .tableau_columns import TableauColumns
+from .table_relations import TableRelations
 
 
 # Meant to represent a TDS file, does not handle the file opening

@@ -8,4 +8,3 @@ from .tableau_exceptions import *
 #from .tableau._server_rest import TableauServerRest, TableauServerRest33
 from .tableau_rest_api_connection import *
 from .tableau_server_rest import *
-import tableau_documents
