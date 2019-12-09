@@ -1,5 +1,5 @@
 from tableau_tools import *
-from tableau_documents import *
+from tableau_tools.tableau_documents import *
 
 #
 # WIP and will be more fully built out in the future. See template_publish_sample.py for other uses as well as the README

@@ -1,5 +1,7 @@
-from .rest_api_base import *
 from requests.exceptions import HTTPError
+
+from .rest_api_base import *
+
 class SubscriptionMethods():
     def __init__(self, rest_api_base: TableauRestApiBase):
         self.rest_api_base = rest_api_base

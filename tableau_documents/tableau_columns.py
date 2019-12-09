@@ -7,7 +7,7 @@ from tableau_tools.tableau_exceptions import *
 from tableau_tools.logger import Logger
 from tableau_tools.logging_methods import LoggingMethods
 
-from tableau_documents.tableau_parameters import TableauParameter
+from .tableau_parameters import TableauParameter
 
 
 class TableauColumns(LoggingMethods):
