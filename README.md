@@ -153,7 +153,7 @@ If you just import tableau_tools per the following, you will have access to the 
 If you need to use tableau_documents, use the following import statements:
 
     from tableau_tools import *
-    from tableau_documents import *
+    from tableau_tools.tableau_documents import *
 
 ### 0.2 Logger class
 The Logger class implements useful and verbose logging to a plain text file that all of the other objects can use. You declare a single Logger object, then pass it to the other objects, resulting in a single continuous log file of all actions.

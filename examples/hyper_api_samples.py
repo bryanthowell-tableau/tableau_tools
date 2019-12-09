@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from tableau_tools import *
-from tableau_documents import *
-from tableau_documents.hyper_file_generator import HyperFileGenerator
+from tableau_tools.tableau_documents import *
+from tableau_tools.tableau_documents.hyper_file_generator import HyperFileGenerator
 
 import pyodbc
 import sys
