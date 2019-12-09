@@ -20,6 +20,13 @@ def live_db_connection_changes():
         if ds.is_stored_proc is False:
             if ds.main_table_type == 'table':
                 ds.tables.main_table_name = '[some other table]'
+            elif ds.main_table_type == 'custom-sql':
+                ds.tables.set_first_custom_sql('SELECT * FROM table t1 JOIN table2 t2 ON t1.id = t2.id AND t2.active_flag IS TRUE')
+        # Stored proc case
+        else:
+            ds.tables.set_stored_proc(stored_proc_name='best_stored_proc')
+            ds.tables.set_stored_proc_parameter_value_by_name('@Param1', 'ID190993')
+            ds.tables.set_stored_proc_parameter_value_by_name('@Param2', 'West')
         for conn in ds.connections:
             conn.connection_name = 'Changed Connection Name'
     t_file.save_new_file('New TDS')

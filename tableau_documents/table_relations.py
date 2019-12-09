@@ -90,11 +90,11 @@ class TableRelations():
             connection = self.main_table.get('connection')
         self.main_table = self.create_custom_sql_relation(custom_sql, table_alias, connection=connection)
 
-    def set_first_stored_proc(self, stored_proc_name: str, table_alias: str, connection: Optional[str] = None):
+    def set_stored_proc(self, stored_proc_name: str, connection: Optional[str] = None):
         self.ds_generator = True
         if self.main_table is not None and connection is None:
             connection = self.main_table.get('connection')
-        self.main_table = self.create_stored_proc_relation(stored_proc_name, table_alias)
+        self.main_table = self.create_stored_proc_relation(stored_proc_name)
 
     def get_stored_proc_parameter_value_by_name(self, parameter_name: str) -> str:
         if self._stored_proc_parameters_xml is None:

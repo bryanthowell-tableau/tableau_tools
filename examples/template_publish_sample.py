@@ -65,7 +65,7 @@ def promote_from_dev_to_test(logger_obj=None):
         dses = t_file.datasources
         for d in dses:
             # You can do things here on the data source itself (change the main table name or custom SQL)
-
+            # See test_suite_tableau_documents for examples of these changes
             # Connection properties live within the connections collection, and can be read or modified
             for conn in d.connections:
                 print(conn.connection_type)
