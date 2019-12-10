@@ -237,6 +237,10 @@ class RestXmlRequest(LoggingMethods):
             if status_code == 409:
                 self.log('HTTP 409 error, most likely an already exists')
             raise RecoverableHTTPException(status_code, error_code, detail_luid)
+        # Invalid Hyper Extract publish does this
+        elif status_code == 400 and self._http_verb == 'post':
+            if error_code == '400011':
+                raise PossibleInvalidPublishException(http_code=400, error_code='400011', msg="400011 on a Publish of a .hyper file could caused when the Hyper file either more than one table or the single table is not named 'Extract'.")
         else:
             raise e
 
