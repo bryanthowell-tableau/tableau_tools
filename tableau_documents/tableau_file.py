@@ -578,6 +578,8 @@ class TWBX(DatasourceFileInterface, TableauPackagedFile):
 
         return save_filename
 
+# TFL files are actually JSON rather than XML. I don't think there are actually any XML calls except
+# possibly when creating the TableauDocument file.
 class TFL(TableauXmlFile):
 
     @property

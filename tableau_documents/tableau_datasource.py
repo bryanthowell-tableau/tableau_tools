@@ -282,7 +282,7 @@ class TableauDatasource(LoggingMethods, TableauDocument):
 
     # It seems some databases like Oracle and Teradata need this as well to swap a database
     def update_tables_with_new_database_or_schema(self, original_db_or_schema: str, new_db_or_schema: str):
-        for relation in self.table_relations:
+        for relation in self._tables_relations:
             if relation.get('type') == "table":
                 relation.set('table', relation.get('table').replace("[{}]".format(original_db_or_schema),
                                                                       "[{}]".format(new_db_or_schema)))

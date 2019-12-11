@@ -46,23 +46,23 @@ def tableau_rest_api_connection_version():
 
 
     # Add in any default permissions you'd like at this point
-    admin_perms = default_proj.create_project_permissions_object_for_group(group_name_or_luid='Administrators',
+    admin_perms = default_proj.get_permissions_obj(group_name_or_luid='Administrators',
                                                                            role='Project Leader')
-    default_proj.set_permissions_by_permissions_obj_list([admin_perms, ])
+    default_proj.set_permissions([admin_perms, ])
 
-    admin_perms = default_proj.create_workbook_permissions_object_for_group(group_name_or_luid='Administrators',
+    admin_perms = default_proj.workbook_defaults.get_permissions_obj(group_name_or_luid='Administrators',
                                                                             role='Editor')
     admin_perms.set_capability(capability_name='Download Full Data', mode='Deny')
-    default_proj.workbook_defaults.set_permissions_by_permissions_obj_list([admin_perms, ])
+    default_proj.workbook_defaults.set_permissions([admin_perms, ])
 
-    admin_perms = default_proj.create_datasource_permissions_object_for_group(group_name_or_luid='Administrators',
+    admin_perms = default_proj.datasource_defaults.get_permissions_obj(group_name_or_luid='Administrators',
                                                                               role='Editor')
-    default_proj.datasource_defaults.set_permissions_by_permissions_obj_list([admin_perms, ])
+    default_proj.datasource_defaults.set_permissions([admin_perms, ])
 
     # Change one of these
-    new_perms = default_proj.create_project_permissions_object_for_group(group_name_or_luid='Administrators',
+    new_perms = default_proj.get_permissions_obj(group_name_or_luid='Administrators',
                                                                          role='Publisher')
-    default_proj.set_permissions_by_permissions_obj_list([new_perms, ])
+    default_proj.set_permissions([new_perms, ])
 
     # Create Additional Projects
     projects_to_create = ['Sandbox', 'Data Source Definitions', 'UAT', 'Finance', 'Real Financials']
@@ -117,21 +117,21 @@ def tableau_server_rest_version():
     default_proj.clear_all_permissions()  # This clears all, including the defaults
 
     # Add in any default permissions you'd like at this point
-    admin_perms = default_proj.create_project_permissions_object_for_group(group_name_or_luid='Administrators',
+    admin_perms = default_proj.get_permissions_obj(group_name_or_luid='Administrators',
                                                                            role='Project Leader')
     default_proj.set_permissions_by_permissions_obj_list([admin_perms, ])
 
-    admin_perms = default_proj.create_workbook_permissions_object_for_group(group_name_or_luid='Administrators',
+    admin_perms = default_proj.workbook_defaults.get_permissions_obj(group_name_or_luid='Administrators',
                                                                             role='Editor')
     admin_perms.set_capability(capability_name='Download Full Data', mode='Deny')
     default_proj.workbook_defaults.set_permissions_by_permissions_obj_list([admin_perms, ])
 
-    admin_perms = default_proj.create_datasource_permissions_object_for_group(group_name_or_luid='Administrators',
+    admin_perms = default_proj.datasource_defaults.get_permissions_obj(group_name_or_luid='Administrators',
                                                                               role='Editor')
     default_proj.datasource_defaults.set_permissions_by_permissions_obj_list([admin_perms, ])
 
     # Change one of these
-    new_perms = default_proj.create_project_permissions_object_for_group(group_name_or_luid='Administrators',
+    new_perms = default_proj.get_permissions_obj(group_name_or_luid='Administrators',
                                                                          role='Publisher')
     default_proj.set_permissions_by_permissions_obj_list([new_perms, ])
 

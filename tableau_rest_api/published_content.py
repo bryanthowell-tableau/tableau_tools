@@ -3,6 +3,8 @@ from .permissions import *
 import copy
 from typing import Union, Any, Optional, List, Dict, TYPE_CHECKING
 
+from ..tableau_rest_xml import TableauRestXml
+
 if TYPE_CHECKING:
     from tableau_tools.logging_methods import LoggingMethods
     from tableau_tools.logger import Logger
@@ -86,7 +88,7 @@ class PublishedContent(LoggingMethods):
     # Copy Permissions for users or group
     def _copy_permissions_obj(self, perms_obj, user_or_group, name_or_luid):
         self.start_log_block()
-        if self.is_luid(name_or_luid):
+        if TableauRestXml.is_luid(name_or_luid):
             luid = name_or_luid
         else:
             if user_or_group == 'group':
@@ -339,12 +341,7 @@ class PublishedContent(LoggingMethods):
             return False
 
     # Dict { capability_name : mode } into XML with checks for validity. Set type to 'workbook' or 'datasource'
-    def build_capabilities_xml_from_dict(self, capabilities_dict, obj_type):
-        """
-        :type capabilities_dict: dict
-        :type obj_type: unicode
-        :return: ET.Element
-        """
+    def build_capabilities_xml_from_dict(self, capabilities_dict: Dict, obj_type: str) -> ET.Element:
         if obj_type not in self.permissionable_objects:
             error_text = 'objtype can only be "project", "workbook" or "datasource", was given {}'
             raise InvalidOptionException(error_text.format('obj_type'))
@@ -760,6 +757,7 @@ class Table35(PublishedContent):
                                             role=role)
 
 
+
 class Project(PublishedContent):
     def __init__(self, luid, tableau_rest_api_obj, logger_obj=None,
                  content_xml_obj=None):
@@ -782,7 +780,7 @@ class Project(PublishedContent):
 
     @luid.setter
     def luid(self, name_or_luid):
-        if self.is_luid(name_or_luid):
+        if TableauRestXml.is_luid(name_or_luid):
             luid = name_or_luid
         else:
             luid = self.t_rest_api.query_project_luid(name_or_luid)
@@ -924,7 +922,6 @@ class Project(PublishedContent):
                                                     role: Optional[str] = None) -> 'DatasourcePermissions':
         return self._get_permissions_object(username_or_luid=username_or_luid, role=role,
                                             permissions_class_override=DatasourcePermissions)
-
 
     @property
     def workbook_defaults(self) -> Workbook:
