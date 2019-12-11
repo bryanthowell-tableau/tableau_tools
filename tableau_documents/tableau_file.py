@@ -322,10 +322,10 @@ class TableauPackagedFile(LoggingMethods, ABC):
         self.file_replacement_map: Dict = {}
 
         # Packaged up nicely but always run in constructor
-        self._open_file_and_intialize(filename=filename)
+        self._open_file_and_initialize(filename=filename)
 
     @abstractmethod
-    def _open_file_and_intialize(self, filename):
+    def _open_file_and_initialize(self, filename):
         pass
 
     @property
@@ -353,7 +353,7 @@ class TableauPackagedFile(LoggingMethods, ABC):
 
 class TDSX(DatasourceFileInterface, TableauPackagedFile):
 
-    def _open_file_and_intialize(self, filename):
+    def _open_file_and_initialize(self, filename):
         try:
             file_obj = open(filename, 'rb')
             self.log('File type is {}'.format(self.file_type))
@@ -459,7 +459,7 @@ class TWBX(DatasourceFileInterface, TableauPackagedFile):
 
     #self._open_file_and_intialize(filename=filename)
 
-    def _open_file_and_intialize(self, filename):
+    def _open_file_and_initialize(self, filename):
         try:
             file_obj = open(filename, 'rb')
             self.log('File type is {}'.format(self.file_type))
