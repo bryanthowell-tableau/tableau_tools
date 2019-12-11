@@ -388,7 +388,8 @@ class PublishedContent(LoggingMethods):
         return tsr
 
     # Template stub
-    def convert_capabilities_xml_into_obj_list(self, xml_obj: ET.Element) -> List['Permissions']:
+    @staticmethod
+    def convert_capabilities_xml_into_obj_list(xml_obj: ET.Element) -> List['Permissions']:
         pass
 
     def get_permissions_from_server(self, obj_perms_xml: Optional[ET.Element] = None) -> List['Permissions']:
@@ -562,33 +563,34 @@ class Workbook(PublishedContent):
         return self._get_permissions_object(group_name_or_luid=group_name_or_luid, username_or_luid=username_or_luid,
                                             role=role)
 
-    def convert_capabilities_xml_into_obj_list(self, xml_obj: ET.Element) -> List['WorkbookPermissions']:
+    @staticmethod
+    def convert_capabilities_xml_into_obj_list(xml_obj: ET.Element) -> List['WorkbookPermissions']:
 
-        self.start_log_block()
+        #self.start_log_block()
         obj_list = []
-        xml = xml_obj.findall('.//t:granteeCapabilities', self.t_rest_api.ns_map)
+        xml = xml_obj.findall('.//t:granteeCapabilities', TableauRestXml.ns_map)
         if len(xml) == 0:
-            self.end_log_block()
+           # self.end_log_block()
             return []
         else:
             for gcaps in xml:
                 for tags in gcaps:
                     # Namespace fun
-                    if tags.tag == '{}group'.format(self.t_rest_api.ns_prefix):
+                    if tags.tag == '{}group'.format(TableauRestXml.ns_prefix):
                         luid = tags.get('id')
                         perms_obj = WorkbookPermissions('group', luid)
-                        self.log_debug('group {}'.format(luid))
-                    elif tags.tag == '{}user'.format(self.t_rest_api.ns_prefix):
+                      #  self.log_debug('group {}'.format(luid))
+                    elif tags.tag == '{}user'.format(TableauRestXml.ns_prefix):
                         luid = tags.get('id')
                         perms_obj = WorkbookPermissions('user', luid)
-                        self.log_debug('user {}'.format(luid))
-                    elif tags.tag == '{}capabilities'.format(self.t_rest_api.ns_prefix):
+                       # self.log_debug('user {}'.format(luid))
+                    elif tags.tag == '{}capabilities'.format(TableauRestXml.ns_prefix):
                         for caps in tags:
-                            self.log_debug(caps.get('name') + ' : ' + caps.get('mode'))
+                           # self.log_debug(caps.get('name') + ' : ' + caps.get('mode'))
                             perms_obj.set_capability(caps.get('name'), caps.get('mode'))
                 obj_list.append(perms_obj)
-            self.log('Permissions object list has {} items'.format(str(len(obj_list))))
-            self.end_log_block()
+            #self.log('Permissions object list has {} items'.format(str(len(obj_list))))
+           # self.end_log_block()
             return obj_list
 
 class Workbook28(Workbook):
@@ -627,32 +629,33 @@ class Datasource(PublishedContent):
         return self._get_permissions_object(group_name_or_luid=group_name_or_luid, username_or_luid=username_or_luid,
                                             role=role)
 
-    def convert_capabilities_xml_into_obj_list(self, xml_obj: ET.Element) -> List['DatasourcePermissions']:
-        self.start_log_block()
+    @staticmethod
+    def convert_capabilities_xml_into_obj_list(xml_obj: ET.Element) -> List['DatasourcePermissions']:
+        #self.start_log_block()
         obj_list = []
-        xml = xml_obj.findall('.//t:granteeCapabilities', self.t_rest_api.ns_map)
+        xml = xml_obj.findall('.//t:granteeCapabilities', TableauRestXml.ns_map)
         if len(xml) == 0:
-            self.end_log_block()
+            # self.end_log_block()
             return []
         else:
             for gcaps in xml:
                 for tags in gcaps:
                     # Namespace fun
-                    if tags.tag == '{}group'.format(self.t_rest_api.ns_prefix):
+                    if tags.tag == '{}group'.format(TableauRestXml.ns_prefix):
                         luid = tags.get('id')
                         perms_obj = DatasourcePermissions('group', luid)
-                        self.log_debug('group {}'.format(luid))
-                    elif tags.tag == '{}user'.format(self.t_rest_api.ns_prefix):
+                        #self.log_debug('group {}'.format(luid))
+                    elif tags.tag == '{}user'.format(TableauRestXml.ns_prefix):
                         luid = tags.get('id')
                         perms_obj = DatasourcePermissions('user', luid)
-                        self.log_debug('user {}'.format(luid))
-                    elif tags.tag == '{}capabilities'.format(self.t_rest_api.ns_prefix):
+                        #self.log_debug('user {}'.format(luid))
+                    elif tags.tag == '{}capabilities'.format(TableauRestXml.ns_prefix):
                         for caps in tags:
-                            self.log_debug(caps.get('name') + ' : ' + caps.get('mode'))
+                            #self.log_debug(caps.get('name') + ' : ' + caps.get('mode'))
                             perms_obj.set_capability(caps.get('name'), caps.get('mode'))
                 obj_list.append(perms_obj)
-            self.log('Permissions object list has {} items'.format(str(len(obj_list))))
-            self.end_log_block()
+            #self.log('Permissions object list has {} items'.format(str(len(obj_list))))
+            # self.end_log_block()
             return obj_list
 
 class Datasource28(Datasource):
@@ -685,32 +688,33 @@ class View(PublishedContent):
         # Maybe implement a search at some point
         self._luid = luid
 
-    def convert_capabilities_xml_into_obj_list(self, xml_obj: ET.Element) -> List['WorkbookPermissions']:
-        self.start_log_block()
+    @staticmethod
+    def convert_capabilities_xml_into_obj_list(xml_obj: ET.Element) -> List['WorkbookPermissions']:
+        #self.start_log_block()
         obj_list = []
-        xml = xml_obj.findall('.//t:granteeCapabilities', self.t_rest_api.ns_map)
+        xml = xml_obj.findall('.//t:granteeCapabilities', TableauRestXml.ns_map)
         if len(xml) == 0:
-            self.end_log_block()
+            #self.end_log_block()
             return []
         else:
             for gcaps in xml:
                 for tags in gcaps:
                     # Namespace fun
-                    if tags.tag == '{}group'.format(self.t_rest_api.ns_prefix):
+                    if tags.tag == '{}group'.format(TableauRestXml.ns_prefix):
                         luid = tags.get('id')
                         perms_obj = WorkbookPermissions('group', luid)
-                        self.log_debug('group {}'.format(luid))
-                    elif tags.tag == '{}user'.format(self.t_rest_api.ns_prefix):
+                        #self.log_debug('group {}'.format(luid))
+                    elif tags.tag == '{}user'.format(TableauRestXml.ns_prefix):
                         luid = tags.get('id')
                         perms_obj = WorkbookPermissions('user', luid)
-                        self.log_debug('user {}'.format(luid))
-                    elif tags.tag == '{}capabilities'.format(self.t_rest_api.ns_prefix):
+                        #self.log_debug('user {}'.format(luid))
+                    elif tags.tag == '{}capabilities'.format(TableauRestXml.ns_prefix):
                         for caps in tags:
-                            self.log_debug(caps.get('name') + ' : ' + caps.get('mode'))
+                            #self.log_debug(caps.get('name') + ' : ' + caps.get('mode'))
                             perms_obj.set_capability(caps.get('name'), caps.get('mode'))
                 obj_list.append(perms_obj)
-            self.log('Permissions object list has {} items'.format(str(len(obj_list))))
-            self.end_log_block()
+            #self.log('Permissions object list has {} items'.format(str(len(obj_list))))
+            #self.end_log_block()
             return obj_list
 
 
@@ -792,39 +796,41 @@ class Project(PublishedContent):
                                             role=role)
 
     # Simpler synonym
-    def convert_xml_into_permissions_list(self, xml_obj: ET.Element) -> List['ProjectPermissions']:
-        return self.convert_capabilities_xml_into_obj_list(xml_obj=xml_obj)
+    @staticmethod
+    def convert_xml_into_permissions_list(xml_obj: ET.Element) -> List['ProjectPermissions']:
+        return Project.convert_capabilities_xml_into_obj_list(xml_obj=xml_obj)
 
     # Available for legacy
-    def convert_capabilities_xml_into_obj_list(self, xml_obj: ET.Element) -> List['ProjectPermissions']:
-        self.start_log_block()
+    @staticmethod
+    def convert_capabilities_xml_into_obj_list(xml_obj: ET.Element) -> List['ProjectPermissions']:
+        #self.start_log_block()
         obj_list = []
-        xml = xml_obj.findall('.//t:granteeCapabilities', self.t_rest_api.ns_map)
+        xml = xml_obj.findall('.//t:granteeCapabilities', TableauRestXml.ns_map)
         if len(xml) == 0:
-            self.end_log_block()
+            #self.end_log_block()
             return []
         else:
             for gcaps in xml:
                 for tags in gcaps:
                     # Namespace fun
-                    if tags.tag == '{}group'.format(self.t_rest_api.ns_prefix):
+                    if tags.tag == '{}group'.format(TableauRestXml.ns_prefix):
                         luid = tags.get('id')
                         perms_obj = ProjectPermissions('group', luid)
-                        self.log_debug('group {}'.format(luid))
-                    elif tags.tag == '{}user'.format(self.t_rest_api.ns_prefix):
+                       # self.log_debug('group {}'.format(luid))
+                    elif tags.tag == '{}user'.format(TableauRestXml.ns_prefix):
                         luid = tags.get('id')
                         perms_obj = ProjectPermissions('user', luid)
-                        self.log_debug('user {}'.format(luid))
-                    elif tags.tag == '{}capabilities'.format(self.t_rest_api.ns_prefix):
+                       # self.log_debug('user {}'.format(luid))
+                    elif tags.tag == '{}capabilities'.format(TableauRestXml.ns_prefix):
                         for caps in tags:
-                            self.log_debug(caps.get('name') + ' : ' + caps.get('mode'))
+                          #  self.log_debug(caps.get('name') + ' : ' + caps.get('mode'))
                             perms_obj.set_capability(caps.get('name'), caps.get('mode'))
                 obj_list.append(perms_obj)
-            self.log('Permissions object list has {} items'.format(str(len(obj_list))))
-            self.end_log_block()
+           # self.log('Permissions object list has {} items'.format(str(len(obj_list))))
+            #self.end_log_block()
             return obj_list
 
-    def replicate_permissions(self, orig_content: 'PublishedContent'):
+    def replicate_permissions(self, orig_content: 'Project'):
         self.start_log_block()
 
         self.clear_all_permissions()
@@ -849,12 +855,7 @@ class Project(PublishedContent):
 
         self.end_log_block()
 
-    def replicate_permissions_direct_xml(self, orig_content, username_map=None):
-        """
-        :type orig_content: Project
-        :type username_map: dict[unicode, unicode]
-        :return:
-        """
+    def replicate_permissions_direct_xml(self, orig_content: 'Project', username_map: Optional[Dict] = None):
         self.start_log_block()
 
         self.clear_all_permissions()
@@ -940,21 +941,13 @@ class Project(PublishedContent):
             self.datasource_defaults.clear_all_permissions()
         self.end_log_block()
 
-    def are_permissions_locked(self):
-        """
-        :return: bool
-        """
+    def are_permissions_locked(self) -> bool:
         proj = self.xml_obj
         locked_permissions = proj.get('contentPermissions')
-        if locked_permissions == 'ManagedByOwner':
-            return False
-        if locked_permissions == 'LockedToProject':
-            return True
+        mapping = {'ManagedByOwner' : False, 'LockedToProject': True}
+        return mapping[locked_permissions]
 
     def lock_permissions(self):
-        """
-        :return:
-        """
         self.start_log_block()
         if self.permissions_locked is False:
             if(isinstance(self.t_rest_api, TableauRestApiConnection)):
@@ -964,9 +957,6 @@ class Project(PublishedContent):
         self.end_log_block()
 
     def unlock_permissions(self):
-        """
-        :return:
-        """
         self.start_log_block()
         if self.permissions_locked is True:
             if(isinstance(self.t_rest_api, TableauRestApiConnection)):
@@ -976,7 +966,8 @@ class Project(PublishedContent):
 
         self.end_log_block()
 
-    def query_all_permissions(self):
+    # These are speciality methods just for exporting everything out for audit
+    def query_all_permissions(self) -> Dict:
         # Returns all_permissions[luid] = { name: , type: , project_caps, workbook_default_caps: ,
         #                                             datasource_default_caps: }
 
@@ -1014,7 +1005,7 @@ class Project(PublishedContent):
         return all_permissions
 
     # Exports all of the permissions on a project in the order displayed in Tableau Server
-    def convert_all_permissions_to_list(self, all_permissions):
+    def convert_all_permissions_to_list(self, all_permissions: Dict):
         final_list = []
         # Project
 
@@ -1051,7 +1042,7 @@ class Project28(Project):
         return self._get_permissions_object(group_name_or_luid=group_name_or_luid, username_or_luid=username_or_luid,
                                             role=role)
     @property
-    def parent_project_luid(self):
+    def parent_project_luid(self) -> str:
         return self._parent_project_luid
 
     def query_child_projects(self) -> ET.Element:
@@ -1066,32 +1057,33 @@ class Project28(Project):
         self.end_log_block()
         return child_projects
 
-    def convert_capabilities_xml_into_obj_list(self, xml_obj: ET.Element) -> List['ProjectPermissions']:
-        self.start_log_block()
+    @staticmethod
+    def convert_capabilities_xml_into_obj_list(xml_obj: ET.Element) -> List['ProjectPermissions']:
+        # self.start_log_block()
         obj_list = []
-        xml = xml_obj.findall('.//t:granteeCapabilities', self.t_rest_api.ns_map)
+        xml = xml_obj.findall('.//t:granteeCapabilities', TableauRestXml.ns_map)
         if len(xml) == 0:
-            self.end_log_block()
+            # self.end_log_block()
             return []
         else:
             for gcaps in xml:
                 for tags in gcaps:
                     # Namespace fun
-                    if tags.tag == '{}group'.format(self.t_rest_api.ns_prefix):
+                    if tags.tag == '{}group'.format(TableauRestXml.ns_prefix):
                         luid = tags.get('id')
                         perms_obj = ProjectPermissions28('group', luid)
-                        self.log_debug('group {}'.format(luid))
-                    elif tags.tag == '{}user'.format(self.t_rest_api.ns_prefix):
+                        # self.log_debug('group {}'.format(luid))
+                    elif tags.tag == '{}user'.format(TableauRestXml.ns_prefix):
                         luid = tags.get('id')
                         perms_obj = ProjectPermissions28('user', luid)
-                        self.log_debug('user {}'.format(luid))
-                    elif tags.tag == '{}capabilities'.format(self.t_rest_api.ns_prefix):
+                        # self.log_debug('user {}'.format(luid))
+                    elif tags.tag == '{}capabilities'.format(TableauRestXml.ns_prefix):
                         for caps in tags:
-                            self.log_debug(caps.get('name') + ' : ' + caps.get('mode'))
+                            # self.log_debug(caps.get('name') + ' : ' + caps.get('mode'))
                             perms_obj._set_capability_from_published_content(caps.get('name'), caps.get('mode'))
                 obj_list.append(perms_obj)
-            self.log('Permissions object list has {} items'.format(str(len(obj_list))))
-            self.end_log_block()
+            # self.log('Permissions object list has {} items'.format(str(len(obj_list))))
+            # self.end_log_block()
             return obj_list
 
     # There are all legacy for compatibility purposes
