@@ -1,6 +1,3 @@
-from tableau_tools.logging_methods import LoggingMethods
-from tableau_tools.tableau_exceptions import *
-from tableau_tools.logger import Logger
 import xml.etree.ElementTree as ET
 # from HTMLParser import HTMLParser
 # from StringIO import StringIO
@@ -12,6 +9,9 @@ import requests
 import sys
 from typing import Union, Any, Optional, List, Dict, Tuple
 
+from ..logging_methods import LoggingMethods
+from ..tableau_exceptions import *
+from ..logger import Logger
 
 # Handles all of the actual HTTP calling
 class RestXmlRequest(LoggingMethods):
@@ -137,13 +137,12 @@ class RestXmlRequest(LoggingMethods):
         if self.__publish is True:
             request_headers['Content-Type'] = 'multipart/mixed; boundary={}'.format(self.__boundary_string)
 
-        # Need to handle binary return for image somehow
-        self.log("Request {}  {}".format(self._http_verb.upper(), url))
-
         # Log the XML request being sent
         encoded_request = ""
+        if self.xml_request is None:
+            self.log_uri(verb=self._http_verb.upper(), uri=url)
         if self.xml_request is not None:
-            self.log("Request XML: {}".format(ET.tostring(self.xml_request, encoding='utf-8').decode('utf-8')))
+            self.log_xml_request(xml=self.xml_request, verb=self.http_verb, uri=url)
             if isinstance(self.xml_request, str):
                 encoded_request = self.xml_request.encode('utf-8')
             else:
@@ -200,8 +199,8 @@ class RestXmlRequest(LoggingMethods):
             raise e
         # REST API returns 400 type errors that can be recovered from, so handle them
         raw_error_response = response.content
-        self.log("Received a {} error, here was response:".format(str(status_code)))
-        self.log(raw_error_response.decode('utf8'))
+        self.log_error("{} error. Full response:".format(str(status_code)))
+        self.log_error(raw_error_response.decode('utf8'))
 
         utf8_parser = ET.XMLParser(encoding='utf-8')
         xml = ET.parse(BytesIO(raw_error_response), parser=utf8_parser)
@@ -222,7 +221,7 @@ class RestXmlRequest(LoggingMethods):
             detail_luid = detail_luid_match_obj.group(0)
         else:
             detail_luid = False
-        self.log('Tableau REST API error code is: {}'.format(error_code))
+        self.log_error('Tableau REST API error code: {}'.format(error_code))
         # If you are not signed in
         if error_code == '401000':
             raise NotSignedInException('401000 error, no session token was provided. Please sign in again.')
@@ -240,7 +239,8 @@ class RestXmlRequest(LoggingMethods):
         # Invalid Hyper Extract publish does this
         elif status_code == 400 and self._http_verb == 'post':
             if error_code == '400011':
-                raise PossibleInvalidPublishException(http_code=400, error_code='400011', msg="400011 on a Publish of a .hyper file could caused when the Hyper file either more than one table or the single table is not named 'Extract'.")
+                raise PossibleInvalidPublishException(http_code=400, tableau_error_code='400011',
+                                                      msg="400011 on a Publish of a .hyper file could caused when the Hyper file either more than one table or the single table is not named 'Extract'.")
         else:
             raise e
 
@@ -249,8 +249,9 @@ class RestXmlRequest(LoggingMethods):
         self.__raw_response = unicode_raw_response
         unicode_raw_response = unicode_raw_response.decode('utf-8')
 
+        # Shows each individual request
         if self.__response_type == 'xml':
-            self.log_debug("Raw Response: {}".format(unicode_raw_response))
+            self.log_xml_response(format(unicode_raw_response))
 
     # This has always brought back ALL listings from long paginated lists
     # But really should support three behaviors:
@@ -296,9 +297,9 @@ class RestXmlRequest(LoggingMethods):
                             combined_xml_obj.append(e)
 
                 self.__xml_object = combined_xml_obj
-                self.log_debug("Logging the combined xml object")
-                self.log_debug(ET.tostring(self.__xml_object, encoding='utf-8').decode('utf-8'))
-                self.log("Request succeeded")
+                self.log_xml_response("Combined XML Response")
+                self.log_xml_response(ET.tostring(self.__xml_object, encoding='utf-8').decode('utf-8'))
+                # self.log("Request succeeded")
                 return True
         elif self.__response_type in ['binary', 'png', 'csv']:
             self.log('Non XML response')

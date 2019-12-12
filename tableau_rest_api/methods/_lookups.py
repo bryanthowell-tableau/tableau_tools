@@ -1,5 +1,7 @@
 #from tableau_rest_api.methods.rest_api_base import *
 from typing import Union, Optional
+from ...tableau_rest_xml import TableauRestXml
+from ...tableau_exceptions import *
 # These find LUIDs from real names or other aspects. They get added to the RestApiBase class because methods on
 # almost any different object might need a LUID from any of the others
 class LookupMethods():
@@ -35,7 +37,7 @@ class LookupMethods():
         # Search for ContentUrl which should be unique, return
         if content_url is not None:
             datasources_with_content_url = datasources_with_name.findall(
-                './/t:datasource[@contentUrl="{}"]'.format(content_url), self.ns_map)
+                './/t:datasource[@contentUrl="{}"]'.format(content_url), TableauRestXml.ns_map)
             self.end_log_block()
             if len(datasources_with_name) == 1:
                 return datasources_with_content_url[0].get("id")
@@ -58,11 +60,11 @@ class LookupMethods():
             else:
                 if self.is_luid(project_name_or_luid):
                     ds_in_proj = datasources_with_name.findall('.//t:project[@id="{}"]/..'.format(project_name_or_luid),
-                                                               self.ns_map)
+                                                               TableauRestXml.ns_map)
                 else:
                     ds_in_proj = datasources_with_name.findall(
                         './/t:project[@name="{}"]/..'.format(project_name_or_luid),
-                        self.ns_map)
+                        TableauRestXml.ns_map)
                 if len(ds_in_proj) == 1:
                     self.end_log_block()
                     return ds_in_proj[0].get("id")
@@ -123,9 +125,9 @@ class LookupMethods():
         wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
         vws = self.query_resource("workbooks/{}/views?includeUsageStatistics={}".format(wb_luid, str(usage).lower()))
         if view_content_url is not None:
-            views_with_name = vws.findall('.//t:view[@contentUrl="{}"]'.format(view_content_url), self.ns_map)
+            views_with_name = vws.findall('.//t:view[@contentUrl="{}"]'.format(view_content_url), TableauRestXml.ns_map)
         else:
-            views_with_name = vws.findall('.//t:view[@name="{}"]'.format(view_name), self.ns_map)
+            views_with_name = vws.findall('.//t:view[@name="{}"]'.format(view_name), TableauRestXml.ns_map)
         if len(views_with_name) == 0:
             self.end_log_block()
             raise NoMatchFoundException('No view found with name {} or content_url {} in workbook {}'.format(view_name, view_content_url, wb_name_or_luid))
@@ -153,11 +155,11 @@ class LookupMethods():
         elif len(workbooks_with_name) > 1 and proj_name_or_luid is not None:
             if self.is_luid(proj_name_or_luid):
                 wb_in_proj = workbooks_with_name.findall('.//t:project[@id="{}"]/..'.format(proj_name_or_luid),
-                                                           self.ns_map)
+                                                           TableauRestXml.ns_map)
             else:
                 wb_in_proj = workbooks_with_name.findall(
                     './/t:project[@name="{}"]/..'.format(proj_name_or_luid),
-                    self.ns_map)
+                    TableauRestXml.ns_map)
             if len(wb_in_proj) == 0:
                 self.end_log_block()
                 raise NoMatchFoundException('No workbook found with name {} in project {}'.format(wb_name, proj_name_or_luid))
@@ -174,7 +176,7 @@ class LookupMethods():
             if self.is_luid(database_name):
                 return database_name
             databases = self.query_resource("databases")
-            databases_with_name = databases.findall('.//t:database[@name="{}"]'.format(database_name), self.ns_map)
+            databases_with_name = databases.findall('.//t:database[@name="{}"]'.format(database_name), TableauRestXml.ns_map)
             if len(databases_with_name) == 0:
                 self.end_log_block()
                 raise NoMatchFoundException(
@@ -194,7 +196,7 @@ class LookupMethods():
             if self.is_luid(table_name):
                 return table_name
             tables = self.query_resource("tables")
-            tables_with_name = tables.findall('.//t:table[@name="{}"]'.format(table_name), self.ns_map)
+            tables_with_name = tables.findall('.//t:table[@name="{}"]'.format(table_name), TableauRestXml.ns_map)
             if len(tables_with_name) == 0:
                 self.end_log_block()
                 raise NoMatchFoundException(

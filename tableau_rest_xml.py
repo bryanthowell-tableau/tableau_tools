@@ -1,5 +1,6 @@
 # This is intended to be full of static helper methods
 import xml.etree.ElementTree as ET
+import random
 from typing import Union, Optional, List, Dict, Tuple
 import re
 
@@ -91,3 +92,17 @@ class TableauRestXml:
                 return False
         else:
             return False
+
+    # URI is different form actual URL you need to load a particular view in iframe
+    @staticmethod
+    def convert_view_content_url_to_embed_url(content_url: str) -> str:
+        split_url = content_url.split('/')
+        return 'views/{}/{}'.format(split_url[0], split_url[2])
+
+    # You must generate a boundary string that is used both in the headers and the generated request that you post.
+    # This builds a simple 30 hex digit string
+    @staticmethod
+    def generate_boundary_string() -> str:
+        random_digits = [random.SystemRandom().choice('0123456789abcdef') for n in range(30)]
+        s = "".join(random_digits)
+        return s

@@ -1,5 +1,6 @@
 from .rest_api_base import *
 from ..published_content import Datasource, Datasource28
+from ...tableau_rest_xml import TableauRestXml
 
 class DatasourceMethods():
     def __init__(self, rest_api_base: TableauRestApiBase):
@@ -34,7 +35,7 @@ class DatasourceMethods():
         # If there is a project filter
         if project_name_or_luid is not None:
             project_luid = self.query_project_luid(project_name_or_luid)
-            dses_in_project = datasources.findall('.//t:project[@id="{}"]/..'.format(project_luid), self.ns_map)
+            dses_in_project = datasources.findall('.//t:project[@id="{}"]/..'.format(project_luid), TableauRestXml.ns_map)
             dses = ET.Element(self.ns_prefix + 'datasources')
             for ds in dses_in_project:
                 dses.append(ds)
@@ -181,7 +182,7 @@ class DatasourceMethods():
         project_luid = project_obj.luid
         xml = self._publish_content('datasource', ds_filename, ds_name, project_luid, {"overwrite": overwrite},
                                    connection_username, connection_password, save_credentials, oauth_flag=oauth_flag)
-        datasource = xml.findall('.//t:datasource', self.ns_map)
+        datasource = xml.findall('.//t:datasource', TableauRestXml.ns_map)
         return datasource[0].get('id')
 
     #
