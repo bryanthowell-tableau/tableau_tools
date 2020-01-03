@@ -950,18 +950,20 @@ class Project(PublishedContent):
     def lock_permissions(self):
         self.start_log_block()
         if self.permissions_locked is False:
+            # This allows type checking without importing the class
             if(type(self.t_rest_api).__name__.find('TableauRestApiConnection') != -1):
                 self.t_rest_api.update_project(self.luid, locked_permissions=True)
-            if(type(self.t_rest_api).__name__.find('TableauServerRest') != -1):
+            else:
                 self.t_rest_api.projects.update_project(self.luid, locked_permissions=True)
         self.end_log_block()
 
     def unlock_permissions(self):
         self.start_log_block()
         if self.permissions_locked is True:
+            # This allows type checking without importing the class
             if(type(self.t_rest_api).__name__.find('TableauRestApiConnection') != -1):
                 self.t_rest_api.update_project(self.luid, locked_permissions=False)
-            if(type(self.t_rest_api).__name__.find('TableauServerRest') != -1):
+            else:
                 self.t_rest_api.projects.update_project(self.luid, locked_permissions=False)
 
         self.end_log_block()
@@ -1047,12 +1049,12 @@ class Project28(Project):
 
     def query_child_projects(self) -> ET.Element:
         self.start_log_block()
+        # This allows type checking without importing the class
         if (type(self.t_rest_api).__name__.find('TableauRestApiConnection') != -1):
             projects = self.t_rest_api.query_projects()
-        elif(type(self.t_rest_api).__name__.find('TableauServerRest') != -1):
-            projects = self.t_rest_api.projects.query_projects()
         else:
-            raise InvalidOptionException('t_rest_api needs to be either TableauRestApiConnection or TableauServerRest descended')
+            projects = self.t_rest_api.projects.query_projects()
+
         child_projects = projects.findall('.//t:project[@parentProjectId="{}"]'.format(self.luid), self.t_rest_api.ns_map)
         self.end_log_block()
         return child_projects
