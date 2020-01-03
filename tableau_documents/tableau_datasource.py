@@ -98,23 +98,11 @@ class TableauDatasource(LoggingMethods, TableauDocument):
             "Hyper": 'hyper',
         }
 
-        # Create from new or from existing object
+        # Create from new. Only doing 10.5 style for now.
         if datasource_xml is None:
-            if ds_version is None:
-                raise InvalidOptionException('When creating Datasource from scratch, must declare a ds_version')
-            self._ds_version = ds_version
-            version_split = self._ds_version.split('.')
-            if version_split[0] == '10':
-                if int(version_split[1]) < 5:
-                    self.ds_version_type = '10'
-                else:
-                    self.ds_version_type = '10.5'
-            elif version_split[0] == '9':
-                self.ds_version_type = '9'
-            else:
-                raise InvalidOptionException('Datasource being created with wrong version type')
+            self.ds_version_type = '10.5'
             self.xml = self.create_new_datasource_xml(ds_version)
-
+        # Read existing data source
         else:
             self.xml = datasource_xml
             if self.xml.get("caption"):
@@ -172,15 +160,6 @@ class TableauDatasource(LoggingMethods, TableauDocument):
                 self._table_relations = TableRelations(relation_xml_obj=self.relation_xml_obj)
             else:
                 self.log('Found a Parameters datasource')
-
-
-        #self.repository_location = None
-
-        #if self.xml.find(u'repository-location') is not None:
-        #    if len(self.xml.find(u'repository-location')) == 0:
-        #        self._published = True
-        #        repository_location_xml = self.xml.find(u'repository-location')
-        #        self.repository_location = repository_location_xml
 
         # Grab the extract filename if there is an extract section
         if self.xml.find('extract') is not None:
@@ -282,16 +261,21 @@ class TableauDatasource(LoggingMethods, TableauDocument):
 
     # It seems some databases like Oracle and Teradata need this as well to swap a database
     def update_tables_with_new_database_or_schema(self, original_db_or_schema: str, new_db_or_schema: str):
-        for relation in self._tables_relations:
+        for relation in self.tables.table_relations:
             if relation.get('type') == "table":
                 relation.set('table', relation.get('table').replace("[{}]".format(original_db_or_schema),
                                                                       "[{}]".format(new_db_or_schema)))
 
+    # Start of data sources creation methods (from scratch)
+    # Need considerable review and testing
+
     @staticmethod
     def create_new_datasource_xml(version: str) -> ET.Element:
         # nsmap = {u"user": u'http://www.tableausoftware.com/xml/user'}
+        # The most basic component is just a datasource element with a version.
         ds_xml = ET.Element("datasource")
         ds_xml.set('version', version)
+        # Unclear if this is even necessary. May only appear in TWBXs
         ds_xml.set('inline', "true")
         return ds_xml
 
@@ -300,9 +284,7 @@ class TableauDatasource(LoggingMethods, TableauDocument):
                                   authentication: Optional[str] = None,
                                   initial_sql: Optional[str] = None) -> ET.Element:
         connection = ET.Element("connection")
-        if ds_version == '9':
-            c = connection
-        elif ds_version in ['10', '10.5']:
+        if ds_version in ['10', '10.5']:
             nc = ET.Element('named-connection')
             nc.set('caption', 'Connection')
             # Connection has a random number of 20 digits appended
@@ -426,23 +408,6 @@ class TableauDatasource(LoggingMethods, TableauDocument):
         self.start_log_block()
         self.columns.translate_captions(translation_dict=translation_dict)
         self.end_log_block()
-
-    def add_extract(self, new_extract_filename: str):
-        self.log('add_extract called, checking if extract exists already')
-        # Test to see if extract exists already
-        e = self.xml.find('extract')
-        if e is not None:
-            self.log("Existing extract found, no need to add")
-            raise AlreadyExistsException("An extract already exists, can't add a new one", "")
-        else:
-            self.log('Extract doesnt exist')
-            new_extract_filename_start = new_extract_filename.split(".")[0]
-            if self.ds_version_type == '10.5':
-                final_extract_filename = "{}.hyper".format(new_extract_filename_start)
-            else:
-                final_extract_filename = "{}.tde".format(new_extract_filename_start)
-            self._extract_filename = final_extract_filename
-            self.log('Adding extract to the  data source')
 
     def generate_extract_section(self) -> Union[ET.Element, bool]:
         # Short circuit if no extract had been set

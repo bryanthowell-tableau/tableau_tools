@@ -304,7 +304,7 @@ class Permissions(LoggingMethods):
             '3.6': server_content_roles_3_5
         }
 
-        self.__server_to_rest_capability_map = {
+        self.server_to_rest_capability_map = {
             'Add Comment': 'AddComment',
             'Move': 'ChangeHierarchy',
             'Set Permissions': 'ChangePermissions',
@@ -365,15 +365,15 @@ class Permissions(LoggingMethods):
 
     # Just use the direct "to_allow" and "to_deny" methods
     def set_capability(self, capability_name: str, mode: str):
-        if capability_name not in list(self.__server_to_rest_capability_map.values()):
+        if capability_name not in list(self.server_to_rest_capability_map.values()):
             # If it's the Tableau UI naming, translate it over
-            if capability_name in self.__server_to_rest_capability_map:
+            if capability_name in self.server_to_rest_capability_map:
                 # InheritedProjectLeader (2.8+) is Read-Only
                 if capability_name == 'InheritedProjectLeader':
                     self.log('InheritedProjectLeader permission is read-only, skipping')
                     return
                 if capability_name != 'all':
-                    capability_name = self.__server_to_rest_capability_map[capability_name]
+                    capability_name = self.server_to_rest_capability_map[capability_name]
             else:
                 raise InvalidOptionException('"{}" is not a capability in REST API or Server'.format(capability_name))
         self.capabilities[capability_name] = mode
@@ -387,23 +387,23 @@ class Permissions(LoggingMethods):
     def set_capability_to_unspecified(self, capability_name: str):
         if capability_name not in self.capabilities:
             # If it's the Tableau UI naming, translate it over
-            if capability_name in self.__server_to_rest_capability_map:
+            if capability_name in self.server_to_rest_capability_map:
                 if capability_name == 'InheritedProjectLeader':
                     self.log('InheritedProjectLeader permission is read-only, skipping')
                     return
                 if capability_name != 'all':
-                    capability_name = self.__server_to_rest_capability_map[capability_name]
+                    capability_name = self.server_to_rest_capability_map[capability_name]
             else:
                 raise InvalidOptionException('"{}" is not a capability in REST API or Server'.format(capability_name))
         self.capabilities[capability_name] = None
 
     # This exists specifically to allow the setting of read-only permissions
     def _set_capability_from_published_content(self, capability_name: str, mode: str):
-        if capability_name not in list(self.__server_to_rest_capability_map.values()):
+        if capability_name not in list(self.server_to_rest_capability_map.values()):
             # If it's the Tableau UI naming, translate it over
-            if capability_name in self.__server_to_rest_capability_map:
+            if capability_name in self.server_to_rest_capability_map:
                 if capability_name != 'all':
-                    capability_name = self.__server_to_rest_capability_map[capability_name]
+                    capability_name = self.server_to_rest_capability_map[capability_name]
             else:
                 raise InvalidOptionException('"{}" is not a capability in REST API or Server'.format(capability_name))
         self.capabilities[capability_name] = mode

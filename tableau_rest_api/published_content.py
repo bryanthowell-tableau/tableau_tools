@@ -950,9 +950,9 @@ class Project(PublishedContent):
     def lock_permissions(self):
         self.start_log_block()
         if self.permissions_locked is False:
-            if(isinstance(self.t_rest_api, TableauRestApiConnection)):
+            if(type(self.t_rest_api).__name__.contains('TableauRestApiConnection')):
                 self.t_rest_api.update_project(self.luid, locked_permissions=True)
-            if(isinstance(self.t_rest_api, TableauServerRest)):
+            if(type(self.t_rest_api).__name__.contains('TableauServerRest')):
                 self.t_rest_api.projects.update_project(self.luid, locked_permissions=True)
         self.end_log_block()
 

@@ -287,20 +287,24 @@ class TableauRestApiBase(LookupMethods, LoggingMethods, TableauRestXml):
         self._request_obj.xml_request = tsr
         self._request_obj.http_verb = 'post'
         self.log('Login payload is\n {}'.format(ET.tostring(tsr)))
+        try:
+            self._request_obj.request_from_api(0)
+            # self.log(api.get_raw_response())
+            xml = self._request_obj.get_response()
 
-        self._request_obj.request_from_api(0)
-        # self.log(api.get_raw_response())
-        xml = self._request_obj.get_response()
-
-        credentials_element = xml.findall('.//t:credentials', self.ns_map)
-        self.token = credentials_element[0].get("token")
-        self.log("Token is " + self.token)
-        self._request_obj.token = self.token
-        self.site_luid = credentials_element[0].findall(".//t:site", self.ns_map)[0].get("id")
-        self.user_luid = credentials_element[0].findall(".//t:user", self.ns_map)[0].get("id")
-        self.log("Site ID is " + self.site_luid)
-        self._request_obj.url = None
-        self._request_obj.xml_request = None
+            credentials_element = xml.findall('.//t:credentials', self.ns_map)
+            self.token = credentials_element[0].get("token")
+            self.log("Token is " + self.token)
+            self._request_obj.token = self.token
+            self.site_luid = credentials_element[0].findall(".//t:site", self.ns_map)[0].get("id")
+            self.user_luid = credentials_element[0].findall(".//t:user", self.ns_map)[0].get("id")
+            self.log("Site ID is " + self.site_luid)
+            self._request_obj.url = None
+            self._request_obj.xml_request = None
+        except RecoverableHTTPException as e:
+            if e.tableau_error_code == '401001':
+                self.end_log_block()
+                raise NotSignedInException('Sign-in failed due to wrong credentials')
         self.end_log_block()
 
     def swap_token(self, site_luid: str, user_luid: str, token: str):
@@ -374,6 +378,8 @@ class TableauRestApiBase(LookupMethods, LoggingMethods, TableauRestXml):
                        sorts: Optional[List[Sort]] = None, additional_url_ending: Optional[str] = None,
                        fields: Optional[List[str]] = None) -> ET.Element:
         self.start_log_block()
+        if self.token == "":
+            raise NotSignedInException('Must use .signin() to create REST API session first')
         url_endings = []
         if filters is not None:
             if len(filters) > 0:
@@ -525,6 +531,8 @@ class TableauRestApiBase(LookupMethods, LoggingMethods, TableauRestXml):
                             sorts: Optional[List[Sort]] = None, additional_url_ending: str = None,
                             fields: Optional[List[str]] = None, page_number: Optional[int] = None) -> Dict:
         self.start_log_block()
+        if self.token == "":
+            raise NotSignedInException('Must use .signin() to create REST API session first')
         url_endings = []
         if filters is not None:
             if len(filters) > 0:

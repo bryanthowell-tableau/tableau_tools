@@ -171,10 +171,10 @@ The Logger class by default only logs Requests but not Responses. If you need to
 `Logger.enable_debug_level()`b
 
 
-### 0.3 TableauBase class
-Many classes within the tableau_tools package inherit from the TableauBase class. TableauBase implements the `enable_logging(Logger)` method, along with other a `.log()` method that calls to `Logger.log()`. It also has many static methods, mapping dicts, and helper classes related to Tableau in general. 
+### 0.3 TableauRestXml class
+There is a class called TableauRestXml which holds static methods and properties that are useful on any Tableau REST XML request or response.
 
-It should never be necessary to use TableauBase by itself.
+TableauServerRest and TableauRestApiConnection both inherit from this class so you can call any of the methods from one of those objects rather than calling it directly.
 
 ### 0.4 tableau_exceptions
 The tableau_exceptions file defines a variety of Exceptions that are specific to Tableau, particularly the REST API. They are not very complex, and most simply include a msg property that will clarify the problem if logged

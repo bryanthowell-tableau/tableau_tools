@@ -32,7 +32,6 @@ def run_tests(server_url: str, username: str, password: str, site_content_url: s
                             site_content_url=site_content_url)
     t.signin()
     t.enable_logging(rest_request_log_obj)
-
     # Server info and methods
     server_info = t.query_server_info()
     server_version = t.query_server_version()
