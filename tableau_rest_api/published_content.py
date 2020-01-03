@@ -950,18 +950,18 @@ class Project(PublishedContent):
     def lock_permissions(self):
         self.start_log_block()
         if self.permissions_locked is False:
-            if(type(self.t_rest_api).__name__.contains('TableauRestApiConnection')):
+            if(type(self.t_rest_api).__name__.find('TableauRestApiConnection') != -1):
                 self.t_rest_api.update_project(self.luid, locked_permissions=True)
-            if(type(self.t_rest_api).__name__.contains('TableauServerRest')):
+            if(type(self.t_rest_api).__name__.find('TableauServerRest') != -1):
                 self.t_rest_api.projects.update_project(self.luid, locked_permissions=True)
         self.end_log_block()
 
     def unlock_permissions(self):
         self.start_log_block()
         if self.permissions_locked is True:
-            if(isinstance(self.t_rest_api, TableauRestApiConnection)):
+            if(type(self.t_rest_api).__name__.find('TableauRestApiConnection') != -1):
                 self.t_rest_api.update_project(self.luid, locked_permissions=False)
-            if(isinstance(self.t_rest_api, TableauServerRest)):
+            if(type(self.t_rest_api).__name__.find('TableauServerRest') != -1):
                 self.t_rest_api.projects.update_project(self.luid, locked_permissions=False)
 
         self.end_log_block()
@@ -1047,9 +1047,9 @@ class Project28(Project):
 
     def query_child_projects(self) -> ET.Element:
         self.start_log_block()
-        if (isinstance(self.t_rest_api, TableauRestApiConnection)):
+        if (type(self.t_rest_api).__name__.find('TableauRestApiConnection') != -1):
             projects = self.t_rest_api.query_projects()
-        elif (isinstance(self.t_rest_api, TableauServerRest)):
+        elif(type(self.t_rest_api).__name__.find('TableauServerRest') != -1):
             projects = self.t_rest_api.projects.query_projects()
         else:
             raise InvalidOptionException('t_rest_api needs to be either TableauRestApiConnection or TableauServerRest descended')

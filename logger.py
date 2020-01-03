@@ -53,7 +53,7 @@ class Logger(object):
         short_class = short_class[:-2]
         cur_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()).encode('utf-8')
 
-        log_line = '{}vv-- {} : {} {} started --------vv\n'.format(" "*self.log_depth, cur_time, short_class, caller_function_name)
+        log_line = '{}vv-- {} : {} {} started --------vv\n'.format(" "*self.log_depth, str(cur_time), short_class, caller_function_name)
         # Only move the log depth in debug mode
         if self._log_modes['debug'] is True:
             self.log_depth += 2
@@ -68,7 +68,7 @@ class Logger(object):
         cur_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()).encode('utf-8')
         if self._log_modes['debug'] is True:
             self.log_depth -= 2
-        log_line = '{}^^-- {} : {} {} ended --------^^\n'.format(" "*self.log_depth, cur_time, short_class, caller_function_name)
+        log_line = '{}^^-- {} : {} {} ended --------^^\n'.format(" "*self.log_depth, str(cur_time), short_class, caller_function_name)
 
         self.__log_handle.write(log_line.encode('utf-8'))
 
@@ -78,9 +78,9 @@ class Logger(object):
     def log_xml_request(self, xml: Union[ET.Element, str], verb: str, uri: str):
         if self._log_modes['request'] is True:
             if isinstance(xml, str):
-                self.log('[{}}] \n{}'.format(verb.upper(), xml))
+                self.log('[{}] \n{}'.format(verb.upper(), xml))
             else:
-                self.log('[{}}] \n{}'.format(verb.upper(), ET.tostring(xml)))
+                self.log('[{}] \n{}'.format(verb.upper(), ET.tostring(xml)))
         else:
             self.log('[{}] {}'.format(verb.upper(), uri))
 
