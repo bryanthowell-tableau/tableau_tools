@@ -659,8 +659,9 @@ class Datasource(PublishedContent):
             return obj_list
 
 class Datasource28(Datasource):
-    def __init__(self, luid, tableau_rest_api_obj,  default=False, logger_obj=None,
-                 content_xml_obj=None):
+    def __init__(self, luid: str, tableau_rest_api_obj: Union['TableauRestApiConnection', 'TableauServerRest'],
+                 default: bool = False, logger_obj: Optional[Logger] = None,
+                 content_xml_obj: Optional[ET.Element] = None):
         Datasource.__init__(self, luid=luid, tableau_rest_api_obj=tableau_rest_api_obj,
                                   default=default, logger_obj=logger_obj, content_xml_obj=content_xml_obj)
         self.__available_capabilities = Permissions.available_capabilities[self.api_version]["datasource"]
@@ -672,8 +673,9 @@ class Datasource28(Datasource):
                                             role=role)
 
 class View(PublishedContent):
-    def __init__(self, luid, tableau_rest_api_obj, default=False, logger_obj=None,
-                 content_xml_obj=None):
+    def __init__(self, luid: str, tableau_rest_api_obj: Union['TableauRestApiConnection', 'TableauServerRest'],
+                 default: bool = False, logger_obj: Optional[Logger] = None,
+                 content_xml_obj: Optional[ET.Element] = None):
         PublishedContent.__init__(self, luid, "view", tableau_rest_api_obj,
                                   default=default, logger_obj=logger_obj, content_xml_obj=content_xml_obj)
         self.__available_capabilities = Permissions.available_capabilities[self.api_version]["workbook"]
@@ -763,10 +765,12 @@ class Table35(PublishedContent):
 
 
 class Project(PublishedContent):
-    def __init__(self, luid, tableau_rest_api_obj, logger_obj=None,
-                 content_xml_obj=None):
-        PublishedContent.__init__(self, luid, "project", tableau_rest_api_obj,
+    def __init__(self, luid: str, tableau_rest_api_obj: Union['TableauRestApiConnection', 'TableauServerRest'],
+                 logger_obj: Optional[Logger] = None, content_xml_obj: Optional[ET.Element] = None):
+        PublishedContent.__init__(self, luid=luid, obj_type="project", tableau_rest_api_obj=tableau_rest_api_obj,
                                   logger_obj=logger_obj, content_xml_obj=content_xml_obj)
+        self.log('Building Project object from this XML: ')
+        self.log_xml_response(content_xml_obj)
         # projects in 9.2 have child workbook and datasource permissions
         self._workbook_defaults = Workbook(self.luid, self.t_rest_api,
                                            default=True, logger_obj=logger_obj)
@@ -783,7 +787,7 @@ class Project(PublishedContent):
         return self._luid
 
     @luid.setter
-    def luid(self, name_or_luid):
+    def luid(self, name_or_luid: str):
         if TableauRestXml.is_luid(name_or_luid):
             luid = name_or_luid
         else:
@@ -1032,8 +1036,9 @@ class Project(PublishedContent):
 
 
 class Project28(Project):
-    def __init__(self, luid, tableau_rest_api_obj, logger_obj=None,
-                 content_xml_obj=None, parent_project_luid=None):
+    def __init__(self, luid: str, tableau_rest_api_obj: Union['TableauRestApiConnection', 'TableauServerRest'],
+                 logger_obj: Optional[Logger] = None,
+                 content_xml_obj: Optional[ET.Element] = None, parent_project_luid: Optional[str] = None):
         Project.__init__(self, luid=luid, tableau_rest_api_obj=tableau_rest_api_obj, logger_obj=logger_obj,
                            content_xml_obj=content_xml_obj)
         self._parent_project_luid = parent_project_luid
@@ -1121,8 +1126,9 @@ class Project28(Project):
 
 
 class Project33(Project28):
-    def __init__(self, luid, tableau_rest_api_obj,  logger_obj=None,
-                 content_xml_obj=None, parent_project_luid=None):
+    def __init__(self, luid: str, tableau_rest_api_obj: Union['TableauRestApiConnection', 'TableauServerRest'],
+                 logger_obj: Optional[Logger] = None, content_xml_obj: Optional[ET.Element] = None,
+                 parent_project_luid:str = None):
         Project28.__init__(self, luid=luid, tableau_rest_api_obj=tableau_rest_api_obj, logger_obj=logger_obj,
                            content_xml_obj=content_xml_obj, parent_project_luid=parent_project_luid)
         self.flow_defaults = Flow33(self.luid, self.t_rest_api, default=True, logger_obj=logger_obj)
