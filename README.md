@@ -912,11 +912,17 @@ For Projects, since the standard `query_project()` method returns the Project ob
 
 Projects have additional commands that the other classes do not:
 
-`Project.lock_permissions()`
+`Project.lock_permissions() -> Project`
 
-`Project.unlock_permission()`
+`Project.unlock_permission() -> Project`
 
 `Project.are_permissions_locked()`
+
+If you are locking or unlocking permissions, you should replace the project object you used with the response that comes back:
+
+    proj = t.projects.query_project('My Project')
+    proj = proj.lock_permissions()  # You want to updated object returned here to use from here on out
+    ... 
 
 You access the default permissions objects with the following, which reference the objects of the correct type that have already been built within the Project object:
 
