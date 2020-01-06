@@ -166,10 +166,21 @@ If you want to log something in your script into this log, you can call
 
 where l is a string. You do not need to add a "\n", it will be added automatically.
 
-The Logger class by default only logs Requests but not Responses. If you need to see the full responses, use the following method:
+The Logger class, starting in tableau_tools 5.1, has multiple options to show different levels of response.
 
-`Logger.enable_debug_level()`b
+By default, the Logger will only show the HTTP requests with URI, along the chain of nested methods used to perform the actions.
 
+`Logger.enable_request_logging()`
+
+will display the string version of the XML requests sent along with the HTTP requests.
+
+`Logger.enable_response_logging()`
+
+will display the string version of all XML responses in the logs. This is far more verbose, so is only suggested when you are encountering errors based on expectations of what should be in the response.
+
+`Logger.enable_debug_level()`
+
+makes the Logger indent the lines of the log, so that you can see the nesting of the actions that happen more easily. This is what the logs looked like in previous version of tableau_tools, but now it must be turned on if you want that mode.
 
 ### 0.3 TableauRestXml class
 There is a class called TableauRestXml which holds static methods and properties that are useful on any Tableau REST XML request or response.
