@@ -28,10 +28,11 @@ class PublishedContent(LoggingMethods):
         self.current_perms_obj_list: Optional[List[Permissions]] = None
         self.__permissionable_objects = self.permissionable_objects
         self.get_permissions_from_server()
-        self.xml_obj = content_xml_obj
+        #self.log('Creating a Published Project Object from this XML:')
+        #self.log_xml_response(content_xml_obj)
         self.api_version = tableau_rest_api_obj.api_version
         self.permissions_object_class = ProjectPermissions  # Override in any child class with specific
-
+        self.xml_obj = content_xml_obj
         # If you want to know the name that matches to the group or user, need these
         # But no need to request every single time
         # self.groups_dict_cache = None
@@ -660,7 +661,7 @@ class Datasource(PublishedContent):
 
 class Datasource28(Datasource):
     def __init__(self, luid: str, tableau_rest_api_obj: Union['TableauRestApiConnection', 'TableauServerRest'],
-                 default: bool = False, logger_obj: Optional[Logger] = None,
+                 default: bool = False, logger_obj: Optional['Logger'] = None,
                  content_xml_obj: Optional[ET.Element] = None):
         Datasource.__init__(self, luid=luid, tableau_rest_api_obj=tableau_rest_api_obj,
                                   default=default, logger_obj=logger_obj, content_xml_obj=content_xml_obj)
@@ -674,7 +675,7 @@ class Datasource28(Datasource):
 
 class View(PublishedContent):
     def __init__(self, luid: str, tableau_rest_api_obj: Union['TableauRestApiConnection', 'TableauServerRest'],
-                 default: bool = False, logger_obj: Optional[Logger] = None,
+                 default: bool = False, logger_obj: Optional['Logger'] = None,
                  content_xml_obj: Optional[ET.Element] = None):
         PublishedContent.__init__(self, luid, "view", tableau_rest_api_obj,
                                   default=default, logger_obj=logger_obj, content_xml_obj=content_xml_obj)
@@ -766,11 +767,13 @@ class Table35(PublishedContent):
 
 class Project(PublishedContent):
     def __init__(self, luid: str, tableau_rest_api_obj: Union['TableauRestApiConnection', 'TableauServerRest'],
-                 logger_obj: Optional[Logger] = None, content_xml_obj: Optional[ET.Element] = None):
+                 logger_obj: Optional['Logger'] = None, content_xml_obj: Optional[ET.Element] = None):
         PublishedContent.__init__(self, luid=luid, obj_type="project", tableau_rest_api_obj=tableau_rest_api_obj,
                                   logger_obj=logger_obj, content_xml_obj=content_xml_obj)
         self.log('Building Project object from this XML: ')
         self.log_xml_response(content_xml_obj)
+        self.log('Project object has this XML: ')
+        self.log_xml_response(self.xml_obj)
         # projects in 9.2 have child workbook and datasource permissions
         self._workbook_defaults = Workbook(self.luid, self.t_rest_api,
                                            default=True, logger_obj=logger_obj)
@@ -951,26 +954,33 @@ class Project(PublishedContent):
         mapping = {'ManagedByOwner' : False, 'LockedToProject': True}
         return mapping[locked_permissions]
 
-    def lock_permissions(self):
+    def lock_permissions(self) -> 'Project':
         self.start_log_block()
         if self.permissions_locked is False:
             # This allows type checking without importing the class
             if(type(self.t_rest_api).__name__.find('TableauRestApiConnection') != -1):
-                self.t_rest_api.update_project(self.luid, locked_permissions=True)
+                new_proj_obj = self.t_rest_api.update_project(self.luid, locked_permissions=True)
             else:
-                self.t_rest_api.projects.update_project(self.luid, locked_permissions=True)
-        self.end_log_block()
+                new_proj_obj = self.t_rest_api.projects.update_project(self.luid, locked_permissions=True)
+                self.end_log_block()
+                return new_proj_obj
+        else:
+            self.end_log_block()
+            return self
 
-    def unlock_permissions(self):
+    def unlock_permissions(self) -> 'Project':
         self.start_log_block()
         if self.permissions_locked is True:
             # This allows type checking without importing the class
             if(type(self.t_rest_api).__name__.find('TableauRestApiConnection') != -1):
-                self.t_rest_api.update_project(self.luid, locked_permissions=False)
+                new_proj_obj = self.t_rest_api.update_project(self.luid, locked_permissions=False)
             else:
-                self.t_rest_api.projects.update_project(self.luid, locked_permissions=False)
-
-        self.end_log_block()
+                new_proj_obj = self.t_rest_api.projects.update_project(self.luid, locked_permissions=False)
+            self.end_log_block()
+            return new_proj_obj
+        else:
+            self.end_log_block()
+            return self
 
     # These are speciality methods just for exporting everything out for audit
     def query_all_permissions(self) -> Dict:
@@ -1037,10 +1047,10 @@ class Project(PublishedContent):
 
 class Project28(Project):
     def __init__(self, luid: str, tableau_rest_api_obj: Union['TableauRestApiConnection', 'TableauServerRest'],
-                 logger_obj: Optional[Logger] = None,
+                 logger_obj: Optional['Logger'] = None,
                  content_xml_obj: Optional[ET.Element] = None, parent_project_luid: Optional[str] = None):
         Project.__init__(self, luid=luid, tableau_rest_api_obj=tableau_rest_api_obj, logger_obj=logger_obj,
-                           content_xml_obj=content_xml_obj)
+                         content_xml_obj=content_xml_obj)
         self._parent_project_luid = parent_project_luid
         self.permissions_object_class = ProjectPermissions28
 
@@ -1063,6 +1073,34 @@ class Project28(Project):
         child_projects = projects.findall('.//t:project[@parentProjectId="{}"]'.format(self.luid), self.t_rest_api.ns_map)
         self.end_log_block()
         return child_projects
+
+    def lock_permissions(self) -> 'Project28':
+        self.start_log_block()
+        if self.permissions_locked is False:
+            # This allows type checking without importing the class
+            if(type(self.t_rest_api).__name__.find('TableauRestApiConnection') != -1):
+                new_proj_obj = self.t_rest_api.update_project(self.luid, locked_permissions=True)
+            else:
+                new_proj_obj = self.t_rest_api.projects.update_project(self.luid, locked_permissions=True)
+            self.end_log_block()
+            return new_proj_obj
+        else:
+            self.end_log_block()
+            return self
+
+    def unlock_permissions(self) -> 'Project28':
+        self.start_log_block()
+        if self.permissions_locked is True:
+            # This allows type checking without importing the class
+            if(type(self.t_rest_api).__name__.find('TableauRestApiConnection') != -1):
+                new_proj_obj = self.t_rest_api.update_project(self.luid, locked_permissions=False)
+            else:
+                new_proj_obj = self.t_rest_api.projects.update_project(self.luid, locked_permissions=False)
+            self.end_log_block()
+            return new_proj_obj
+        else:
+            self.end_log_block()
+            return self
 
     @staticmethod
     def convert_capabilities_xml_into_obj_list(xml_obj: ET.Element) -> List['ProjectPermissions']:
@@ -1127,11 +1165,39 @@ class Project28(Project):
 
 class Project33(Project28):
     def __init__(self, luid: str, tableau_rest_api_obj: Union['TableauRestApiConnection', 'TableauServerRest'],
-                 logger_obj: Optional[Logger] = None, content_xml_obj: Optional[ET.Element] = None,
+                 logger_obj: Optional['Logger'] = None, content_xml_obj: Optional[ET.Element] = None,
                  parent_project_luid:str = None):
         Project28.__init__(self, luid=luid, tableau_rest_api_obj=tableau_rest_api_obj, logger_obj=logger_obj,
                            content_xml_obj=content_xml_obj, parent_project_luid=parent_project_luid)
         self.flow_defaults = Flow33(self.luid, self.t_rest_api, default=True, logger_obj=logger_obj)
+
+    def lock_permissions(self) -> 'Project33':
+        self.start_log_block()
+        if self.permissions_locked is False:
+            # This allows type checking without importing the class
+            if(type(self.t_rest_api).__name__.find('TableauRestApiConnection') != -1):
+                new_proj_obj = self.t_rest_api.update_project(self.luid, locked_permissions=True)
+            else:
+                new_proj_obj = self.t_rest_api.projects.update_project(self.luid, locked_permissions=True)
+            self.end_log_block()
+            return new_proj_obj
+        else:
+            self.end_log_block()
+            return self
+
+    def unlock_permissions(self) -> 'Project33':
+        self.start_log_block()
+        if self.permissions_locked is True:
+            # This allows type checking without importing the class
+            if(type(self.t_rest_api).__name__.find('TableauRestApiConnection') != -1):
+                new_proj_obj = self.t_rest_api.update_project(self.luid, locked_permissions=False)
+            else:
+                new_proj_obj = self.t_rest_api.projects.update_project(self.luid, locked_permissions=False)
+            self.end_log_block()
+            return new_proj_obj
+        else:
+            self.end_log_block()
+            return self
 
     def get_permissions_obj(self, group_name_or_luid: Optional[str] = None, username_or_luid: Optional[str] = None,
                                role: Optional[str] = None) -> 'ProjectPermissions28':
