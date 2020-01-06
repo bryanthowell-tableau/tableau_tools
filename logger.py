@@ -51,12 +51,17 @@ class Logger(object):
         class_path = c.split('.')
         short_class = class_path[len(class_path)-1]
         short_class = short_class[:-2]
-        cur_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()).encode('utf-8')
+        cur_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
-        log_line = '{}vv-- {} : {} {} started --------vv\n'.format(" "*self.log_depth, str(cur_time), short_class, caller_function_name)
+
         # Only move the log depth in debug mode
         if self._log_modes['debug'] is True:
             self.log_depth += 2
+            log_line = '{}vv-- {} : {} {} started --------vv\n'.format(" " * self.log_depth, str(cur_time), short_class,
+                                                                       caller_function_name)
+        else:
+            log_line = '{} : {} {} started --------vv\n'.format(str(cur_time), short_class, caller_function_name)
+
         self.__log_handle.write(log_line.encode('utf-8'))
 
     def end_log_block(self):
@@ -65,10 +70,12 @@ class Logger(object):
         class_path = c.split('.')
         short_class = class_path[len(class_path)-1]
         short_class = short_class[:-2]
-        cur_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()).encode('utf-8')
+        cur_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         if self._log_modes['debug'] is True:
             self.log_depth -= 2
-        log_line = '{}^^-- {} : {} {} ended --------^^\n'.format(" "*self.log_depth, str(cur_time), short_class, caller_function_name)
+            log_line = '{}^^-- {} : {} {} ended --------^^\n'.format(" "*self.log_depth, str(cur_time), short_class, caller_function_name)
+        else:
+            log_line = '{} : {} {} ended --------^^\n'.format(str(cur_time), short_class, caller_function_name)
 
         self.__log_handle.write(log_line.encode('utf-8'))
 
