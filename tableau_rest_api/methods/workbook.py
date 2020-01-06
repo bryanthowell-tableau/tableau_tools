@@ -12,7 +12,7 @@ class WorkbookMethods():
     def get_published_workbook_object(self, workbook_name_or_luid: str,
                                       project_name_or_luid: Optional[str] = None) -> Workbook:
         luid = self.query_workbook_luid(workbook_name_or_luid, project_name_or_luid)
-        wb_obj = Workbook(luid=luid, tableau_rest_api_obj=self,
+        wb_obj = Workbook(luid=luid, tableau_rest_api_obj=self.rest_api_base,
                           default=False, logger_obj=self.logger)
         return wb_obj
 

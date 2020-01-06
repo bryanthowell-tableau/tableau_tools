@@ -3,8 +3,10 @@ from typing import Union, Any, Optional, List, Dict, Tuple
 import random
 from xml.sax.saxutils import quoteattr, unescape
 import copy
+import datetime
 
-from tableau_tools.tableau_exceptions import *
+from ..tableau_exceptions import *
+from ..tableau_rest_xml import TableauRestXml
 
 # This represents the classic Tableau data connection window relations
 # Allows for changes in JOINs, Stored Proc values, and Custom SQL
@@ -17,8 +19,8 @@ class TableRelations():
         self.main_table: ET.Element
         self.table_relations: List[ET.Element]
         self.join_relations = []
-        self.ns_map = {"user": 'http://www.tableausoftware.com/xml/user', 't': 'http://tableau.com/api'}
-        ET.register_namespace('t', self.ns_map['t'])
+        #self.ns_map = {"user": 'http://www.tableausoftware.com/xml/user', 't': 'http://tableau.com/api'}
+        #ET.register_namespace('t', self.ns_map['t'])
         self._read_existing_relations()
 
     def _read_existing_relations(self):
@@ -29,7 +31,7 @@ class TableRelations():
                 self.table_relations = [self.relation_xml_obj, ]
 
         else:
-            table_relations = self.relation_xml_obj.findall('.//relation', self.ns_map)
+            table_relations = self.relation_xml_obj.findall('.//relation', TableauRestXml.ns_map)
             final_table_relations = []
             # ElementTree doesn't implement the != operator, so have to find all then iterate through to exclude
             # the JOINs to only get the tables, stored-procs and Custom SQLs
@@ -118,7 +120,7 @@ class TableRelations():
         if self._stored_proc_parameters_xml is None:
             self._stored_proc_parameters_xml = ET.Element('actual-parameters')
         # Find parameter with that name (if exists)
-        param = self._stored_proc_parameters_xml.find('.//column[@name="{}"]'.format(parameter_name), self.ns_map)
+        param = self._stored_proc_parameters_xml.find('.//column[@name="{}"]'.format(parameter_name), TableauRestXml.ns_map)
 
         if param is None:
             # create_stored... already converts to correct quoting

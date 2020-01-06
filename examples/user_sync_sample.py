@@ -66,8 +66,8 @@ print(users_dict)
 for user in users_dict:
     proj_obj = t.projects.create_project("My Saved Reports - {}".format(user))
     user_luid = users_dict[user]
-    perms_obj = proj_obj.create_project_permissions_object_for_user(username_or_luid=user_luid, role='Publisher')
-    proj_obj.set_permissions_by_permissions_obj_list([perms_obj, ])
+    perms_obj = proj_obj.get_permissions_obj(username_or_luid=user_luid, role='Publisher')
+    proj_obj.set_permissions([perms_obj, ])
 
 
 # Reset back to beginning to reuse query

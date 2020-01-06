@@ -18,9 +18,9 @@ from tableau_tools.tableau_rest_api.rest_json_request import RestJsonRequest
 from tableau_tools.tableau_rest_api.published_content import Project, Project28, Project33, Workbook, Datasource, Flow33
 from tableau_tools.tableau_rest_api.url_filter import *
 from tableau_tools.tableau_rest_api.sort import *
+from ...tableau_rest_xml import TableauRestXml
 
-
-class TableauRestApiBase(LookupMethods, LoggingMethods):
+class TableauRestApiBase(LookupMethods, LoggingMethods, TableauRestXml):
     # Defines a class that represents a RESTful connection to Tableau Server. Use full URL (http:// or https://)
     def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
         if server.find('http') == -1:
@@ -82,83 +82,7 @@ class TableauRestApiBase(LookupMethods, LoggingMethods):
             u'SiteAdministratorCreator'
         )
 
-    # URI is different form actual URL you need to load a particular view in iframe
-    @staticmethod
-    def convert_view_content_url_to_embed_url(content_url: str) -> str:
-        split_url = content_url.split('/')
-        return 'views/{}/{}'.format(split_url[0], split_url[2])
 
-    # Generic method for XML lists for the "query" actions to name -> id dict
-    @staticmethod
-    def convert_xml_list_to_name_id_dict(xml_obj: ET.Element) -> Dict:
-        d = {}
-        for element in xml_obj:
-            e_id = element.get("id")
-            # If list is collection, have to run one deeper
-            if e_id is None:
-                for list_element in element:
-                    e_id = list_element.get("id")
-                    name = list_element.get("name")
-                    d[name] = e_id
-            else:
-                name = element.get("name")
-                d[name] = e_id
-        return d
-
-    # Repeat of above method with shorter name
-    @staticmethod
-    def xml_list_to_dict(xml_obj: ET.Element) -> Dict:
-        d = {}
-        for element in xml_obj:
-            e_id = element.get("id")
-            # If list is collection, have to run one deeper
-            if e_id is None:
-                for list_element in element:
-                    e_id = list_element.get("id")
-                    name = list_element.get("name")
-                    d[name] = e_id
-            else:
-                name = element.get("name")
-                d[name] = e_id
-        return d
-
-    @staticmethod
-    def luid_name_dict_from_xml(xml_obj: ET.Element) -> Dict:
-        d = {}
-        for element in xml_obj:
-            e_id = element.get("id")
-            # If list is collection, have to run one deeper
-            if e_id is None:
-                for list_element in element:
-                    e_id = list_element.get("id")
-                    name = list_element.get("name")
-                    d[e_id] = name
-            else:
-                name = element.get("name")
-                d[e_id] = name
-        return d
-
-    @staticmethod
-    def luid_content_url_dict_from_xml(xml_obj: ET.Element) -> Dict:
-        d = {}
-        for element in xml_obj:
-            e_id = element.get("id")
-            # If list is collection, have to run one deeper
-            if e_id is None:
-                for list_element in element:
-                    e_id = list_element.get("id")
-                    name = list_element.get("contentUrl")
-                    d[e_id] = name
-            else:
-                name = element.get("contentUrl")
-                d[e_id] = name
-        return d
-
-    # This corrects for the first element in any response by the plural collection tag, which leads to differences
-    # with the XPath search currently
-    @staticmethod
-    def make_xml_list_iterable(xml_obj: ET.Element) -> List[ET.Element]:
-        pass
 
     def set_tableau_server_version(self, tableau_server_version: str) -> str:
         if str(tableau_server_version)in ["10.3", "10.4", "10.5", '2018.1', '2018.2', '2018.3', '2019.1',
@@ -212,25 +136,7 @@ class TableauRestApiBase(LookupMethods, LoggingMethods):
                 break
             yield data
 
-    # You must generate a boundary string that is used both in the headers and the generated request that you post.
-    # This builds a simple 30 hex digit string
-    @staticmethod
-    def generate_boundary_string() -> str:
-        random_digits = [random.SystemRandom().choice('0123456789abcdef') for n in range(30)]
-        s = "".join(random_digits)
-        return s
 
-    # 32 hex characters with 4 dashes
-    @staticmethod
-    def is_luid(val: str) -> bool:
-        luid_pattern = r"[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*-[0-9a-fA-F]*"
-        if len(val) == 36:
-            if re.match(luid_pattern, val) is not None:
-                return True
-            else:
-                return False
-        else:
-            return False
 
     @property
     def token(self) -> str:
@@ -348,12 +254,6 @@ class TableauRestApiBase(LookupMethods, LoggingMethods):
         return tsr
 
     #
-    # Factory methods for PublishedContent and Permissions objects
-    #
-
-
-
-    #
     # Sign-in and Sign-out
     #
 
@@ -387,20 +287,24 @@ class TableauRestApiBase(LookupMethods, LoggingMethods):
         self._request_obj.xml_request = tsr
         self._request_obj.http_verb = 'post'
         self.log('Login payload is\n {}'.format(ET.tostring(tsr)))
+        try:
+            self._request_obj.request_from_api(0)
+            # self.log(api.get_raw_response())
+            xml = self._request_obj.get_response()
 
-        self._request_obj.request_from_api(0)
-        # self.log(api.get_raw_response())
-        xml = self._request_obj.get_response()
-
-        credentials_element = xml.findall('.//t:credentials', self.ns_map)
-        self.token = credentials_element[0].get("token")
-        self.log("Token is " + self.token)
-        self._request_obj.token = self.token
-        self.site_luid = credentials_element[0].findall(".//t:site", self.ns_map)[0].get("id")
-        self.user_luid = credentials_element[0].findall(".//t:user", self.ns_map)[0].get("id")
-        self.log("Site ID is " + self.site_luid)
-        self._request_obj.url = None
-        self._request_obj.xml_request = None
+            credentials_element = xml.findall('.//t:credentials', self.ns_map)
+            self.token = credentials_element[0].get("token")
+            self.log("Token is " + self.token)
+            self._request_obj.token = self.token
+            self.site_luid = credentials_element[0].findall(".//t:site", self.ns_map)[0].get("id")
+            self.user_luid = credentials_element[0].findall(".//t:user", self.ns_map)[0].get("id")
+            self.log("Site ID is " + self.site_luid)
+            self._request_obj.url = None
+            self._request_obj.xml_request = None
+        except RecoverableHTTPException as e:
+            if e.tableau_error_code == '401001':
+                self.end_log_block()
+                raise NotSignedInException('Sign-in failed due to wrong credentials')
         self.end_log_block()
 
     def swap_token(self, site_luid: str, user_luid: str, token: str):
@@ -474,6 +378,8 @@ class TableauRestApiBase(LookupMethods, LoggingMethods):
                        sorts: Optional[List[Sort]] = None, additional_url_ending: Optional[str] = None,
                        fields: Optional[List[str]] = None) -> ET.Element:
         self.start_log_block()
+        if self.token == "":
+            raise NotSignedInException('Must use .signin() to create REST API session first')
         url_endings = []
         if filters is not None:
             if len(filters) > 0:
@@ -625,6 +531,8 @@ class TableauRestApiBase(LookupMethods, LoggingMethods):
                             sorts: Optional[List[Sort]] = None, additional_url_ending: str = None,
                             fields: Optional[List[str]] = None, page_number: Optional[int] = None) -> Dict:
         self.start_log_block()
+        if self.token == "":
+            raise NotSignedInException('Must use .signin() to create REST API session first')
         url_endings = []
         if filters is not None:
             if len(filters) > 0:
@@ -877,144 +785,146 @@ class TableauRestApiBase(LookupMethods, LoggingMethods):
                 # Open the file to be uploaded
                 try:
                     content_file = open(content_filename, 'rb')
-                    file_size = os.path.getsize(content_filename)
-                    file_size_mb = float(file_size) / float(1000000)
-                    self.log("File {} is size {} MBs".format(content_filename, file_size_mb))
-                    final_filename = content_filename
-
-                    # Request type is mixed and require a boundary
-                    boundary_string = self.generate_boundary_string()
-
-                    # Create the initial XML portion of the request
-                    publish_request = bytes("--{}\r\n".format(boundary_string).encode('utf-8'))
-                    publish_request += bytes('Content-Disposition: name="request_payload"\r\n'.encode('utf-8'))
-                    publish_request += bytes('Content-Type: text/xml\r\n\r\n'.encode('utf-8'))
-
-                    # Build publish request in ElementTree then convert at publish
-                    publish_request_xml = ET.Element('tsRequest')
-                    # could be either workbook, datasource, or flow
-                    t1 = ET.Element(content_type)
-                    t1.set('name', content_name)
-                    if show_tabs is not False:
-                        t1.set('showTabs', str(show_tabs).lower())
-                    if generate_thumbnails_as_username_or_luid is not None:
-                        if self.is_luid(generate_thumbnails_as_username_or_luid):
-                            thumbnail_user_luid = generate_thumbnails_as_username_or_luid
-                        else:
-                            thumbnail_user_luid = self.query_user_luid(generate_thumbnails_as_username_or_luid)
-                        t1.set('generateThumbnailsAsUser', thumbnail_user_luid)
-
-                    if connection_username is not None:
-                        cc = ET.Element('connectionCredentials')
-                        cc.set('name', connection_username)
-                        if oauth_flag is True:
-                            cc.set('oAuth', "True")
-                        if connection_password is not None:
-                            cc.set('password', connection_password)
-                        cc.set('embed', str(save_credentials).lower())
-                        t1.append(cc)
-
-                    # Views to Hide in Workbooks from 3.2
-                    if views_to_hide_list is not None:
-                        if len(views_to_hide_list) > 0:
-                            vs = ET.Element('views')
-                            for view_name in views_to_hide_list:
-                                v = ET.Element('view')
-                                v.set('name', view_name)
-                                v.set('hidden', 'true')
-                            t1.append(vs)
-
-                    # Description only allowed for Flows as of 3.3
-                    if description is not None:
-                         t1.set('description', description)
-                    p = ET.Element('project')
-                    p.set('id', project_luid)
-                    t1.append(p)
-                    publish_request_xml.append(t1)
-
-                    encoded_request = ET.tostring(publish_request_xml, encoding='utf-8')
-
-                    publish_request += bytes(encoded_request)
-                    publish_request += bytes("\r\n--{}".format(boundary_string).encode('utf-8'))
-
-                    # Upload as single if less than file_size_limit MB
-                    if file_size_mb <= single_upload_limit:
-                        # If part of a single upload, this if the next portion
-                        self.log("Less than {} MB, uploading as a single call".format(str(single_upload_limit)))
-                        publish_request += bytes('\r\n'.encode('utf-8'))
-                        publish_request += bytes('Content-Disposition: name="tableau_{}"; filename="{}"\r\n'.format(
-                            content_type, final_filename).encode('utf-8'))
-                        publish_request += bytes('Content-Type: application/octet-stream\r\n\r\n'.encode('utf-8'))
-
-                        # Content needs to be read unencoded from the file
-                        content = content_file.read()
-
-                        # Add to string as regular binary, no encoding
-                        publish_request += content
-
-                        publish_request += bytes("\r\n--{}--".format(boundary_string).encode('utf-8'))
-
-                        url = self.build_api_url("{}s").format(content_type)
-
-                        # Allow additional parameters on the publish url
-                        if len(url_params) > 0:
-                            additional_params = '?'
-                            i = 1
-                            for param in url_params:
-                                if i > 1:
-                                    additional_params += "&"
-                                additional_params += "{}={}".format(param, str(url_params[param]).lower())
-                                i += 1
-                            url += additional_params
-
-                        content_file.close()
-                        if temp_wb_filename is not None:
-                            os.remove(temp_wb_filename)
-                        if cleanup_temp_file is True:
-                            os.remove(final_filename)
-                        return self.send_publish_request(url, None, publish_request, boundary_string)
-                    # Break up into chunks for upload
-                    else:
-                        self.log("Greater than 10 MB, uploading in chunks")
-                        upload_session_id = self.initiate_file_upload()
-
-                        # Upload each chunk
-                        for piece in self.read_file_in_chunks(content_file):
-                            self.log("Appending chunk to upload session {}".format(upload_session_id))
-                            self.append_to_file_upload(upload_session_id, piece, final_filename)
-
-                        # Finalize the publish
-                        url = self.build_api_url("{}s").format(content_type) + "?uploadSessionId={}".format(
-                            upload_session_id) + "&{}Type={}".format(content_type, file_extension)
-
-                        # Allow additional parameters on the publish url
-                        if len(url_params) > 0:
-                            additional_params = '&'
-                            i = 1
-                            for param in url_params:
-                                if i > 1:
-                                    additional_params += "&"
-                                additional_params += "{}={}".format(param, str(url_params[param]).lower())
-                                i += 1
-                            url += additional_params
-
-                        publish_request += bytes("--".encode('utf-8'))  # Need to finish off the last boundary
-                        self.log("Finishing the upload with a publish request")
-                        content_file.close()
-                        if temp_wb_filename is not None:
-                            os.remove(temp_wb_filename)
-                        if cleanup_temp_file is True:
-                            os.remove(final_filename)
-                        return self.send_publish_request(url=url, xml_request=None, content=publish_request,
-                                                         boundary_string=boundary_string)
-
                 except IOError:
                     print("Error: File '{}' cannot be opened to upload".format(content_filename))
                     raise
+                file_size = os.path.getsize(content_filename)
+                file_size_mb = float(file_size) / float(1000000)
+                self.log("File {} is size {} MBs".format(content_filename, file_size_mb))
+                final_filename = content_filename
+
+                # Request type is mixed and require a boundary
+                boundary_string = self.generate_boundary_string()
+
+                # Create the initial XML portion of the request
+                publish_request = bytes("--{}\r\n".format(boundary_string).encode('utf-8'))
+                publish_request += bytes('Content-Disposition: name="request_payload"\r\n'.encode('utf-8'))
+                publish_request += bytes('Content-Type: text/xml\r\n\r\n'.encode('utf-8'))
+
+                # Build publish request in ElementTree then convert at publish
+                publish_request_xml = ET.Element('tsRequest')
+                # could be either workbook, datasource, or flow
+                t1 = ET.Element(content_type)
+                t1.set('name', content_name)
+                if show_tabs is not False:
+                    t1.set('showTabs', str(show_tabs).lower())
+                if generate_thumbnails_as_username_or_luid is not None:
+                    if self.is_luid(generate_thumbnails_as_username_or_luid):
+                        thumbnail_user_luid = generate_thumbnails_as_username_or_luid
+                    else:
+                        thumbnail_user_luid = self.query_user_luid(generate_thumbnails_as_username_or_luid)
+                    t1.set('generateThumbnailsAsUser', thumbnail_user_luid)
+
+                if connection_username is not None:
+                    cc = ET.Element('connectionCredentials')
+                    cc.set('name', connection_username)
+                    if oauth_flag is True:
+                        cc.set('oAuth', "True")
+                    if connection_password is not None:
+                        cc.set('password', connection_password)
+                    cc.set('embed', str(save_credentials).lower())
+                    t1.append(cc)
+
+                # Views to Hide in Workbooks from 3.2
+                if views_to_hide_list is not None:
+                    if len(views_to_hide_list) > 0:
+                        vs = ET.Element('views')
+                        for view_name in views_to_hide_list:
+                            v = ET.Element('view')
+                            v.set('name', view_name)
+                            v.set('hidden', 'true')
+                        t1.append(vs)
+
+                # Description only allowed for Flows as of 3.3
+                if description is not None:
+                     t1.set('description', description)
+                p = ET.Element('project')
+                p.set('id', project_luid)
+                t1.append(p)
+                publish_request_xml.append(t1)
+
+                encoded_request = ET.tostring(publish_request_xml, encoding='utf-8')
+
+                publish_request += bytes(encoded_request)
+                publish_request += bytes("\r\n--{}".format(boundary_string).encode('utf-8'))
+
+                # Upload as single if less than file_size_limit MB
+                if file_size_mb <= single_upload_limit:
+                    # If part of a single upload, this if the next portion
+                    self.log("Less than {} MB, uploading as a single call".format(str(single_upload_limit)))
+                    publish_request += bytes('\r\n'.encode('utf-8'))
+                    publish_request += bytes('Content-Disposition: name="tableau_{}"; filename="{}"\r\n'.format(
+                        content_type, final_filename).encode('utf-8'))
+                    publish_request += bytes('Content-Type: application/octet-stream\r\n\r\n'.encode('utf-8'))
+
+                    # Content needs to be read unencoded from the file
+                    content = content_file.read()
+
+                    # Add to string as regular binary, no encoding
+                    publish_request += content
+
+                    publish_request += bytes("\r\n--{}--".format(boundary_string).encode('utf-8'))
+
+                    url = self.build_api_url("{}s").format(content_type)
+
+                    # Allow additional parameters on the publish url
+                    if len(url_params) > 0:
+                        additional_params = '?'
+                        i = 1
+                        for param in url_params:
+                            if i > 1:
+                                additional_params += "&"
+                            additional_params += "{}={}".format(param, str(url_params[param]).lower())
+                            i += 1
+                        url += additional_params
+
+                    content_file.close()
+                    if temp_wb_filename is not None:
+                        os.remove(temp_wb_filename)
+                    if cleanup_temp_file is True:
+                        os.remove(final_filename)
+
+                    results = self.send_publish_request(url=url, xml_request=None, content=publish_request,
+                                                 boundary_string=boundary_string)
+                    return results
+                # Break up into chunks for upload
+                else:
+                    self.log("Greater than 10 MB, uploading in chunks")
+                    upload_session_id = self.initiate_file_upload()
+
+                    # Upload each chunk
+                    for piece in self.read_file_in_chunks(content_file):
+                        self.log("Appending chunk to upload session {}".format(upload_session_id))
+                        self.append_to_file_upload(upload_session_id, piece, final_filename)
+
+                    # Finalize the publish
+                    url = self.build_api_url("{}s").format(content_type) + "?uploadSessionId={}".format(
+                        upload_session_id) + "&{}Type={}".format(content_type, file_extension)
+
+                    # Allow additional parameters on the publish url
+                    if len(url_params) > 0:
+                        additional_params = '&'
+                        i = 1
+                        for param in url_params:
+                            if i > 1:
+                                additional_params += "&"
+                            additional_params += "{}={}".format(param, str(url_params[param]).lower())
+                            i += 1
+                        url += additional_params
+
+                    publish_request += bytes("--".encode('utf-8'))  # Need to finish off the last boundary
+                    self.log("Finishing the upload with a publish request")
+                    content_file.close()
+                    if temp_wb_filename is not None:
+                        os.remove(temp_wb_filename)
+                    if cleanup_temp_file is True:
+                        os.remove(final_filename)
+                    return self.send_publish_request(url=url, xml_request=None, content=publish_request,
+                                                     boundary_string=boundary_string)
 
         if file_extension is None:
             raise InvalidOptionException(
-                "File {} does not have an acceptable extension. Should be .twb,.twbx,.tde,.tdsx,.tds,.tde".format(
+                "File {} does not have an acceptable extension. Should be .twb,.twbx,.tde,.tdsx,.tds,.tde, .tfl, .tlfx, .hyper".format(
                     content_filename))
 
     def initiate_file_upload(self) -> str:

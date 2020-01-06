@@ -107,8 +107,9 @@ class ProjectMethods():
             url += '?publishSamples=true'
 
         response = self.send_update_request(url, tsr)
+        proj_xml_obj = response.findall(".//t:project", TableauRestXml.ns_map)[0]
         self.end_log_block()
-        return self.get_published_project_object(project_luid, response)
+        return self.get_published_project_object(project_name_or_luid=project_luid, project_xml_obj=proj_xml_obj)
 
     def delete_projects(self, project_name_or_luid_s: Union[List[str], str]):
         self.start_log_block()
@@ -251,8 +252,9 @@ class ProjectMethods28(ProjectMethods27):
             url += '?publishSamples=true'
 
         response = self.send_update_request(url, tsr)
+        proj_xml_obj = response.findall(".//t:project", TableauRestXml.ns_map)[0]
         self.end_log_block()
-        return self.get_published_project_object(project_luid, response)
+        return self.get_published_project_object(project_name_or_luid=project_luid, project_xml_obj=proj_xml_obj)
 
     def query_project(self, project_name_or_luid: str) -> Project28:
 
@@ -378,8 +380,9 @@ class ProjectMethods33(ProjectMethods32):
             url += '?publishSamples=true'
 
         response = self.send_update_request(url, tsr)
+        proj_xml_obj = response.findall(".//t:project", TableauRestXml.ns_map)[0]
         self.end_log_block()
-        return self.get_published_project_object(project_luid, response)
+        return self.get_published_project_object(project_name_or_luid=project_luid, project_xml_obj=proj_xml_obj)
 
 class ProjectMethods34(ProjectMethods33):
     def __init__(self, rest_api_base: TableauRestApiBase34):

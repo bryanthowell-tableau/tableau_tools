@@ -166,15 +166,26 @@ If you want to log something in your script into this log, you can call
 
 where l is a string. You do not need to add a "\n", it will be added automatically.
 
-The Logger class by default only logs Requests but not Responses. If you need to see the full responses, use the following method:
+The Logger class, starting in tableau_tools 5.1, has multiple options to show different levels of response.
 
-`Logger.enable_debug_level()`b
+By default, the Logger will only show the HTTP requests with URI, along the chain of nested methods used to perform the actions.
 
+`Logger.enable_request_logging()`
 
-### 0.3 TableauBase class
-Many classes within the tableau_tools package inherit from the TableauBase class. TableauBase implements the `enable_logging(Logger)` method, along with other a `.log()` method that calls to `Logger.log()`. It also has many static methods, mapping dicts, and helper classes related to Tableau in general. 
+will display the string version of the XML requests sent along with the HTTP requests.
 
-It should never be necessary to use TableauBase by itself.
+`Logger.enable_response_logging()`
+
+will display the string version of all XML responses in the logs. This is far more verbose, so is only suggested when you are encountering errors based on expectations of what should be in the response.
+
+`Logger.enable_debug_level()`
+
+makes the Logger indent the lines of the log, so that you can see the nesting of the actions that happen more easily. This is what the logs looked like in previous version of tableau_tools, but now it must be turned on if you want that mode.
+
+### 0.3 TableauRestXml class
+There is a class called TableauRestXml which holds static methods and properties that are useful on any Tableau REST XML request or response.
+
+TableauServerRest and TableauRestApiConnection both inherit from this class so you can call any of the methods from one of those objects rather than calling it directly.
 
 ### 0.4 tableau_exceptions
 The tableau_exceptions file defines a variety of Exceptions that are specific to Tableau, particularly the REST API. They are not very complex, and most simply include a msg property that will clarify the problem if logged
@@ -912,11 +923,17 @@ For Projects, since the standard `query_project()` method returns the Project ob
 
 Projects have additional commands that the other classes do not:
 
-`Project.lock_permissions()`
+`Project.lock_permissions() -> Project`
 
-`Project.unlock_permission()`
+`Project.unlock_permission() -> Project`
 
 `Project.are_permissions_locked()`
+
+If you are locking or unlocking permissions, you should replace the project object you used with the response that comes back:
+
+    proj = t.projects.query_project('My Project')
+    proj = proj.lock_permissions()  # You want to updated object returned here to use from here on out
+    ... 
 
 You access the default permissions objects with the following, which reference the objects of the correct type that have already been built within the Project object:
 
