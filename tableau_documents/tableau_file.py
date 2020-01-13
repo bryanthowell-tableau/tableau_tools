@@ -417,14 +417,23 @@ class TDSX(DatasourceFileInterface, TableauPackagedFile):
         os.remove(self.packaged_filename)
 
         temp_directories_to_remove = {}
-
+        # Store any directories that already existed, so you don't clean up exiting directory on disk
+        existing_directories = []
+        all_in_working_dir = os.listdir()
+        for l in all_in_working_dir:
+            if (os.path.isdir(l)):
+                existing_directories.append(l)
+        # Now actually go through all the other files, extract them, put into the new ZIP file, then clean up
         if len(self.other_files) > 0:
             file_obj = open(self.orig_filename, 'rb')
             o_zf = zipfile.ZipFile(file_obj)
 
             for filename in self.other_files:
                 self.log('Looking into additional files: {}'.format(filename))
-
+                lowest_level = filename.split('/')
+                # Only delete out if it didn't exist prior to saving out of the original ZIPfile
+                if lowest_level[0] not in existing_directories:
+                    temp_directories_to_remove[lowest_level[0]] = True
                 if self.file_replacement_map and filename in self.file_replacement_map:
                     new_zf.write(self.file_replacement_map[filename], "/" + filename)
                     # Delete from the data_file_replacement_map to reduce down to end
@@ -434,8 +443,7 @@ class TDSX(DatasourceFileInterface, TableauPackagedFile):
                     new_zf.write(filename)
                     os.remove(filename)
                 self.log('Removed file {}'.format(filename))
-                lowest_level = filename.split('/')
-                temp_directories_to_remove[lowest_level[0]] = True
+
             file_obj.close()
 
         # Loop through remaining files in data_file_replacement_map to just add
