@@ -345,6 +345,8 @@ You can get all of the values from the previous object, if it has been signed in
 Now any actions you take with t2 will be the same session to the Tableau Server as those taken with t1. This can also be very useful for multi-threaded programming, where you may want to clone instances of an object so that they don't interact with one another while doing things on different threads, but still use the same REST API session.
 
 ### 1.2 Basics and Querying
+NOTE: If you get a "RecursionError: maximum recursion depth exceeded" Exception, it generally means that you are trying a method that does not exist. The most common reason for this with the TableauServerRest objects is when porting code over from TableauRestApiConnection objects. All methods except for lookups live under a sub-object (t.users.method()) in TableauServerRest, so if you put a method directly on the main object, it will try and search for it but error out. This issue can work the other way, if you try and use a sub-object under TableauRestApiConnection when it doesn't exist.
+
 #### 1.2.0 ElementTree.Element XML Responses
 As mentioned in the 0 section, tableau_tools returns ElementTree.Element responses for any XML request. To know exactly what is available in any given object coming back from the Tableau REST API, you'll need to either consult the REST API Reference or convert to it something you can write to the console or a text file.
 
