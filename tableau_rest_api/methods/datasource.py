@@ -125,7 +125,7 @@ class DatasourceMethods():
                                              new_connection_username: Optional[str] = None,
                                              new_connection_password: Optional[str] = None) -> ET.Element:
         self.start_log_block()
-        tsr = self.__build_connection_update_xml(new_server_address, new_server_port,
+        tsr = self.rest_api_base.__build_connection_update_xml(new_server_address, new_server_port,
                                                             new_connection_username,
                                                             new_connection_password)
         url = self.build_api_url("datasources/{}/connection".format(datasource_luid))
