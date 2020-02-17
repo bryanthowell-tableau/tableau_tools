@@ -63,17 +63,16 @@ class WorkbookMethods():
             if all_fields is True:
                 fields = ['_all_']
 
-        user_luid = self.query_user_luid(username_or_luid)
-
         filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter,
                          'ownerName': owner_name_filter}
         filters = self._check_filter_objects(filter_checks)
 
         if username_or_luid is not None:
+            user_luid = self.query_user_luid(username_or_luid)
             wbs = self.query_resource_json("users/{}/workbooks".format(user_luid), sorts=sorts, filters=filters,
                                            fields=fields, page_number=page_number)
         else:
-            wbs = self.query_resource_json("workbooks".format(user_luid), sorts=sorts, filters=filters, fields=fields,
+            wbs = self.query_resource_json("workbooks", sorts=sorts, filters=filters, fields=fields,
                                            page_number=page_number)
 
         self.end_log_block()
