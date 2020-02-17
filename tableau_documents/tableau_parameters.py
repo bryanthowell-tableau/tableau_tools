@@ -262,7 +262,7 @@ class TableauParameters(LoggingMethods):
                 p = TableauParameter(parameter_xml=column, logger_obj=self.logger)
                 self._parameters[alias] = p
 
-    def get_datasource_xml(self) -> str:
+    def get_xml_string(self) -> str:
         self.start_log_block()
         xmlstring = ET.tostring(self.ds_xml)
         self.end_log_block()
