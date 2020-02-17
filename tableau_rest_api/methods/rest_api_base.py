@@ -187,13 +187,12 @@ class TableauRestApiBase(LookupMethods, LoggingMethods, TableauRestXml):
     def build_url_parameter_string(map_dict: Optional[Dict] = None, name_value_tuple_list: Optional[List[Tuple]] = None,
                                    hand_built_portion: Optional[str] = None):
         encoded_list = None
-        if len(name_value_tuple_list) == 0:
-            encoded_list = None
-        else:
-            for v in name_value_tuple_list:
-                if len(v) != 2:
-                    raise InvalidOptionException('Each element should have a two-element Tuples (Name, Value)')
-                encoded_list = urlencode(name_value_tuple_list)
+        if name_value_tuple_list is not None:
+            if len(name_value_tuple_list) > 0:
+                for v in name_value_tuple_list:
+                    if len(v) != 2:
+                        raise InvalidOptionException('Each element should have a two-element Tuples (Name, Value)')
+                    encoded_list = urlencode(name_value_tuple_list)
 
         if hand_built_portion is not None and encoded_list is None:
             final_string = hand_built_portion
