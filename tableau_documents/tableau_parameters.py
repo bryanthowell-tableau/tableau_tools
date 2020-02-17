@@ -270,7 +270,7 @@ class TableauParameters(LoggingMethods):
 
     def get_parameter_by_name(self, parameter_name: str) -> TableauParameter:
         for p in self._parameters:
-            if p.name == parameter_name:
+            if self.parameters[p].name == parameter_name:
                 return p
         else:
             raise NoMatchFoundException('No parameter named {}'.format(parameter_name))
