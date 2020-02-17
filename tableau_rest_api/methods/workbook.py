@@ -166,7 +166,7 @@ class WorkbookMethods():
                                            new_connection_username: Optional[str] = None,
                                            new_connection_password: Optional[str] = None) -> ET.Element:
         self.start_log_block()
-        tsr = self.__build_connection_update_xml(new_server_address, new_server_port, new_connection_username,
+        tsr = self.rest_api_base.__build_connection_update_xml(new_server_address, new_server_port, new_connection_username,
                                                  new_connection_password)
         url = self.build_api_url("workbooks/{}/connections/{}".format(wb_luid, connection_luid))
         response = self.send_update_request(url, tsr)
