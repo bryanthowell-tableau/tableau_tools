@@ -374,7 +374,7 @@ class WorkbookMethods():
                          show_tabs: bool = True, check_published_ds: bool = True,
                          oauth_flag: bool = False) -> str:
         project_luid = project_obj.luid
-        xml = self.publish_content('workbook', workbook_filename, workbook_name, project_luid,
+        xml = self._publish_content('workbook', workbook_filename, workbook_name, project_luid,
                                    {"overwrite": overwrite}, connection_username, connection_password,
                                    save_credentials, show_tabs=show_tabs, check_published_ds=check_published_ds,
                                    oauth_flag=oauth_flag)
