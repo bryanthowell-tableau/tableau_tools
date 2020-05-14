@@ -245,7 +245,7 @@ def replicate_workbooks_with_published_dses(o_site_connection: TableauServerRest
         temp_wb_file = t_file.save_new_file('Modified Workbook'.format(wb))
         new_workbook_luid = d.workbooks.publish_workbook(workbook_filename=temp_wb_file, workbook_name=wb,
                                                project_obj=dest_project,
-                                               overwrite=True, check_published_ds=False)
+                                               overwrite=True)
         print('Published new workbook {}'.format(new_workbook_luid))
         os.remove(temp_wb_file)
 
