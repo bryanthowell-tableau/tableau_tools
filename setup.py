@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name='tableau_tools',
     python_requires='>=3.6',
-    version='5.1.3',
+    version='5.1.4',
     packages=['tableau_tools', 'tableau_tools.tableau_rest_api', 'tableau_tools.tableau_documents',
               'tableau_tools.examples', 'tableau_tools.tableau_rest_api.methods'],
     url='https://github.com/bryantbhowell/tableau_tools',
