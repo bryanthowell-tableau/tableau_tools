@@ -11,7 +11,7 @@ default = TableauRestApiConnection28(server=server, username=username, password=
 default.enable_logging(logger)
 default.signin()
 
-with open('permissions_audit.txt', 'w') as output_file:
+with open('permissions_audit.txt', 'w', newline='') as output_file:
 
     # Get all sites content urls for logging in
     site_content_urls = default.query_all_site_content_urls()
