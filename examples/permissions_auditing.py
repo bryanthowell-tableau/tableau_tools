@@ -23,13 +23,13 @@ with open('permissions_audit.txt', 'wb') as output_file:
     headers = ['Site Content URL', 'Project Name', 'Project LUID', 'Are Permissions Locked?',
                'Principal Type', 'Principal Name', 'Principal LUID']
 
-    project_caps = default.available_capabilities[default.api_version]['project']
+    project_caps = Permissions.available_capabilities[default.api_version]['project']
     for cap in project_caps:
         headers.append(',{}'.format(cap))
-    workbook_caps = default.available_capabilities[default.api_version]['workbook']
+    workbook_caps = Permissions.available_capabilities[default.api_version]['workbook']
     for cap in workbook_caps:
         headers.append(',{}'.format(cap))
-    datasource_caps = default.available_capabilities[default.api_version]['datasource']
+    datasource_caps = Permissions.available_capabilities[default.api_version]['datasource']
     for cap in datasource_caps:
         headers.append(',{}'.format(cap))
     output_writer.writerow(headers)
