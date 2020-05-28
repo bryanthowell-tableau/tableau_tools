@@ -11,7 +11,7 @@ default = TableauRestApiConnection28(server=server, username=username, password=
 default.enable_logging(logger)
 default.signin()
 
-with open('permissions_audit.txt', 'wb') as output_file:
+with open('permissions_audit.txt', 'w', newline='') as output_file:
 
     # Get all sites content urls for logging in
     site_content_urls = default.query_all_site_content_urls()
@@ -23,15 +23,15 @@ with open('permissions_audit.txt', 'wb') as output_file:
     headers = ['Site Content URL', 'Project Name', 'Project LUID', 'Are Permissions Locked?',
                'Principal Type', 'Principal Name', 'Principal LUID']
 
-    project_caps = default.available_capabilities[default.api_version]['project']
+    project_caps = Permissions.available_capabilities[default.api_version]['project']
     for cap in project_caps:
-        headers.append(',{}'.format(cap))
-    workbook_caps = default.available_capabilities[default.api_version]['workbook']
+        headers.append(cap)
+    workbook_caps = Permissions.available_capabilities[default.api_version]['workbook']
     for cap in workbook_caps:
-        headers.append(',{}'.format(cap))
-    datasource_caps = default.available_capabilities[default.api_version]['datasource']
+        headers.append(cap)
+    datasource_caps = Permissions.available_capabilities[default.api_version]['datasource']
     for cap in datasource_caps:
-        headers.append(',{}'.format(cap))
+        headers.append(cap)
     output_writer.writerow(headers)
 
     for site_content_url in site_content_urls:
@@ -53,13 +53,13 @@ with open('permissions_audit.txt', 'wb') as output_file:
                 all_perms_list = proj_obj.convert_all_permissions_to_list(all_perms[luid])
                 if site_content_url is None:
                     site_content_url = ''
-                output_row.append(site_content_url.encode('utf-8'))
-                output_row.append(project.encode('utf-8'))
-                output_row.append(projects_dict[project].encode('utf-8'))
+                output_row.append(site_content_url)
+                output_row.append(project)
+                output_row.append(projects_dict[project])
                 output_row.append(str(proj_obj.are_permissions_locked()))
-                output_row.append(all_perms[luid]["type"].encode('utf-8'))
-                output_row.append(all_perms[luid]["name"].encode('utf-8'))
-                output_row.append(luid.encode('utf-8'))
+                output_row.append(all_perms[luid]["type"])
+                output_row.append(all_perms[luid]["name"])
+                output_row.append(luid)
                 output_row.extend(all_perms_list)
                 output_writer.writerow(output_row)
 

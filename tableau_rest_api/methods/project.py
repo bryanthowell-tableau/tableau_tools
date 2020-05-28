@@ -64,8 +64,9 @@ class ProjectMethods():
             new_project = self.send_add_request(url, tsr)
             self.end_log_block()
             project_luid = new_project.findall('.//t:project', self.ns_map)[0].get("id")
+            proj_xml = new_project.findall('.//t:project', self.ns_map)[0]
             if no_return is False:
-                return self.get_published_project_object(project_luid, new_project)
+                return self.get_published_project_object(project_luid, proj_xml)
         except RecoverableHTTPException as e:
             if e.http_code == 409:
                 self.log('Project named {} already exists, finding and returning the Published Project Object'.format(
