@@ -85,35 +85,29 @@ class TableauRestApiBase(LookupMethods, LoggingMethods, TableauRestXml):
 
 
     def set_tableau_server_version(self, tableau_server_version: str) -> str:
-        if str(tableau_server_version)in ["10.3", "10.4", "10.5", '2018.1', '2018.2', '2018.3', '2019.1',
-                                          '2019.2', '2019.3', '2019.4']:
-            if str(tableau_server_version) == '10.3':
-                self.api_version = '2.6'
-            elif str(tableau_server_version) == '10.4':
-                self.api_version = '2.7'
-            elif str(tableau_server_version) == '10.5':
-                self.api_version = '2.8'
-            elif str(tableau_server_version) == '2018.1':
-                self.api_version = '3.0'
-            elif str(tableau_server_version) == '2018.2':
-                self.api_version = '3.1'
-            elif str(tableau_server_version) == '2018.3':
-                self.api_version = '3.2'
-            elif str(tableau_server_version) == '2019.1':
-                self.api_version = '3.3'
-            elif str(tableau_server_version) == '2019.2':
-                self.api_version = '3.4'
-            elif str(tableau_server_version) == '2019.3':
-                self.api_version = '3.5'
-            elif str(tableau_server_version) == '2019.4':
-                self.api_version = '3.6'
+        server_to_api_version_map = {
+            '10.3': '2.6',
+            '10.4': '2.7',
+            '10.5': '2.8',
+            '2018.1': '3.0',
+            '2018.2': '3.1',
+            '2018.3': '3.2',
+            '2019.1': '3.3',
+            '2019.2': '3.4',
+            '2019.3': '3.5',
+            '2019.4': '3.6',
+            '2020.1': '3.7',
+            '2020.2': '3.8',
+            '2020.3': '3.9',
+        }
+        if str(tableau_server_version) in server_to_api_version_map.keys():
+            self.api_version = server_to_api_version_map[tableau_server_version]
             self.tableau_namespace = 'http://tableau.com/api'
             self.ns_map = {'t': 'http://tableau.com/api'}
             self.version = tableau_server_version
             self.ns_prefix = '{' + self.ns_map['t'] + '}'
             #print("Current API Version set to: {}".format(self.api_version))
             return self.api_version
-
         else:
             raise InvalidOptionException("Please specify tableau_server_version as a string. '10.5' or '2019.3' etc...")
 
@@ -1287,3 +1281,11 @@ class TableauRestApiBase36(TableauRestApiBase35):
         self._request_obj.url = None
         self._request_obj.xml_request = None
         self.end_log_block()
+
+class TableauRestApiBase37(TableauRestApiBase36):
+    def __init__(self, server: str, username: str, password: str,
+                 pat_name: Optional[str] = None, pat_secret: Optional[str] = None,
+                 site_content_url: Optional[str] = ""):
+        TableauRestApiBase36.__init__(self, server=server, username=username, password=password, pat_name=pat_name,
+                                      pat_secret=pat_secret, site_content_url=site_content_url)
+        self.set_tableau_server_version('2020.1')

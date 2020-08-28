@@ -251,3 +251,15 @@ class UserMethods35(UserMethods34):
 class UserMethods36(UserMethods35):
     def __init__(self, rest_api_base: TableauRestApiBase36):
         self.rest_api_base = rest_api_base
+
+class UserMethods37(UserMethods36):
+    def __init__(self, rest_api_base: TableauRestApiBase37):
+        self.rest_api_base = rest_api_base
+
+    def query_groups_for_user(self, username_or_luid: str) -> ET.Element:
+        self.start_log_block()
+        user_luid = self.query_user_luid(username=username_or_luid)
+
+        groups = self.query_resource('users/{}/groups'.format(user_luid))
+        self.end_log_block()
+        return groups
