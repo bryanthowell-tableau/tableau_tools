@@ -756,3 +756,47 @@ class WorkbookMethods35(WorkbookMethods34):
 class WorkbookMethods36(WorkbookMethods35):
     def __init__(self, rest_api_base: TableauRestApiBase36):
         self.rest_api_base = rest_api_base
+
+    def get_view_by_path(self, view_url_name: str):
+        self.start_log_block()
+        # This is listed as an endpoint but it's just a filter on the Views method
+
+        self.send_log_block()
+        pass
+
+class WorkbookMethods37(WorkbookMethods36):
+    def __init__(self, rest_api_base: TableauRestApiBase37):
+        self.rest_api_base = rest_api_base
+
+    def get_recommendations_for_views(self):
+        self.start_log_block()
+        recs = self.query_resource('recommendations/?type=view')
+        self.end_log_block()
+        return recs
+
+    def hide_a_recommendation_for_a_view(self, view_luid: str):
+        self.start_log_block()
+        tsr = ET.Element('tsRequest')
+        rd = ET.Element('recommendationDismissal')
+        v = ET.Element('view')
+        v.set('id', view_luid)
+        rd.append(v)
+        tsr.append(rd)
+        url = self.build_api_url('recommendations/dismissals')
+        self.send_update_request(url=url, request=tsr)
+        # No response, just 204 response code
+        self.end_log_block()
+
+    def unhide_a_recommendation_for_a_view(self, view_luid):
+        self.start_log_block()
+        url = self.build_api_url('recommendations/dismissals/?type=view&id={}'.format(view_luid))
+        self.send_delete_request(url=url)
+        self.send_log_block()
+
+class WorkbookMethods38(WorkbookMethods37):
+    def __init__(self, rest_api_base: TableauRestApiBase38):
+        self.rest_api_base = rest_api_base
+
+class WorkbookMethods39(WorkbookMethods38):
+    def __init__(self, rest_api_base: TableauRestApiBase39):
+        self.rest_api_base = rest_api_base

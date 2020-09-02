@@ -1182,7 +1182,6 @@ class TableauRestApiBase35(TableauRestApiBase34):
 
 
 
-
 class TableauRestApiBase36(TableauRestApiBase35):
     def __init__(self, server: str, username: Optional[str] = None, password: Optional[str] = None,
                  pat_name: Optional[str] = None, pat_secret: Optional[str] = None,
@@ -1289,3 +1288,21 @@ class TableauRestApiBase37(TableauRestApiBase36):
         TableauRestApiBase36.__init__(self, server=server, username=username, password=password, pat_name=pat_name,
                                       pat_secret=pat_secret, site_content_url=site_content_url)
         self.set_tableau_server_version('2020.1')
+
+
+class TableauRestApiBase38(TableauRestApiBase37):
+    def __init__(self, server: str, username: str, password: str,
+                 pat_name: Optional[str] = None, pat_secret: Optional[str] = None,
+                 site_content_url: Optional[str] = ""):
+        TableauRestApiBase36.__init__(self, server=server, username=username, password=password, pat_name=pat_name,
+                                      pat_secret=pat_secret, site_content_url=site_content_url)
+        self.set_tableau_server_version('2020.2')
+
+
+class TableauRestApiBase39(TableauRestApiBase38):
+    def __init__(self, server: str, username: str, password: str,
+                 pat_name: Optional[str] = None, pat_secret: Optional[str] = None,
+                 site_content_url: Optional[str] = ""):
+        TableauRestApiBase36.__init__(self, server=server, username=username, password=password, pat_name=pat_name,
+                                      pat_secret=pat_secret, site_content_url=site_content_url)
+        self.set_tableau_server_version('2020.3')
