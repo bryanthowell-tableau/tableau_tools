@@ -84,7 +84,6 @@ class TableauWorkbook(LoggingMethods, TableauDocument):
                     for ds in final_datasources:
                         self.log('Writing datasource XML into the workbook')
                         ds_string = ds.get_xml_string()
-                        print(ds_string)
                         if isinstance(ds_string, bytes):
                             final_string = ds_string.decode('utf-8')
                         else:
