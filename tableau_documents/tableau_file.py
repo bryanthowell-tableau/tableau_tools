@@ -441,7 +441,11 @@ class TDSX(DatasourceFileInterface, TableauPackagedFile):
                 else:
                     o_zf.extract(filename)
                     new_zf.write(filename)
-                    os.remove(filename)
+                    # sometimes a lonely dir is in the zip file
+                    if os.path.isdir(filename):
+                        os.rmdir(filename)
+                    else:
+                        os.remove(filename)
                 self.log('Removed file {}'.format(filename))
 
             file_obj.close()
@@ -564,7 +568,11 @@ class TWBX(DatasourceFileInterface, TableauPackagedFile):
                 else:
                     o_zf.extract(filename)
                     new_zf.write(filename)
-                    os.remove(filename)
+                    # sometimes a lonely dir is in the zip file
+                    if os.path.isdir(filename):
+                        os.rmdir(filename)
+                    else:
+                        os.remove(filename)
                 self.log('Removed file {}'.format(filename))
                 lowest_level = filename.split('/')
                 temp_directories_to_remove[lowest_level[0]] = True
