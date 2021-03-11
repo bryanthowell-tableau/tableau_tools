@@ -456,17 +456,17 @@ class PublishedContent(LoggingMethods):
                 # Check if there are any existing capabilities on the object
                 if cur_obj.luid == new_permissions_obj.luid:
                     # Find if anything is set already, add to deletion queue
-                    need_to_change = self.are_capabilities_obj_dicts_identical(
+                    are_identical = self.are_capabilities_obj_dicts_identical(
                         cur_obj.get_capabilities_dict(), new_permissions_obj.get_capabilities_dict()
                     )
-                    self.log("Existing permissions found for luid {}. Are there differences? {}".format(cur_obj.luid,
-                                                                                                         str(need_to_change)))
+                    self.log("Existing permissions found for luid {}. Are they the same? {}".format(cur_obj.luid,
+                                                                                                         str(are_identical)))
                     # Delete all existing permissions
-                    if need_to_change is True:
+                    if are_identical is False:
                         self.log("Removing existing permissions for luid {}".format(cur_obj.luid))
                         self.delete_permissions_by_permissions_obj_list([cur_obj, ])
 
-                    if need_to_change is False:
+                    if are_identical is True:
                         self.log('No changes necessary, skipping update for quicker performance')
                         # self.end_log_block()
                         continue
