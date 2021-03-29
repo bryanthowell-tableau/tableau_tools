@@ -832,6 +832,7 @@ class TableauRestApiBase(LookupMethods, LoggingMethods, TableauRestXml):
                             v = ET.Element('view')
                             v.set('name', view_name)
                             v.set('hidden', 'true')
+                            vs.append(v)
                         t1.append(vs)
 
                 # Description only allowed for Flows as of 3.3
