@@ -1517,7 +1517,7 @@ class TableauRestApiConnection(TableauBase):
     # This is "Add User to Site", since you must be logged into a site.
     # Set "update_if_exists" to True if you want the equivalent of an 'upsert', ignoring the exceptions
     def add_user(self, username=None, fullname=None, site_role=u'Unlicensed', password=None, email=None,
-                 update_if_exists=False, direct_xml_request=None):
+                 update_if_exists=False, auth_setting=u'ServerDefault', direct_xml_request=None):
         """
         :type username: unicode
         :type fullname: unicode
@@ -1551,7 +1551,7 @@ class TableauRestApiConnection(TableauBase):
                 # Parse to second level, should be
                 new_user_tsr = etree.Element(u'tsRequest')
                 new_user_u = etree.Element(u'user')
-                for t in direct_xml_request:
+                for t in direct_xml_request.iter():
                     if t.tag != u'user':
                         raise InvalidOptionException(u'Must submit a tsRequest with a user element')
                     for a in t.attrib:
@@ -1562,7 +1562,7 @@ class TableauRestApiConnection(TableauBase):
 
                 update_tsr = etree.Element(u'tsRequest')
                 update_u = etree.Element(u'user')
-                for t in direct_xml_request:
+                for t in direct_xml_request.iter():
                     for a in t.attrib:
                         if a in [u'fullName', u'email', u'password', u'siteRole', u'authSetting']:
                             update_u.set(a, t.attrib[a])
@@ -1571,7 +1571,7 @@ class TableauRestApiConnection(TableauBase):
             else:
                 # Add username first, then update with full name
                 new_user_luid = self.add_user_by_username(username, site_role=site_role, update_if_exists=update_if_exists)
-                self.update_user(new_user_luid, fullname, site_role, password, email)
+                self.update_user(new_user_luid, fullname, site_role, password, email, auth_setting)
             self.end_log_block()
             return new_user_luid
         except AlreadyExistsException as e:
@@ -1856,13 +1856,14 @@ class TableauRestApiConnection(TableauBase):
     #
 
     def update_user(self, username_or_luid, full_name=None, site_role=None, password=None,
-                    email=None, direct_xml_request=None):
+                    email=None, auth_setting=u'ServerDefault', direct_xml_request=None):
         """
         :type username_or_luid: unicode
         :type full_name: unicode
         :type site_role: unicode
         :type password: unicode
         :type email: unicode
+        :type auth_setting: unicode
         :type direct_xml_request: etree.Element
         :rtype: etree.Element
         """
@@ -1885,6 +1886,8 @@ class TableauRestApiConnection(TableauBase):
                 u.set(u'email', email)
             if password is not None:
                 u.set(u'password', password)
+            if auth_setting != u'ServerDefault':
+                u.set(u'authSetting', auth_setting)
             tsr.append(u)
 
         url = self.build_api_url(u"users/{}".format(user_luid))
