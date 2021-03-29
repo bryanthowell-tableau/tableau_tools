@@ -47,14 +47,14 @@ class TableRelations():
 
     @property
     def main_custom_sql(self) -> str:
-        if self.main_table.get('type') == 'stored-proc':
+        if self.main_table.get('type') == 'text':
             return self.main_table.text
         else:
             raise InvalidOptionException('Data Source does not have Custom SQL defined')
 
     @main_custom_sql.setter
     def main_custom_sql(self, new_custom_sql: str):
-        if self.main_table.get('type') == 'stored-proc':
+        if self.main_table.get('type') == 'text':
             self.main_table.text = new_custom_sql
         else:
             raise InvalidOptionException('Data Source does not have Custom SQL defined')
