@@ -288,15 +288,6 @@ class ScheduleMethods():
         self.send_delete_request(url)
         self.end_log_block()
 
-
-class ScheduleMethods27(ScheduleMethods):
-    def __init__(self, rest_api_base: TableauRestApiBase27):
-        self.rest_api_base = rest_api_base
-
-class ScheduleMethods28(ScheduleMethods27):
-    def __init__(self, rest_api_base: TableauRestApiBase28):
-        self.rest_api_base = rest_api_base
-
     def add_workbook_to_schedule(self, wb_name_or_luid: str, schedule_name_or_luid: str,
                                  proj_name_or_luid: Optional[str] = None) -> ET.Element:
         self.start_log_block()
@@ -340,19 +331,8 @@ class ScheduleMethods28(ScheduleMethods27):
         self.end_log_block()
         return response
 
-class ScheduleMethods30(ScheduleMethods28):
-    def __init__(self, rest_api_base: TableauRestApiBase30):
-        self.rest_api_base = rest_api_base
 
-class ScheduleMethods31(ScheduleMethods30):
-    def __init__(self, rest_api_base: TableauRestApiBase31):
-        self.rest_api_base = rest_api_base
-
-class ScheduleMethods32(ScheduleMethods31):
-    def __init__(self, rest_api_base: TableauRestApiBase32):
-        self.rest_api_base = rest_api_base
-
-class ScheduleMethods33(ScheduleMethods32):
+class ScheduleMethods33(ScheduleMethods):
     def __init__(self, rest_api_base: TableauRestApiBase33):
         self.rest_api_base = rest_api_base
 

@@ -135,28 +135,8 @@ class SiteMethods():
         self.send_delete_request(url)
         self.end_log_block()
 
-class SiteMethods27(SiteMethods):
-    def __init__(self, rest_api_base: TableauRestApiBase27):
-        self.rest_api_base = rest_api_base
 
-class SiteMethods28(SiteMethods27):
-    def __init__(self, rest_api_base: TableauRestApiBase28):
-        self.rest_api_base = rest_api_base
-
-class SiteMethods30(SiteMethods28):
-    def __init__(self, rest_api_base: TableauRestApiBase30):
-        self.rest_api_base = rest_api_base
-
-
-class SiteMethods31(SiteMethods30):
-    def __init__(self, rest_api_base: TableauRestApiBase31):
-        self.rest_api_base = rest_api_base
-
-class SiteMethods32(SiteMethods31):
-    def __init__(self, rest_api_base: TableauRestApiBase32):
-        self.rest_api_base = rest_api_base
-
-class SiteMethods33(SiteMethods32):
+class SiteMethods33(SiteMethods):
     def __init__(self, rest_api_base: TableauRestApiBase33):
         self.rest_api_base = rest_api_base
 

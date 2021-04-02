@@ -134,27 +134,7 @@ class RevisionMethods():
             self.end_log_block()
             raise
 
-class RevisionMethods27(RevisionMethods):
-    def __init__(self, rest_api_base: TableauRestApiBase27):
-        self.rest_api_base = rest_api_base
-
-class RevisionMethods28(RevisionMethods27):
-    def __init__(self, rest_api_base: TableauRestApiBase28):
-        self.rest_api_base = rest_api_base
-
-class RevisionMethods30(RevisionMethods28):
-    def __init__(self, rest_api_base: TableauRestApiBase30):
-        self.rest_api_base = rest_api_base
-
-class RevisionMethods31(RevisionMethods30):
-    def __init__(self, rest_api_base: TableauRestApiBase31):
-        self.rest_api_base = rest_api_base
-
-class RevisionMethods32(RevisionMethods31):
-    def __init__(self, rest_api_base: TableauRestApiBase32):
-        self.rest_api_base = rest_api_base
-
-class RevisionMethods33(RevisionMethods32):
+class RevisionMethods33(RevisionMethods):
     def __init__(self, rest_api_base: TableauRestApiBase33):
         self.rest_api_base = rest_api_base
 

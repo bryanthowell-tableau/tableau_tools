@@ -168,27 +168,8 @@ class SubscriptionMethods():
             self.send_delete_request(url)
         self.end_log_block()
 
-class SubscriptionMethods27(SubscriptionMethods):
-    def __init__(self, rest_api_base: TableauRestApiBase27):
-        self.rest_api_base = rest_api_base
-        
-class SubscriptionMethods28(SubscriptionMethods27):
-    def __init__(self, rest_api_base: TableauRestApiBase28):
-        self.rest_api_base = rest_api_base
 
-class SubscriptionMethods30(SubscriptionMethods28):
-    def __init__(self, rest_api_base: TableauRestApiBase30):
-        self.rest_api_base = rest_api_base
-
-class SubscriptionMethods31(SubscriptionMethods30):
-    def __init__(self, rest_api_base: TableauRestApiBase31):
-        self.rest_api_base = rest_api_base
-
-class SubscriptionMethods32(SubscriptionMethods31):
-    def __init__(self, rest_api_base: TableauRestApiBase32):
-        self.rest_api_base = rest_api_base
-
-class SubscriptionMethods33(SubscriptionMethods32):
+class SubscriptionMethods33(SubscriptionMethods):
     def __init__(self, rest_api_base: TableauRestApiBase33):
         self.rest_api_base = rest_api_base
 
