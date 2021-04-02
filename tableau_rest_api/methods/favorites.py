@@ -122,22 +122,6 @@ class FavoritesMethods():
             self.send_delete_request(url)
         self.end_log_block()
 
-class FavoritesMethods27(FavoritesMethods):
-    def __init__(self, rest_api_base: TableauRestApiBase27):
-        self.rest_api_base = rest_api_base
-
-class FavoritesMethods28(FavoritesMethods27):
-    def __init__(self, rest_api_base: TableauRestApiBase28):
-        self.rest_api_base = rest_api_base
-
-class FavoritesMethods30(FavoritesMethods28):
-    def __init__(self, rest_api_base: TableauRestApiBase30):
-        self.rest_api_base = rest_api_base
-
-class FavoritesMethods31(FavoritesMethods30):
-    def __init__(self, rest_api_base: TableauRestApiBase31):
-        self.rest_api_base = rest_api_base
-
     def add_project_to_user_favorites(self, favorite_name: str, proj_name_or_luid: str,
                                       username_or_luid: str) -> ET.Element:
         self.start_log_block()
@@ -167,11 +151,8 @@ class FavoritesMethods31(FavoritesMethods30):
             self.send_delete_request(url)
         self.end_log_block()
 
-class FavoritesMethods32(FavoritesMethods31):
-    def __init__(self, rest_api_base: TableauRestApiBase32):
-        self.rest_api_base = rest_api_base
 
-class FavoritesMethods33(FavoritesMethods32):
+class FavoritesMethods33(FavoritesMethods):
     def __init__(self, rest_api_base: TableauRestApiBase33):
         self.rest_api_base = rest_api_base
 

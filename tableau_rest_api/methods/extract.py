@@ -56,28 +56,14 @@ class ExtractMethods():
             self.run_extract_refresh_task(extract.get('id'))
         self.end_log_block()
 
-    def run_extract_refresh_for_workbook(self, wb_name_or_luid: str, proj_name_or_luid: Optional[str] = None):
-        self.start_log_block()
+    def run_extract_refresh_for_workbook(self, wb_name_or_luid: str,
+                                         proj_name_or_luid: Optional[str] = None) -> ET.Element:
+        return self.update_workbook_now(wb_name_or_luid, proj_name_or_luid)
 
-        wb_luid = self.query_workbook_luid(wb_name_or_luid, proj_name_or_luid)
-        tasks = self.get_extract_refresh_tasks()
-
-        extracts_for_wb = tasks.findall('.//t:extract/workbook[@id="{}"]..'.format(wb_luid), self.ns_map)
-
-        for extract in extracts_for_wb:
-            self.run_extract_refresh_task(extract.get('id'))
-        self.end_log_block()
-
-    # Check if this actually works
-    def run_extract_refresh_for_datasource(self, ds_name_or_luid: str, proj_name_or_luid: Optional[str] = None):
-        self.start_log_block()
-        ds_luid = self.query_datasource_luid(ds_name_or_luid, proj_name_or_luid)
-        tasks = self.get_extract_refresh_tasks()
-        extracts_for_ds = tasks.findall('.//t:extract/datasource[@id="{}"]..'.format(ds_luid), self.ns_map)
-        # print extracts_for_wb
-        for extract in extracts_for_ds:
-            self.run_extract_refresh_task(extract.get('id'))
-        self.end_log_block()
+    # Use the specific refresh rather than the schedule task in 2.8
+    def run_extract_refresh_for_datasource(self, ds_name_or_luid: str,
+                                           proj_name_or_luid: Optional[str] = None) -> ET.Element:
+        return self.update_datasource_now(ds_name_or_luid, proj_name_or_luid)
 
     # Checks status of AD sync process or extract
     def query_job(self, job_luid: str) -> ET.Element:
@@ -85,14 +71,6 @@ class ExtractMethods():
         job = self.query_resource("jobs/{}".format(job_luid))
         self.end_log_block()
         return job
-    
-class ExtractMethods27(ExtractMethods):
-    def __init__(self, rest_api_base: TableauRestApiBase27):
-        self.rest_api_base = rest_api_base
-
-class ExtractMethods28(ExtractMethods27):
-    def __init__(self, rest_api_base: TableauRestApiBase28):
-        self.rest_api_base = rest_api_base
 
     def update_datasource_now(self, ds_name_or_luid: str,
                               project_name_or_luid: Optional[str] = None) -> ET.Element:
@@ -122,24 +100,6 @@ class ExtractMethods28(ExtractMethods27):
         self.end_log_block()
         return response
 
-    def run_extract_refresh_for_workbook(self, wb_name_or_luid: str,
-                                         proj_name_or_luid: Optional[str] = None) -> ET.Element:
-        return self.update_workbook_now(wb_name_or_luid, proj_name_or_luid)
-
-    # Use the specific refresh rather than the schedule task in 2.8
-    def run_extract_refresh_for_datasource(self, ds_name_or_luid: str,
-                                           proj_name_or_luid: Optional[str] = None) -> ET.Element:
-        return self.update_datasource_now(ds_name_or_luid, proj_name_or_luid)
-
-
-class ExtractMethods30(ExtractMethods28):
-    def __init__(self, rest_api_base: TableauRestApiBase30):
-        self.rest_api_base = rest_api_base
-
-class ExtractMethods31(ExtractMethods30):
-    def __init__(self, rest_api_base: TableauRestApiBase31):
-        self.rest_api_base = rest_api_base
-
     def query_jobs(self, progress_filter: Optional[UrlFilter] = None, job_type_filter: Optional[UrlFilter] = None,
                    created_at_filter: Optional[UrlFilter] = None, started_at_filter: Optional[UrlFilter] = None,
                    ended_at_filter: Optional[UrlFilter] = None, title_filter: Optional[UrlFilter] = None,
@@ -163,11 +123,8 @@ class ExtractMethods31(ExtractMethods30):
         self.send_update_request(url, None)
         self.end_log_block()
 
-class ExtractMethods32(ExtractMethods31):
-    def __init__(self, rest_api_base: TableauRestApiBase32):
-        self.rest_api_base = rest_api_base
 
-class ExtractMethods33(ExtractMethods32):
+class ExtractMethods33(ExtractMethods):
     def __init__(self, rest_api_base: TableauRestApiBase33):
         self.rest_api_base = rest_api_base
 

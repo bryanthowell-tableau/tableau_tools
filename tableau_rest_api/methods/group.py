@@ -7,9 +7,20 @@ class GroupMethods():
     def __getattr__(self, attr):
         return getattr(self.rest_api_base, attr)
 
-    def query_groups(self) -> ET.Element:
+    def query_groups(self, name_filter: Optional[UrlFilter] = None, domain_name_filter: Optional[UrlFilter] = None,
+                     domain_nickname_filter: Optional[UrlFilter] = None, is_local_filter: Optional[UrlFilter] = None,
+                     user_count_filter: Optional[UrlFilter] = None,
+                     minimum_site_role_filter: Optional[UrlFilter] = None,
+                     sorts: Optional[List[Sort]] = None) -> ET.Element:
+
+        filter_checks = {'name': name_filter, 'domainName': domain_name_filter,
+                         'domainNickname': domain_nickname_filter, 'isLocal': is_local_filter,
+                         'userCount': user_count_filter, 'minimumSiteRole': minimum_site_role_filter}
+
+        filters = self._check_filter_objects(filter_checks)
+
         self.start_log_block()
-        groups = self.query_resource("groups")
+        groups = self.query_resource("groups", filters=filters, sorts=sorts)
         for group in groups:
             # Add to group-name : luid cache
             group_luid = group.get("id")
@@ -20,20 +31,26 @@ class GroupMethods():
 
     # # No basic verb for querying a single group, so run a query_groups
 
-    def query_groups_json(self, page_number: Optional[int]=None) -> Dict:
-        self.start_log_block()
-        groups = self.query_resource_json("groups", page_number=page_number)
-        #for group in groups:
-        #    # Add to group-name : luid cache
-        #    group_luid = group.get(u"id")
-        #    group_name = group.get(u'name')
-        #    self.group_name_luid_cache[group_name] = group_luid
-        self.end_log_block()
-        return groups
+    def query_groups_json(self, name_filter: Optional[UrlFilter] = None, domain_name_filter: Optional[UrlFilter] = None,
+                     domain_nickname_filter: Optional[UrlFilter] = None, is_local_filter: Optional[UrlFilter] = None,
+                     user_count_filter: Optional[UrlFilter] = None,
+                     minimum_site_role_filter: Optional[UrlFilter] = None,
+                     sorts: Optional[List[Sort]] = None, page_number: Optional[int] = None) -> Dict:
+
+            filter_checks = {'name': name_filter, 'domainName': domain_name_filter,
+                             'domainNickname': domain_nickname_filter, 'isLocal': is_local_filter,
+                             'userCount': user_count_filter, 'minimumSiteRole': minimum_site_role_filter}
+
+            filters = self._check_filter_objects(filter_checks)
+
+            self.start_log_block()
+            groups = self.query_resource_json("groups", filters=filters, sorts=sorts, page_number=page_number)
+            self.end_log_block()
+            return groups
 
     def query_group(self, group_name_or_luid: str) -> ET.Element:
         self.start_log_block()
-        group = self.query_single_element_from_endpoint('group', group_name_or_luid)
+        group = self.query_single_element_from_endpoint_with_filter('group', group_name_or_luid)
         # Add to group_name : luid cache
         group_luid = group.get("id")
         group_name = group.get('name')
@@ -215,80 +232,8 @@ class GroupMethods():
             self.send_delete_request(url)
         self.end_log_block()
 
-class GroupMethods27(GroupMethods):
-    def __init__(self, rest_api_base: TableauRestApiBase27):
-        self.rest_api_base = rest_api_base
 
-    def query_groups(self, name_filter: Optional[UrlFilter] = None, domain_name_filter: Optional[UrlFilter] = None,
-                     domain_nickname_filter: Optional[UrlFilter] = None, is_local_filter: Optional[UrlFilter] = None,
-                     user_count_filter: Optional[UrlFilter] = None,
-                     minimum_site_role_filter: Optional[UrlFilter] = None,
-                     sorts: Optional[List[Sort]] = None) -> ET.Element:
-
-        filter_checks = {'name': name_filter, 'domainName': domain_name_filter,
-                         'domainNickname': domain_nickname_filter, 'isLocal': is_local_filter,
-                         'userCount': user_count_filter, 'minimumSiteRole': minimum_site_role_filter}
-
-        filters = self._check_filter_objects(filter_checks)
-
-        self.start_log_block()
-        groups = self.query_resource("groups", filters=filters, sorts=sorts)
-        for group in groups:
-            # Add to group-name : luid cache
-            group_luid = group.get("id")
-            group_name = group.get('name')
-            self.group_name_luid_cache[group_name] = group_luid
-        self.end_log_block()
-        return groups
-
-    def query_groups_json(self, name_filter: Optional[UrlFilter] = None, domain_name_filter: Optional[UrlFilter] = None,
-                     domain_nickname_filter: Optional[UrlFilter] = None, is_local_filter: Optional[UrlFilter] = None,
-                     user_count_filter: Optional[UrlFilter] = None,
-                     minimum_site_role_filter: Optional[UrlFilter] = None,
-                     sorts: Optional[List[Sort]] = None, page_number: Optional[int] = None) -> Dict:
-
-            filter_checks = {'name': name_filter, 'domainName': domain_name_filter,
-                             'domainNickname': domain_nickname_filter, 'isLocal': is_local_filter,
-                             'userCount': user_count_filter, 'minimumSiteRole': minimum_site_role_filter}
-
-            filters = self._check_filter_objects(filter_checks)
-
-            self.start_log_block()
-            groups = self.query_resource_json("groups", filters=filters, sorts=sorts, page_number=page_number)
-            self.end_log_block()
-            return groups
-
-        # # No basic verb for querying a single group, so run a query_groups
-
-    def query_group(self, group_name_or_luid: str) -> ET.Element:
-        self.start_log_block()
-        group = self.query_single_element_from_endpoint_with_filter('group', group_name_or_luid)
-        # Add to group_name : luid cache
-        group_luid = group.get("id")
-        group_name = group.get('name')
-        self.group_name_luid_cache[group_name] = group_luid
-
-        self.end_log_block()
-        return group
-
-
-class GroupMethods28(GroupMethods27):
-    def __init__(self, rest_api_base: TableauRestApiBase28):
-        self.rest_api_base = rest_api_base
-
-class GroupMethods30(GroupMethods28):
-    def __init__(self, rest_api_base: TableauRestApiBase30):
-        self.rest_api_base = rest_api_base
-
-class GroupMethods31(GroupMethods30):
-    def __init__(self, rest_api_base: TableauRestApiBase31):
-        self.rest_api_base = rest_api_base
-
-class GroupMethods32(GroupMethods31):
-    def __init__(self, rest_api_base: TableauRestApiBase32):
-        self.rest_api_base = rest_api_base
-
-class GroupMethods33(GroupMethods32):
+class GroupMethods33(GroupMethods):
     def __init__(self, rest_api_base: TableauRestApiBase33):
         self.rest_api_base = rest_api_base
 

@@ -10,9 +10,9 @@ class DatasourceMethods():
         return getattr(self.rest_api_base, attr)
 
     def get_published_datasource_object(self, datasource_name_or_luid: str,
-                                        project_name_or_luid: Optional[str] = None) -> Datasource:
+                                        project_name_or_luid: Optional[str] = None) -> Datasource28:
         luid = self.query_datasource_luid(datasource_name_or_luid, project_name_or_luid)
-        ds_obj = Datasource(luid=luid, tableau_rest_api_obj=self,
+        ds_obj = Datasource28(luid=luid, tableau_rest_api_obj=self,
                             default=False, logger_obj=self.logger)
         return ds_obj
 
@@ -95,14 +95,22 @@ class DatasourceMethods():
 
     def update_datasource(self, datasource_name_or_luid: str, datasource_project_name_or_luid: Optional[str] = None,
                           new_datasource_name: Optional[str] = None, new_project_name_or_luid: Optional[str] = None,
-                          new_owner_luid: Optional[str] = None) -> ET.Element:
+                          new_owner_luid: Optional[str] = None, certification_status: Optional[bool] = None,
+                          certification_note: Optional[str] = None) -> ET.Element:
         self.start_log_block()
+        if certification_status not in [None, False, True]:
+            raise InvalidOptionException('certification_status must be None, False, or True')
+
         datasource_luid = self.query_datasource_luid(datasource_name_or_luid, datasource_project_name_or_luid)
 
         tsr = ET.Element("tsRequest")
         d = ET.Element("datasource")
         if new_datasource_name is not None:
             d.set('name', new_datasource_name)
+        if certification_status is not None:
+            d.set('isCertified', '{}'.format(str(certification_status).lower()))
+        if certification_note is not None:
+            d.set('certificationNote', certification_note)
         if new_project_name_or_luid is not None:
             new_project_luid = self.query_project_luid(new_project_name_or_luid)
             p = ET.Element('project')
@@ -221,71 +229,9 @@ class DatasourceMethods():
             deleted_count += self.send_delete_request(url)
         self.end_log_block()
         return deleted_count
-    
 
-class DatasourceMethods27(DatasourceMethods):
-    def __init__(self, rest_api_base: TableauRestApiBase27):
-        self.rest_api_base = rest_api_base
 
-    def update_datasource(self, datasource_name_or_luid: str, datasource_project_name_or_luid: Optional[str] = None,
-                          new_datasource_name: Optional[str] = None, new_project_name_or_luid: Optional[str] = None,
-                          new_owner_luid: Optional[str] = None, certification_status: Optional[bool] = None,
-                          certification_note: Optional[str] = None) -> ET.Element:
-        self.start_log_block()
-        if certification_status not in [None, False, True]:
-            raise InvalidOptionException('certification_status must be None, False, or True')
-
-        datasource_luid = self.query_datasource_luid(datasource_name_or_luid, datasource_project_name_or_luid)
-
-        tsr = ET.Element("tsRequest")
-        d = ET.Element("datasource")
-        if new_datasource_name is not None:
-            d.set('name', new_datasource_name)
-        if certification_status is not None:
-            d.set('isCertified', '{}'.format(str(certification_status).lower()))
-        if certification_note is not None:
-            d.set('certificationNote', certification_note)
-        if new_project_name_or_luid is not None:
-            new_project_luid = self.query_project_luid(new_project_name_or_luid)
-            p = ET.Element('project')
-            p.set('id', new_project_luid)
-            d.append(p)
-        if new_owner_luid is not None:
-            o = ET.Element('owner')
-            o.set('id', new_owner_luid)
-            d.append(o)
-
-        tsr.append(d)
-
-        url = self.build_api_url("datasources/{}".format(datasource_luid))
-        response = self.send_update_request(url, tsr)
-        self.end_log_block()
-        return response
-
-class DatasourceMethods28(DatasourceMethods27):
-    def __init__(self, rest_api_base: TableauRestApiBase28):
-        self.rest_api_base = rest_api_base
-
-    def get_published_datasource_object(self, datasource_name_or_luid: str,
-                                        project_name_or_luid: Optional[str] = None) -> Datasource28:
-        luid = self.query_datasource_luid(datasource_name_or_luid, project_name_or_luid)
-        ds_obj = Datasource28(luid=luid, tableau_rest_api_obj=self,
-                            default=False, logger_obj=self.logger)
-        return ds_obj
-
-class DatasourceMethods30(DatasourceMethods28):
-    def __init__(self, rest_api_base: TableauRestApiBase30):
-        self.rest_api_base = rest_api_base
-
-class DatasourceMethods31(DatasourceMethods30):
-    def __init__(self, rest_api_base: TableauRestApiBase31):
-        self.rest_api_base = rest_api_base
-
-class DatasourceMethods32(DatasourceMethods31):
-    def __init__(self, rest_api_base: TableauRestApiBase32):
-        self.rest_api_base = rest_api_base
-
-class DatasourceMethods33(DatasourceMethods32):
+class DatasourceMethods33(DatasourceMethods):
     def __init__(self, rest_api_base: TableauRestApiBase33):
         self.rest_api_base = rest_api_base
 

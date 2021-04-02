@@ -1,8 +1,8 @@
 from .rest_api_base import *
 
 # First Alert Methods appear in API 3.2
-class AlertMethods32():
-    def __init__(self, rest_api_base: TableauRestApiBase32):
+class AlertMethods():
+    def __init__(self, rest_api_base: TableauRestApiBase):
         self.rest_api_base = rest_api_base
 
     def __getattr__(self, attr):
@@ -80,7 +80,7 @@ class AlertMethods32():
         self.send_delete_request(url)
         self.end_log_block()
 
-class AlertMethods33(AlertMethods32):
+class AlertMethods33(AlertMethods):
     def __init__(self, rest_api_base: TableauRestApiBase33):
         self.rest_api_base = rest_api_base
 
