@@ -5,7 +5,7 @@ from .tableau_rest_api import *
 #
 class TableauServerRest(TableauRestApiBase):
     def __init__(self, server: str, username: str, password: str,
-                 site_content_url: Optional[str] = ""):
+                 site_content_url: Optional[str] = "", api_version: str = "3.2"):
         TableauRestApiBase.__init__(self, server, username, password, site_content_url)
         self.rest_api_base = self
 
@@ -22,105 +22,9 @@ class TableauServerRest(TableauRestApiBase):
         self.workbooks: WorkbookMethods = WorkbookMethods(self.rest_api_base)
 
 
-class TableauServerRest27(TableauRestApiBase27):
+class TableauServerRest33(TableauRestApiBase):
     def __init__(self, server: str, username: str, password: str,
-                 site_content_url: Optional[str] = ""):
-        TableauRestApiBase27.__init__(self, server, username, password, site_content_url)
-        self.rest_api_base = self
-
-        self.datasources: DatasourceMethods27 = DatasourceMethods27(self.rest_api_base)
-        self.extracts: ExtractMethods27 = ExtractMethods27(self.rest_api_base)
-        self.favorites: FavoritesMethods27 = FavoritesMethods27(self.rest_api_base)
-        self.groups: GroupMethods27 = GroupMethods27(self.rest_api_base)
-        self.projects: ProjectMethods27 = ProjectMethods27(self.rest_api_base)
-        self.revisions: RevisionMethods27 = RevisionMethods27(self.rest_api_base)
-        self.schedules: ScheduleMethods27 = ScheduleMethods27(self.rest_api_base)
-        self.sites: SiteMethods27 = SiteMethods27(self.rest_api_base)
-        self.subscriptions: SubscriptionMethods27 = SubscriptionMethods27(self.rest_api_base)
-        self.users: UserMethods27 = UserMethods27(self.rest_api_base)
-        self.workbooks: WorkbookMethods27 = WorkbookMethods27(self.rest_api_base)
-
-
-class TableauServerRest28(TableauRestApiBase28):
-    def __init__(self, server: str, username: str, password: str,
-                 site_content_url: Optional[str] = ""):
-        TableauRestApiBase28.__init__(self, server, username, password, site_content_url)
-        self.rest_api_base = self
-
-        self.datasources: DatasourceMethods28 = DatasourceMethods28(self.rest_api_base)
-        self.extracts: ExtractMethods28 = ExtractMethods28(self.rest_api_base)
-        self.favorites: FavoritesMethods28 = FavoritesMethods28(self.rest_api_base)
-        self.groups: GroupMethods28 = GroupMethods28(self.rest_api_base)
-        self.projects: ProjectMethods28 = ProjectMethods28(self.rest_api_base)
-        self.revisions: RevisionMethods28 = RevisionMethods28(self.rest_api_base)
-        self.schedules: ScheduleMethods28 = ScheduleMethods28(self.rest_api_base)
-        self.sites: SiteMethods28 = SiteMethods28(self.rest_api_base)
-        self.subscriptions: SubscriptionMethods28 = SubscriptionMethods28(self.rest_api_base)
-        self.users: UserMethods28 = UserMethods28(self.rest_api_base)
-        self.workbooks: WorkbookMethods28 = WorkbookMethods28(self.rest_api_base)
-
-
-class TableauServerRest30(TableauRestApiBase30):
-    def __init__(self, server: str, username: str, password: str,
-                 site_content_url: Optional[str] = ""):
-        TableauRestApiBase30.__init__(self, server, username, password, site_content_url)
-        self.rest_api_base = self
-
-        self.datasources: DatasourceMethods30 = DatasourceMethods30(self.rest_api_base)
-        self.extracts: ExtractMethods30 = ExtractMethods30(self.rest_api_base)
-        self.favorites: FavoritesMethods30 = FavoritesMethods30(self.rest_api_base)
-        self.groups: GroupMethods30 = GroupMethods30(self.rest_api_base)
-        self.projects: ProjectMethods30 = ProjectMethods30(self.rest_api_base)
-        self.revisions: RevisionMethods30 = RevisionMethods30(self.rest_api_base)
-        self.schedules: ScheduleMethods30 = ScheduleMethods30(self.rest_api_base)
-        self.sites: SiteMethods30 = SiteMethods30(self.rest_api_base)
-        self.subscriptions: SubscriptionMethods30 = SubscriptionMethods30(self.rest_api_base)
-        self.users: UserMethods30 = UserMethods30(self.rest_api_base)
-        self.workbooks: WorkbookMethods30 = WorkbookMethods30(self.rest_api_base)
-
-
-class TableauServerRest31(TableauRestApiBase31):
-    def __init__(self, server: str, username: str, password: str,
-                 site_content_url: Optional[str] = ""):
-        TableauRestApiBase31.__init__(self, server, username, password, site_content_url)
-        self.rest_api_base = self
-
-        self.datasources: DatasourceMethods31 = DatasourceMethods31(self.rest_api_base)
-        self.extracts: ExtractMethods31 = ExtractMethods31(self.rest_api_base)
-        self.favorites: FavoritesMethods31 = FavoritesMethods31(self.rest_api_base)
-        self.groups: GroupMethods31 = GroupMethods31(self.rest_api_base)
-        self.projects: ProjectMethods31 = ProjectMethods31(self.rest_api_base)
-        self.revisions: RevisionMethods31 = RevisionMethods31(self.rest_api_base)
-        self.schedules: ScheduleMethods31 = ScheduleMethods31(self.rest_api_base)
-        self.sites: SiteMethods31 = SiteMethods31(self.rest_api_base)
-        self.subscriptions: SubscriptionMethods31 = SubscriptionMethods31(self.rest_api_base)
-        self.users: UserMethods31 = UserMethods31(self.rest_api_base)
-        self.workbooks: WorkbookMethods31 = WorkbookMethods31(self.rest_api_base)
-
-
-class TableauServerRest32(TableauRestApiBase32):
-    def __init__(self, server: str, username: str, password: str,
-                 site_content_url: Optional[str] = ""):
-        TableauRestApiBase32.__init__(self, server, username, password, site_content_url)
-        self.rest_api_base = self
-
-        self.alerts: AlertMethods32 = AlertMethods32(self.rest_api_base)
-        self.datasources: DatasourceMethods32 = DatasourceMethods32(self.rest_api_base)
-        self.extracts: ExtractMethods32 = ExtractMethods32(self.rest_api_base)
-        self.favorites: FavoritesMethods32 = FavoritesMethods32(self.rest_api_base)
-        self.groups: GroupMethods32 = GroupMethods32(self.rest_api_base)
-        self.projects: ProjectMethods32 = ProjectMethods32(self.rest_api_base)
-        self.revisions: RevisionMethods32 = RevisionMethods32(self.rest_api_base)
-        self.schedules: ScheduleMethods32 = ScheduleMethods32(self.rest_api_base)
-        self.sites: SiteMethods32 = SiteMethods32(self.rest_api_base)
-        self.subscriptions: SubscriptionMethods32 = SubscriptionMethods32(self.rest_api_base)
-        self.users: UserMethods32 = UserMethods32(self.rest_api_base)
-        self.workbooks: WorkbookMethods32 = WorkbookMethods32(self.rest_api_base)
-
-
-class TableauServerRest33(TableauRestApiBase33):
-    def __init__(self, server: str, username: str, password: str,
-                 site_content_url: Optional[str] = ""):
+                 site_content_url: Optional[str] = "", api_version: str = "3.3"):
         TableauRestApiBase33.__init__(self, server, username, password, site_content_url)
         self.rest_api_base = self
 
@@ -141,7 +45,7 @@ class TableauServerRest33(TableauRestApiBase33):
 
 class TableauServerRest34(TableauRestApiBase34):
     def __init__(self, server: str, username: str, password: str,
-                 site_content_url: Optional[str] = ""):
+                 site_content_url: Optional[str] = "", api_version: str = "3.4"):
         TableauRestApiBase34.__init__(self, server, username, password, site_content_url)
         self.rest_api_base = self
 
@@ -162,7 +66,7 @@ class TableauServerRest34(TableauRestApiBase34):
 
 class TableauServerRest35(TableauRestApiBase35):
     def __init__(self, server: str, username: str, password: str,
-                 site_content_url: Optional[str] = ""):
+                 site_content_url: Optional[str] = "", api_version: str = "3.5"):
         TableauRestApiBase35.__init__(self, server, username, password, site_content_url)
         self.rest_api_base = self
 
@@ -185,7 +89,7 @@ class TableauServerRest35(TableauRestApiBase35):
 class TableauServerRest36(TableauRestApiBase36):
     def __init__(self, server: str, username: Optional[str] = None, password: Optional[str] = None,
                  site_content_url: Optional[str] = "", pat_name: Optional[str] = None,
-                 pat_secret: Optional[str] = None):
+                 pat_secret: Optional[str] = None, api_version: str = "3.6"):
         TableauRestApiBase36.__init__(self, server=server, username=username, password=password,
                                       site_content_url=site_content_url, pat_name=pat_name, pat_secret=pat_secret)
         self.rest_api_base = self

@@ -22,7 +22,7 @@ from ...tableau_rest_xml import TableauRestXml
 
 class TableauRestApiBase(LookupMethods, LoggingMethods, TableauRestXml):
     # Defines a class that represents a RESTful connection to Tableau Server. Use full URL (http:// or https://)
-    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
+    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = "", api_version: str = "3.2"):
         if server.find('http') == -1:
             raise InvalidOptionException('Server URL must include http:// or https://')
 
@@ -47,7 +47,7 @@ class TableauRestApiBase(LookupMethods, LoggingMethods, TableauRestXml):
         self._request_json_obj: Optional[RestJsonRequest] = None
 
         # UrlFilter object for factory methods
-        self.url_filters = UrlFilter
+        self.url_filters = UrlFilter31
         self.sorts = Sort
 
         # Lookup caches to minimize calls
@@ -58,9 +58,9 @@ class TableauRestApiBase(LookupMethods, LoggingMethods, TableauRestXml):
         self.verify_ssl_cert = True
 
         self.version: Optional[str] = None
-        self.api_version: Optional[str]  = None
-        # Starting in version 5 of tableau_tools, 10.3 is the lowest supported version
-        self.set_tableau_server_version("10.3")
+        self.api_version: str  = api_version
+        # Starting in version 6 of tableau_tools,  2018.3 is the lowest supported version
+        self.set_tableau_server_version("2018.3")
 
         # Try to see if this gets the composition right
         self.rest_api_base = self
@@ -82,40 +82,12 @@ class TableauRestApiBase(LookupMethods, LoggingMethods, TableauRestXml):
             u'SiteAdministratorCreator'
         )
 
-
-
-    def set_tableau_server_version(self, tableau_server_version: str) -> str:
-        if str(tableau_server_version)in ["10.3", "10.4", "10.5", '2018.1', '2018.2', '2018.3', '2019.1',
-                                          '2019.2', '2019.3', '2019.4']:
-            if str(tableau_server_version) == '10.3':
-                self.api_version = '2.6'
-            elif str(tableau_server_version) == '10.4':
-                self.api_version = '2.7'
-            elif str(tableau_server_version) == '10.5':
-                self.api_version = '2.8'
-            elif str(tableau_server_version) == '2018.1':
-                self.api_version = '3.0'
-            elif str(tableau_server_version) == '2018.2':
-                self.api_version = '3.1'
-            elif str(tableau_server_version) == '2018.3':
-                self.api_version = '3.2'
-            elif str(tableau_server_version) == '2019.1':
-                self.api_version = '3.3'
-            elif str(tableau_server_version) == '2019.2':
-                self.api_version = '3.4'
-            elif str(tableau_server_version) == '2019.3':
-                self.api_version = '3.5'
-            elif str(tableau_server_version) == '2019.4':
-                self.api_version = '3.6'
-            self.tableau_namespace = 'http://tableau.com/api'
-            self.ns_map = {'t': 'http://tableau.com/api'}
-            self.version = tableau_server_version
-            self.ns_prefix = '{' + self.ns_map['t'] + '}'
-            #print("Current API Version set to: {}".format(self.api_version))
-            return self.api_version
-
-        else:
-            raise InvalidOptionException("Please specify tableau_server_version as a string. '10.5' or '2019.3' etc...")
+    # Legacy, may not be necessary
+    def set_tableau_server_version(self, tableau_server_version: str):
+        self.tableau_namespace = 'http://tableau.com/api'
+        self.ns_map = {'t': 'http://tableau.com/api'}
+        self.version = tableau_server_version
+        self.ns_prefix = '{' + self.ns_map['t'] + '}'
 
 
     # Method to handle single str or list and return a list
@@ -1067,50 +1039,17 @@ class TableauRestApiBase(LookupMethods, LoggingMethods, TableauRestXml):
         url = self.build_api_url('')[:-1]
         return self.send_publish_request(url, publish_request, None, boundary_string)
 
-class TableauRestApiBase27(TableauRestApiBase):
-    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
-        TableauRestApiBase.__init__(self, server=server, username=username, password=password,
-                                    site_content_url=site_content_url)
-        self.set_tableau_server_version('10.4')
-        self.url_filters = UrlFilter27
-
-class TableauRestApiBase28(TableauRestApiBase27):
-    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
-        TableauRestApiBase.__init__(self, server=server, username=username, password=password,
-                                    site_content_url=site_content_url)
-        self.set_tableau_server_version('10.5')
-
     def get_published_project_object(self, project_name_or_luid: str,
                                      project_xml_obj: Optional[ET.Element] = None) -> Project28:
         luid = self.query_project_luid(project_name_or_luid)
         proj_obj = Project28(luid, self, self.version, self.logger, content_xml_obj=project_xml_obj)
         return proj_obj
 
-class TableauRestApiBase30(TableauRestApiBase28):
-    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
+
+class TableauRestApiBase33(TableauRestApiBase):
+    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = "", api_version: str ="3.3"):
         TableauRestApiBase.__init__(self, server=server, username=username, password=password,
-                                    site_content_url=site_content_url)
-        self.set_tableau_server_version('2018.1')
-
-
-
-class TableauRestApiBase31(TableauRestApiBase30):
-    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
-        TableauRestApiBase.__init__(self, server=server, username=username, password=password,
-                                    site_content_url=site_content_url)
-        self.set_tableau_server_version('2018.2')
-        self.url_filters = UrlFilter31
-
-class TableauRestApiBase32(TableauRestApiBase31):
-    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
-        TableauRestApiBase.__init__(self, server=server, username=username, password=password,
-                                    site_content_url=site_content_url)
-        self.set_tableau_server_version('2018.3')
-
-class TableauRestApiBase33(TableauRestApiBase32):
-    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
-        TableauRestApiBase.__init__(self, server=server, username=username, password=password,
-                                    site_content_url=site_content_url)
+                                    site_content_url=site_content_url, api_version=api_version)
         self.set_tableau_server_version('2019.1')
         self.url_filters = UrlFilter33
 
@@ -1129,9 +1068,9 @@ class TableauRestApiBase33(TableauRestApiBase32):
         return flow_obj
 
 class TableauRestApiBase34(TableauRestApiBase33):
-    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
+    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = "", api_version: str = "3.4"):
         TableauRestApiBase.__init__(self, server=server, username=username, password=password,
-                                    site_content_url=site_content_url)
+                                    site_content_url=site_content_url, api_version=api_version)
         self.set_tableau_server_version('2019.2')
 
     # Generic implementation of all the CSV/PDF/PNG requests
@@ -1182,18 +1121,16 @@ class TableauRestApiBase34(TableauRestApiBase33):
 
 # NEED TO IMPLEMENT
 class TableauRestApiBase35(TableauRestApiBase34):
-    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = ""):
+    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = "", api_version: str = "3.5"):
         TableauRestApiBase.__init__(self, server=server, username=username, password=password,
-                                    site_content_url=site_content_url)
+                                    site_content_url=site_content_url, api_version=api_version)
         self.set_tableau_server_version('2019.3')
-
-
 
 
 class TableauRestApiBase36(TableauRestApiBase35):
     def __init__(self, server: str, username: Optional[str] = None, password: Optional[str] = None,
                  pat_name: Optional[str] = None, pat_secret: Optional[str] = None,
-                 site_content_url: Optional[str] = ""):
+                 site_content_url: Optional[str] = "", api_version: str = "3.6"):
         #TableauRestApiBase.__init__()
         if server.find('http') == -1:
             raise InvalidOptionException('Server URL must include http:// or https://')
@@ -1224,7 +1161,7 @@ class TableauRestApiBase36(TableauRestApiBase35):
         self.verify_ssl_cert = True
 
         self.version: Optional[str] = None
-        self.api_version: Optional[str]  = None
+        self.api_version: Optional[str]  = api_version
         # Starting in version 5 of tableau_tools, 10.3 is the lowest supported version
         self.set_tableau_server_version("2019.4")
 
