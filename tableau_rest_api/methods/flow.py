@@ -268,14 +268,3 @@ class FlowMethods33():
         flow = xml.findall('.//t:flow', self.ns_map)
         return flow[0].get('id')
 
-class FlowMethods34(FlowMethods33):
-    def __init__(self, rest_api_base: TableauRestApiBase34):
-        self.rest_api_base = rest_api_base
-
-class FlowMethods35(FlowMethods34):
-    def __init__(self, rest_api_base: TableauRestApiBase35):
-        self.rest_api_base = rest_api_base
-
-class FlowMethods36(FlowMethods35):
-    def __init__(self, rest_api_base: TableauRestApiBase36):
-        self.rest_api_base = rest_api_base

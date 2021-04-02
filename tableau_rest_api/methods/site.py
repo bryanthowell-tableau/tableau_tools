@@ -136,15 +136,7 @@ class SiteMethods():
         self.end_log_block()
 
 
-class SiteMethods33(SiteMethods):
-    def __init__(self, rest_api_base: TableauRestApiBase33):
-        self.rest_api_base = rest_api_base
-
-class SiteMethods34(SiteMethods33):
-    def __init__(self, rest_api_base: TableauRestApiBase34):
-        self.rest_api_base = rest_api_base
-
-class SiteMethods35(SiteMethods34):
+class SiteMethods35(SiteMethods):
     def __init__(self, rest_api_base: TableauRestApiBase35):
         self.rest_api_base = rest_api_base
 
@@ -299,6 +291,3 @@ class SiteMethods35(SiteMethods34):
         self.end_log_block()
         return response
 
-class SiteMethods36(SiteMethods35):
-    def __init__(self, rest_api_base: TableauRestApiBase36):
-        self.rest_api_base = rest_api_base

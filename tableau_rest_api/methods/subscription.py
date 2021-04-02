@@ -169,15 +169,7 @@ class SubscriptionMethods():
         self.end_log_block()
 
 
-class SubscriptionMethods33(SubscriptionMethods):
-    def __init__(self, rest_api_base: TableauRestApiBase33):
-        self.rest_api_base = rest_api_base
-
-class SubscriptionMethods34(SubscriptionMethods33):
-    def __init__(self, rest_api_base: TableauRestApiBase34):
-        self.rest_api_base = rest_api_base
-
-class SubscriptionMethods35(SubscriptionMethods34):
+class SubscriptionMethods35(SubscriptionMethods):
     def __init__(self, rest_api_base: TableauRestApiBase35):
         self.rest_api_base = rest_api_base
 
@@ -267,7 +259,3 @@ class SubscriptionMethods35(SubscriptionMethods34):
         response = self.send_update_request(url, tsr)
         self.end_log_block()
         return response
-
-class SubscriptionMethods36(SubscriptionMethods35):
-    def __init__(self, rest_api_base: TableauRestApiBase36):
-        self.rest_api_base = rest_api_base

@@ -230,19 +230,3 @@ class DatasourceMethods():
         self.end_log_block()
         return deleted_count
 
-
-class DatasourceMethods33(DatasourceMethods):
-    def __init__(self, rest_api_base: TableauRestApiBase33):
-        self.rest_api_base = rest_api_base
-
-class DatasourceMethods34(DatasourceMethods33):
-    def __init__(self, rest_api_base: TableauRestApiBase34):
-        self.rest_api_base = rest_api_base
-
-class DatasourceMethods35(DatasourceMethods34):
-    def __init__(self, rest_api_base: TableauRestApiBase35):
-        self.rest_api_base = rest_api_base
-
-class DatasourceMethods36(DatasourceMethods35):
-    def __init__(self, rest_api_base: TableauRestApiBase36):
-        self.rest_api_base = rest_api_base

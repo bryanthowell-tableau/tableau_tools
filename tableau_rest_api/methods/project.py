@@ -260,15 +260,3 @@ class ProjectMethods33(ProjectMethods):
         self.end_log_block()
         return self.get_published_project_object(project_name_or_luid=project_luid, project_xml_obj=proj_xml_obj)
 
-class ProjectMethods34(ProjectMethods33):
-    def __init__(self, rest_api_base: TableauRestApiBase34):
-        self.rest_api_base = rest_api_base
-
-class ProjectMethods35(ProjectMethods34):
-    def __init__(self, rest_api_base: TableauRestApiBase35):
-        self.rest_api_base = rest_api_base
-
-
-class ProjectMethods36(ProjectMethods35):
-    def __init__(self, rest_api_base: TableauRestApiBase36):
-        self.rest_api_base = rest_api_base

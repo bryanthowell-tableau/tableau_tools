@@ -612,11 +612,8 @@ class WorkbookMethods():
                 'This method is for saving response to file. Must include filename_no_extension parameter')
 
 
-class WorkbookMethods33(WorkbookMethods):
-    def __init__(self, rest_api_base: TableauRestApiBase33):
-        self.rest_api_base = rest_api_base
 
-class WorkbookMethods34(WorkbookMethods33):
+class WorkbookMethods34(WorkbookMethods):
     def __init__(self, rest_api_base: TableauRestApiBase34):
         self.rest_api_base = rest_api_base
 
@@ -688,11 +685,3 @@ class WorkbookMethods34(WorkbookMethods33):
         else:
             workbook = xml.findall('.//t:workbook', self.ns_map)
             return workbook[0].get('id')
-
-class WorkbookMethods35(WorkbookMethods34):
-    def __init__(self, rest_api_base: TableauRestApiBase35):
-        self.rest_api_base = rest_api_base
-
-class WorkbookMethods36(WorkbookMethods35):
-    def __init__(self, rest_api_base: TableauRestApiBase36):
-        self.rest_api_base = rest_api_base

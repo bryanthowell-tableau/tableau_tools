@@ -124,15 +124,8 @@ class ExtractMethods():
         self.end_log_block()
 
 
-class ExtractMethods33(ExtractMethods):
-    def __init__(self, rest_api_base: TableauRestApiBase33):
-        self.rest_api_base = rest_api_base
 
-class ExtractMethods34(ExtractMethods33):
-    def __init__(self, rest_api_base: TableauRestApiBase34):
-        self.rest_api_base = rest_api_base
-
-class ExtractMethods35(ExtractMethods34):
+class ExtractMethods35(ExtractMethods):
     def __init__(self, rest_api_base: TableauRestApiBase35):
         self.rest_api_base = rest_api_base
 
@@ -154,6 +147,3 @@ class ExtractMethods35(ExtractMethods34):
         self.send_post_request(url=url)
         self.end_log_block()
 
-class ExtractMethods36(ExtractMethods35):
-    def __init__(self, rest_api_base: TableauRestApiBase36):
-        self.rest_api_base = rest_api_base

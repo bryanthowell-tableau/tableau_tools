@@ -152,18 +152,3 @@ class FavoritesMethods():
         self.end_log_block()
 
 
-class FavoritesMethods33(FavoritesMethods):
-    def __init__(self, rest_api_base: TableauRestApiBase33):
-        self.rest_api_base = rest_api_base
-
-class FavoritesMethods34(FavoritesMethods33):
-    def __init__(self, rest_api_base: TableauRestApiBase34):
-        self.rest_api_base = rest_api_base
-
-class FavoritesMethods35(FavoritesMethods34):
-    def __init__(self, rest_api_base: TableauRestApiBase35):
-        self.rest_api_base = rest_api_base
-
-class FavoritesMethods36(FavoritesMethods35):
-    def __init__(self, rest_api_base: TableauRestApiBase36):
-        self.rest_api_base = rest_api_base

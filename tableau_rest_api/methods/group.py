@@ -232,19 +232,3 @@ class GroupMethods():
             self.send_delete_request(url)
         self.end_log_block()
 
-
-class GroupMethods33(GroupMethods):
-    def __init__(self, rest_api_base: TableauRestApiBase33):
-        self.rest_api_base = rest_api_base
-
-class GroupMethods34(GroupMethods33):
-    def __init__(self, rest_api_base: TableauRestApiBase34):
-        self.rest_api_base = rest_api_base
-
-class GroupMethods35(GroupMethods34):
-    def __init__(self, rest_api_base: TableauRestApiBase35):
-        self.rest_api_base = rest_api_base
-
-class GroupMethods36(GroupMethods35):
-    def __init__(self, rest_api_base: TableauRestApiBase36):
-        self.rest_api_base = rest_api_base

@@ -331,19 +331,3 @@ class ScheduleMethods():
         self.end_log_block()
         return response
 
-
-class ScheduleMethods33(ScheduleMethods):
-    def __init__(self, rest_api_base: TableauRestApiBase33):
-        self.rest_api_base = rest_api_base
-
-class ScheduleMethods34(ScheduleMethods33):
-    def __init__(self, rest_api_base: TableauRestApiBase34):
-        self.rest_api_base = rest_api_base
-
-class ScheduleMethods35(ScheduleMethods34):
-    def __init__(self, rest_api_base: TableauRestApiBase35):
-        self.rest_api_base = rest_api_base
-
-class ScheduleMethods36(ScheduleMethods35):
-    def __init__(self, rest_api_base: TableauRestApiBase36):
-        self.rest_api_base = rest_api_base

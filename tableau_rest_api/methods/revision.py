@@ -133,19 +133,3 @@ class RevisionMethods():
             self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension + extension))
             self.end_log_block()
             raise
-
-class RevisionMethods33(RevisionMethods):
-    def __init__(self, rest_api_base: TableauRestApiBase33):
-        self.rest_api_base = rest_api_base
-
-class RevisionMethods34(RevisionMethods33):
-    def __init__(self, rest_api_base: TableauRestApiBase34):
-        self.rest_api_base = rest_api_base
-
-class RevisionMethods35(RevisionMethods34):
-    def __init__(self, rest_api_base: TableauRestApiBase35):
-        self.rest_api_base = rest_api_base
-
-class RevisionMethods36(RevisionMethods35):
-    def __init__(self, rest_api_base: TableauRestApiBase36):
-        self.rest_api_base = rest_api_base

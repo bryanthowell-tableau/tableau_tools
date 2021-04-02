@@ -215,20 +215,3 @@ class UserMethods():
             user_luid = self.query_user_luid(user)
             self.update_user(username_or_luid=user_luid, site_role="Unlicensed")
         self.end_log_block()
-
-
-class UserMethods33(UserMethods):
-    def __init__(self, rest_api_base: TableauRestApiBase33):
-        self.rest_api_base = rest_api_base
-
-class UserMethods34(UserMethods33):
-    def __init__(self, rest_api_base: TableauRestApiBase34):
-        self.rest_api_base = rest_api_base
-
-class UserMethods35(UserMethods34):
-    def __init__(self, rest_api_base: TableauRestApiBase35):
-        self.rest_api_base = rest_api_base
-
-class UserMethods36(UserMethods35):
-    def __init__(self, rest_api_base: TableauRestApiBase36):
-        self.rest_api_base = rest_api_base
