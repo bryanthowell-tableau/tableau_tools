@@ -1906,7 +1906,6 @@ tableau_tools
     * tableau_parameters
     * tableau_workbook
     * hyper_file_generator   (legacy)
-* tableau_rest_api_connection
 * tableau_server_rest
 * logger
 * logging_methods
@@ -1915,3 +1914,99 @@ tableau_tools
 * tabcmd
 * tableau_http
 * tableau_emailer (legacy, unsupported)
+
+### 5.2 basics of tableau_rest_api module
+The tableau_rest_api module is composed of a lot of different files, which combine together to expose a single TableauServerRest object to the end user. 
+
+tableau_server_rest.py, which exposes this combined object lives in the outermost directory of the package. These classes just define the object structure, which includes the many sub-objects. The TableauServerRest object itself inherits from TableauRestApiBase, so the definition of the methods that exist directly on the TableauServerRest object really live in the tableau_rest_api/methods/rest_api_base.py file. All of the sub-objects are defined in files under the tableau_rest_api/methods/ sub-directory. 
+
+
+
+
+#### 5.2.1 rest_api_base.py
+All the REST API commands are variations of the same few HTTP actions. The value of the tableau_rest_api is in the reusable basic components that handle similar actions and process their responses in similar ways. 
+
+rest_api_base.py contains the basic implementations of all the REST API actions themselves, abstracted so they can be used by all of the other methods contained in things like the UserMethods and GroupMethods classes. 
+
+As mentioned above, TableauServerRest inherits from TableauRestApiBase, so rest_api_base.py is where to look for any of the properties and methods of the TableauServerRest object. For example, the constructor (__init__) method takes all of the essential elements to create a sesssion with the REST API:
+
+`def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = "", api_version: str = "3.2"):`
+
+The constructor and the signin() methods are all documented in the earlier sections of this README, since they are used regularly by end users of the library. What we'll cover here are all the lower-level functions used as building blocks
+
+##### 5.2.1.1 build_api_url()
+`build_api_url(self, call: str, server_level: bool = False, url_parameters: Optional[str] = None` 
+
+is the building block of every other call. It references the server URL and site LUID properties stored after the signin() call to build the start of the REST API call URL, then appends whatever you send. The server_level=True flag removes the site_luid portion of the call for things such as the sign-in call and some of the schedule settings calls. url_parameters appends a string to the end, which can be generated via `build_url_parameter_string()`
+
+##### 5.2.1.2 build_request_from_response()
+Some ADD/UPDATE commands have a "direct_xml_request=" argument. This was originally added to facilitate replication where you request from one Site/Server, use the build_request_from_response() method to strip out any identifiers and switch the outer XML tag to tsRequest from tsResponse, then send through directly.
+
+##### 5.2.1.3 query_resource()
+The base method for almost every other method that starts with "query"/"get" throughout the whole library. It takes in all the various things that might get put into a query URL string, builds out a "url_ending" string then runs it through `build_api_url()`. Then it runs it through the `_request` object as an HTTP get command, finally returning back the ElementTree XMl object.
+
+Most of the other query methods in the library are simply built of a combination of input sanitization, lookups to get the correct LUIDs, and then a call to query_resource(), or one of the other derivatives. For example:
+
+    def query_users_in_group(self, group_name_or_luid: str) -> ET.Element:
+      self.start_log_block()
+      luid = self.query_group_luid(group_name_or_luid)
+      users = self.query_resource("groups/{}/users".format(luid))
+      self.end_log_block()
+      return users
+
+##### 5.2.1.4 Specialized query base methods
+The REST API provides some filters through a URL syntax (where the filter is applied in the query at the Tableau Server), while there are other endpoints that do not have filtering abilities, but you might still want to search through the results to get a specific record. Because the primary mode of tableau_rest_api is do deal with things as ElementTree XML objects, searching on responses can be done using a limited set of XPath queries.
+
+There are a whole set of abstracted methods for taking advantage of whichever method is available for a given response:
+
+`query_elements_from_endpoint_with_filter()`
+`query_single_element_from_endpoint_with_filter()`
+`query_luid_from_name()`
+`query_luid_from_content_url()`
+`query_single_element_luid_from_endpoint_with_filter()`
+`query_single_element_luid_by_name_from_endpoint()`
+`query_single_element_from_endpoint()`
+
+##### 5.2.1.5 JSON query method query_resource_json()
+You can request JSON responses from the Tableau Server REST API rather than XML responses (the JSON is simply a transformation of the XML within the Tableau Server). Because a lot of filtering for specific things still requires the XPath searches, the JSON methods are mostly implemented for basic plural querying methods that have filtering available at the URL level. 
+
+All of those methods derive from:
+
+`query_resource_json()`
+
+which is identical to `query_resource()` except that it returns a standard Python object (which maps directly to JSON using the standard json library when you need). 
+
+Internally, it uses the `_request_json_obj` rather than the `_request_xml_obj`. Both objects always exist within the TableauServerRest object when it is created / sign-in happens. 
+
+#### 5.2.2 _lookups.py
+One of the major conveniences of the tableau_rest_api sub-package is that you can pass in either names or LUIDs to almost any method where there might be a valid name (a few things like Job Tasks only really have LUIDs). This is accomplished by "lookup" functions, which are defined in "_lookups.py". They are implemented in a separate, shared file because accomplishing tasks for one object type (Groups) might involve finding the LUID for another object type (User). This class is then part of the inheritance chain of RestApiBase - so it is really an interface class not used on its own.
+
+Almost every method in _lookups.py follows a format like "query_{object_type}_luid()", although there are some "query_{object_type}_name()" methods for the occasional need to go the other direction.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
