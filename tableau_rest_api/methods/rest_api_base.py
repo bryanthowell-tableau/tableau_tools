@@ -587,8 +587,6 @@ class TableauRestApiBase(LookupMethods, LoggingMethods, TableauRestXml):
         self.end_log_block()
         return xml
 
-
-
     def send_add_request(self, url: str, request: ET.Element) -> ET.Element:
         self.start_log_block()
         if self.token == "":
@@ -957,6 +955,7 @@ class TableauRestApiBase(LookupMethods, LoggingMethods, TableauRestXml):
                                                                                            e.tableau_error_code))
             self.end_log_block()
             raise
+
     def query_server_info(self) -> ET.Element:
         self.start_log_block()
         server_info = self.query_resource("serverinfo", server_level=True)

@@ -1915,15 +1915,16 @@ tableau_tools
 * tableau_http
 * tableau_emailer (legacy, unsupported)
 
-### 5.2 basics of tableau_rest_api module
+### 5.2 tableau_rest_api module
 The tableau_rest_api module is composed of a lot of different files, which combine together to expose a single TableauServerRest object to the end user. 
 
+#### 5.2.1 tableau_server_rest.py
 tableau_server_rest.py, which exposes this combined object lives in the outermost directory of the package. These classes just define the object structure, which includes the many sub-objects. The TableauServerRest object itself inherits from TableauRestApiBase, so the definition of the methods that exist directly on the TableauServerRest object really live in the tableau_rest_api/methods/rest_api_base.py file. All of the sub-objects are defined in files under the tableau_rest_api/methods/ sub-directory. 
 
 
 
 
-#### 5.2.1 rest_api_base.py
+#### 5.2.2 rest_api_base.py
 All the REST API commands are variations of the same few HTTP actions. The value of the tableau_rest_api is in the reusable basic components that handle similar actions and process their responses in similar ways. 
 
 rest_api_base.py contains the basic implementations of all the REST API actions themselves, abstracted so they can be used by all of the other methods contained in things like the UserMethods and GroupMethods classes. 
@@ -1934,15 +1935,15 @@ As mentioned above, TableauServerRest inherits from TableauRestApiBase, so rest_
 
 The constructor and the signin() methods are all documented in the earlier sections of this README, since they are used regularly by end users of the library. What we'll cover here are all the lower-level functions used as building blocks
 
-##### 5.2.1.1 build_api_url()
+##### 5.2.2.1 build_api_url()
 `build_api_url(self, call: str, server_level: bool = False, url_parameters: Optional[str] = None` 
 
 is the building block of every other call. It references the server URL and site LUID properties stored after the signin() call to build the start of the REST API call URL, then appends whatever you send. The server_level=True flag removes the site_luid portion of the call for things such as the sign-in call and some of the schedule settings calls. url_parameters appends a string to the end, which can be generated via `build_url_parameter_string()`
 
-##### 5.2.1.2 build_request_from_response()
+##### 5.2.2.2 build_request_from_response()
 Some ADD/UPDATE commands have a "direct_xml_request=" argument. This was originally added to facilitate replication where you request from one Site/Server, use the build_request_from_response() method to strip out any identifiers and switch the outer XML tag to tsRequest from tsResponse, then send through directly.
 
-##### 5.2.1.3 query_resource()
+##### 5.2.2.3 query_resource()
 The base method for almost every other method that starts with "query"/"get" throughout the whole library. It takes in all the various things that might get put into a query URL string, builds out a "url_ending" string then runs it through `build_api_url()`. Then it runs it through the `_request` object as an HTTP get command, finally returning back the ElementTree XMl object.
 
 Most of the other query methods in the library are simply built of a combination of input sanitization, lookups to get the correct LUIDs, and then a call to query_resource(), or one of the other derivatives. For example:
@@ -1954,7 +1955,7 @@ Most of the other query methods in the library are simply built of a combination
       self.end_log_block()
       return users
 
-##### 5.2.1.4 Specialized query base methods
+##### 5.2.2.4 Specialized query base methods
 The REST API provides some filters through a URL syntax (where the filter is applied in the query at the Tableau Server), while there are other endpoints that do not have filtering abilities, but you might still want to search through the results to get a specific record. Because the primary mode of tableau_rest_api is do deal with things as ElementTree XML objects, searching on responses can be done using a limited set of XPath queries.
 
 There are a whole set of abstracted methods for taking advantage of whichever method is available for a given response:
@@ -1967,7 +1968,7 @@ There are a whole set of abstracted methods for taking advantage of whichever me
 `query_single_element_luid_by_name_from_endpoint()`
 `query_single_element_from_endpoint()`
 
-##### 5.2.1.5 JSON query method query_resource_json()
+##### 5.2.2.5 JSON query method query_resource_json()
 You can request JSON responses from the Tableau Server REST API rather than XML responses (the JSON is simply a transformation of the XML within the Tableau Server). Because a lot of filtering for specific things still requires the XPath searches, the JSON methods are mostly implemented for basic plural querying methods that have filtering available at the URL level. 
 
 All of those methods derive from:
@@ -1976,14 +1977,83 @@ All of those methods derive from:
 
 which is identical to `query_resource()` except that it returns a standard Python object (which maps directly to JSON using the standard json library when you need). 
 
-Internally, it uses the `_request_json_obj` rather than the `_request_xml_obj`. Both objects always exist within the TableauServerRest object when it is created / sign-in happens. 
+Internally, it uses the `_request_json_obj` rather than the `_request_obj`which handles XML transactions. Both objects always exist within the TableauServerRest object when it is created / sign-in happens. 
 
-#### 5.2.2 _lookups.py
+##### 5.2.2.6 Other HTTP verb base methods
+The internal `_request_obj` is a RestXmlRequest object (defined in rest_xml_request.py). There is more documentation of it below in the dedicated section, but in essence it is a wrapper around Python requests library designed to help with the parsing of the Tableau REST API XML requests and responses. 
+
+The RestXmlRequest object is long-lived and maintains a requests session the whole time. Each of the HTTP verb base methods sets various properties of the RestXmlRequest prior to doing the `request_from_api()` method to actually cause the HTTP request to be made. Some of this architecture predates the use of the requests library, and resembles how things were done using the Python2 urllib directly (and resembles cURL type requests). 
+
+`send_post_request` makes a POST without any payload.
+
+`send_add_request` makes a POST with an XML request, passed in as an ElementTree.Element object.
+
+`send_add_request_json` makes a POST with a JSON request, passed in as a Python Dict which gets automatically converted to the correctly encoded JSON in the request
+
+`send_update_request` makes a PUT with an XML request
+
+`send_delete_request` makes an HTTP DELETE based on the URL string passed in
+
+`send_publish_request` makes a POST request with a payload of a Tableau XML Document, or it starts a multi-part publish. Is a base component of the `_publish_content` method
+
+`sent_append_request` makes a PUT request for the multi-part upload in a publish action. Is really used within `_publish_content` method
+
+`send_binary_get_request` makes a POST request but does not process the response as XML or JSON, and instead returns the "raw_response", which is whatever comes out of requests Response.content property for the given content-type that was requested. Used for Tableau file, image, PDF, CSV and other requests that will either be kept as is in memory or saved to disk. `_query_data_file()` wraps around `get_binary_get_request` as the abstract underlying method for most of the image / PDF etc. calls
+
+##### 5.2.2.7 _publish_content method
+`_publish_content` encapsulates all the possible variations necessary to publish 
+Tableau documents to Tableau Server. The specifications for the publishing process must be followed exactly or you will get errors that are hard to work out (this is why either tableau_tools or TSC are recommended for publishing activities). 
+
+One important part of `_publish_content` is that it interrogates the file to be uploaded and automaticaly decides whether to do a one-action publish or to split into multi-part. There is a variable called "single_upload_limit", which is an integer representing the size in MB to make a cutoff to switch to multi-part upload. This was designed to be updated if a better value was found, but it's worked for a long time now.
+
+`initiate_file_upload` and `append_to_file_upload` handle the XML portion of the transactions for, but are called by `_publish_content` are part of the process. 
+
+#### 5.2.3 _lookups.py
 One of the major conveniences of the tableau_rest_api sub-package is that you can pass in either names or LUIDs to almost any method where there might be a valid name (a few things like Job Tasks only really have LUIDs). This is accomplished by "lookup" functions, which are defined in "_lookups.py". They are implemented in a separate, shared file because accomplishing tasks for one object type (Groups) might involve finding the LUID for another object type (User). This class is then part of the inheritance chain of RestApiBase - so it is really an interface class not used on its own.
 
 Almost every method in _lookups.py follows a format like "query_{object_type}_luid()", although there are some "query_{object_type}_name()" methods for the occasional need to go the other direction.
 
+#### 5.2.4 /methods implementation files
+With in the /methods sub-directory are files with the classes for the implementation of "endpoint" specific objects. This separation is for organizational purposes only - it makes autocomplete vastly easier when you can do "TableauServerRest.projects." and only get methods related to Projects. These classea do not define an object representation of the endpoint (The Tableau Server Client library works this way, where you pass Python objects representing Tableau Server objects to 'endpoints') - they are just collections of methods.
 
+Within each file, you will see a baseline class (with no API number appeneded to the end). The baseline for version 6 of tableau_tools is API version 3.2. If there are newer methods implemented in a later version, you will see a second class named "ClassNameNN" with the API version as the "NN" portion. For example, "extract.py" has both an ExtractMethods and a ExtractMethods35 class definition, because the features for encrypted extracts were added in version 3.5 of the API.
+
+The correct class for the given API version is defined in tableau_server_rest.py on the TableauServerRestNN object. 
+
+The benefit of this structure is that you are protected while writing code from using methods for a later version of Tableau Server than you have available. It also allows for re-implementation of existing methods with improved internal functionality when it is available on newer versions.
+
+Almost every method follows some basic rules which give the distinguishing aspects of tableau_tools:
+
+- All arguments are fully typed using the Python 3.6 type hinting
+- Every method starts with `self.start_log_block()` and ends with `self.end_log_block()` prior to any return statement
+- CREATE / UPDATE methods may have a `direct_xml_request` argument to take an ET.Element and bypass any XML creation within the method
+- If possible, arguments should take both name or a LUID, with a naming convention like `username_or_luid: str` or `project_name_or_luid: str`. The determination of name or LUID is handled within the base methods from _lookups.py automatically
+
+Here is an example from group.py:
+
+        # Returns the LUID of an existing group if one already exists
+    def create_group(self, group_name: Optional[str] = None, direct_xml_request: Optional[ET.Element] = None) -> str:
+        self.start_log_block()
+
+        if direct_xml_request is not None:
+            tsr = direct_xml_request
+        else:
+            tsr = ET.Element("tsRequest")
+            g = ET.Element("group")
+            g.set("name", group_name)
+            tsr.append(g)
+
+        url = self.build_api_url("groups")
+        try:
+            new_group = self.send_add_request(url, tsr)
+            self.end_log_block()
+            return new_group.findall('.//t:group', self.ns_map)[0].get("id")
+        # If the name already exists, a HTTP 409 throws, so just find and return the existing LUID
+        except RecoverableHTTPException as e:
+            if e.http_code == 409:
+                self.log('Group named {} already exists, finding and returning the LUID'.format(group_name))
+                self.end_log_block()
+                return self.query_group_luid(group_name)
 
 
 
