@@ -1073,7 +1073,7 @@ class Project33(Project):
             return self
 
     def get_permissions_obj(self, group_name_or_luid: Optional[str] = None, username_or_luid: Optional[str] = None,
-                               role: Optional[str] = None) -> 'ProjectPermissions28':
+                               role: Optional[str] = None) -> 'ProjectPermissions':
         return self._get_permissions_object(group_name_or_luid=group_name_or_luid, username_or_luid=username_or_luid,
                                             role=role)
 
