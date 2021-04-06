@@ -6,34 +6,6 @@ import xml.etree.ElementTree as ET
 
 # Represents the Permissions from any given user or group. Equivalent to GranteeCapabilities in the API
 class Permissions(LoggingMethods):
-    capabilities_2_1 = {
-        "project": ("Read", "Write", 'ProjectLeader'),
-        "workbook": (
-            'Read',
-            'ExportImage',
-            'ExportData',
-            'ViewComments',
-            'AddComment',
-            'Filter',
-            'ViewUnderlyingData',
-            'ShareView',
-            'WebAuthoring',
-            'Write',
-            'ExportXml',
-            'ChangeHierarchy',
-            'Delete',
-            'ChangePermissions',
-
-        ),
-        "datasource": (
-            'Read',
-            'Connect',
-            'Write',
-            'ExportXml',
-            'Delete',
-            'ChangePermissions'
-        )
-    }
 
     capabilities_2_8 = {
         "project": ("Read", "Write", 'ProjectLeader', 'InheritedProjectLeader'),
@@ -139,17 +111,11 @@ class Permissions(LoggingMethods):
     }
 
     available_capabilities = {
-        '2.6': capabilities_2_1,
-        '2.7': capabilities_2_1,
-        '2.8': capabilities_2_8,
-        '3.0': capabilities_2_8,
-        '3.1': capabilities_2_8,
         '3.2': capabilities_2_8,
         '3.3': capabilities_3_3,
         '3.4': capabilities_3_3,
         '3.5': capabilities_3_5,
         '3.6': capabilities_3_5
-
     }
 
     def __init__(self, group_or_user: str, luid: str, content_type: Optional[str] = None):
@@ -212,8 +178,6 @@ class Permissions(LoggingMethods):
                 'Project Leader': 'Allow'
             }
         }
-
-
 
         self.site_roles = (
             'Interactor',
@@ -292,11 +256,6 @@ class Permissions(LoggingMethods):
         }
 
         self.server_content_roles = {
-            "2.6": server_content_roles_2_1,
-            "2.7": server_content_roles_2_1,
-            "2.8": server_content_roles_2_1,
-            '3.0': server_content_roles_2_1,
-            '3.1': server_content_roles_2_1,
             '3.2': server_content_roles_2_1,
             '3.3': server_content_roles_3_3,
             '3.4': server_content_roles_3_3,
@@ -462,34 +421,6 @@ class Permissions(LoggingMethods):
 class WorkbookPermissions(Permissions):
     def __init__(self, group_or_user, group_or_user_luid):
         Permissions.__init__(self, group_or_user, group_or_user_luid, u'workbook')
-        for cap in self.available_capabilities[u'2.6'][u'workbook']:
-            if cap != u'all':
-                self.capabilities[cap] = None
-        self.role_set = {
-                    u"Viewer": {
-                        u'all': None,
-                        u'View': u'Allow',
-                        u'Export Image': u'Allow',
-                        u'View Summary Data': u'Allow',
-                        u'View Comments': u'Allow',
-                        u'Add Comment': u'Allow'
-                    },
-                    u"Interactor": {
-                        u'all': u'Allow',
-                        u'Download': None,
-                        u'Move': None,
-                        u'Delete': None,
-                        u'Set Permissions': None,
-                        u'Save': None
-                    },
-                    u"Editor": {
-                        u'all': u'Allow'
-                    }
-                }
-
-class WorkbookPermissions28(Permissions):
-    def __init__(self, group_or_user: str, group_or_user_luid: str):
-        Permissions.__init__(self, group_or_user, group_or_user_luid, 'workbook')
         for cap in self.available_capabilities['2.8']['workbook']:
             if cap != 'all':
                 self.capabilities[cap] = None
@@ -518,29 +449,6 @@ class WorkbookPermissions28(Permissions):
 class ProjectPermissions(Permissions):
     def __init__(self, group_or_user, group_or_user_luid):
         Permissions.__init__(self, group_or_user, group_or_user_luid, u'project')
-        for cap in self.available_capabilities[u'2.6'][u'project']:
-            if cap != u'all':
-                self.capabilities[cap] = None
-        self.role_set = {
-            u"Viewer": {
-                u'all': None,
-                u"View": u"Allow"
-            },
-            u"Publisher": {
-                u'all': None,
-                u"View": u"Allow",
-                u"Save": u"Allow"
-            },
-            u"Project Leader": {
-                u'all': None,
-                u"Project Leader": u"Allow"
-            }
-        }
-
-
-class ProjectPermissions28(Permissions):
-    def __init__(self, group_or_user: str, group_or_user_luid: str):
-        Permissions.__init__(self, group_or_user, group_or_user_luid, 'project')
         for cap in self.available_capabilities['2.8']['project']:
             if cap != 'all':
                 self.capabilities[cap] = None
@@ -560,26 +468,10 @@ class ProjectPermissions28(Permissions):
             }
         }
 
+
 class DatasourcePermissions(Permissions):
     def __init__(self, group_or_user, group_or_user_luid):
         Permissions.__init__(self, group_or_user, group_or_user_luid, u'datasource')
-        for cap in self.available_capabilities[u'2.6'][u'datasource']:
-            if cap != u'all':
-                self.capabilities[cap] = None
-        self.role_set = {
-            u"Connector": {
-                u'all': None,
-                u'View': u'Allow',
-                u'Connect': u'Allow'
-            },
-            u"Editor": {
-                u'all': u'Allow'
-            }
-        }
-
-class DatasourcePermissions28(Permissions):
-    def __init__(self, group_or_user: str, group_or_user_luid: str):
-        Permissions.__init__(self, group_or_user, group_or_user_luid, 'datasource')
         for cap in self.available_capabilities['2.8']['datasource']:
             if cap != 'all':
                 self.capabilities[cap] = None
