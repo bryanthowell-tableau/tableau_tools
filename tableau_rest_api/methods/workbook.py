@@ -1,5 +1,5 @@
 from .rest_api_base import *
-from ..published_content import Workbook, Workbook28
+from ..published_content import Workbook
 
 
 class WorkbookMethods():

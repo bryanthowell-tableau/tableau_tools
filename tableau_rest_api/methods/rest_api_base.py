@@ -1226,13 +1226,31 @@ class TableauRestApiBase36(TableauRestApiBase35):
         self.end_log_block()
 
 class TableauRestApiBase37(TableauRestApiBase36):
-    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = "", api_version: str = "3.5"):
+    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = "", api_version: str = "3.7"):
         TableauRestApiBase36.__init__(self, server=server, username=username, password=password,
                                     site_content_url=site_content_url, api_version=api_version)
         self.set_tableau_server_version('2020.1')
 
 class TableauRestApiBase38(TableauRestApiBase36):
-    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = "", api_version: str = "3.4"):
+    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = "", api_version: str = "3.8"):
         TableauRestApiBase36.__init__(self, server=server, username=username, password=password,
                                     site_content_url=site_content_url, api_version=api_version)
         self.set_tableau_server_version('2020.2')
+
+    def get_current_server_session(self) -> ET.Element:
+        self.start_log_block()
+        sessions = self.query_resource("sessions/current", server_level=True)
+        self.end_log_block()
+        return sessions
+
+class TableauRestApiBase39(TableauRestApiBase36):
+    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = "", api_version: str = "3.9"):
+        TableauRestApiBase36.__init__(self, server=server, username=username, password=password,
+                                    site_content_url=site_content_url, api_version=api_version)
+        self.set_tableau_server_version('2020.3')
+
+    def delete_server_session(self, session_id: str):
+        self.start_log_block()
+        url = self.build_api_url("sessions/{}".format(session_id), server_level=True)
+        self.send_delete_request(url)
+        self.end_log_block()
