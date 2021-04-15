@@ -684,14 +684,14 @@ class WorkbookMethods34(WorkbookMethods):
 
 
 class WorkbookMethods37(WorkbookMethods34):
-    def __init__(self, rest_api_base: TableauRestApiBase36):
+    def __init__(self, rest_api_base: TableauRestApiBase37):
         self.rest_api_base = rest_api_base
 
     # Recommendations Methods
 
 
 class WorkbookMethods38(WorkbookMethods37):
-    def __init__(self, rest_api_base: TableauRestApiBase36):
+    def __init__(self, rest_api_base: TableauRestApiBase38):
         self.rest_api_base = rest_api_base
 
     # Download Workbook Powerpoint
@@ -721,3 +721,40 @@ class WorkbookMethods38(WorkbookMethods37):
             self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension))
             self.end_log_block()
             raise
+
+    def update_workbook(self, workbook_name_or_luid: str, workbook_project_name_or_luid: Optional[str] = None,
+                        new_project_name_or_luid: Optional[str] = None, new_owner_username_or_luid: Optional[str] = None,
+                        show_tabs: bool = True, data_acceleration_enabled: Optional[bool] = None,
+                        accelerate_now: Optional[bool] = None) -> ET.Element:
+        self.start_log_block()
+        workbook_luid = self.query_workbook_luid(workbook_name_or_luid, workbook_project_name_or_luid)
+
+        tsr = ET.Element("tsRequest")
+        w = ET.Element("workbook")
+        w.set('showTabs', str(show_tabs).lower())
+
+        if new_project_name_or_luid is not None:
+            new_project_luid = self.query_project_luid(new_project_name_or_luid)
+            p = ET.Element('project')
+            p.set('id', new_project_luid)
+            w.append(p)
+
+        if new_owner_username_or_luid is not None:
+            new_owner_luid = self.query_user_luid(new_owner_username_or_luid)
+            o = ET.Element('owner')
+            o.set('id', new_owner_luid)
+            w.append(o)
+
+        if data_acceleration_enabled is not None:
+            dac = ET.Element('dataAccelerationConfig')
+            dac.set('accelerationEnabled', str(data_acceleration_enabled).lower())
+            if accelerate_now is not None:
+                dac.set('accelerateNow', str(accelerate_now).lower())
+            w.append(dac)
+
+        tsr.append(w)
+
+        url = self.build_api_url("workbooks/{}".format(workbook_luid))
+        response = self.send_update_request(url, tsr)
+        self.end_log_block()
+        return response

@@ -23,7 +23,10 @@ class SiteMethods():
             s.set('contentUrl', content_url)
         if options_dict is not None:
             for key in options_dict:
-                s.set(key, str(options_dict[key]))
+                if str(options_dict[key]).lower() in ['true', 'false']:
+                    s.set(key, str(options_dict[key]).lower())
+                else:
+                    s.set(key, str(options_dict[key]))
 
         tsr.append(s)
         return tsr

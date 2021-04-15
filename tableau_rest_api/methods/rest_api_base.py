@@ -1224,3 +1224,15 @@ class TableauRestApiBase36(TableauRestApiBase35):
         self._request_obj.url = None
         self._request_obj.xml_request = None
         self.end_log_block()
+
+class TableauRestApiBase37(TableauRestApiBase36):
+    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = "", api_version: str = "3.5"):
+        TableauRestApiBase36.__init__(self, server=server, username=username, password=password,
+                                    site_content_url=site_content_url, api_version=api_version)
+        self.set_tableau_server_version('2020.1')
+
+class TableauRestApiBase38(TableauRestApiBase36):
+    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = "", api_version: str = "3.4"):
+        TableauRestApiBase36.__init__(self, server=server, username=username, password=password,
+                                    site_content_url=site_content_url, api_version=api_version)
+        self.set_tableau_server_version('2020.2')
