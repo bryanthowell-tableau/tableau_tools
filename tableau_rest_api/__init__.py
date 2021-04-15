@@ -6,6 +6,7 @@ from .methods.favorites import *
 from .methods.flow import *
 from .methods.group import *
 from .methods.metadata import *
+from .methods.metrics import *
 from .methods.project import *
 from .methods.revision import *
 from .methods.schedule import *

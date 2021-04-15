@@ -1243,6 +1243,7 @@ class TableauRestApiBase38(TableauRestApiBase36):
         self.end_log_block()
         return sessions
 
+
 class TableauRestApiBase39(TableauRestApiBase36):
     def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = "", api_version: str = "3.9"):
         TableauRestApiBase36.__init__(self, server=server, username=username, password=password,
@@ -1254,3 +1255,37 @@ class TableauRestApiBase39(TableauRestApiBase36):
         url = self.build_api_url("sessions/{}".format(session_id), server_level=True)
         self.send_delete_request(url)
         self.end_log_block()
+
+
+class TableauRestApiBase310(TableauRestApiBase36):
+    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = "", api_version: str = "3.9"):
+        TableauRestApiBase36.__init__(self, server=server, username=username, password=password,
+                                    site_content_url=site_content_url, api_version=api_version)
+        self.set_tableau_server_version('2020.4')
+
+
+class TableauRestApiBase11(TableauRestApiBase36):
+    def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = "", api_version: str = "3.9"):
+        TableauRestApiBase36.__init__(self, server=server, username=username, password=password,
+                                    site_content_url=site_content_url, api_version=api_version)
+        self.set_tableau_server_version('2021.1')
+
+    def list_server_active_directory_domains(self) -> ET.Element:
+        self.start_log_block()
+        response = self.query_resource("domains/", server_level=True)
+        self.end_log_block()
+        return response
+
+    def update_server_active_directory_domain(self, domain_id: str, new_name: Optional[str] = None,
+                                              new_short_name: Optional[str] = None) -> ET.Element:
+        self.start_log_block()
+        tsr = ET.Element("tsRequest")
+        d = ET.Element("domain")
+        if new_name is not None:
+            d.set('name', new_name)
+        if new_short_name is not None:
+            d.set('shortName', new_short_name)
+        url = self.build_api_url("domains/{}".format(domain_id), server_level=True)
+        response = self.send_update_request(url=url, request=tsr)
+        self.end_log_block()
+        return response

@@ -134,7 +134,7 @@ class TableauServerRest37(TableauRestApiBase36):
         self.webhooks: WebhooksMethods36 = WebhooksMethods36(self.rest_api_base)
         self.workbooks: WorkbookMethods37 = WorkbookMethods37(self.rest_api_base)
 
-class TableauServerRest38(TableauRestApiBase36):
+class TableauServerRest38(TableauRestApiBase38):
     def __init__(self, server: str, username: Optional[str] = None, password: Optional[str] = None,
                  site_content_url: Optional[str] = "", pat_name: Optional[str] = None,
                  pat_secret: Optional[str] = None, api_version: str = "3.6"):
@@ -159,7 +159,7 @@ class TableauServerRest38(TableauRestApiBase36):
         self.workbooks: WorkbookMethods38 = WorkbookMethods38(self.rest_api_base)
 
 
-class TableauServerRest39(TableauRestApiBase36):
+class TableauServerRest39(TableauRestApiBase39):
     def __init__(self, server: str, username: Optional[str] = None, password: Optional[str] = None,
                  site_content_url: Optional[str] = "", pat_name: Optional[str] = None,
                  pat_secret: Optional[str] = None, api_version: str = "3.6"):
@@ -174,6 +174,7 @@ class TableauServerRest39(TableauRestApiBase36):
         self.flows: FlowMethods33 = FlowMethods33(self.rest_api_base)
         self.groups: GroupMethods37 = GroupMethods37(self.rest_api_base)
         self.metadata: MetadataMethods35 = MetadataMethods35(self.rest_api_base)
+        self.metrics: MetricsMethods39 = MetricsMethods39(self.rest_api_base)
         self.projects: ProjectMethods = ProjectMethods(self.rest_api_base)
         self.revisions: RevisionMethods = RevisionMethods(self.rest_api_base)
         self.schedules: ScheduleMethods = ScheduleMethods(self.rest_api_base)
@@ -184,7 +185,7 @@ class TableauServerRest39(TableauRestApiBase36):
         self.workbooks: WorkbookMethods38 = WorkbookMethods38(self.rest_api_base)
 
 
-class TableauServerRest310(TableauRestApiBase36):
+class TableauServerRest310(TableauRestApiBase310):
     def __init__(self, server: str, username: Optional[str] = None, password: Optional[str] = None,
                  site_content_url: Optional[str] = "", pat_name: Optional[str] = None,
                  pat_secret: Optional[str] = None, api_version: str = "3.6"):
@@ -199,6 +200,7 @@ class TableauServerRest310(TableauRestApiBase36):
         self.flows: FlowMethods33 = FlowMethods33(self.rest_api_base)
         self.groups: GroupMethods37 = GroupMethods37(self.rest_api_base)
         self.metadata: MetadataMethods35 = MetadataMethods35(self.rest_api_base)
+        self.metrics: MetricsMethods39 = MetricsMethods39(self.rest_api_base)
         self.projects: ProjectMethods = ProjectMethods(self.rest_api_base)
         self.revisions: RevisionMethods = RevisionMethods(self.rest_api_base)
         self.schedules: ScheduleMethods = ScheduleMethods(self.rest_api_base)
@@ -209,7 +211,7 @@ class TableauServerRest310(TableauRestApiBase36):
         self.workbooks: WorkbookMethods38 = WorkbookMethods38(self.rest_api_base)
 
 
-class TableauServerRest311(TableauRestApiBase36):
+class TableauServerRest311(TableauRestApiBase311):
     def __init__(self, server: str, username: Optional[str] = None, password: Optional[str] = None,
                  site_content_url: Optional[str] = "", pat_name: Optional[str] = None,
                  pat_secret: Optional[str] = None, api_version: str = "3.6"):
@@ -224,6 +226,7 @@ class TableauServerRest311(TableauRestApiBase36):
         self.flows: FlowMethods33 = FlowMethods33(self.rest_api_base)
         self.groups: GroupMethods37 = GroupMethods37(self.rest_api_base)
         self.metadata: MetadataMethods35 = MetadataMethods35(self.rest_api_base)
+        self.metrics: MetricsMethods39 = MetricsMethods39(self.rest_api_base)
         self.projects: ProjectMethods = ProjectMethods(self.rest_api_base)
         self.revisions: RevisionMethods = RevisionMethods(self.rest_api_base)
         self.schedules: ScheduleMethods = ScheduleMethods(self.rest_api_base)
