@@ -630,11 +630,7 @@ class WorkbookMethods34(WorkbookMethods):
     def query_workbook_pdf(self, wb_name_or_luid: str, proj_name_or_luid: Optional[str] = None,
                        page_orientation: str = 'Portrait', page_type: str = 'Legal'):
         self.start_log_block()
-        if page_orientation not in ['Portrait', 'Landscape']:
-            raise InvalidOptionException('page_orientation can only be "Portrait" or "Landscape"')
-        if page_type not in ['A3', 'A4', 'A5', 'B5', 'Executive', 'Folio', 'Ledger', 'Legal', 'Letter', 'Note',
-                             'Quarto', 'Tabloid']:
-            raise InvalidOptionException('page_type can only be one of: A3, A4, A5, B5, Executive, Folio, Ledger, Legal, Letter, Note, Quarto, or Tabloid.')
+
         pdf = self._query_data_file('pdf', wb_name_or_luid=wb_name_or_luid,
                                     proj_name_or_luid=proj_name_or_luid, page_type=page_type,
                                     page_orientation=page_orientation)
@@ -685,3 +681,43 @@ class WorkbookMethods34(WorkbookMethods):
         else:
             workbook = xml.findall('.//t:workbook', self.ns_map)
             return workbook[0].get('id')
+
+
+class WorkbookMethods37(WorkbookMethods34):
+    def __init__(self, rest_api_base: TableauRestApiBase36):
+        self.rest_api_base = rest_api_base
+
+    # Recommendations Methods
+
+
+class WorkbookMethods38(WorkbookMethods37):
+    def __init__(self, rest_api_base: TableauRestApiBase36):
+        self.rest_api_base = rest_api_base
+
+    # Download Workbook Powerpoint
+    def query_workbook_powerpoint(self, wb_name_or_luid: str, proj_name_or_luid: Optional[str] = None):
+        self.start_log_block()
+
+        powerpoint = self._query_data_file('powerpoint', wb_name_or_luid=wb_name_or_luid,
+                                    proj_name_or_luid=proj_name_or_luid)
+        self.end_log_block()
+        return powerpoint
+
+    def save_workbook_powerpoint(self, wb_name_or_luid: str, filename_no_extension: str,
+                          proj_name_or_luid: Optional[str] = None) -> str:
+        self.start_log_block()
+        powerpoint = self.query_workbook_powerpoint(wb_name_or_luid=wb_name_or_luid,
+                                  proj_name_or_luid=proj_name_or_luid)
+
+        if filename_no_extension.find('.pptx') == -1:
+            filename_no_extension += '.pptx'
+        try:
+            save_file = open(filename_no_extension, 'wb')
+            save_file.write(powerpoint)
+            save_file.close()
+            self.end_log_block()
+            return filename_no_extension
+        except IOError:
+            self.log("Error: File '{}' cannot be opened to save to".format(filename_no_extension))
+            self.end_log_block()
+            raise

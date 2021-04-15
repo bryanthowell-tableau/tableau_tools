@@ -232,3 +232,14 @@ class GroupMethods():
             self.send_delete_request(url)
         self.end_log_block()
 
+
+class GroupMethods37(GroupMethods):
+    def __init__(self, rest_api_base: TableauRestApiBase36):
+        self.rest_api_base = rest_api_base
+
+    def get_groups_for_a_user(self, username_or_luid: str) -> ET.Element:
+        self.start_log_block()
+        luid = self.rest_api_base.query_user_luid(username_or_luid)
+        users = self.query_resource("users/{}/groups".format(luid))
+        self.end_log_block()
+        return users
