@@ -14,14 +14,14 @@ if TYPE_CHECKING:
 
 # Represents a published workbook, project or datasource
 class PublishedContent(LoggingMethods):
-    def __init__(self, luid: str, obj_type: str, tableau_rest_api_obj: Union['TableauRestApiConnection', 'TableauServerRest'],
+    def __init__(self, luid: str, obj_type: str, tableau_rest_api_obj: 'TableauServerRest',
                  default: bool = False, logger_obj: Optional['Logger'] = None,
                  content_xml_obj: Optional[ET.Element] = None):
 
         self.permissionable_objects = ('datasource', 'project', 'workbook', 'flow', 'database', 'table')
         self.logger = logger_obj
         self._luid = luid
-        self.t_rest_api: Union[TableauRestApiConnection, TableauServerRest] = tableau_rest_api_obj
+        self.t_rest_api: TableauServerRest = tableau_rest_api_obj
         self.obj_type = obj_type
         self.default = default
         self.obj_perms_xml = None
@@ -114,14 +114,6 @@ class PublishedContent(LoggingMethods):
         else:
             raise InvalidOptionException('Must pass one of group_name_or_luid or username_or_luid')
 
-    # Legacy for compatibility
-    def copy_permissions_obj_for_group(self, perms_obj, group_name_or_luid):
-        return self._copy_permissions_obj(perms_obj, 'group', group_name_or_luid)
-
-    def copy_permissions_obj_for_user(self, perms_obj, username_or_luid):
-        return self._copy_permissions_obj(perms_obj, 'user', username_or_luid)
-
-
 
     # Runs through the gcap object list, and tries to do a conversion all principals to matching LUIDs on current site
     # Use case is replicating settings from one site to another
@@ -129,11 +121,6 @@ class PublishedContent(LoggingMethods):
     # Not Finished
     def convert_permissions_obj_list_from_orig_site_to_current_site(self, permissions_obj_list: List['Permissions'],
                                                                     orig_site: Union['TableauRestApiConnection', 'TableauServerRest']) -> List['Permissions']:
-        """
-        :type permissions_obj_list: list[Permissions]
-        :type orig_site: TableauRestApiConnection
-        :rtype: list[Permissions]
-        """
         # If the site is the same, skip the whole thing and just return the original
         if self.t_rest_api.site_content_url == orig_site.site_content_url \
                 and self.t_rest_api.server == orig_site.server:

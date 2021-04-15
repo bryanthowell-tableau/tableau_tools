@@ -1919,6 +1919,9 @@ tableau_tools
 ## 6 tableau_rest_api module
 The tableau_rest_api module is composed of a lot of different files, which combine together to expose a single TableauServerRest object to the end user. 
 
+### 6.0 rest_xml_request.py and rest_josn_request.py
+Due to historical development of the library, the actual handling of the HTTP connectivity to the Tableau Server is handled through a
+
 ### 6.1 tableau_server_rest.py
 tableau_server_rest.py, which exposes this combined object lives in the outermost directory of the package. These classes just define the object structure, which includes the many sub-objects. The TableauServerRest object itself inherits from TableauRestApiBase, so the definition of the methods that exist directly on the TableauServerRest object really live in the tableau_rest_api/methods/rest_api_base.py file. All of the sub-objects are defined in files under the tableau_rest_api/methods/ sub-directory. 
 
@@ -2061,10 +2064,68 @@ Why? The basic issue is that the Tableau Server REST API does not allow an UPDAT
 #### 6.5.1 published_content.py
 The base class `PublishedContent` is inherited by the Project, Workbook, Datasource, Flow etc. classes with the variations that are appropriate. 
 
+It contains an internal variable which references an existing TableauServerRest object so that it can directly send the necessary commands to make changes on the Tableau Server. For this reason, the PublishedContent classes are best retrieved from methods on a TableauServerRest object, rather than directly instantiated as a new object.
+
+The `PublishedContent` classes also act as a Factory for Permissions objects, ensuring that all the correct settings are in place for the given published content type when requested. This happens through the:
+
+`def get_permissions_obj(self, group_name_or_luid: Optional[str] = None, username_or_luid: Optional[str] = None, role: Optional[str] = None):`
+
+a method which is overwritten by each individual class to handle their specifics.
+
+Another convenient feature is the ability to copy a Permissions object, so that it retains the same capabilities but is assigned to another Group or User. The external `copy_permissions_obj()` method references a hidden internal method, which does a lookup for LUIDs and then uses the Python copy.deepcopy() method to generate an actual new object:
+
+    # Copy Permissions for users or group
+    def _copy_permissions_obj(self, perms_obj, user_or_group, name_or_luid):
+        self.start_log_block()
+        if TableauRestXml.is_luid(name_or_luid):
+            luid = name_or_luid
+        else:
+            if user_or_group == 'group':
+                luid = self.t_rest_api.query_group_luid(name_or_luid)
+            elif user_or_group == 'user':
+                luid = self.t_rest_api.query_user_luid(name_or_luid)
+            else:
+                raise InvalidOptionException('Must send group or user only')
+        new_perms_obj = copy.deepcopy(perms_obj)
+        new_perms_obj.luid = luid
+        self.end_log_block()
+        return new_perms_obj
+
 #### 6.5.2 Project classes
 The Project classes are distinguished from the other PublishedContent classes by contained "default_permissions" sub-objects. This maps to how Projects work on Tableau Server -- there are "Project Permissions" and then a set of "Default Permissions" for the other content types. If the Project is set to "Locked Permissions", the default permissions will determine the permissions of the content contained within. In the "Unlocked" mode (still the default, although we would recommend against it in most cases), the Defaults are simply what is sugggested in the Publish dialog within Tableau Desktop, but can be changed by the publisher at publish time.
 
+#### 6.5. permissions.py
+The classes in permissions.py are primarily data structures, while most of the actions on them come from the PublishedContent classes. Each variation has an internal dictionary with the Capabilities (Permissions) available to that particular object on the Tableau Server. Permissions classes do define getter / setter methods to set the state of individual Capabilities (Permissions are called Capabilities in the REST API) :
 
+`set_capability_to_allow(self, capability_name: str)`
+
+`set_capability_to_deny(self, capability_name: str)`
+
+`set_capability_to_unspecified(self, capability_name: str)`
+
+There are quick methods for setting ALL permissions to a certain state:
+
+`set_all_to_deny()`
+
+`set_all_to_allow()`
+
+`set_all_to_unspecified()`
+
+If you look in the definition of the first second two, you'll note that the "InheritedProjectLeader" capability is ignored for these settings, despite existing in some situations:
+
+    def set_all_to_allow(self):
+        for cap in self.capabilities:
+            if cap == 'InheritedProjectLeader':
+                continue
+            if cap != 'all':
+                self.capabilities[cap] = 'Allow'
+
+
+The Permissions objects also have the Role definitions from the Tableau Server UI, which allow for quick setting of standard settings.
+
+`def set_capabilities_to_match_role(self, role: str):`
+
+This method is defined on the Permissions class, but looks at the role definition dictionaries defined on each of the descendent classes such as "WorkbookPermissions"
 
 
 
