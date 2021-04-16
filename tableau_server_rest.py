@@ -6,7 +6,8 @@ from .tableau_rest_api import *
 class TableauServerRest(TableauRestApiBase):
     def __init__(self, server: str, username: str, password: str,
                  site_content_url: Optional[str] = "", api_version: str = "3.2"):
-        TableauRestApiBase.__init__(self, server, username, password, site_content_url)
+        TableauRestApiBase.__init__(self, server, username, password, site_content_url,
+                                    api_version=api_version)
         self.rest_api_base = self
 
         self.datasources: DatasourceMethods = DatasourceMethods(self.rest_api_base)
@@ -25,7 +26,8 @@ class TableauServerRest(TableauRestApiBase):
 class TableauServerRest33(TableauRestApiBase):
     def __init__(self, server: str, username: str, password: str,
                  site_content_url: Optional[str] = "", api_version: str = "3.3"):
-        TableauRestApiBase33.__init__(self, server, username, password, site_content_url)
+        TableauRestApiBase33.__init__(self, server, username, password, site_content_url,
+                                      api_version=api_version)
         self.rest_api_base = self
 
         self.alerts: AlertMethods = AlertMethods(self.rest_api_base)
@@ -46,7 +48,8 @@ class TableauServerRest33(TableauRestApiBase):
 class TableauServerRest34(TableauRestApiBase34):
     def __init__(self, server: str, username: str, password: str,
                  site_content_url: Optional[str] = "", api_version: str = "3.4"):
-        TableauRestApiBase34.__init__(self, server, username, password, site_content_url)
+        TableauRestApiBase34.__init__(self, server, username, password, site_content_url,
+                                      api_version=api_version)
         self.rest_api_base = self
 
         self.alerts: AlertMethods = AlertMethods(self.rest_api_base)
@@ -67,7 +70,8 @@ class TableauServerRest34(TableauRestApiBase34):
 class TableauServerRest35(TableauRestApiBase35):
     def __init__(self, server: str, username: str, password: str,
                  site_content_url: Optional[str] = "", api_version: str = "3.5"):
-        TableauRestApiBase35.__init__(self, server, username, password, site_content_url)
+        TableauRestApiBase35.__init__(self, server, username, password, site_content_url,
+                                      api_version=api_version)
         self.rest_api_base = self
 
         self.alerts: AlertMethods = AlertMethods(self.rest_api_base)
@@ -91,7 +95,8 @@ class TableauServerRest36(TableauRestApiBase36):
                  site_content_url: Optional[str] = "", pat_name: Optional[str] = None,
                  pat_secret: Optional[str] = None, api_version: str = "3.6"):
         TableauRestApiBase36.__init__(self, server=server, username=username, password=password,
-                                      site_content_url=site_content_url, pat_name=pat_name, pat_secret=pat_secret)
+                                      site_content_url=site_content_url, pat_name=pat_name,
+                                      pat_secret=pat_secret, api_version=api_version)
         self.rest_api_base = self
 
         self.alerts: AlertMethods = AlertMethods(self.rest_api_base)
@@ -113,9 +118,10 @@ class TableauServerRest36(TableauRestApiBase36):
 class TableauServerRest37(TableauRestApiBase36):
     def __init__(self, server: str, username: Optional[str] = None, password: Optional[str] = None,
                  site_content_url: Optional[str] = "", pat_name: Optional[str] = None,
-                 pat_secret: Optional[str] = None, api_version: str = "3.6"):
+                 pat_secret: Optional[str] = None, api_version: str = "3.7"):
         TableauRestApiBase36.__init__(self, server=server, username=username, password=password,
-                                      site_content_url=site_content_url, pat_name=pat_name, pat_secret=pat_secret)
+                                      site_content_url=site_content_url, pat_name=pat_name,
+                                      pat_secret=pat_secret, api_version=api_version)
         self.rest_api_base = self
 
         self.alerts: AlertMethods = AlertMethods(self.rest_api_base)
@@ -137,9 +143,10 @@ class TableauServerRest37(TableauRestApiBase36):
 class TableauServerRest38(TableauRestApiBase38):
     def __init__(self, server: str, username: Optional[str] = None, password: Optional[str] = None,
                  site_content_url: Optional[str] = "", pat_name: Optional[str] = None,
-                 pat_secret: Optional[str] = None, api_version: str = "3.6"):
+                 pat_secret: Optional[str] = None, api_version: str = "3.8"):
         TableauRestApiBase36.__init__(self, server=server, username=username, password=password,
-                                      site_content_url=site_content_url, pat_name=pat_name, pat_secret=pat_secret)
+                                      site_content_url=site_content_url, pat_name=pat_name,
+                                      pat_secret=pat_secret, api_version=api_version)
         self.rest_api_base = self
 
         self.alerts: AlertMethods = AlertMethods(self.rest_api_base)
@@ -162,9 +169,10 @@ class TableauServerRest38(TableauRestApiBase38):
 class TableauServerRest39(TableauRestApiBase39):
     def __init__(self, server: str, username: Optional[str] = None, password: Optional[str] = None,
                  site_content_url: Optional[str] = "", pat_name: Optional[str] = None,
-                 pat_secret: Optional[str] = None, api_version: str = "3.6"):
+                 pat_secret: Optional[str] = None, api_version: str = "3.9"):
         TableauRestApiBase36.__init__(self, server=server, username=username, password=password,
-                                      site_content_url=site_content_url, pat_name=pat_name, pat_secret=pat_secret)
+                                      site_content_url=site_content_url, pat_name=pat_name,
+                                      pat_secret=pat_secret, api_version=api_version)
         self.rest_api_base = self
 
         self.alerts: AlertMethods = AlertMethods(self.rest_api_base)
@@ -188,9 +196,10 @@ class TableauServerRest39(TableauRestApiBase39):
 class TableauServerRest310(TableauRestApiBase310):
     def __init__(self, server: str, username: Optional[str] = None, password: Optional[str] = None,
                  site_content_url: Optional[str] = "", pat_name: Optional[str] = None,
-                 pat_secret: Optional[str] = None, api_version: str = "3.6"):
+                 pat_secret: Optional[str] = None, api_version: str = "3.10"):
         TableauRestApiBase36.__init__(self, server=server, username=username, password=password,
-                                      site_content_url=site_content_url, pat_name=pat_name, pat_secret=pat_secret)
+                                      site_content_url=site_content_url, pat_name=pat_name,
+                                      pat_secret=pat_secret, api_version=api_version)
         self.rest_api_base = self
 
         self.alerts: AlertMethods = AlertMethods(self.rest_api_base)
@@ -214,9 +223,10 @@ class TableauServerRest310(TableauRestApiBase310):
 class TableauServerRest311(TableauRestApiBase311):
     def __init__(self, server: str, username: Optional[str] = None, password: Optional[str] = None,
                  site_content_url: Optional[str] = "", pat_name: Optional[str] = None,
-                 pat_secret: Optional[str] = None, api_version: str = "3.6"):
+                 pat_secret: Optional[str] = None, api_version: str = "3.11"):
         TableauRestApiBase36.__init__(self, server=server, username=username, password=password,
-                                      site_content_url=site_content_url, pat_name=pat_name, pat_secret=pat_secret)
+                                      site_content_url=site_content_url, pat_name=pat_name,
+                                      pat_secret=pat_secret, api_version=api_version)
         self.rest_api_base = self
 
         self.alerts: AlertMethods = AlertMethods(self.rest_api_base)
