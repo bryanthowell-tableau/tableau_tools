@@ -132,14 +132,26 @@ def create_test_site(tableau_server_default_connection: TableauServerRest, serve
         #                      revision_history_enabled=True, revision_limit=u'15')
 
         # THis could be different depending on the version / if Named Users
-        test_site.sites.update_site(content_url=new_site_content_url, admin_mode='ContentAndUsers',
-                                    user_quota=100,
-                                    storage_quota='400', state='Active',
-                                    revision_history_enabled=True, revision_limit='15', disable_subscriptions=False)
+        test_site.sites.update_site(content_url=new_site_content_url,
+                                    options_dict={
+                                        'adminMode': 'ContentAndUsers',
+                                        'userQuota': '100',
+                                        'storageQuota': '400',
+                                        'state': 'Active',
+                                        'revisionHistoryEnabled' : True,
+                                        'revisionLimit': '15',
+                                        'disableSubscriptions': False}
+                                    )
+
     else:
-        test_site.sites.update_site(content_url=new_site_content_url, admin_mode='ContentAndUsers',
-                                    user_quota=100,
-                                    storage_quota='400', disable_subscriptions=False, state='Active')
+        test_site.sites.update_site(content_url=new_site_content_url,
+                                    options_dict = {
+                                        'adminMode': 'ContentAndUsers',
+                                        'userQuota': '100',
+                                        'storageQuota': '400',
+                                        'state': 'Active',
+                                        'disableSubscriptions': False}
+                                    )
 
     print('Finished creating new site')
     return test_site
@@ -605,7 +617,7 @@ def revision_tests(t: TableauServerRest):
     print('Finished revision tests')
 
 
-def extract_tests(t: TableauServerRest):
+def extract_tests(t: TableauServerRest35):
     print('Starting Extract tests')
     # Only possible in 2019.3+, also risky to run as tests, so commented out
     t.extracts.encrypt_extracts()

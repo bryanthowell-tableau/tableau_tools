@@ -18,7 +18,7 @@ new_site_content_url = 'test_site_replica'
 
 
 # Sign in to the original site with an administrator level user
-o = TableauServerRest31(server=o_server, username=o_username,
+o = TableauServerRest(server=o_server, username=o_username,
                                password=o_password, site_content_url=original_content_url)
 o.signin()
 logger = Logger('replicate_site_sample.log')
@@ -27,7 +27,7 @@ logger.enable_debug_level()
 o.enable_logging(logger)
 
 # Sign in to the new Server on default as a Server Admin
-n_default = TableauServerRest31(server=n_server, username=n_username,
+n_default = TableauServerRest(server=n_server, username=n_username,
                                        password=n_password, site_content_url="default")
 n_default.signin()
 n_default.enable_logging(logger)
@@ -35,7 +35,7 @@ n_default.enable_logging(logger)
 # Die if the new site already exists
 try:
     n_default.sites.create_site(new_site_name=new_site_name, new_content_url=new_site_content_url,
-                                admin_mode='ContentOnly')
+                                options_dict={'adminMode': 'ContentOnly'})
     print('New Site Created')
 except AlreadyExistsException as e:
 #    print(e.msg)
@@ -43,7 +43,7 @@ except AlreadyExistsException as e:
 #    exit()
     # Alternative pathway blows away the existing site if it finds one with that site_content_url
     print('Site with name already existed, removing and then creating the new site')
-    n_existing_to_replace = TableauServerRest31(server=n_server, username=n_username,
+    n_existing_to_replace = TableauServerRest(server=n_server, username=n_username,
                                                        password=n_password, site_content_url=new_site_content_url)
     n_existing_to_replace.signin()
     n_existing_to_replace.enable_logging(logger)
@@ -55,7 +55,7 @@ n_default.signout()
 
 
 # Connect to the newly created site
-n = TableauServerRest31(server=n_server, username=n_username,
+n = TableauServerRest(server=n_server, username=n_username,
                                password=n_password, site_content_url=new_site_content_url)
 n.signin()
 n.enable_logging(logger)
@@ -242,7 +242,7 @@ for sched in schedules:
     # Now pull all of the Extract Refresh tasks for each schedule, so that you can assign them to the newly published
     # workbooks and datasources when you do that
     if sched.get('type') == 'Extract':
-        extracts_for_o_schedule = o.extracts.query_extract_refresh_tasks_on_schedule(sched.get('id'))
+        extracts_for_o_schedule = o.extracts.get_extract_refresh_tasks_on_schedule(sched.get('id'))
         for extract_task in extracts_for_o_schedule:
             # this will be either workbook or datasource tag
             for element in extract_task:
@@ -305,7 +305,7 @@ for proj in o_proj_dict:
 
             # We need the workbook downloaded even if there are no published data sources
             # But we have to open it up to see if there are any
-            wb_filename = o.download_workbook(wb_name_or_luid=wb, filename_no_extension=wb,
+            wb_filename = o.workbooks.download_workbook(wb_name_or_luid=wb, filename_no_extension=wb,
                                               proj_name_or_luid=o_proj_dict[proj])
             wb_files[wb] = wb_filename
             # Open up the file using the tableau_documents sub-module to find out if the
@@ -349,7 +349,7 @@ for proj in o_proj_dict:
     # Download those data sources and republish them
     # You need the credentials to republish, as always
 
-    dest_project = n.query_project(proj)
+    dest_project = n.projects.query_project(proj)
 
     for ds in orig_ds_content_url:
         ds_filename = o.datasources.download_datasource(orig_ds_content_url[ds].orig_luid, 'downloaded ds')
