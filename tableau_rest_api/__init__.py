@@ -1,4 +1,3 @@
-from .methods._lookups import *
 from .methods.alert import *
 from .methods.datasource import *
 from .methods.extract import *

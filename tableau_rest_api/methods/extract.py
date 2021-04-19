@@ -24,7 +24,7 @@ class ExtractMethods():
     def get_extract_refresh_tasks_on_schedule(self, schedule_name_or_luid: str) -> ET.Element:
         self.rest.start_log_block()
         schedule_luid = self.rest.query_schedule_luid(schedule_name_or_luid)
-        tasks = self.rest.get_extract_refresh_tasks()
+        tasks = self.get_extract_refresh_tasks()
         tasks_on_sched = tasks.findall('.//t:schedule[@id="{}"]/..'.format(schedule_luid), self.rest.ns_map)
         if len(tasks_on_sched) == 0:
             self.rest.end_log_block()
@@ -51,19 +51,19 @@ class ExtractMethods():
 
     def run_all_extract_refreshes_for_schedule(self, schedule_name_or_luid: str):
         self.rest.start_log_block()
-        extracts = self.rest.query_extract_refresh_tasks_by_schedule(schedule_name_or_luid)
+        extracts = self.query_extract_refresh_tasks_by_schedule(schedule_name_or_luid)
         for extract in extracts:
-            self.rest.run_extract_refresh_task(extract.get('id'))
+            self.run_extract_refresh_task(extract.get('id'))
         self.rest.end_log_block()
 
     def run_extract_refresh_for_workbook(self, wb_name_or_luid: str,
                                          proj_name_or_luid: Optional[str] = None) -> ET.Element:
-        return self.rest.update_workbook_now(wb_name_or_luid, proj_name_or_luid)
+        return self.update_workbook_now(wb_name_or_luid, proj_name_or_luid)
 
     # Use the specific refresh rather than the schedule task in 2.8
     def run_extract_refresh_for_datasource(self, ds_name_or_luid: str,
                                            proj_name_or_luid: Optional[str] = None) -> ET.Element:
-        return self.rest.update_datasource_now(ds_name_or_luid, proj_name_or_luid)
+        return self.update_datasource_now(ds_name_or_luid, proj_name_or_luid)
 
     # Checks status of AD sync process or extract
     def query_job(self, job_luid: str) -> ET.Element:
@@ -127,7 +127,7 @@ class ExtractMethods():
 
 class ExtractMethods35(ExtractMethods):
     def __init__(self, rest_api_base: TableauRestApiBase35):
-        self.rest.rest_api_base = rest_api_base
+        self.rest = rest_api_base
 
     def encrypt_extracts(self):
         self.rest.start_log_block()

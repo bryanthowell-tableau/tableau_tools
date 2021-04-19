@@ -421,7 +421,7 @@ class Permissions(LoggingMethods):
 class WorkbookPermissions(Permissions):
     def __init__(self, group_or_user, group_or_user_luid):
         Permissions.__init__(self, group_or_user, group_or_user_luid, u'workbook')
-        for cap in self.available_capabilities['2.8']['workbook']:
+        for cap in self.available_capabilities['3.2']['workbook']:
             if cap != 'all':
                 self.capabilities[cap] = None
         self.role_set = {
@@ -449,7 +449,7 @@ class WorkbookPermissions(Permissions):
 class ProjectPermissions(Permissions):
     def __init__(self, group_or_user, group_or_user_luid):
         Permissions.__init__(self, group_or_user, group_or_user_luid, u'project')
-        for cap in self.available_capabilities['2.8']['project']:
+        for cap in self.available_capabilities['3.2']['project']:
             if cap != 'all':
                 self.capabilities[cap] = None
         self.role_set = {
@@ -472,7 +472,7 @@ class ProjectPermissions(Permissions):
 class DatasourcePermissions(Permissions):
     def __init__(self, group_or_user, group_or_user_luid):
         Permissions.__init__(self, group_or_user, group_or_user_luid, u'datasource')
-        for cap in self.available_capabilities['2.8']['datasource']:
+        for cap in self.available_capabilities['3.2']['datasource']:
             if cap != 'all':
                 self.capabilities[cap] = None
         self.role_set = {

@@ -24,7 +24,7 @@ class UserMethods():
                 fields = ['_all_']
 
         filter_checks = {'lastLogin': last_login_filter, 'siteRole': site_role_filter, 'name': username_filter}
-        filters = self._check_filter_objects(filter_checks)
+        filters = self.rest._check_filter_objects(filter_checks)
 
         users = self.rest.query_resource("users", filters=filters, sorts=sorts, fields=fields)
         self.rest.log('Found {} users'.format(str(len(users))))
@@ -36,7 +36,7 @@ class UserMethods():
                        site_role_filter: Optional[UrlFilter] = None, username_filter: Optional[UrlFilter] = None,
                        sorts: Optional[List[Sort]] = None, fields: Optional[List[str] ] =None,
                        page_number: Optional[int] = None) -> Dict:
-        return  self.rest.query_users_json(all_fields=all_fields, last_login_filter=last_login_filter,
+        return  self.query_users_json(all_fields=all_fields, last_login_filter=last_login_filter,
                                      site_role_filter=site_role_filter, username_filter=username_filter, sorts=sorts,
                                      fields=fields, page_number=page_number)
 
@@ -51,7 +51,7 @@ class UserMethods():
                 fields = ['_all_']
 
         filter_checks = {'lastLogin': last_login_filter, 'siteRole': site_role_filter, 'name': username_filter}
-        filters = self._check_filter_objects(filter_checks)
+        filters = self.rest._check_filter_objects(filter_checks)
 
         users = self.rest.query_resource_json("users", filters=filters, sorts=sorts, fields=fields, page_number=page_number)
 

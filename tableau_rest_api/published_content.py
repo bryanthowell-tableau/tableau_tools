@@ -727,11 +727,13 @@ class Table35(PublishedContent):
 
 
 class Project(PublishedContent):
-    def __init__(self, luid: str, tableau_rest_api_obj: Union['TableauRestApiConnection', 'TableauServerRest'],
+    def __init__(self, luid: str, tableau_rest_api_obj: 'TableauServerRest',
                  logger_obj: Optional['Logger'] = None,
                  content_xml_obj: Optional[ET.Element] = None, parent_project_luid: Optional[str] = None):
-        Project.__init__(self, luid=luid, tableau_rest_api_obj=tableau_rest_api_obj, logger_obj=logger_obj,
-                         content_xml_obj=content_xml_obj)
+        PublishedContent.__init__(self, luid=luid, obj_type="project", tableau_rest_api_obj=tableau_rest_api_obj,
+                                  logger_obj=logger_obj, content_xml_obj=content_xml_obj)
+
+        self._parent_project_luid = parent_project_luid
         self.log('Building Project object from this XML: ')
         self.log_xml_response(content_xml_obj)
         self.log('Project object has this XML: ')

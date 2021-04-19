@@ -79,7 +79,7 @@ class DatasourceMethods():
     def query_datasource_content_url(self, datasource_name_or_luid: str,
                                      project_name_or_luid: Optional[str] = None) -> str:
         self.rest.start_log_block()
-        ds = self.rest.query_datasource(datasource_name_or_luid, project_name_or_luid)
+        ds = self.query_datasource(datasource_name_or_luid, project_name_or_luid)
         content_url = ds.get('contentUrl')
         self.rest.end_log_block()
         return content_url
@@ -133,7 +133,7 @@ class DatasourceMethods():
                                              new_connection_username: Optional[str] = None,
                                              new_connection_password: Optional[str] = None) -> ET.Element:
         self.rest.start_log_block()
-        tsr = self.rest.rest_api_base.__build_connection_update_xml(new_server_address, new_server_port,
+        tsr = self.rest.__build_connection_update_xml(new_server_address, new_server_port,
                                                             new_connection_username,
                                                             new_connection_password)
         url = self.rest.build_api_url("datasources/{}/connection".format(datasource_luid))
