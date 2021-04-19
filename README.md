@@ -1049,9 +1049,9 @@ If a workbook references a published data source, that data source must be publi
 The publish methods must upload directly from disk. If you are manipulating a workbook or datasource using the TableauFile / TableauDocument classes, please save the file prior to publishing. Also note that you specify a Project object rather than the LUID. Publishing methods live under their respective sub-objects in TableauServeRest: .workbooks, .datasources or .flows
 
 
-`TableauRestApiConnection.publish_workbook(workbook_filename, workbook_name, project_obj, overwrite=False, connection_username=None, connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=True)`
+`TableauServerRest.workbooks.publish_workbook(workbook_filename, workbook_name, project_obj, overwrite=False, connection_username=None, connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=True)`
 
-`TableauRestApiConnection.publish_datasource(ds_filename, ds_name, project_obj, overwrite=False, connection_username=None, connection_password=None, save_credentials=True)`
+`TableauServerRest.datasources.publish_datasource(ds_filename, ds_name, project_obj, overwrite=False, connection_username=None, connection_password=None, save_credentials=True)`
 
 The `check_published_ds` argument for publish_workbook causes the tableau_document sub-module to be used to open up and look to see if there are any published data sources in the workbook. If there are, it changes the Site Content URL property to match the site that the workbook is being published to. The only reason to choose False for the argument is if you know you are not using any Published Data Sources or you using the more thorough process described below (where those changes would already be made)
 
@@ -1077,12 +1077,12 @@ Here is an example of using that function
     dest_password = ''
     dest_site = 'publish_test'
     
-    o = TableauRestApiConnection28(server=orig_server, username=orig_username, password=orig_password,
+    o = TableauServerRest(server=orig_server, username=orig_username, password=orig_password,
                                    site_content_url=orig_site)
     o.signin()
     o.enable_logging(logger)
     
-    d = TableauRestApiConnection28(server=dest_server, username=dest_username, password=dest_password,
+    d = TableauServerRest(server=dest_server, username=dest_username, password=dest_password,
                                    site_content_url=dest_site)
     d.signin()
     d.enable_logging(logger)
@@ -1102,31 +1102,28 @@ The REST API does not have a method for "promote to current". This means to rest
     
 To see the existing revisions, use
 
-`TableauRestApiConnection.get_workbook_revisions(workbook_name_or_luid, username_or_luid=None, project_name_or_luid=None)`
+`TableauServerRest.revisions.get_workbook_revisions(workbook_name_or_luid, username_or_luid=None, project_name_or_luid=None)`
 
-`TableauRestApiConnection.get_datasource_revisions(datasource_name_or_luid, project_name_or_luid=None)`
+`TableauServerRest.revisions.get_datasource_revisions(datasource_name_or_luid, project_name_or_luid=None)`
 
 You can remove revisions via 
 
-`TableauRestApiConnection.remove_workbook_revision(wb_name_or_luid, revision_number, project_name_or_luid=None, username_or_luid=None)`
+`TableauServerRest.revisions.remove_workbook_revision(wb_name_or_luid, revision_number, project_name_or_luid=None, username_or_luid=None)`
 
-`TableauRestApiConnection.remove_datasource_revision(datasource_name_or_luid, revision_number, project_name_or_luid=None)`
+`TableauServerRest.revisions.remove_datasource_revision(datasource_name_or_luid, revision_number, project_name_or_luid=None)`
 
 You can download any revision as a file using methods that mirror the standard download workbook and datasource methods.
 
-`TableauRestApiConnection.download_datasource_revision(ds_name_or_luid, revision_number, filename_no_extension, proj_name_or_luid=None)`
+`TableauServerRest.revisions.download_datasource_revision(ds_name_or_luid, revision_number, filename_no_extension, proj_name_or_luid=None)`
 
-`TableauRestApiConnection.download_workbook_revision(wb_name_or_luid, revision_number, filename_no_extension, proj_name_or_luid=None)`
-
-All of the revision methods live under
-`TableauServerRest.revisions`
+`TableauServerRest.revisions.download_workbook_revision(wb_name_or_luid, revision_number, filename_no_extension, proj_name_or_luid=None)`
 
 #### 1.5.3 Asynchronous Publishing (API 3.0+)
 In API 3.0+ (Tableau 2018.1 and above), you can publish workbooks asychronously, so you can move on to other actions after you have pushed up the bits to the server.
 
 The publish_workbook method has a new "async_publish" argument -- simply set it to True to publish async.
 
-`TableauRestApiConnection30.publish_workbook(workbook_filename, workbook_name, project_obj, overwrite=False, async_publish=False, connection_username=None, connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=False)`
+`TableauServerRest.workbooks.publish_workbook(workbook_filename, workbook_name, project_obj, overwrite=False, async_publish=False, connection_username=None, connection_password=None, save_credentials=True, show_tabs=True, check_published_ds=False)`
 
 When you choose async_publish, rather than returning a workbook tag in the response, you get a job tag. From that job tag, you can pull the `'id'` attribute and then use the `query_job()` method to find out when it has finished.
 
@@ -1134,13 +1131,13 @@ It appears when the publish completes, the progress attribute goes to 100, and t
 
 Here's an example of an async publish, then polling every second to see if it has finished:
 
-    proj_obj = t.query_project('Default')
-    job_id = t.publish_workbook('A Big Workbook.twbx', 'Big Published Workbook & Stuff', proj_obj, overwrite=True, async_publish=True)
+    proj_obj = t.projects.query_project('Default')
+    job_id = t.workbooks.publish_workbook('A Big Workbook.twbx', 'Big Published Workbook & Stuff', proj_obj, overwrite=True, async_publish=True)
     print('Published async using job {}'.format(job_id))
     
     progress = 0
     while progress < 100:
-        job_obj = t.query_job(job_id)
+        job_obj = t.jobs.query_job(job_id)
         job = job_obj.findall('.//t:job', t.ns_map)
         # When updating our while loop variable, need to cast progress attribute to int
         progress = int(job[0].get('progress'))
@@ -1153,64 +1150,63 @@ Here's an example of an async publish, then polling every second to see if it ha
 #### 1.6.1 Running an Extract Refresh Schedule 
 The TableauRestApiConnection class, representing the API for Tableau 10.3 and above, includes methods for triggering extract refreshes via the REST API.
 
-`TableauRestApiConnection.run_all_extract_refreshes_for_schedule(schedule_name_or_luid) `
+`TableauServerRest.extracts.run_all_extract_refreshes_for_schedule(schedule_name_or_luid) `
 
 runs through all extract tasks related to a given schedule and sets them to run.
 
 If you want to run one task individually, use
 
-`TableauRestApiConnection.run_extract_refresh_for_workbook(wb_name_or_luid, proj_name_or_luid=None, username_or_luid=None)`
+`TableauServerRest.extracts.run_extract_refresh_for_workbook(wb_name_or_luid, proj_name_or_luid=None, username_or_luid=None)`
 
-`TableauRestApiConnection.run_extract_refresh_for_datasource(ds_name_or_luid, proj_name_or_luid=None, username_or_luid=None)`
+`TableauServerRest.extracts.run_extract_refresh_for_datasource(ds_name_or_luid, proj_name_or_luid=None, username_or_luid=None)`
 
 You can get all extract refresh tasks on the server using
 
-`TableauRestApiConnection.get_extract_refresh_tasks()`
+`TableauServerRest.extracts.get_extract_refresh_tasks()`
 
 although if you simply want to set all of the extract schedules to run, use
 
-`TableauRestApiConnection.query_extract_schedules()`
+`TableauServerRest.extracts.query_extract_schedules()`
 
 There is equivalent for for subscription schedules:
-`TableauRestApiConnection.query_subscription_schedules()`
+`TableauServerRest.extracts.query_subscription_schedules()`
 
 Ex.
 
-    extract_schedules = t.query_extract_schedules()
+    extract_schedules = t.extracts.query_extract_schedules()
     sched_dict = t.convert_xml_list_to_name_id_dict(extract_schedules)
     for sched in sched_dict:
-        t.run_all_extract_refreshes_for_schedule(sched_dict[sched])  # This passes the LUID
-        # t.run_all_extract_refreshes_for_schedule(sched_dict) # You can pass the name also, it just causes extra lookups
+        t.extracts.run_all_extract_refreshes_for_schedule(sched_dict[sched])  # This passes the LUID
+        # t.exctracts.run_all_extract_refreshes_for_schedule(sched_dict) # You can pass the name also, it just causes extra lookups
 
-#### 1.6.2 Running an Extract Refresh (no schedule) (10.5/ API 2.8)
-In 10.5+, there is a method to update the extract in a published data source without specifying the Schedule Task. The `run_extract_refresh_for_datasource()` method in `TableauRestApiConnection28` automatically takes advantage of this, but it is implemented internaly by calling the new method:
+#### 1.6.2 Running an Extract Refresh
+In 10.5+, there is a method to update the extract in a published data source without specifying the Schedule Task. The `run_extract_refresh_for_datasource()` method in `TableauServerRest` automatically takes advantage of this, but it is implemented internally by calling the methods:
 
-`TableauRestApiConnection28.update_datasource_now(ds_name_or_luid, project_name_or_luid=False)`
+`TableauServerRest.extracts.update_datasource_now(ds_name_or_luid, project_name_or_luid=False)`
+
+`TableauServerRest.extracts.update_workbook_now(wb_name_or_luid: str, project_name_or_luid: Optional[str] = None)`
+
+Honestly the naming convention of those methods is confusing and the other method names are a lot clearer in intent
+
+#### 1.6.3 Putting Published Content on an Extract Schedule 
+You can put a workbook or datasource on an Extract Refresh Schedule using the REST API.
+
+`TableauServerRest.schedules.add_workbook_to_schedule(wb_name_or_luid, schedule_name_or_luid, proj_name_or_luid)`
+`TableauServerRest.schedules.add_datasource_to_schedule(ds_name_or_luid, schedule_name_or_luid, proj_name_or_luid)`
 
 
-#### 1.6.3 Putting Published Content on an Extract Schedule (10.5+)
-Starting in Tableau 10.5 (API 2.8), you can put a workbook or datasource on an Extract Refresh Schedule using the REST API.
+### 1.7 Data Driven Alerts 
+You can manage Data Driven Alerts via the APIs. The methods for this functionality follows the exact naming pattern of the REST API Reference.
 
-`TableauRestApiConnection28.add_workbook_to_schedule(wb_name_or_luid, schedule_name_or_luid, proj_name_or_luid)`
-`TableauRestApiConnection28.add_datasource_to_schedule(ds_name_or_luid, schedule_name_or_luid, proj_name_or_luid)`
-
-
-#### 1.6.4 Putting published content on an Extract Schedule Prior to 10.5 (high risk)
-Just upgrade your server at this point, that is a long long time to go without an upgrade
-
-
-### 1.7 Data Driven Alerts (2018.3+)
-Starting in API 3.2 (2018.3+), you can manage Data Driven Alerts via the APIs. The methods for this functionality follows the exact naming pattern of the REST API Reference.
-
-These methods live under `TableauServerRest.alerts` when using `TableauServerRest`
+These methods live under `TableauServerRest.alerts`. There is only so much functionality available around Alerts, and you cannot programmatically create an alert based on any type of specification via the API. Please check the reference guide for exact capabilities
 
 ### 1.8 Tableau Prep Flows (2019.1+)
 Starting in API 3.3 (2019.1+), Tableau Prep flows can be published and managed through the REST API. For Permissions on Published Flows, see Section 1.4 which describes all of the PublishedContent methods. 
 
-The methods for flows live under `TableauServerRest.flows` in `TableauServerRest`
+The methods for flows live under `TableauServerRest.flows`.
     
 ### 1.9 Favorites
-Favorites live as their own items in Tableau Server. You can access the methods to set Favorites under `TableauServerREst.favorites`. Most of the methods to delete Favorites are plural and thus can take a list
+Favorites live as their own items in Tableau Server. You can access the methods to set Favorites under `TableauServerRest.favorites`. Most of the methods to delete Favorites are plural and thus can take a list
 
 Ex.
 
@@ -1245,7 +1241,7 @@ The class you will use to handle existing classes is TableauFileOpener. This is 
        
 
 ### 2.1 tableau_documents basic model
-In 5.0+, tableau_documents has been updated considerably with a more consistent model than in the past. There is a hierarchy of the objects, which reflects a model of "Tableau XML File on Disk" -> "Object that manipulates the XML, built from File". For Tableau's packaged file types (the ones that end in X), there is an additional layer, which is the ZIP file that contains the XML File. The TableauWorkbook and TableauDatasource objects both inherit from TableauDocument, which just defines certain methods they both share. 
+Starting in 5.0+, tableau_documents was been updated considerably with a more consistent model than in the past. There is a hierarchy of the objects, which reflects a model of "Tableau XML File on Disk" -> "Object that manipulates the XML, built from File". For Tableau's packaged file types (the ones that end in X), there is an additional layer, which is the ZIP file that contains the XML File. The TableauWorkbook and TableauDatasource objects both inherit from TableauDocument, which just defines certain methods they both share. 
 
 Datasource:
 
@@ -1277,8 +1273,9 @@ Workbooks:
 
 Flows:
  (not available and tested yet)    
+(Flows are stored in a a JSON format that shares no similarities with the other Tableau File Types)
 
-You'll note in parentheses that some of these classes do descend from the same abastract parent classes. This means they have the same methods available, despite being different classes. In particular, DatasourceFileInterface allows you to access the datasource objects stored within any of the object types without worrying about the hierarchy of the individual object. We'll explore the effects of this in one of the next sections.
+You'll note in parentheses that some of these classes do descend from the same abstract parent classes. This means they have the same methods available, despite being different classes. In particular, DatasourceFileInterface allows you to access the datasource objects stored within any of the object types without worrying about the hierarchy of the individual object. We'll explore the effects of this in one of the next sections.
 
 ### 2.2 TableauXmlFile Classes (TDS, TWB, TFL)
 The TableauXmlFile class represents one single existing Tableau file on disk (.tds, .twb, .tfl ). Use `TableauFileOpener.open()` to return the correct object for the type of file you are opening. The main function of the TableauXmlFile objects is to handle reading from and writing to disk correctly.
@@ -1684,8 +1681,8 @@ Ex.
 (3) PUBLISH TO SERVER, THEN USE THE REST API TO TRIGGER AN EXTRACT REFRESH IMMEDIATELY, THEN PUT ON A SCHEDULE
 
 
-## 3 tabcmd
-The Tableau Server REST API can do most of the things that the tabcmd command line tool can, but if you are using older versions of Tableau Server, some of those features may not have been implemented yet. If you need a functionality from tabcmd, the `tabcmd.py` file in the main part of tableau_tools library wraps most of the commonly used functionality to allow for easier scripting of calls (rather than doing it directly on the command line or using batch files)
+## 3 tabcmd - DEPRECATED
+At this time, there is nothing that only tabcmd can do (the author writes confidently, only setting up a later downfall). There is no reason to use this wrapper class for anything possible in the REST API. However, it remains if you do find you need some last remaining functionality from tabcmd. The `tabcmd.py` file in the main part of tableau_tools library wraps most of the commonly used functionality to allow for easier scripting of calls (rather than doing it directly on the command line or using batch files)
 
 
 ### 3.1 Tabcmd Class
@@ -1693,7 +1690,7 @@ The Tabcmd class is a wrapper around the actual tabcmd program. It knows how to 
 
 `Tabcmd(tabcmd_folder, tableau_server_url, username, password, site='default', repository_password=None, tabcmd_config_location=None)`
 
-You have to provide the folder\directory where tabcmd lives on the local computer (just the folder, not the location of the file), along with the username and password of the user you want to run the tabcmd commands as. There are two optional parameters which allow for user impersonation when generating exports (not needed to trigger extract refreshes). These parameters are the `"repository_password"` for the `"readonly"` user in the Repository and the `"tabcmd_config_location"`. This is a file that is generated after the first run of tabcmd and lives in a location similar to what you see in the example below:
+You have to provide the folder\directory where tabcmd lives on the local computer (just the folder, not the location of the file), along with the username and password of the user you want to run the tabcmd commands as. This is a file that is generated after the first run of tabcmd and lives in a location similar to what you see in the example below:
 
 Ex.
 
@@ -1707,26 +1704,6 @@ Ex.
     
     tabcmd = Tabcmd(tabcmd_dir, server, username, password, site=site_content_url, tabcmd_config_location=tabcmd_config_location)
 
-### 3.2 Triggering an Extract Refresh
-Prior to 10.3, the only way to programmatically trigger an extract to be refreshed by a Tableau Server was via tabcmd. tabcmd doesn't use any of the REST API "plumbing", so there are no LUIDs or lookups to make it work, and you can pass in "real names. However, this also makes it a little less exact.
-
-`Tabcmd.trigger_extract_refresh(project, workbook_or_datasource, content_pretty_name, incremental=False, workbook_url_name=None`
-
-The `"workbook_or_datasource"` parameter should literally be either `"workbook"` or `"datasource"`. `"content_pretty_name"` means the name that you see listed in the UI, while the "workbook_url_name" is the name you see in the URL when you ivew the content. Project in this case is just the Project name, exactly as you see it in the UI.
-
-The example script called `"extract_refresh_pre_10_3_sample.py"` shows how this can be used.
-
-### 3.3 Creating an Export
-There are a few types of file exports, particularly a PDF which includes all pages, including info in a scrollbar, that can only be accomplished via tabcmd. If you need to generate a `"fullpdf"` export, the `Tabcmd.create_export()` method is designed to help.
-
-For views that do not have row-level security, you can run exports as the administrator and they will work just fine. If you do need the reporst to be for a certain user, and have entered in values for the optional parameters when you created the Tabcmd object (see 3.1), then you can use the "user_to_impersonate" parameter and tabcmd will reconfigure to run as that user.
-
-`Tabcmd.create_export(export_type, view_location, view_filter_map=None, user_to_impersonate=None, filename='tableau_workbook’)`
-
-`"export_type"` is either "png", "pdf", "fullpdf", or "csv". "fullpdf" gets all of the data from scrolling sheets to be presented. These are much larger files, but sometimes you need them!
-
-If you need more options for exports and more control, the Behold! Emailer https://github.com/bryantbhowell/Behold--Emailer/ implements a GUI in Windows to configure and run exports on a schedule.
-
 
 ## 4. tableau_repository
 The tableau_repository.py file in the main section of the tableau_tools library is a wrapper to the PostgreSQL repository in a Tableau Server. It uses the psycopg2 library, which you can install via pip if you haven't already. The library is not a requirement for all of tableau_tools because you might never need to use the TableauRepository class.
@@ -1736,7 +1713,7 @@ You initiate a `TableauRepository` object using:
 
 `TableauRepository(tableau_server_url, repository_password, repository_username='readonly')`
 
-`"repository_username"` can also be "tablea" (although "readonly" has higher access) or `"tblwgadmin"` if you need to make updates or have access to hidden tables. It is highly suggested you only ever sign-in with tblwgadmin for the minimal amount of commands you need to send from that privledged user, then close that connection and reconnect as readonly.
+`"repository_username"` can also be "tableau" (although "readonly" has higher access) or `"tblwgadmin"` if you need to make updates or have access to hidden tables. It is highly suggested you only ever sign-in with tblwgadmin for the minimal amount of commands you need to send from that priviledged user, then close that connection and reconnect as readonly.
 
 ### 4.2 query() Method
 `TableauRepository.query(sql, sql_parameter_list=None)`
@@ -1801,7 +1778,6 @@ tableau_tools Library Structure
 tableau_tools
 * tableau_rest_api
     * methods
-        * _lookups
         * alert
         * datasource
         * extract
@@ -1819,11 +1795,10 @@ tableau_tools
         * webhooks
         * workbook
     * permissions
-    * published_content (Project, Workbook, Datasource)
+    * published_content (Project, Workbook, Datasource, Flow)
     * rest_xml_request
     * rest_json_request
     * sort
-    * tableau_rest_api_server_connection
     * url_filter
 * tableau_documents
     * table_relations
@@ -1840,14 +1815,14 @@ tableau_tools
 * logging_methods
 * tableau_exceptions
 * tableau_repository
-* tabcmd
-* tableau_http
+* tabcmd (legacy)
+* tableau_http (legacy)
 * tableau_emailer (legacy, unsupported)
 
-## 6 tableau_rest_api module
+## 6 tableau_rest_api module deep dive
 The tableau_rest_api module is composed of a lot of different files, which combine together to expose a single TableauServerRest object to the end user. 
 
-### 6.0 rest_xml_request.py and rest_josn_request.py
+### 6.0 rest_xml_request.py and rest_json_request.py
 Due to historical development of the library, the actual handling of the HTTP connectivity to the Tableau Server is handled through a
 
 ### 6.1 tableau_server_rest.py
@@ -1937,12 +1912,12 @@ One important part of `_publish_content` is that it interrogates the file to be 
 
 `initiate_file_upload` and `append_to_file_upload` handle the XML portion of the transactions for, but are called by `_publish_content` are part of the process. 
 
-### 6.3 _lookups.py
-One of the major conveniences of the tableau_rest_api sub-package is that you can pass in either names or LUIDs to almost any method where there might be a valid name (a few things like Job Tasks only really have LUIDs). This is accomplished by "lookup" functions, which are defined in "_lookups.py". They are implemented in a separate, shared file because accomplishing tasks for one object type (Groups) might involve finding the LUID for another object type (User). This class is then part of the inheritance chain of RestApiBase - so it is really an interface class not used on its own.
+#### 6.2.8 luid lookup methods
+One of the major conveniences of the tableau_rest_api sub-package is that you can pass in either names or LUIDs to almost any method where there might be a valid name (a few things like Job Tasks only really have LUIDs). This is accomplished by "lookup" functions, which are all defined in the TableauRestBase class. They are implemented on the base class rather than the individual endpoint classes, because something like a Workbook method might need to look up a Project LUID, a Username LUID, and more just to generate the correct API call. 
 
-Almost every method in _lookups.py follows a format like "query_{object_type}_luid()", although there are some "query_{object_type}_name()" methods for the occasional need to go the other direction.
+Almost every lookup method in follows a format like "query_{object_type}_luid()", although there are some "query_{object_type}_name()" methods for the occasional need to go the other direction.
 
-### 6.4 /methods implementation files
+### 6.3 /methods implementation files
 With in the /methods sub-directory are files with the classes for the implementation of "endpoint" specific objects. This separation is for organizational purposes only - it makes autocomplete vastly easier when you can do "TableauServerRest.projects." and only get methods related to Projects. These classea do not define an object representation of the endpoint (The Tableau Server Client library works this way, where you pass Python objects representing Tableau Server objects to 'endpoints') - they are just collections of methods.
 
 Within each file, you will see a baseline class (with no API number appeneded to the end). The baseline for version 6 of tableau_tools is API version 3.2. If there are newer methods implemented in a later version, you will see a second class named "ClassNameNN" with the API version as the "NN" portion. For example, "extract.py" has both an ExtractMethods and a ExtractMethods35 class definition, because the features for encrypted extracts were added in version 3.5 of the API.
@@ -1951,10 +1926,20 @@ The correct class for the given API version is defined in tableau_server_rest.py
 
 The benefit of this structure is that you are protected while writing code from using methods for a later version of Tableau Server than you have available. It also allows for re-implementation of existing methods with improved internal functionality when it is available on newer versions.
 
+#### 6.3.1 Accessing the RestApiBase methods within one of the endpoint classes
+The main challenge that the structure of tableau_tools.tableau_rest_api solves is how to have the methods organized within the objects by "endpoint" (.workbooks, .groups, .users etc.), but use the same connection details, token and requests session. 
+
+The way it works is that each of the "endpoint classes" starts with
+
+      def __init__(self, rest_api_base: TableauRestApiBase):
+        self.rest = rest_api_base
+
+When a user creates a new TableauServerRest object, all of the sub-objects are instantiated with using the TableauServerRest object itself as the `rest_api_base` argument of their own constructors. This gives each of these classes an internal route to reference anything defined in the TableauRestApiBase class (where connections, basic REST API actions and lookups are defined) by using `self.rest` 
+
 Almost every method follows some basic rules which give the distinguishing aspects of tableau_tools:
 
 - All arguments are fully typed using the Python 3.6 type hinting
-- Every method starts with `self.start_log_block()` and ends with `self.end_log_block()` prior to any return statement
+- Every method starts with `self.rest.start_log_block()` and ends with `self.rest.end_log_block()` prior to any return statement
 - CREATE / UPDATE methods may have a `direct_xml_request` argument to take an ET.Element and bypass any XML creation within the method
 - If possible, arguments should take both name or a LUID, with a naming convention like `username_or_luid: str` or `project_name_or_luid: str`. The determination of name or LUID is handled within the base methods from _lookups.py automatically
 
@@ -1962,7 +1947,7 @@ Here is an example from group.py:
 
         # Returns the LUID of an existing group if one already exists
     def create_group(self, group_name: Optional[str] = None, direct_xml_request: Optional[ET.Element] = None) -> str:
-        self.start_log_block()
+        self.rest.start_log_block()
 
         if direct_xml_request is not None:
             tsr = direct_xml_request
@@ -1972,24 +1957,24 @@ Here is an example from group.py:
             g.set("name", group_name)
             tsr.append(g)
 
-        url = self.build_api_url("groups")
+        url = self.rest.build_api_url("groups")
         try:
-            new_group = self.send_add_request(url, tsr)
-            self.end_log_block()
+            new_group = self.rest.send_add_request(url, tsr)
+            self.rest.end_log_block()
             return new_group.findall('.//t:group', self.ns_map)[0].get("id")
         # If the name already exists, a HTTP 409 throws, so just find and return the existing LUID
         except RecoverableHTTPException as e:
             if e.http_code == 409:
                 self.log('Group named {} already exists, finding and returning the LUID'.format(group_name))
-                self.end_log_block()
-                return self.query_group_luid(group_name)
+                self.rest.end_log_block()
+                return self.rest.query_group_luid(group_name)
 
-### 6.5 published_content.py and permissions.py
+### 6.4 published_content.py and permissions.py
 In general, tableau_rest_api follows the rule that any method that is described in the REST API Reference is implemented with the same name and arguments as a method to be run directly. Due to the complexity and quirks around Permissions, "Published Content" that is the Workbook, Data Source, Flows on Tableau Server, as well as Projects, are represented by complex Python objects which encapsulate the methods necessary for handling the Tableau Permissions assigned on Server. 
 
 Why? The basic issue is that the Tableau Server REST API does not allow an UPDATE of a set permission/capability. If any particular permission on a published object is set to "Allow" or "Deny", you must first DELETE that permission, then set it to the value. Coupled with the fact that Permissions use three-level logic ("Unspecified", "Allow", "Deny") and that ADD actions can send full sets of permissions for multiple Principles (Groups or Users), while DELETEs must happen individually per permissions / principle, and it becomes much more efficient to run a "pre-processing" algorithm prior to attempting updates. 
 
-#### 6.5.1 published_content.py
+#### 6.4.1 published_content.py
 The base class `PublishedContent` is inherited by the Project, Workbook, Datasource, Flow etc. classes with the variations that are appropriate. 
 
 It contains an internal variable which references an existing TableauServerRest object so that it can directly send the necessary commands to make changes on the Tableau Server. For this reason, the PublishedContent classes are best retrieved from methods on a TableauServerRest object, rather than directly instantiated as a new object.
@@ -2019,10 +2004,10 @@ Another convenient feature is the ability to copy a Permissions object, so that 
         self.end_log_block()
         return new_perms_obj
 
-#### 6.5.2 Project classes
+#### 6.4.2 Project classes
 The Project classes are distinguished from the other PublishedContent classes by contained "default_permissions" sub-objects. This maps to how Projects work on Tableau Server -- there are "Project Permissions" and then a set of "Default Permissions" for the other content types. If the Project is set to "Locked Permissions", the default permissions will determine the permissions of the content contained within. In the "Unlocked" mode (still the default, although we would recommend against it in most cases), the Defaults are simply what is sugggested in the Publish dialog within Tableau Desktop, but can be changed by the publisher at publish time.
 
-#### 6.5. permissions.py
+#### 6.4. permissions.py
 The classes in permissions.py are primarily data structures, while most of the actions on them come from the PublishedContent classes. Each variation has an internal dictionary with the Capabilities (Permissions) available to that particular object on the Tableau Server. Permissions classes do define getter / setter methods to set the state of individual Capabilities (Permissions are called Capabilities in the REST API) :
 
 `set_capability_to_allow(self, capability_name: str)`
@@ -2055,7 +2040,7 @@ The Permissions objects also have the Role definitions from the Tableau Server U
 
 This method is defined on the Permissions class, but looks at the role definition dictionaries defined on each of the descendent classes such as "WorkbookPermissions"
 
-
+## 7 tableau_documents module deep dive
 
 
 
