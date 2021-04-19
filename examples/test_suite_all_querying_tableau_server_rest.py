@@ -3,7 +3,7 @@ from typing import Optional, List, Dict
 import time, datetime
 import json
 
-from tableau_tools.tableau_server_rest import *
+from tableau_tools import *
 
 # This is meant to test all querying functionality of the tableau_tools library.
 # It is intended to be pointed at existing sites on existing Tableau Servers, with enough content for
@@ -20,6 +20,7 @@ servers = {
 
     # "2019.4 Windows": {"server": "http://127.0.0.1", "username": "", "password": "", "site_content_url": ""},
     # "2019.4 Linux": {"server": "http://127.0.0.1", "username": "", "password": "", "site_content_url": ""}
+
 }
 
 log_obj = Logger('tableau_server_rest_connection_querying_tests.log')
@@ -265,7 +266,7 @@ def extract_tests(t: TableauServerRest):
 
     print('Finished Extract Refresh tests')
 
-def alerts_tests(t: TableauServerRest32):
+def alerts_tests(t: TableauServerRest):
     print("Starting Alerts tests")
     alerts = t.alerts.query_data_driven_alerts()
     for alert in alerts:

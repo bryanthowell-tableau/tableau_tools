@@ -42,7 +42,7 @@ class RestTokensManager(LoggingMethods):
         self.default_connection_token = rest_connection
 
         # Query all the sites to allow for skipping a sign-in once you have the token
-        sites = rest_connection.query_sites()
+        sites = rest_connection.sites.query_sites()
         self.sites_luids_dict = {}
         for site in sites:
             self.sites_luids_dict[site.get('contentUrl')] = site.get('id')

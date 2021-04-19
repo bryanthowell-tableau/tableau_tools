@@ -4,10 +4,10 @@ from .rest_api_base import *
 
 class SubscriptionMethods():
     def __init__(self, rest_api_base: TableauRestApiBase):
-        self.rest_api_base = rest_api_base
+        self.rest = rest_api_base
 
-    def __getattr__(self, attr):
-        return getattr(self.rest_api_base, attr)
+    #def __getattr__(self, attr):
+    #    return getattr(self.rest_api_base, attr)
 
     def query_subscriptions(self, username_or_luid: Optional[str] = None, schedule_name_or_luid: Optional[str] = None,
                             subscription_subject: Optional[str] = None, view_or_workbook: Optional[str] = None,
@@ -15,18 +15,18 @@ class SubscriptionMethods():
                             project_name_or_luid: Optional[str] = None,
                             wb_name_or_luid: Optional[str] = None) -> ET.Element:
 
-        self.start_log_block()
-        subscriptions = self.query_resource('subscriptions')
+        self.rest.start_log_block()
+        subscriptions = self.rest.query_resource('subscriptions')
         filters_dict = {}
         if subscription_subject is not None:
             filters_dict['subject'] = '[@subject="{}"]'.format(subscription_subject)
         if schedule_name_or_luid is not None:
-            if self.is_luid(schedule_name_or_luid):
+            if self.rest.is_luid(schedule_name_or_luid):
                 filters_dict['sched'] = 'schedule[@id="{}"'.format(schedule_name_or_luid)
             else:
                 filters_dict['sched'] = 'schedule[@user="{}"'.format(schedule_name_or_luid)
         if username_or_luid is not None:
-            if self.is_luid(username_or_luid):
+            if self.rest.is_luid(username_or_luid):
                 filters_dict['user'] = 'user[@id="{}"]'.format(username_or_luid)
             else:
                 filters_dict['user'] = 'user[@name="{}"]'.format(username_or_luid)
@@ -36,7 +36,7 @@ class SubscriptionMethods():
             # Does this search make sense my itself?
 
         if content_name_or_luid is not None:
-            if self.is_luid(content_name_or_luid):
+            if self.rest.is_luid(content_name_or_luid):
                 filters_dict['content_luid'] = 'content[@id="{}"'.format(content_name_or_luid)
             else:
                 if view_or_workbook is None:
@@ -44,21 +44,21 @@ class SubscriptionMethods():
                 if view_or_workbook == 'View':
                     if wb_name_or_luid is None:
                         raise InvalidOptionException('Must include wb_name_or_luid for a View name lookup')
-                    content_luid = self.query_workbook_view_luid(wb_name_or_luid, content_name_or_luid,
+                    content_luid = self.rest.query_workbook_view_luid(wb_name_or_luid, content_name_or_luid,
                                                                  proj_name_or_luid=project_name_or_luid)
                 elif view_or_workbook == 'Workbook':
-                    content_luid = self.query_workbook_luid(content_name_or_luid, project_name_or_luid)
+                    content_luid = self.rest.query_workbook_luid(content_name_or_luid, project_name_or_luid)
                 filters_dict['content_luid'] = 'content[@id="{}"'.format(content_luid)
 
         if 'subject' in filters_dict:
-            subscriptions = subscriptions.findall('.//t:subscription{}'.format(filters_dict['subject']), self.ns_map)
+            subscriptions = subscriptions.findall('.//t:subscription{}'.format(filters_dict['subject']), self.rest.ns_map)
         if 'user' in filters_dict:
-            subscriptions = subscriptions.findall('.//t:subscription/{}/..'.format(filters_dict['user']), self.ns_map)
+            subscriptions = subscriptions.findall('.//t:subscription/{}/..'.format(filters_dict['user']), self.rest.ns_map)
         if 'sched' in filters_dict:
-            subscriptions = subscriptions.findall('.//t:subscription/{}/..'.format(filters_dict['sched']), self.ns_map)
+            subscriptions = subscriptions.findall('.//t:subscription/{}/..'.format(filters_dict['sched']), self.rest.ns_map)
         if 'content_luid' in filters_dict:
-            subscriptions = subscriptions.findall('.//t:subscription/{}/..'.format(filters_dict['content_luid']), self.ns_map)
-        self.end_log_block()
+            subscriptions = subscriptions.findall('.//t:subscription/{}/..'.format(filters_dict['content_luid']), self.rest.ns_map)
+        self.rest.end_log_block()
         return subscriptions
 
     def create_subscription(self, subscription_subject: Optional[str] = None, view_or_workbook: Optional[str] = None,
@@ -66,26 +66,26 @@ class SubscriptionMethods():
                             username_or_luid: Optional[str] = None, project_name_or_luid: Optional[str] = None,
                             wb_name_or_luid: Optional[str] = None,
                             direct_xml_request: Optional[ET.Element] = None) -> str:
-        self.start_log_block()
+        self.rest.start_log_block()
         if direct_xml_request is not None:
             tsr = direct_xml_request
         else:
             if view_or_workbook not in ['View', 'Workbook']:
                 raise InvalidOptionException("view_or_workbook must be 'Workbook' or 'View'")
 
-            user_luid = self.query_user_luid(username_or_luid)
-            schedule_luid = self.query_schedule_luid(schedule_name_or_luid)
+            user_luid = self.rest.query_user_luid(username_or_luid)
+            schedule_luid = self.rest.query_schedule_luid(schedule_name_or_luid)
 
-            if self.is_luid(content_name_or_luid):
+            if self.rest.is_luid(content_name_or_luid):
                 content_luid = content_name_or_luid
             else:
                 if view_or_workbook == 'View':
                     if wb_name_or_luid is None:
                         raise InvalidOptionException('Must include wb_name_or_luid for a View name lookup')
-                    content_luid = self.query_workbook_view_luid(wb_name_or_luid, content_name_or_luid,
+                    content_luid = self.rest.query_workbook_view_luid(wb_name_or_luid, content_name_or_luid,
                                                                  proj_name_or_luid=project_name_or_luid, username_or_luid=user_luid)
                 elif view_or_workbook == 'Workbook':
-                    content_luid = self.query_workbook_luid(content_name_or_luid, project_name_or_luid, user_luid)
+                    content_luid = self.rest.query_workbook_luid(content_name_or_luid, project_name_or_luid, user_luid)
                 else:
                     raise InvalidOptionException("view_or_workbook must be 'Workbook' or 'View'")
 
@@ -104,39 +104,39 @@ class SubscriptionMethods():
             s.append(u)
             tsr.append(s)
 
-        url = self.build_api_url('subscriptions')
+        url = self.rest.build_api_url('subscriptions')
         try:
-            new_subscription = self.send_add_request(url, tsr)
-            new_subscription_luid = new_subscription.findall('.//t:subscription', self.ns_map)[0].get("id")
-            self.end_log_block()
+            new_subscription = self.rest.send_add_request(url, tsr)
+            new_subscription_luid = new_subscription.findall('.//t:subscription', self.rest.ns_map)[0].get("id")
+            self.rest.end_log_block()
             return new_subscription_luid
         except RecoverableHTTPException as e:
-            self.end_log_block()
+            self.rest.end_log_block()
             raise e
         except HTTPError as e:
-            self.end_log_block()
+            self.rest.end_log_block()
             raise InvalidOptionException('Please check to make sure that you have an SMTP server configured and Subscriptions are enabled for this Server and Site')
 
 
     def create_subscription_to_workbook(self, subscription_subject: str, wb_name_or_luid: str, 
                                         schedule_name_or_luid: str, username_or_luid: str, 
                                         project_name_or_luid: Optional[str] = None) -> str:
-        self.start_log_block()
+        self.rest.start_log_block()
         luid = self.create_subscription(subscription_subject=subscription_subject, view_or_workbook='Workbook',
                                         content_name_or_luid=wb_name_or_luid, schedule_name_or_luid=schedule_name_or_luid,
                                         username_or_luid=username_or_luid, project_name_or_luid=project_name_or_luid)
-        self.end_log_block()
+        self.rest.end_log_block()
         return luid
 
     def create_subscription_to_view(self, subscription_subject: str, view_name_or_luid: str, schedule_name_or_luid: str,
                                     username_or_luid: str, wb_name_or_luid: Optional[str] = None, 
                                     project_name_or_luid: Optional[str] = None) -> str:
-        self.start_log_block()
+        self.rest.start_log_block()
         luid = self.create_subscription(subscription_subject=subscription_subject, view_or_workbook='View',
                                         content_name_or_luid=view_name_or_luid, schedule_name_or_luid=schedule_name_or_luid,
                                         username_or_luid=username_or_luid, wb_name_or_luid=wb_name_or_luid,
                                         project_name_or_luid=project_name_or_luid)
-        self.end_log_block()
+        self.rest.end_log_block()
         return luid
 
     def update_subscription(self, subscription_luid: str, subject: Optional[str] = None,
@@ -155,23 +155,23 @@ class SubscriptionMethods():
             s.append(sch)
         tsr.append(s)
 
-        url = self.build_api_url("subscriptions/{}".format(subscription_luid))
-        response = self.send_update_request(url, tsr)
-        self.end_log_block()
+        url = self.rest.build_api_url("subscriptions/{}".format(subscription_luid))
+        response = self.rest.send_update_request(url, tsr)
+        self.rest.end_log_block()
         return response
 
     def delete_subscriptions(self, subscription_luid_s: Union[List[str], str]):
-        self.start_log_block()
-        subscription_luids = self.to_list(subscription_luid_s)
+        self.rest.start_log_block()
+        subscription_luids = self.rest.to_list(subscription_luid_s)
         for subscription_luid in subscription_luids:
-            url = self.build_api_url("subscriptions/{}".format(subscription_luid))
-            self.send_delete_request(url)
-        self.end_log_block()
+            url = self.rest.build_api_url("subscriptions/{}".format(subscription_luid))
+            self.rest.send_delete_request(url)
+        self.rest.end_log_block()
 
 
 class SubscriptionMethods35(SubscriptionMethods):
     def __init__(self, rest_api_base: TableauRestApiBase35):
-        self.rest_api_base = rest_api_base
+        self.rest = rest_api_base
 
     def create_subscription(self, subscription_subject: Optional[str] = None, view_or_workbook: Optional[str] = None,
                             content_name_or_luid: Optional[str] = None, schedule_name_or_luid: Optional[str] = None,
@@ -179,26 +179,26 @@ class SubscriptionMethods35(SubscriptionMethods):
                             wb_name_or_luid: Optional[str] = None,
                             image_attachment: bool = True, pdf_attachment: bool = False,
                             direct_xml_request: Optional[ET.Element] = None) -> str:
-        self.start_log_block()
+        self.rest.start_log_block()
         if direct_xml_request is not None:
             tsr = direct_xml_request
         else:
             if view_or_workbook not in ['View', 'Workbook']:
                 raise InvalidOptionException("view_or_workbook must be 'Workbook' or 'View'")
 
-            user_luid = self.query_user_luid(username_or_luid)
-            schedule_luid = self.query_schedule_luid(schedule_name_or_luid)
+            user_luid = self.rest.query_user_luid(username_or_luid)
+            schedule_luid = self.rest.query_schedule_luid(schedule_name_or_luid)
 
-            if self.is_luid(content_name_or_luid):
+            if self.rest.is_luid(content_name_or_luid):
                 content_luid = content_name_or_luid
             else:
                 if view_or_workbook == 'View':
                     if wb_name_or_luid is None:
                         raise InvalidOptionException('Must include wb_name_or_luid for a View name lookup')
-                    content_luid = self.query_workbook_view_luid(wb_name_or_luid, content_name_or_luid,
+                    content_luid = self.rest.query_workbook_view_luid(wb_name_or_luid, content_name_or_luid,
                                                                  proj_name_or_luid=project_name_or_luid, username_or_luid=user_luid)
                 elif view_or_workbook == 'Workbook':
-                    content_luid = self.query_workbook_luid(content_name_or_luid, project_name_or_luid, user_luid)
+                    content_luid = self.rest.query_workbook_luid(content_name_or_luid, project_name_or_luid, user_luid)
                 else:
                     raise InvalidOptionException("view_or_workbook must be 'Workbook' or 'View'")
 
@@ -220,17 +220,17 @@ class SubscriptionMethods35(SubscriptionMethods):
             s.append(u)
             tsr.append(s)
 
-        url = self.build_api_url('subscriptions')
+        url = self.rest.build_api_url('subscriptions')
         try:
-            new_subscription = self.send_add_request(url, tsr)
-            new_subscription_luid = new_subscription.findall('.//t:subscription', self.ns_map)[0].get("id")
-            self.end_log_block()
+            new_subscription = self.rest.send_add_request(url, tsr)
+            new_subscription_luid = new_subscription.findall('.//t:subscription', self.rest.ns_map)[0].get("id")
+            self.rest.end_log_block()
             return new_subscription_luid
         except RecoverableHTTPException as e:
-            self.end_log_block()
+            self.rest.end_log_block()
             raise e
         except HTTPError as e:
-            self.end_log_block()
+            self.rest.end_log_block()
             raise InvalidOptionException('Please check to make sure that you have an SMTP server configured and Subscriptions are enabled for this Server and Site')
 
 
@@ -255,7 +255,7 @@ class SubscriptionMethods35(SubscriptionMethods):
             s.append(sch)
         tsr.append(s)
 
-        url = self.build_api_url("subscriptions/{}".format(subscription_luid))
-        response = self.send_update_request(url, tsr)
-        self.end_log_block()
+        url = self.rest.build_api_url("subscriptions/{}".format(subscription_luid))
+        response = self.rest.send_update_request(url, tsr)
+        self.rest.end_log_block()
         return response

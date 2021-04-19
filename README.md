@@ -1,7 +1,7 @@
 # tableau_tools README
 ------
 
-tableau_tools was written by Bryant Howell (bhowell@tableau.com) and is documented mainly at tableauandbehold.com. The main repository for tableau_tools is https://github.com/bryantbhowell/tableau_tools/ . It is owned by Tableau Software but is not an officially supported library. If you have questions or issues with the library, please use the GitHub site or e-mail Bryant Howell directly. Tableau Support will not answer questions regarding the code.
+tableau_tools was originally written by Bryant Howell and is documented mainly at tableauandbehold.com and within this README and the examples. The main repository for tableau_tools is https://github.com/bryanthowell-tableau/tableau_tools/ . It is owned by Tableau Software but is not an officially supported library. If you have questions or issues with the library, please make an issue on the GitHub site. Tableau Support will not answer questions regarding the code.
 
 tableau_tools is intended to be a simple-to-use library to handle all Tableau Server needs. The tableau_rest_api sub-package is a complete implementation of the Tableau Server REST API (https://onlinehelp.tableau.com/current/api/rest_api/en-us/help.htm#REST/rest_api.htm ). The tableau_documents sub-package works directly with Tableau files to do manipulations necessary for making programmatic changes. There is an examples folder filled with scripts that do the most common Tableau Server administrative challenges. 
 
@@ -50,6 +50,7 @@ tableau_tools was *programmed using PyCharm and works very well in that IDE. It 
 * 4.8.0 Introduces the RestJsonRequest object and _json plural querying methods for passing JSON responses to other systems
 * 4.9.0 API 3.3 (2019.1) compatibility, as well as ability to swap in static files using TableauDocument and other bug fixes.
 * 5.0.0 Python 3.6+ native rewrite. Completely re-organized in the backend, with two models for accessing Rest API methods: TableauRestApiConnection (backwards-compatible) and TableauServerRest, with subclasses grouping the methods.
+* 6.0.0 Final version by Bryant Howell. Removes the legacy TableauRestApiConnection class and many of the "version specific" checks so that it can be used with newer API versions and options without restriction. Sections 5 and 6 added to README to docuemnt internal methods
 
 --- Table(au) of Contents ---
 ------

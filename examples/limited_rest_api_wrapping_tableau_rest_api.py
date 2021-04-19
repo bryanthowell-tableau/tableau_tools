@@ -23,7 +23,7 @@ tableau_tools_logger = Logger('tableau_tools.log')
 # Sessions once they have timed out
 
 # You must use an Admin Username and Password, as PAT does not have Impersonation at this time (2020.2)
-d = TableauServerRest32(server=server, username=admin_username, password=admin_password,
+d = TableauServerRest(server=server, username=admin_username, password=admin_password,
                                site_content_url=default_site_content_url)
 # alternatively could use the older TableauRestApiConnection objects if you had code built on those objects
 
@@ -161,7 +161,7 @@ def admin_request(request, site, callback_function, **kwargs):
 
 # This is what is passed in as the callback function - so rest_connection is the 't' object passed in by generic_request
 # Returns all of the Projects a user can see content in, alphabetically sorted
-def query_projects(rest_connection: TableauServerRest32):
+def query_projects(rest_connection: TableauServerRest):
     p_sort = Sort('name', 'asc')
     p = rest_connection.query_projects_json(sorts=[p_sort, ])
     return JsonResponse(p)

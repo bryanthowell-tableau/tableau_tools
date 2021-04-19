@@ -375,7 +375,7 @@ def datasources_tests(t: TableauServerRest):
     print('Finished Datasource Tests')
 
 
-def favorites_tests(t: TableauServerRest31):
+def favorites_tests(t: TableauServerRest):
     print("Starting Favorites tests")
 
     # Favorites don't really have LUIDs, although they do have distinct names
@@ -631,7 +631,7 @@ def extract_tests(t: TableauServerRest):
     print('Finished Extract Refresh tests')
 
 
-def alerts_tests(t: TableauServerRest32):
+def alerts_tests(t: TableauServerRest):
     # Must create at least one Data Driven Alert to be able to do anything with these methods. So needs to be run
     # AFTER initial tests
     print("Starting Alerts tests")

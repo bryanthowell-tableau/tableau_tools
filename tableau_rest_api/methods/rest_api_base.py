@@ -15,7 +15,7 @@ from ._lookups import LookupMethods
 from tableau_tools.tableau_exceptions import *
 from tableau_tools.tableau_rest_api.rest_xml_request import RestXmlRequest
 from tableau_tools.tableau_rest_api.rest_json_request import RestJsonRequest
-from tableau_tools.tableau_rest_api.published_content import Project, Project28, Project33, Workbook, Datasource, Flow33
+from tableau_tools.tableau_rest_api.published_content import Project, Project33, Workbook, Datasource, Flow33
 from tableau_tools.tableau_rest_api.url_filter import *
 from tableau_tools.tableau_rest_api.sort import *
 from ...tableau_rest_xml import TableauRestXml
@@ -1039,9 +1039,9 @@ class TableauRestApiBase(LookupMethods, LoggingMethods, TableauRestXml):
         return self.send_publish_request(url, publish_request, None, boundary_string)
 
     def get_published_project_object(self, project_name_or_luid: str,
-                                     project_xml_obj: Optional[ET.Element] = None) -> Project28:
+                                     project_xml_obj: Optional[ET.Element] = None) -> Project:
         luid = self.query_project_luid(project_name_or_luid)
-        proj_obj = Project28(luid, self, self.version, self.logger, content_xml_obj=project_xml_obj)
+        proj_obj = Project(luid, self, self.version, self.logger, content_xml_obj=project_xml_obj)
         return proj_obj
 
 

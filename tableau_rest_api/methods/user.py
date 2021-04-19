@@ -3,10 +3,10 @@ from .rest_api_base import *
 
 class UserMethods():
     def __init__(self, rest_api_base: TableauRestApiBase):
-        self.rest_api_base = rest_api_base
+        self.rest = rest_api_base
     
-    def __getattr__(self, attr):
-        return getattr(self.rest_api_base, attr)
+    #def __getattr__(self, attr):
+    #    return getattr(self.rest_api_base, attr)
     
     # The reference has this name, so for consistency adding an alias
     def get_users(self, all_fields: bool = True, last_login_filter: Optional[UrlFilter] = None,
@@ -18,7 +18,7 @@ class UserMethods():
     def query_users(self, all_fields: bool = True, last_login_filter: Optional[UrlFilter] = None,
                     site_role_filter: Optional[UrlFilter] = None, username_filter: Optional[UrlFilter] = None,
                     sorts: Optional[List[Sort]] = None, fields: Optional[List[str] ] =None) -> ET.Element:
-        self.start_log_block()
+        self.rest.start_log_block()
         if fields is None:
             if all_fields is True:
                 fields = ['_all_']
@@ -26,9 +26,9 @@ class UserMethods():
         filter_checks = {'lastLogin': last_login_filter, 'siteRole': site_role_filter, 'name': username_filter}
         filters = self._check_filter_objects(filter_checks)
 
-        users = self.query_resource("users", filters=filters, sorts=sorts, fields=fields)
-        self.log('Found {} users'.format(str(len(users))))
-        self.end_log_block()
+        users = self.rest.query_resource("users", filters=filters, sorts=sorts, fields=fields)
+        self.rest.log('Found {} users'.format(str(len(users))))
+        self.rest.end_log_block()
         return users
 
     # The reference has this name, so for consistency adding an alias
@@ -36,7 +36,7 @@ class UserMethods():
                        site_role_filter: Optional[UrlFilter] = None, username_filter: Optional[UrlFilter] = None,
                        sorts: Optional[List[Sort]] = None, fields: Optional[List[str] ] =None,
                        page_number: Optional[int] = None) -> Dict:
-        return  self.query_users_json(all_fields=all_fields, last_login_filter=last_login_filter,
+        return  self.rest.query_users_json(all_fields=all_fields, last_login_filter=last_login_filter,
                                      site_role_filter=site_role_filter, username_filter=username_filter, sorts=sorts,
                                      fields=fields, page_number=page_number)
 
@@ -45,7 +45,7 @@ class UserMethods():
                          sorts: Optional[List[Sort]] = None, fields: Optional[List[str]] = None,
                          page_number: Optional[int] = None) -> Dict:
 
-        self.start_log_block()
+        self.rest.start_log_block()
         if fields is None:
             if all_fields is True:
                 fields = ['_all_']
@@ -53,46 +53,46 @@ class UserMethods():
         filter_checks = {'lastLogin': last_login_filter, 'siteRole': site_role_filter, 'name': username_filter}
         filters = self._check_filter_objects(filter_checks)
 
-        users = self.query_resource_json("users", filters=filters, sorts=sorts, fields=fields, page_number=page_number)
+        users = self.rest.query_resource_json("users", filters=filters, sorts=sorts, fields=fields, page_number=page_number)
 
-        self.log('Found {} users'.format(str(len(users))))
-        self.end_log_block()
+        self.rest.log('Found {} users'.format(str(len(users))))
+        self.rest.end_log_block()
         return users
 
     def query_user(self, username_or_luid: str, all_fields: bool = True) -> ET.Element:
-        self.start_log_block()
-        user = self.query_single_element_from_endpoint_with_filter("user", username_or_luid, all_fields=all_fields)
+        self.rest.start_log_block()
+        user = self.rest.query_single_element_from_endpoint_with_filter("user", username_or_luid, all_fields=all_fields)
         user_luid = user.get("id")
         username = user.get('name')
-        self.username_luid_cache[username] = user_luid
-        self.end_log_block()
+        self.rest.username_luid_cache[username] = user_luid
+        self.rest.end_log_block()
         return user
 
     def query_username(self, user_luid: str) -> str:
-        self.start_log_block()
+        self.rest.start_log_block()
         try:
-            luid_index = list(self.username_luid_cache.values()).index(user_luid)
-            username = list(self.username_luid_cache.keys())[luid_index]
+            luid_index = list(self.rest.username_luid_cache.values()).index(user_luid)
+            username = list(self.rest.username_luid_cache.keys())[luid_index]
         except ValueError as e:
             user = self.query_user(user_luid)
             username = user.get('name')
 
-        self.end_log_block()
+        self.rest.end_log_block()
         return username
 
     def add_user_by_username(self, username: Optional[str] = None, site_role: Optional[str] = 'Unlicensed',
                              auth_setting: Optional[str] = None, update_if_exists: bool = False,
                              direct_xml_request: Optional[ET.Element] = None) -> str:
-        self.start_log_block()
+        self.rest.start_log_block()
 
         # Check to make sure role that is passed is a valid role in the API
-        if site_role not in self.site_roles:
+        if site_role not in self.rest.site_roles:
             raise InvalidOptionException("{} is not a valid site role in Tableau Server".format(site_role))
 
         if auth_setting is not None:
             if auth_setting not in ['SAML', 'ServerDefault']:
                 raise InvalidOptionException('auth_setting must be either "SAML" or "ServerDefault"')
-        self.log("Adding {}".format(username))
+        self.rest.log("Adding {}".format(username))
         if direct_xml_request is not None:
             tsr = direct_xml_request
         else:
@@ -104,26 +104,26 @@ class UserMethods():
                 u.set('authSetting', auth_setting)
             tsr.append(u)
 
-        url = self.build_api_url('users')
+        url = self.rest.build_api_url('users')
         try:
-            new_user = self.send_add_request(url, tsr)
-            new_user_luid = new_user.findall('.//t:user',  self.ns_map)[0].get("id")
-            self.end_log_block()
+            new_user = self.rest.send_add_request(url, tsr)
+            new_user_luid = new_user.findall('.//t:user',  self.rest.ns_map)[0].get("id")
+            self.rest.end_log_block()
             return new_user_luid
         # If already exists, update site role unless overridden.
         except RecoverableHTTPException as e:
             if e.http_code == 409:
-                self.log("Username '{}' already exists on the server".format(username))
+                self.rest.log("Username '{}' already exists on the server".format(username))
                 if update_if_exists is True:
-                    self.log('Updating {} to site role {}'.format(username, site_role))
+                    self.rest.log('Updating {} to site role {}'.format(username, site_role))
                     self.update_user(username, site_role=site_role)
-                    self.end_log_block()
-                    return self.query_user_luid(username)
+                    self.rest.end_log_block()
+                    return self.rest.query_user_luid(username)
                 else:
-                    self.end_log_block()
-                    raise AlreadyExistsException('Username already exists ',  self.query_user_luid(username))
+                    self.rest.end_log_block()
+                    raise AlreadyExistsException('Username already exists ',  self.rest.query_user_luid(username))
         except:
-            self.end_log_block()
+            self.rest.end_log_block()
             raise
 
     # This is "Add User to Site", since you must be logged into a site.
@@ -133,7 +133,7 @@ class UserMethods():
                  email: Optional[str] = None, auth_setting: Optional[str] = None,
                  update_if_exists: bool = False, direct_xml_request: Optional[ET.Element] = None) -> str:
 
-        self.start_log_block()
+        self.rest.start_log_block()
 
         try:
             # Add username first, then update with full name
@@ -163,19 +163,19 @@ class UserMethods():
                 new_user_luid = self.add_user_by_username(username, site_role=site_role,
                                                           update_if_exists=update_if_exists, auth_setting=auth_setting)
                 self.update_user(new_user_luid, fullname, site_role, password, email)
-            self.end_log_block()
+            self.rest.end_log_block()
             return new_user_luid
         except AlreadyExistsException as e:
-            self.log("Username '{}' already exists on the server; no updates performed".format(username))
-            self.end_log_block()
+            self.rest.log("Username '{}' already exists on the server; no updates performed".format(username))
+            self.rest.end_log_block()
             return e.existing_luid
 
     def update_user(self, username_or_luid: str, full_name: Optional[str] = None, site_role: Optional[str] =None,
                     password: Optional[str] = None,
                     email: Optional[str] = None, direct_xml_request: Optional[ET.Element] = None) -> ET.Element:
 
-        self.start_log_block()
-        user_luid =  self.query_user_luid(username_or_luid)
+        self.rest.start_log_block()
+        user_luid =  self.rest.query_user_luid(username_or_luid)
 
         if direct_xml_request is not None:
             tsr = direct_xml_request
@@ -192,26 +192,26 @@ class UserMethods():
                 u.set('password', password)
             tsr.append(u)
 
-        url = self.build_api_url("users/{}".format(user_luid))
-        response = self.send_update_request(url, tsr)
-        self.end_log_block()
+        url = self.rest.build_api_url("users/{}".format(user_luid))
+        response = self.rest.send_update_request(url, tsr)
+        self.rest.end_log_block()
         return response
 
     # Can take collection or single user_luid string
     def remove_users_from_site(self,  username_or_luid_s: Union[List[str], str]):
-        self.start_log_block()
-        users = self.to_list(username_or_luid_s)
+        self.rest.start_log_block()
+        users = self.rest.to_list(username_or_luid_s)
         for user in users:
-            user_luid = self.query_user_luid(user)
-            url = self.build_api_url("users/{}".format(user_luid))
-            self.log('Removing user id {} from site'.format(user_luid))
-            self.send_delete_request(url)
-        self.end_log_block()
+            user_luid = self.rest.query_user_luid(user)
+            url = self.rest.build_api_url("users/{}".format(user_luid))
+            self.rest.log('Removing user id {} from site'.format(user_luid))
+            self.rest.send_delete_request(url)
+        self.rest.end_log_block()
 
     def unlicense_users(self, username_or_luid_s: Union[List[str], str]):
-        self.start_log_block()
-        users = self.to_list(username_or_luid_s)
+        self.rest.start_log_block()
+        users = self.rest.to_list(username_or_luid_s)
         for user in users:
-            user_luid = self.query_user_luid(user)
-            self.update_user(username_or_luid=user_luid, site_role="Unlicensed")
-        self.end_log_block()
+            user_luid = self.rest.query_user_luid(user)
+            self.rest.update_user(username_or_luid=user_luid, site_role="Unlicensed")
+        self.rest.end_log_block()
