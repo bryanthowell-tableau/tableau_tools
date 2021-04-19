@@ -2040,6 +2040,56 @@ The Permissions objects also have the Role definitions from the Tableau Server U
 
 This method is defined on the Permissions class, but looks at the role definition dictionaries defined on each of the descendent classes such as "WorkbookPermissions"
 
+### 6.5 rest_xml_request.py and rest_json_request.py
+The deepest level of connection management in the library live in rest_xml_request.py and rest_json_request.py. They are separated from the basic implementation of TableauServerRest for historic reasons (to the best of my memory). 
+
+The TableauRestApiBase class holds an internal instantiated instance of both classes:
+
+    self._request_obj: Optional[RestXmlRequest] = None
+    self._request_json_obj: Optional[RestJsonRequest] = None
+
+which it builds when the signin() method is called.
+
+The objects maintain an internal state with all the details of the previous request, until they are changed to make the next request. This allows for introspection about what happened, particularly if Exceptions are thrown when a request is sent. 
+
+The request / response process has several extra layers of abstraction over the requests library call it makes. 
+
+The Tableau REST API, in both XML and JSON forms, has pagination. The TSC library handles this by either returning a tuple with pagination information or having you use a pager object. tableau_tools always assumes you want the set from the API. 
+
+Historically, this behavior was incredibly useful prior to any server-based filter capabilities. Getting the entire XML response together as one object allows for XPath queries of everything, without trying to implement more advanced algorithms to solve the problem. Luckily, with more filters available in the API calls themselves, most potentially large responses can be filtered down prior on the server side.
+
+In any case, tableau_tools will return you a combined XML object with all results.
+
+#### 6.5.1 request_from_api
+The method called by TableauRestApiBase to actually make an HTTP request is 
+
+`request_from_api(self, page_number: int = 1)`
+
+It always tries to get the first page of responses using the internal method `__make_request()` (see next section). If it determines there are more pages to get after the first request, it continues to call __make_request in a lookup to retrieve each page of results and use the `copy.deepcopy()` Python method to create a new XML object with all of the elements that are retrieved from the calls
+
+It's fair to describe `request_from_api` as handling the process when requests come back successfully. 
+
+#### 6.5.2 __make_request
+ `__make_request` handles the actual sending of the requests, initial inspection of the responses, and the handling of any errors. Tableau Server's REST API throws HTTP 4XX code errors for all sorts of reasons that shouldn't necessarily end your workflow, so `__make_request` looks for those common cases (such as "this element already exists") and throws a more benign Exception. For example
+
+          # Everything that is not 400 can potentially be recovered from
+        if status_code in [401, 402, 403, 404, 405, 409]:
+            # If 'not exists' for a delete, recover and log
+            if self._http_verb == 'delete':
+                self.log('Delete action attempted on non-exists, keep going')
+            if status_code == 409:
+                self.log('HTTP 409 error, most likely an already exists')
+            raise RecoverableHTTPException(status_code, error_code, detail_luid)
+        # Invalid Hyper Extract publish does this
+        elif status_code == 400 and self._http_verb == 'post':
+            if error_code == '400011':
+                raise PossibleInvalidPublishException(http_code=400, tableau_error_code='400011',
+                                                      msg="400011 on a Publish of a .hyper file could caused when the Hyper file either more than one table or the single table is not named 'Extract'.")
+        else:
+            raise e
+
+`__make_request` originally did a lot of mangling between various encodings of UTF-8 and XML namespaces, but thankfully there are no versions of Tableau Server still available that require those issues (and Python 3's change to differentiate Unicode strings from Bytes types also helped smooth things out)
+
 ## 7 tableau_documents module deep dive
 
 
