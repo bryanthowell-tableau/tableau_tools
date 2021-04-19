@@ -2043,6 +2043,8 @@ This method is defined on the Permissions class, but looks at the role definitio
 ### 6.5 rest_xml_request.py and rest_json_request.py
 The deepest level of connection management in the library live in rest_xml_request.py and rest_json_request.py. They are separated from the basic implementation of TableauServerRest for historic reasons (to the best of my memory). 
 
+rest_json_request is an almost exact copy of rest_xml_request, but it sends with the correct headers for JSON and does basic parsing from errors that come back as JSON responses. It is not as thoroughly tested, because JSON is mostly useful as a retrieval mechanism, while there's no real disadvantage to sending UPDATES and ADDs as XML through the library.
+
 The TableauRestApiBase class holds an internal instantiated instance of both classes:
 
     self._request_obj: Optional[RestXmlRequest] = None
