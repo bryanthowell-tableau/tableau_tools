@@ -4,8 +4,6 @@ from ..tableau_exceptions import *
 class Sort:
     def __init__(self, field: str, direction: str):
         self.field = field
-        if direction not in ['asc', 'desc']:
-            raise InvalidOptionException('Sort direction must be asc or desc')
         self.direction = direction
 
     def get_sort_string(self) -> str:

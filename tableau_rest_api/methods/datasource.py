@@ -17,18 +17,13 @@ class DatasourceMethods():
         return ds_obj
 
     def query_datasources(self, project_name_or_luid: Optional[str] = None, all_fields: Optional[bool] = True,
-                          updated_at_filter: Optional[UrlFilter] = None, created_at_filter: Optional[UrlFilter] = None,
-                          tags_filter: Optional[UrlFilter] = None, datasource_type_filter: Optional[UrlFilter] = None,
-                          sorts: Optional[List[Sort]] = None, fields: Optional[List[str]] = None) -> ET.Element:
+                          filters: Optional[List[UrlFilter]] = None, sorts: Optional[List[Sort]] = None,
+                          fields: Optional[List[str]] = None) -> ET.Element:
 
         self.rest.start_log_block()
         if fields is None:
             if all_fields is True:
                 fields = ['_all_']
-
-        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter,
-                         'type': datasource_type_filter}
-        filters = self.rest._check_filter_objects(filter_checks)
 
         datasources = self.rest.query_resource('datasources', filters=filters, sorts=sorts, fields=fields)
 
@@ -45,19 +40,14 @@ class DatasourceMethods():
         self.rest.end_log_block()
         return dses
 
-    def query_datasources_json(self, all_fields: Optional[bool] = True, updated_at_filter: Optional[UrlFilter] = None,
-                               created_at_filter: Optional[UrlFilter] = None, tags_filter: Optional[UrlFilter] = None,
-                               datasource_type_filter: Optional[UrlFilter] = None, sorts: Optional[List[Sort]] = None,
-                               fields: Optional[List[str]] = None, page_number: Optional[int] = None) -> Dict:
+    def query_datasources_json(self, all_fields: Optional[bool] = True, filters: Optional[List[UrlFilter]] = None,
+                               sorts: Optional[List[Sort]] = None, fields: Optional[List[str]] = None,
+                               page_number: Optional[int] = None) -> Dict:
 
         self.rest.start_log_block()
         if fields is None:
             if all_fields is True:
                 fields = ['_all_']
-
-        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter,
-                         'type': datasource_type_filter}
-        filters = self.rest._check_filter_objects(filter_checks)
 
         datasources = self.rest.query_resource_json('datasources', filters=filters, sorts=sorts, fields=fields,
                                                page_number=page_number)

@@ -39,9 +39,6 @@ class UrlFilter:
         :param operator: Should be one of 'eq', 'gt', 'gte', 'lt', 'lte'
         :param last_login_time: ISO 8601 representation of time like 2016-01-01T00:00:00:00Z
         """
-        comparison_operators = ['eq', 'gt', 'gte', 'lt', 'lte']
-        if operator not in comparison_operators:
-            raise InvalidOptionException("operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
         # Convert to the correct time format
         time = UrlFilter.datetime_to_tableau_date_str(last_login_time)
 
@@ -65,9 +62,6 @@ class UrlFilter:
         :param operator: Should be one of 'eq', 'gt', 'gte', 'lt', 'lte'
         :param created_at_time: ISO 8601 representation of time like 2016-01-01T00:00:00:00Z
         """
-        comparison_operators = ['eq', 'gt', 'gte', 'lt', 'lte']
-        if operator not in comparison_operators:
-            raise InvalidOptionException("operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
         # Convert to the correct time format
         time = UrlFilter.datetime_to_tableau_date_str(created_at_time)
         return UrlFilter('createdAt', operator, [time, ])
@@ -79,9 +73,6 @@ class UrlFilter:
         :param operator: Should be one of 'eq', 'gt', 'gte', 'lt', 'lte'
         :param updated_at_time: ISO 8601 representation of time like 2016-01-01T00:00:00:00Z
         """
-        comparison_operators = ['eq', 'gt', 'gte', 'lt', 'lte']
-        if operator not in comparison_operators:
-            raise InvalidOptionException("operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
         # Convert to the correct time format
         time = updated_at_time
 
@@ -167,10 +158,6 @@ class UrlFilter27(UrlFilter):
     # Groups
     @staticmethod
     def get_user_count_filter(operator, user_count: int) -> 'UrlFilter':
-        comparison_operators = ['eq', 'gt', 'gte', 'lt', 'lte']
-        if operator not in comparison_operators:
-            raise InvalidOptionException("operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
-
         return UrlFilter('userCount', operator, [str(user_count), ])
 
     # Projects
@@ -196,9 +183,6 @@ class UrlFilter27(UrlFilter):
     # Views
     @staticmethod
     def get_hits_total_filter(operator, hits_total: int) -> 'UrlFilter':
-        comparison_operators = ['eq', 'gt', 'gte', 'lt', 'lte']
-        if operator not in comparison_operators:
-            raise InvalidOptionException("operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
         # Convert to the correct time format
 
         return UrlFilter('hitsTotal', operator, [str(hits_total), ])
@@ -227,9 +211,6 @@ class UrlFilter31(UrlFilter30):
         :param operator: Should be one of 'eq', 'gt', 'gte', 'lt', 'lte'
         :param started_at_time: ISO 8601 representation of time like 2016-01-01T00:00:00:00Z
         """
-        comparison_operators = ['eq', 'gt', 'gte', 'lt', 'lte']
-        if operator not in comparison_operators:
-            raise InvalidOptionException("operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
         # Convert to the correct time format
         time = UrlFilter.datetime_to_tableau_date_str(started_at_time)
         return UrlFilter('createdAt', operator, [time, ])
@@ -241,9 +222,6 @@ class UrlFilter31(UrlFilter30):
         :param operator: Should be one of 'eq', 'gt', 'gte', 'lt', 'lte'
         :param ended_at_time: ISO 8601 representation of time like 2016-01-01T00:00:00:00Z
         """
-        comparison_operators = ['eq', 'gt', 'gte', 'lt', 'lte']
-        if operator not in comparison_operators:
-            raise InvalidOptionException("operator must be one of 'eq', 'gt', 'gte', 'lt', 'lte' ")
         # Convert to the correct time format
         time = UrlFilter.datetime_to_tableau_date_str(ended_at_time)
         return UrlFilter('createdAt', operator, [time, ])

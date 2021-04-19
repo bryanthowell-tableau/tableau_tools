@@ -18,18 +18,12 @@ class WorkbookMethods():
 
     # This uses the logged in username for convenience by default
     def query_workbooks(self, username_or_luid: Optional[str] = None, project_name_or_luid: Optional[str] = None,
-                        all_fields: bool = True, created_at_filter: Optional[UrlFilter] = None,
-                        updated_at_filter: Optional[UrlFilter] = None, owner_name_filter: Optional[UrlFilter] = None,
-                        tags_filter: Optional[UrlFilter] = None, sorts: Optional[List[Sort]] = None,
+                        all_fields: bool = True, filters: Optional[List[UrlFilter]] = None, sorts: Optional[List[Sort]] = None,
                         fields: Optional[List[str]] = None) -> ET.Element:
         self.rest.start_log_block()
         if fields is None:
             if all_fields is True:
                 fields = ['_all_']
-
-        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter,
-                         'ownerName': owner_name_filter}
-        filters = self.rest._check_filter_objects(filter_checks)
 
         if username_or_luid is not None:
             user_luid = self.rest.query_user_luid(username_or_luid)
@@ -53,19 +47,12 @@ class WorkbookMethods():
         return wbs
 
     def query_workbooks_json(self, username_or_luid: Optional[str] = None, all_fields: bool = True,
-                             created_at_filter: Optional[UrlFilter] = None,
-                             updated_at_filter: Optional[UrlFilter] = None,
-                             owner_name_filter: Optional[UrlFilter] = None,
-                             tags_filter: Optional[UrlFilter] = None, sorts: Optional[List[Sort]] = None,
+                             filters: Optional[List[UrlFilter]] = None, sorts: Optional[List[Sort]] = None,
                              fields: Optional[List[str]] = None, page_number: Optional[int] = None) -> Dict:
         self.rest.start_log_block()
         if fields is None:
             if all_fields is True:
                 fields = ['_all_']
-
-        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter,
-                         'ownerName': owner_name_filter}
-        filters = self.rest._check_filter_objects(filter_checks)
 
         if username_or_luid is not None:
             user_luid = self.rest.query_user_luid(username_or_luid)
@@ -268,8 +255,7 @@ class WorkbookMethods():
         return conns
 
     def query_views(self, all_fields: bool = True, usage: bool = False,
-                         created_at_filter: Optional[UrlFilter] = None, updated_at_filter: Optional[UrlFilter] = None,
-                         tags_filter: Optional[UrlFilter] = None, sorts: Optional[UrlFilter] = None,
+                         filters: Optional[List[UrlFilter]] = None, sorts: Optional[UrlFilter] = None,
                          fields: Optional[UrlFilter] = None) -> ET.Element:
         self.rest.start_log_block()
 
@@ -279,8 +265,6 @@ class WorkbookMethods():
 
         if usage not in [True, False]:
             raise InvalidOptionException('Usage can only be set to True or False')
-        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter}
-        filters = self.rest._check_filter_objects(filter_checks)
 
         vws = self.rest.query_resource("views", filters=filters, sorts=sorts, fields=fields,
                                   additional_url_ending="includeUsageStatistics={}".format(str(usage).lower()))
@@ -288,8 +272,7 @@ class WorkbookMethods():
         return vws
 
     def query_views_json(self, all_fields: bool = True, usage: bool = False,
-                         created_at_filter: Optional[UrlFilter] = None, updated_at_filter: Optional[UrlFilter] = None,
-                         tags_filter: Optional[UrlFilter] = None, sorts: Optional[UrlFilter] = None,
+                         filters: Optional[List[UrlFilter]] = None, sorts: Optional[UrlFilter] = None,
                          fields: Optional[UrlFilter] = None, page_number: Optional[int] = None) -> Dict:
         self.rest.start_log_block()
 
@@ -299,8 +282,6 @@ class WorkbookMethods():
 
         if usage not in [True, False]:
             raise InvalidOptionException('Usage can only be set to True or False')
-        filter_checks = {'updatedAt': updated_at_filter, 'createdAt': created_at_filter, 'tags': tags_filter}
-        filters = self.rest._check_filter_objects(filter_checks)
 
         vws = self.rest.query_resource_json("views", filters=filters, sorts=sorts, fields=fields,
                                        additional_url_ending="includeUsageStatistics={}".format(str(usage).lower()),
