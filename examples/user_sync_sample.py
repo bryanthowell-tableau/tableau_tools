@@ -31,7 +31,7 @@ sql_statement = 'SELECT groups FROM permissions GROUP BY groups;'
 cur.execute(sql_statement)
 
 # Get all the groups on the Tableau Server
-groups = t.query_groups()
+groups = t.groups.query_groups()
 groups_dict = t.xml_list_to_dict(groups)
 
 # Loop through the results
