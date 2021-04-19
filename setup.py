@@ -6,7 +6,7 @@ setup(
     version='6.0.0',
     packages=['tableau_tools', 'tableau_tools.tableau_rest_api', 'tableau_tools.tableau_documents',
               'tableau_tools.examples', 'tableau_tools.tableau_rest_api.methods'],
-    url='https://github.com/bryantbhowell/tableau_tools',
+    url='https://github.com/bryanthowell-tableau/tableau_tools',
     license='',
     author='Bryant Howell',
     author_email='bhowell@tableau.com',

@@ -50,7 +50,7 @@ tableau_tools was *programmed using PyCharm and works very well in that IDE. It 
 * 4.8.0 Introduces the RestJsonRequest object and _json plural querying methods for passing JSON responses to other systems
 * 4.9.0 API 3.3 (2019.1) compatibility, as well as ability to swap in static files using TableauDocument and other bug fixes.
 * 5.0.0 Python 3.6+ native rewrite. Completely re-organized in the backend, with two models for accessing Rest API methods: TableauRestApiConnection (backwards-compatible) and TableauServerRest, with subclasses grouping the methods.
-* 6.0.0 Final version by Bryant Howell. Removes the legacy TableauRestApiConnection class and many of the "version specific" checks so that it can be used with newer API versions and options without restriction. Sections 5 and 6 added to README to docuemnt internal methods
+* 6.0.0 Final version by Bryant Howell. Removes the legacy TableauRestApiConnection class and many of the "version specific" checks so that it can be used with newer API versions and options without restriction. Sections 5 and 6 added to README to document internal methods
 
 --- Table(au) of Contents ---
 ------
@@ -186,7 +186,7 @@ makes the Logger indent the lines of the log, so that you can see the nesting of
 ### 0.3 TableauRestXml class
 There is a class called TableauRestXml which holds static methods and properties that are useful on any Tableau REST XML request or response.
 
-TableauServerRest and TableauRestApiConnection both inherit from this class so you can call any of the methods from one of those objects rather than calling it directly.
+TableauServerRest inherits from this class so you can call any of the methods from one of those objects rather than calling it directly.
 
 ### 0.4 tableau_exceptions
 The tableau_exceptions file defines a variety of Exceptions that are specific to Tableau, particularly the REST API. They are not very complex, and most simply include a msg property that will clarify the problem if logged
@@ -202,39 +202,18 @@ Because they are ElementTree.Element objects, you can use the `.find()` and `fin
 
 https://onlinehelp.tableau.com/current/api/rest_api/en-us/REST/rest_api_ref.htm#API_Reference
 
-is implemented as a method using the same name. For example, the action listed as "Get Users in Group" is implemented as `TableauRestApiConnection.get_users_in_group()` . There are a few places where there are deviations from this pattern, but in general you can start typing based on what you see in the reference and find the method implementing it.
+is implemented as a method using the same name. For example, the action listed as "Get Users in Group" is implemented as `TableauServerRest.groups.get_users_in_group()` . There are a few places where there are deviations from this pattern, but in general you can start typing based on what you see in the reference and find the method implementing it.
 
 
 ### 1.1 Connecting
-#### 1.1.1 TableauRestApiConnection & TableauServerRest classes
-tableau_tools 5.0+ implements two object types for accessing the methods of the Tableau Server REST API: TableauRestApiConnection and TableauServerRest.
+#### 1.1.1 TableauServerRest classes
+tableau_tools 6.0+ implements two object types for accessing the methods of the Tableau Server REST API: TableauServerRest. Previous versions had a TableauRestApiConnection class, which included ALL methods on that one object. Converting old TableauRestApiConnection code to the modern TableauServerRest class in most cases simply involves adding the correct "sub-object" for that type of method: i.e. TableauRestApiConnection.create_group() becomes TableauServerRest.groups.create_group(). 
 
-The base TableauRestApiConnection and TableauServerRest classes implements the 2.6 version of the REST API, equivalent to Tableau 10. If you are using a version of Tableau older than this, please look into upgrading as soon as possible, as they are out of support. Then later versions of the API are represented by appending the API version to the class name. For example, if you want to use the API for Tableau Server 2018.1 (API Version 3.0), you would instantiate a TableauRestApiConnection30 or TableauServerRest30 object. In general, you can always use an older version of the API with a newer version of Tableau Server, unless you know of a major change in how something behaves, or want to use the latest features.
+The base TableauServerRest class of the 6.0 release implements the 3.2 version of the REST API. If you are using a version of Tableau older than this, please look into upgrading as soon as possible, as they are out of support. Then later versions of the API are represented by appending the API version to the class name. For example, if you want to use the API for Tableau Server 2021.1 (API Version 3.11), you would instantiate a TableauServerRest311 object. In general, you can always use an older version of the API with a newer version of Tableau Server, unless you know of a major change in how something behaves, or want to use the latest features.
 
 The first set of objects, which are compatible with scripts from the 4.0 series of tableau_tools, are the TableauRestApiConnection classes. These implement all methods directly on the TableauRestApiConnection class.
 
-
-`TableauRestApiConnection(server, username, password, site_content_url=""): 10.3`
-
-`TableauRestApiConnection27: 10.4`
-
-`TableauRestApiConnection28: 10.5`
-
-`TableauRestApiConnection30: 2018.1`
-
-`TableauRestApiConnection31: 2018.2`
-
-`TableauRestApiConnection32: 2018.3`
-
-`TableauRestApiConnection33: 2019.1`
-
-`TableauRestApiConnection34: 2019.2`
-
-`TableauRestApiConnection35: 2019.3`
-
-`TableauRestApiConnection36(server, username=None, password=None, site_content_url="", pat_name=None, pat_secret=None): 2019.4`
-
-The second set of objects, new in tableau_tools 5.0, are the TableauServerRest objects. These group the available methods into related sub-objects, for ease of organization. Basic functionalities, including the translation between real names and LUIDs, are still on the base class itself. For example, you still use `TableauServerRest.signin()` , but you would use `TableauServerRest.projects.update_project()` rather than `TableauRestApiConnection.update_project()` . 
+The TableauServerRest objects group the available methods into related sub-objects, for ease of organization. Basic functionalities, including the translation between real names and LUIDs, are still on the base class itself. For example, you still use `TableauServerRest.signin()` , but you would use `TableauServerRest.projects.update_project()` rather than `TableauRestApiConnection.update_project()` . 
 
 The TableauServerRest classes are:
 
@@ -261,10 +240,6 @@ The TableauServerRest classes are:
 You need to initialize at least one object of either of the two class types. 
 Ex.:
 
-    t = TableauRestApiConnection33("http://127.0.0.1", "admin", "adminsp@ssw0rd", site_content_url="site1")
-    
-    # or 
-    
     t = TableauServerRest36(server="http://127.0.0.1", pat_name="ripFatPat", pat_secret="qlE1g9MMh9vbrjjg==:rZTHhPpP2tUW1kfn4tjg8", site_content_url="fifth_ward")
     
 The actual methods, whether attached directly or as sub-classes, are implemented in the same class files. This means that the two object types are equivalent -- they are calling the same code in the end, and yo'll ever have to choose between the two styles to get a particular feature.
@@ -272,17 +247,13 @@ The actual methods, whether attached directly or as sub-classes, are implemented
 #### 1.1.2 Enabling Logging 
 
     logger = Logger("log_file.txt")
-    TableauRestApiConnection.enable_logging(logger) 
-    # or 
     TableauServerRest.enable_logging(logger)
 
 #### 1.1.3 Signing in
-The TableauRestApiConnection doesn't actually sign in and create a session until you make a `signin()` call
+The TableauServerRest object doesn't actually sign in and create a session until you make a `signin()` call
 
 Ex.
 
-    t = TableauRestApiConnection33("http://127.0.0.1", "admin", "adminsp@ssw0rd", site_content_url="site1")
-    # or
       t = TableauServerRest33("http://127.0.0.1", "admin", "adminsp@ssw0rd", site_content_url="site1")
     t.signin()
     logger = Logger("log_file.txt")
@@ -304,19 +275,17 @@ Starting in API 3.6 (2019.4+), you can use a Personal Access Token to signin rat
 #### 1.1.4 Connecting to multiple sites
 The Tableau REST API only allows a session to a single Site at a time. To deal with multiple sites, you can create multiple objects representing each site. To sign in to a site, you need the `site_content_url`, which is the portion of the URL that represents the Site. 
 
-    TableauRestApiConnection.query_all_site_content_urls()
-    # or 
     TableauServerRest.sites.query_all_site_content_urls()
  
 
 returns an list that can be iterated over. You must sign-in to one site first to get this list however. So if you wanted to do an action to all sites, do the following:
 
-    default = TableauRestApiConnection34("http://127.0.0.1", "admin", "adminsp@ssw0rd")
+    default = TableauServerRest34("http://127.0.0.1", "admin", "adminsp@ssw0rd")
     default.signin()
     site_content_urls = default.query_all_site_content_urls()
     
     for site_content_url in site_content_urls:
-        t = TableauRestApiConnection34("http://127.0.0.1", "admin", "adminsp@ssw0rd", site_content_url=site_content_url)
+        t = TableauServerRest34("http://127.0.0.1", "admin", "adminsp@ssw0rd", site_content_url=site_content_url)
         t.signin()
         ...
 
@@ -333,20 +302,22 @@ Swapping in a different session into the main objects requires more than just th
 
 You can get all of the values from the previous object, if it has been signed in. You also must have signed in to the second object at least once, because that initializes much of the other internal properties correctly.:
     
-    t = TableauRestApiConnection(server='http://127.0.0.1', username='usrnm', password='nowthatsabigpass', site_content_url='some_site')
+    t = TableauServerRest(server='http://127.0.0.1', username='usrnm', password='nowthatsabigpass', site_content_url='some_site')
     t.signin()
     first_site_luid = t.site_luid
     first_user_luid = t.user_luid
     first_token = t.token
     
-    t2 = TableauRestApiConnection(server='http://127.0.0.1', username='a.nother', password='passittotheleft', site_content_url='some_site_other_site')
+    t2 = TableauServerRest(server='http://127.0.0.1', username='a.nother', password='passittotheleft', site_content_url='some_site_other_site')
     t2.signin()
     t2.swap_token(site_luid=first_site_luid, user_luid=first_user_luid, token=first_token)
     
 Now any actions you take with t2 will be the same session to the Tableau Server as those taken with t1. This can also be very useful for multi-threaded programming, where you may want to clone instances of an object so that they don't interact with one another while doing things on different threads, but still use the same REST API session.
 
 ### 1.2 Basics and Querying
-NOTE: If you get a "RecursionError: maximum recursion depth exceeded" Exception, it generally means that you are trying a method that does not exist. The most common reason for this with the TableauServerRest objects is when porting code over from TableauRestApiConnection objects. All methods except for lookups live under a sub-object (t.users.method()) in TableauServerRest, so if you put a method directly on the main object, it will try and search for it but error out. This issue can work the other way, if you try and use a sub-object under TableauRestApiConnection when it doesn't exist.
+NOTE: If you are using a 5.0.0 series release and get a "RecursionError: maximum recursion depth exceeded" Exception, it generally means that you are trying a method that does not exist. The most common reason for this with the TableauServerRest objects is when porting code over from TableauRestApiConnection objects. All methods except for lookups live under a sub-object (t.users.method()) in TableauServerRest, so if you put a method directly on the main object, it will try and search for it but error out. This issue can work the other way, if you try and use a sub-object under TableauRestApiConnection when it doesn't exist.
+
+That issue should no longer be present in 6.0.0 releases, which removed the "search for any method name" reference that caused the issue
 
 #### 1.2.0 ElementTree.Element XML Responses
 As mentioned in the 0 section, tableau_tools returns ElementTree.Element responses for any XML request. To know exactly what is available in any given object coming back from the Tableau REST API, you'll need to either consult the REST API Reference or convert to it something you can write to the console or a text file.
@@ -375,9 +346,11 @@ Some XML responses are more complex, with element nodes within other elements. A
                 proj_luid = elem.get('id')
                 
 ##### 1.2.0.1 Underlying Base Methods
-This section is only useful or necessary if you are investingating an issue with the library, or need to do something from the reference guide that is not implemented yet with its own dedicated methods. 
+This section is only useful or necessary if you are investigating an issue with the library, or need to do something from the reference guide that is not implemented yet with its own dedicated methods. 
 
 The rest_api_base class implements a number of methods which are used by the more specific methods. These actualy perform the basic REST API actions, along with Tableau Server specific checks and algorithms. 
+
+For a much deeper dive into this, intended for people adding to or fixing issues with the library, see Section 6.
 
 For example:
 
@@ -421,6 +394,7 @@ Internally if you look at most add methods, this is fundamentally how they are a
 
 For historical reasons, the actual HTTP connections are handled in a separate class and object entirely, either RestXmlRequest or RestJsonRequest, rather than performed directly within RestApiBase. Those objects both use the standad `requests` library to handle their HTTP actions. Unless you are updating the library to handle a vastly new situation with regards to request or response types with the REST API, it is unlikely you'll ever need to look into the details of those objects or attempt to access them directly. 
 
+
 #### 1.2.1 LUIDs - Locally Unique IDentifiers
 The Tableau REST API represents each object on the server (project, workbook, user, group, etc.) with a Locally Unique IDentifier (LUID). Every command other than the sign-in to a particular site (which uses the `site_content_url`) requires a LUID. LUIDs are returned when you create an object on the server, or they can be retrieved by the Query methods and then searched to find the matching LUID. In the XML or JSON, they are labeled with the `id` value, but tableau_tools specifically refers to them as LUID throughout, because there are other Tableau IDs in the Tableau Server repoistory.
 
@@ -432,29 +406,27 @@ tableau_tools handles translations between real world names and LUIDs automatica
 #### 1.2.2 Plural querying methods and converting to { name : luid} Dict
 The simplest method for getting information from the REST API are the "plural" querying methods
 
-`TableauRestApiConnection.query_groups()`
+`TableauServerRest.groups.query_groups()`
 
-`TableauRestApiConnection.query_users(username_or_luid)`
+`TableauServerRest.users.query_users(username_or_luid)`
 
-`TableauRestApiConnection.query_workbooks()`
+`TableauServerRest.workbooks.query_workbooks()`
 
-`TableauRestApiConnection.query_projects()`
+`TableauServerRest.projects.query_projects()`
 
-`TableauRestApiConnection.query_datasources()`
+`TableauServerRest.datasources.query_datasources()`
 
-`TableauRestApiConnection.query_workbook_views()`
+`TableauServerRest.workbooks.query_workbook_views()`
 
- `TableauServerRest.datasources.query_datasources()`
 
 These will all return an ElementTree object representing the results from the REST API call. This can be useful if you need all of the information returned, but most of your calls to these methods will be to get a dictionary of names : luids you can use for lookup. There is a simple static method for this conversion
 
-`TableauRestApiConnection.convert_xml_list_to_name_id_dict(xml_obj)`
 
 `TableauServerRest.convert_xml_list_to_name_id_dict(xml_obj)`
 
 Ex.
 
-    default = TableauRestApiConnection34("http://127.0.0.1", "admin", "adminsp@ssw0rd")
+    default = TableauServerRest34("http://127.0.0.1", "admin", "adminsp@ssw0rd")
     default.signin()
     groups = default.query_groups()
     groups_dict = default.convert_xml_list_to_name_id_dict(groups)
@@ -466,17 +438,15 @@ There are also equivalent JSON querying methods for the plural methods, which re
 
 The JSON plural query methods allow you to specify the page of results using the page= optional parameter(starting at 1). If you do not specify a page, tableau_tools will automatically paginate through all results and combine them together. 
 
-`TableauRestApiConnection.query_groups_json(page_number=None)`
+`TableauServerRest.groups.query_groups_json(page_number=None)`
 
-`TableauRestApiConnection.query_users_json(page_number=None)`
+`TableauServerRest.users.query_users_json(page_number=None)`
 
-`TableauRestApiConnection.query_workbooks_json(username_or_luid, page_number=None)`
+`TableauServerRest.workbooks.query_workbooks_json(username_or_luid, page_number=None)`
 
-`TableauRestApiConnection.query_projects_json(page_number=None)`
+`TableauServerRest.projects.query_projects_json(page_number=None)`
 
-`TableauRestApiConnection.query_datasources_json(page_number=None)`
-
-`TableauRestApiConnection.query_workbook_views_json(page_number=None)`
+`TableauServerRest.datasources.query_datasources_json(page_number=None)`
 
 `TableauServerRest.workbooks.query_workbook_views_json(page_number=None)`
 
@@ -489,7 +459,7 @@ You should definitely check in the REST API reference as to which filters can be
 
 For example, `query_projects` will run by itself, but it also contains optional parameters for each of the filter types it can take.
 
-`TableauRestApiConnection.query_projects(self, name_filter=None, owner_name_filter=None, updated_at_filter=None, created_at_filter=None,
+`TableauServerRest.projects.query_projects(self, name_filter=None, owner_name_filter=None, updated_at_filter=None, created_at_filter=None,
                        owner_domain_filter=None, owner_email_filter=None, sorts=None)`
 
 Filters can be passed via a `UrlFilter` class object. However, you do not need to generate them directly, but instead should use factory methods (all starting with "get_" to make sure you get them created with the right options. Both TableauServerRest and TableauRestApiConnection have a `.url_filters` property which gives you access to the correct UrlFilters object for that version of the API. This is the easiest access point and can be used like:
@@ -589,19 +559,17 @@ For the calls where there is MORE information available now with fields, they al
 
 For example, the definition of `query_users()` looks like:
 
-`TableauRestApiConnection.query_users(all_fields=True, last_login_filter=None, site_role_filter=None, sorts=None, fields=None)`
+`TableauServerRest.users.query_users(all_fields=True, last_login_filter=None, site_role_filter=None, sorts=None, fields=None)`
 
 You can use like this to specify specific fields only to come back:
 
-    t.query_users(fields=['name', 'id', 'lastLogin')
+    t.users.query_users(fields=['name', 'id', 'lastLogin')
 
 (This is a lot more useful on something like `query_workbooks` which has additional info about the owner and the project which are not included in the defaults).
 
 #### 1.2.3 LUID Lookup Methods
 There are numerous methods for finding an LUID based on the name of a piece of content. Because LUID lookup for all types is useful to almost any commands, these methods live in the main class, even in `TableauServerRest`. An example is:
 
-    TableauRestApiConnection.query_group_luid(name)
-    # or 
     TableauServerRest.query_group_luid(name)
 
 These methods are very useful when you need a LUID to generate another action.  You shouldn't need these methods very frequently, as the majority of methods will do the lookup automatically if a name is passed in. 
@@ -613,23 +581,23 @@ There are methods for getting the XML just for a single object, but they actuall
 
 Most methods follow this pattern:
 
-`TableauRestApiConnection.query_project(name_or_luid)`
+`TableauServerRest.projects.query_project(name_or_luid)`
 
-`TableauRestApiConnection.query_user(username_or_luid)`
+`TableauServerRest.users.query_user(username_or_luid)`
 
-`TableauRestApiConnection.query_datasource(ds_name_or_luid, proj_name_or_luid=None)`
+`TableauServerRest.datasources.query_datasource(ds_name_or_luid, proj_name_or_luid=None)`
 
-`TableauRestApiConnection.query_workbook(wb_name_or_luid, p_name_or_luid=None, username_or_luid=None)`
+`TableauServerRest.workbooks.query_workbook(wb_name_or_luid, p_name_or_luid=None, username_or_luid=None)`
 
 Yo'll notice that `query_workbook` and `query_datasource` include parameters for the project (and the username for workbooks). This is because workbook and datasource names are only unique within a Project of a Site, not within a Site. If you search without the project specified, the method will return a workbook if only one is found, but if multiple are found, it will throw a `MultipleMatchesFoundException` .
 
 Unlike almost every other singular method, `query_project` returns a `Project` object, which is necessary when setting Permissions, rather than an `ET.Element` . This does take some amount of time, because all of the underlying permissions and default permissions on the project are requested when creating the Project object
 
-`TableauRestApiConnection.query_project(project_name_or_luid) : returns Project`
+`TableauServerRest.projects.query_project(project_name_or_luid) : returns Project`
 
 If you just need to look at the values from the XML, can request the XML element using:
 
-`TableauRestApiConnection.query_project_xml_object(project_name_or_luid(`
+`TableauServerRest.projects.query_project_xml_object(project_name_or_luid(`
 
 or if you already have a Project object, you can access it this way:
 
@@ -641,19 +609,15 @@ Because Permissions actually exist and attach to Published Content on the Tablea
 #### 1.2.6 "Download" and "Save" methods
 Published content (workbooks and datasources) and thumbnails can all be queried, but they come down in formats that need to be saved in most cases. For this reason, their methods are named as following:
 
-`TableauRestApiConnection.save_workbook_preview_image(wb_name_or_luid, filename)`
-
-`TableauRestApiConnection.save_workbook_view_preview_image_by_luid(wb_name_or_luid, view_name_or_luid, filename)`
-
-These live in the sub-objects for their content types in `TableauServerRest`:
-
 `TableauServerRest.workbooks.save_workbook_preview_image(wb_name_or_luid, filename)`
+
+`TableauServerRest.workbooks.save_workbook_view_preview_image_by_luid(wb_name_or_luid, view_name_or_luid, filename)`
 
 
 **Do not include file extension. Without filename, only returns the response**
-`TableauRestApiConnection.download_datasource(ds_name_or_luid, filename_no_extension, proj_name_or_luid=None)`
+`TableauServerRest.datasources.download_datasource(ds_name_or_luid, filename_no_extension, proj_name_or_luid=None)`
 
-`TableauRestApiConnection.download_workbook(wb_name_or_luid, filename_no_extension, proj_name_or_luid=None)`
+`TableauServerRest.workbooks.download_workbook(wb_name_or_luid, filename_no_extension, proj_name_or_luid=None)`
 
 
 ### 1.3 Administrative Actions (adding, removing, and syncing)
@@ -661,29 +625,26 @@ These live in the sub-objects for their content types in `TableauServerRest`:
 #### 1.3.1 Adding Users
 There are two separate actions in the Tableau REST API to add a new user. First, the user is created, and then additional details are set using an update command. `tableau_rest_api` implements these two together as: 
 
-`TableauRestApiConnection.add_user(username, fullname, site_role='Unlicensed', password=None, email=None, update_if_exists=False)`
+`TableauServerRest.users.add_user(username, fullname, site_role='Unlicensed', password=None, email=None, update_if_exists=False)`
 
 If you just want to do the basic add, without the update, then do:
 
-`TableauRestApiConnection.add_user_by_username(username, site_role='Unlicensed', update_if_exists=False)`
+`TableauServerRest.users.add_user_by_username(username, site_role='Unlicensed', update_if_exists=False)`
 
 The update_if_exists flag allows for the role to be changed even if the user already exists when set to True.
 
 #### 1.3.2 Create Methods for other content types
 The other methods for adding content start with `"create_"`. Each of these will return the LUID of the newly created content
 
-`TableauRestApiConnection.create_project(project_name, project_desc=None, locked_permissions=False)`
+`TableauServerRest.projects.create_project(project_name, project_desc=None, locked_permissions=False)`
 
-`TableauRestApiConnection.create_site(new_site_name, new_content_url, admin_mode=None, user_quota=None, storage_quota=None, disable_subscriptions=None)`
+`TableauServerRest.sites.create_site(new_site_name, new_content_url, admin_mode=None, user_quota=None, storage_quota=None, disable_subscriptions=None)`
 
-`TableauRestApiConnection.create_group(self, group_name)`
+`TableauServerRest.groups.create_group(self, group_name)`
 
-`TableauRestApiConnection.create_group_from_ad_group(self, ad_group_name, ad_domain_name, default_site_role='Unlicensed', sync_as_background=True)`
+`TableauServerRest.groups.create_group_from_ad_group(self, ad_group_name, ad_domain_name, default_site_role='Unlicensed', sync_as_background=True)`
 
 Ex.
-
-    new_luid = t.create_group("Awesome People")
-    # or if using TableauServerRest
     new_luid = t.groups.create_group('Awesome People')
 
 ##### 1.3.2.1 direct_xml_request arguments on ADD / CREATE methods for duplicating site information     
@@ -709,24 +670,24 @@ This method automatically converts any single Tableau REST API XML tsResponse ob
 #### 1.3.3 Adding users to a Group
 Once users have been created, they can be added into a group via the following method, which can take either a single string or a list/tuple set. Anywhere you see the `"or_luid_s"` pattern in a parameter, it means you can pass a  string or a list of strings to make the action happen to all of those in the list. 
 
-`TableauRestApiConnection.add_users_to_group(username_or_luid_s, group_name_or_luid)`
+`TableauServerRest.groups.add_users_to_group(username_or_luid_s, group_name_or_luid)`
 
 Ex.
 
     usernames_to_add = ["user1@example.com", "user2@example.com", "user3@example.com"]
     users_luids = []
     for username in usernames_to_add:
-        new_luid = t.add_user_by_username(username, site_role="Interactor")
+        new_luid = t.users.add_user_by_username(username, site_role="Interactor")
         users_luids.append(new_luid)
     
-    new_group_luid = t.create_group("Awesome People")
-    t.add_users_to_group_by_luid(users_luids, new_group_luid)
+    new_group_luid = t.groups.create_group("Awesome People")
+    t.groups.add_users_to_group_by_luid(users_luids, new_group_luid)
 
 #### 1.3.4 Update Methods
 If you want to make a change to an existing piece of content on the server, there are methods that start with `"update_"`. Many of these use optional keyword arguments, so that you only need to specify what yo'd like to change.
 
 Here's an example for updating a datasource:
-`TableauRestApiConnection.update_datasource(name_or_luid, new_datasource_name=None, new_project_luid=None,
+`TableauServerRest.datasources.update_datasource(name_or_luid, new_datasource_name=None, new_project_luid=None,
                           new_owner_luid=None, proj_name_or_luid=False)`
 
 Note that if you want to change the actual content of a workbook or datasource, that requires a `Publish` action with Overwrite set to True                          
@@ -734,91 +695,87 @@ Note that if you want to change the actual content of a workbook or datasource, 
 #### 1.3.5 Deleting / Removing Content
 Methods with `"remove_"` are used for user membership, where the user still exists on the server at the end.
 
-`TableauRestApiConnection.remove_users_from_site(username_or_luid_s)`
 
 `TableauServerRest.groups.remove_users_from_site(username_or_luid_s))`
-
-`TableauRestApiConnection.remove_users_from_group(username_or_luid_s, group_name_or_luid)`
 
 `TableauServerRest.groups.remove_users_from_group(username_or_luid_s, group_name_or_luid)`
 
 Methods that start with `"delete_"` truly delete the content 
 
-`TableauRestApiConnection.delete_workbooks(wb_name_or_luid_s)`
+`TableauServerRest.workbooks.delete_workbooks(wb_name_or_luid_s)`
 
-`TableauRestApiConnection.delete_projects(project_name_or_luid_s)`
+`TableauServerRest.projects.delete_projects(project_name_or_luid_s)`
 etc.
 
 #### 1.3.6 Deleting a Site
 The method for deleting a site requires that you first be signed into that site
 
-`TableauRestApiConnection.delete_current_site()`
+`TableauServerRest.sites.delete_current_site()`
 
 If you are testing a script that creates a new site, you might use the following pattern to delete the existing version before rebuilding it:
 
-    d = TableauRestApiConnection(server, username, password, site_content_url='default')
+    d = TableauServerRest(server, username, password, site_content_url='default')
     d.signin()
     d.enable_logging(logger)
     
     new_site_content_url = "my_site_name"
     try:
         print("Attempting to create site {}".format(new_site_content_url))
-        d.create_site(new_site_content_url, new_site_content_url)
+        d.sites.create_site(new_site_content_url, new_site_content_url)
     except AlreadyExistsException:
         print("Site replica already exists, deleting bad replica")
-        t = TableauRestApiConnection(server, username, password, site_content_url=new_site_content_url)
+        t = TableauServerRest(server, username, password, site_content_url=new_site_content_url)
         t.enable_logging(logger)
         t.signin()
-        t.delete_current_site()
+        t.sites.delete_current_site()
 
     d.signin()
-    d.create_site(new_site_content_url, new_site_content_url)
+    d.sites.create_site(new_site_content_url, new_site_content_url)
 
     print("Logging into {} site".format(new_site_content_url))
-    t = TableauRestApiConnection(server, username, password, site_content_url=new_site_content_url)
+    t = TableauServerRest(server, username, password, site_content_url=new_site_content_url)
     t.signin()
     t.enable_logging(logger)
 
 #### 1.3.7 Schedules (Extract and Subscriptions)
 You can add or delete schedules for extracts and subscriptions. While there is a generic TableauRestApiConnection.create_schedule() method , the unique aspects of each type schedule make it better to use the helper factory methods that specifically create the type of schedule you want:
 
-`TableauRestApiConnection.create_daily_extract_schedule(name, start_time, priority=1, parallel_or_serial='Parallel')`
+`TableauServerRest.schedules.create_daily_extract_schedule(name, start_time, priority=1, parallel_or_serial='Parallel')`
 
-`TableauRestApiConnection.create_daily_subscription_schedule(name, start_time, priority=1, parallel_or_serial='Parallel')`
+`TableauServerRest.schedules.create_daily_subscription_schedule(name, start_time, priority=1, parallel_or_serial='Parallel')`
     
-`TableauRestApiConnection.create_weekly_extract_schedule(name, weekday_s, start_time, priority=1, parallel_or_serial='Parallel')`
+`TableauServerRest.schedules.create_weekly_extract_schedule(name, weekday_s, start_time, priority=1, parallel_or_serial='Parallel')`
 
-`TableauRestApiConnection.create_weekly_subscription_schedule(name, weekday_s, start_time, priority=1, parallel_or_serial='Parallel')`
+`TableauServerRest.schedules.create_weekly_subscription_schedule(name, weekday_s, start_time, priority=1, parallel_or_serial='Parallel')`
   
-`TableauRestApiConnection.create_monthly_extract_schedule(name, day_of_month, start_time, priority=1, parallel_or_serial='Parallel')`
+`TableauServerRest.schedules.create_monthly_extract_schedule(name, day_of_month, start_time, priority=1, parallel_or_serial='Parallel')`
 
-`TableauRestApiConnection.create_monthly_subscription_schedule(name, day_of_month, start_time, priority=1, parallel_or_serial='Parallel')`
+`TableauServerRest.schedules.create_monthly_subscription_schedule(name, day_of_month, start_time, priority=1, parallel_or_serial='Parallel')`
 
-`TableauRestApiConnection.create_hourly_extract_schedule(name, interval_hours_or_minutes, interval, start_time, end_time, priority=1, parallel_or_serial='Parallel')`
+`TableauServerRest.schedules.create_hourly_extract_schedule(name, interval_hours_or_minutes, interval, start_time, end_time, priority=1, parallel_or_serial='Parallel')`
 
-`TableauRestApiConnection.create_hourly_subscription_schedule(name, interval_hours_or_minutes, interval, start_time, end_time, priority=1, parallel_or_serial='Parallel')`
+`TableauServerRest.schedules.create_hourly_subscription_schedule(name, interval_hours_or_minutes, interval, start_time, end_time, priority=1, parallel_or_serial='Parallel')`
 
-All of these methods live in the `TableauServerRest.subscriptions` sub-object when using `TableauServerRest`
 
 The format for start_time and end_time is `'HH:MM:SS'` like '13:15:30'. Interval can actually take a list, because Weekly schedules can run on multiple days. Priority is an integer between 1 and 100
 
 You can delete an existing schedule with:
 
-`TableauRestApiConnection.delete_schedule(schedule_name_or_luid)`
+`TableauServerRest.schedules.delete_schedule(schedule_name_or_luid)`
 
 You can update an existing schedule with:
 
-`TableauRestApiConnection.update_schedule(schedule_name_or_luid, new_name=None, frequency=None, parallel_or_serial=None, priority=None, start_time=None, end_time=None, interval_value_s=None, interval_hours_minutes=None)`
+`TableauServerRest.schedules.update_schedule(schedule_name_or_luid, new_name=None, frequency=None, parallel_or_serial=None, priority=None, start_time=None, end_time=None, interval_value_s=None, interval_hours_minutes=None)`
 
 One use case for updating schedules is to enable or disable the schedule. There are two methods for doing just this action:
 
-`TableauRestApiConnection.disable_schedule(schedule_name_or_luid)`
+`TableauServerRest.schedules.disable_schedule(schedule_name_or_luid)`
 
-`TableauRestApiConnection.enable_schedule(schedule_name_or_luid)`
+`TableauServerRest.schedules.enable_schedule(schedule_name_or_luid)`
 
 If you want to create a new schedule and then disable it, combine the two commands:
 
-    sched_luid = t.create_daily_extract_schedule('Afternoon Delight', start_time='13:00:00')
+    sched_luid = t.schedules.create_daily_extract_schedule('Afternoon Delight', start_time='13:00:00')
     t.disable_schedule(sched_luid)
 
 
@@ -864,28 +821,25 @@ Not much reason to ever use the plain `query_schedules()` and have them mixed to
 #### 1.3.8 Subscriptions
 You can subscribe a user to a view or a workbook on a given subscription schedule. This allows for mass actions such as subscribing everyone in a group to a given view or workbook, or removing subscriptions to old content and shifting them to new content.
 
-All of the following methods exist under
-`TableauServerRest.subscriptions` as well:
+`TableauServerRest.subscriptions.create_subscription_to_workbook(subscription_subject, wb_name_or_luid, schedule_name_or_luid, username_or_luid, project_name_or_luid=None)`
 
-`TableauRestApiConnection.create_subscription_to_workbook(subscription_subject, wb_name_or_luid, schedule_name_or_luid, username_or_luid, project_name_or_luid=None)`
-
-`TableauRestApiConnection.create_subscription_to_view(subscription_subject, view_name_or_luid, schedule_name_or_luid, username_or_luid, wb_name_or_luid=None, project_name_or_luid=None)`
+`TableauServerRest.subscriptions.create_subscription_to_view(subscription_subject, view_name_or_luid, schedule_name_or_luid, username_or_luid, wb_name_or_luid=None, project_name_or_luid=None)`
 
 There is a generic
-`TableauRestApiConnection.create_subscription()`
+`TableauServerRest.subscriptions.create_subscription()`
 but there the helper functions handle anything it can.
 
 You can update a subscription with 
 
-`TableauRestApiConnection.update_subscription(subscription_luid, subject=None, schedule_luid=None)`
+`TableauServerRest.subscriptions.update_subscription(subscription_luid, subject=None, schedule_luid=None)`
 
-`TableauRestApiConnection.delete_subscriptions(subscription_luid_s)`
+`TableauServerRest.subscriptions.delete_subscriptions(subscription_luid_s)`
 
 You'll note that the update and delete subscriptions methods only take LUIDs, unlike most other methods in tableau_tools. This is because Subscriptions do not have a reasonably unique identifier -- to find the LUID, you would use a combination of things to filter on.
 
 This brings us to how to find subscriptions to do things to via `query_subscriptions`
 
-`TableauRestApiConnection.query_subscriptions(username_or_luid=None, schedule_name_or_luid=None, subscription_subject=None,view_or_workbook=None, content_name_or_luid=None, project_name_or_luid=None, wb_name_or_luid=None)`
+`TableauServerRest.subscriptions.query_subscriptions(username_or_luid=None, schedule_name_or_luid=None, subscription_subject=None,view_or_workbook=None, content_name_or_luid=None, project_name_or_luid=None, wb_name_or_luid=None)`
 
 You don't have to pass anything to `query_subscriptions()`, and you'll get all of them in the system. However, if you want to filter down to a subset, you can pass any of the parameters, and the filters will be applied successively.
 
@@ -913,13 +867,13 @@ Project obviously represents a project on the server. But a `Project` also conta
 
 Starting in API 3.2 (2018.3+), there is a View object which represents published Views that were not published as Tabs. Since views have the same permissions as workbooks, use the WorkbookPermissions objects just like with the Workbook object.
 
-The `TableauRestApiConnection` and `TableauServerRest` classes have factory methods to get you the right object type for the right version of the API. Use these instead of constructing the objects directly.
+The `TableauServerRest` classes has factory methods to get you the right object type for the right version of the API. Use these instead of constructing the objects directly.
 
-`TableauRestApiConnection.get_published_project_object(project_name_or_luid)`
+`TableauServerRest.get_published_project_object(project_name_or_luid)`
 
-`TableauRestApiConnection.get_published_datasource_object(datasource_name_or_luid, project_name_or_luid)`
+`TableauServerRest.get_published_datasource_object(datasource_name_or_luid, project_name_or_luid)`
 
-`TableauRestApiConnection.get_published_workbook_object(workbook_name_or_luid, project_name_or_luid)`
+`TableauServerRest.get_published_workbook_object(workbook_name_or_luid, project_name_or_luid)`
 
 
 For Projects, since the standard `query_project()` method returns the Project object, so you can just use that method rather than the longer factory method above.
@@ -944,8 +898,6 @@ You access the default permissions objects with the following, which reference t
 
 `Project.datasource_defaults`
 
-Project28 expands the project definition to include a Parent Project LUID
-
 Project33 expands the project definition to include a `.flow_defaults` sub-object for setting Default Permissions for Flows.
 
 `Project33.flow_defaults`
@@ -960,12 +912,6 @@ Any time you want to set or change permissions, you must use one of the `Permiss
 
 `ProjectPermissions(group_or_user, group_or_user_luid)`
 
-`WorkbookPermissions28(group_or_user, group_or_user_luid)`
-
-`DatasourcePermissions28(group_or_user, group_or_user_luid)`
-
-`ProjectPermissions28(group_or_user, group_or_user_luid)`
-
 `FlowPermission33(group_or_user, group_or_user_luid)`
 
 `DatabasePermissions35(group_or_user, group_or_user_luid)`
@@ -978,30 +924,11 @@ Any PublishedContent object (Project, Workbook, etc.) will return the correct Pe
 
 So if you want to set the default permissions for workbooks in a project, you can do
 
-    proj_obj = t.query_project('My Project')
+    proj_obj = t.projects.query_project('My Project')
     wb_perms_1 = proj_obj.workbook_defaults.get_permissions_obj(group_name_or_luid='My Favorite Group')
     wb_perms_1.set_all_to_allow()
     wb_perms_1.set_capability_to_deny('Download Full Data')
     proj_obj.workbook_defaults.set_permissions(permissions=[wb_perms, ])
-
-For compatibility with older releases, the `Project` classes still contain these much longer legacy methods that bring back permissions objects of the different class types. Please use the `get_permissions_obj()` method in newer code. :
-
-`Project.create_datasource_permissions_object_for_group(group_name_or_luid, role=None)`
-
-`Project.create_workbook_permissions_object_for_group(group_name_or_luid, role=None)`
-
-`Project.create_project_permissions_object_for_group(group_name_or_luid, role=None)`
-
-`Project.create_datasource_permissions_object_for_user(username_or_luid, role=None)`
-
-`Project.create_workbook_permissions_object_for_user(username_or_luid, role=None)`
-
-`Project.create_project_permissions_object_for_user(username_or_luid, role=None)`
-
-`Project33.create_flow_permissions_object_for_group(group_name_or_luid, role=None)`
-
-`Project33.create_flow_permissions_object_for_user(username_or_luid, role=None)`
-
 
 #### 1.4.2 Setting Capabilities
 The Permissions classes have methods for setting capabilities individually, or matching the selectable "roles" in the Tableau Server UI. 
@@ -1026,7 +953,7 @@ There is also a method to match the roles from the Tableau Server UI. It is awar
 
 Ex. 
     
-    proj = t.query_project('My Project')
+    proj = t.projects.query_project('My Project')
     best_group_perms_obj = proj.get_permissions_obj(group_name_or_luid='Best Group')
     best_group_perms_obj.set_capabilities_to_match_role("Publisher")
     # alternatively, you can set this in the factory method
@@ -1049,7 +976,7 @@ This method does all of the necessary checks to send the simplest set of calls t
 
 Ex.
 
-        proj = t.query_project('My Project')
+        proj = t.projects.query_project('My Project')
         best_group_perms_obj = proj.get_permissions_obj(group_name_or_luid='Best Group')
         best_group_perms_obj.set_capabilities_to_match_role("Publisher")
         proj.set_permissions(permissions=[best_group_perms_obj, ]) # Note creating a list for singular item
@@ -1091,8 +1018,8 @@ orig_site is a TableauRestApiConnection class object that is a signed-in connect
 
 Ex.
 
-    orig_proj = o.query_project(proj_name)
-    new_proj = n.query_project(proj_name)
+    orig_proj = o.projects.query_project(proj_name)
+    new_proj = n.projects.query_project(proj_name)
     
     # Clear everything on the new one
     new_proj.clear_all_permissions()

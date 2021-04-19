@@ -58,26 +58,3 @@ class TableauEmailer:
         self.smtp_server.sendmail(from_user, to_user, msg.as_string())
         # Cleanup the file
         os.remove(filename_to_attach)
-
-    def generate_email_from_view(self, email_from_user, email_to_user, email_subject, email_template_name,
-                                 view_user, view_location, email_content_type='fullpdf', view_filter_map=None):
-        filename_to_attach = self.tabcmd.create_export(email_content_type, view_location, user_to_impersonate=view_user,
-                                                       view_filter_map=view_filter_map)
-        self.email_file_from_template(email_from_user, email_to_user, email_subject, email_template_name,
-                                      filename_to_attach)
-
-    def generate_emails_from_named_schedule_in_repository(self, schedule_name, email_from_user, email_template_name,
-                                                          email_content_type='fullpdf'):
-        repository = TableauRepository(self.tableau_server_url, self.repository_pw)
-        cur = repository.query_subscriptions(schedule_name)
-        for row in cur:
-            email_subject = row[1]
-            user = row[2]
-            site = row[3]
-            view_location = row[4]
-            # schedule_name = row[5]
-            user_email = row[6]
-            # Configure the site
-            self.tabcmd.site = site
-            self.generate_email_from_view(email_from_user, user_email, email_subject, email_template_name, user,
-                                          view_location, email_content_type=email_content_type)

@@ -864,37 +864,6 @@ class Project(PublishedContent):
 
         self.end_log_block()
 
-    # There are all legacy for compatibility purposes
-    def create_project_permissions_object_for_group(self, group_name_or_luid: str,
-                                                    role: Optional[str] = None) -> 'ProjectPermissions':
-        return self._get_permissions_object(group_name_or_luid=group_name_or_luid, role=role,
-                                            permissions_class_override=ProjectPermissions)
-
-    def create_project_permissions_object_for_user(self, username_or_luid: str,
-                                                    role: Optional[str] = None) -> 'ProjectPermissions':
-        return self._get_permissions_object(username_or_luid=username_or_luid, role=role,
-                                            permissions_class_override=ProjectPermissions)
-
-    def create_workbook_permissions_object_for_group(self, group_name_or_luid: str,
-                                                    role: Optional[str] = None) -> 'WorkbookPermissions':
-        return self._get_permissions_object(group_name_or_luid=group_name_or_luid, role=role,
-                                            permissions_class_override=WorkbookPermissions)
-
-    def create_workbook_permissions_object_for_user(self, username_or_luid: str,
-                                                    role: Optional[str] = None) -> 'WorkbookPermissions':
-        return self._get_permissions_object(username_or_luid=username_or_luid, role=role,
-                                            permissions_class_override=WorkbookPermissions)
-
-    def create_datasource_permissions_object_for_group(self, group_name_or_luid: str,
-                                                    role: Optional[str] = None) -> 'DatasourcePermissions':
-        return self._get_permissions_object(group_name_or_luid=group_name_or_luid, role=role,
-                                            permissions_class_override=DatasourcePermissions)
-
-    def create_datasource_permissions_object_for_user(self, username_or_luid: str,
-                                                    role: Optional[str] = None) -> 'DatasourcePermissions':
-        return self._get_permissions_object(username_or_luid=username_or_luid, role=role,
-                                            permissions_class_override=DatasourcePermissions)
-
     @property
     def workbook_defaults(self) -> Workbook:
         return self._workbook_defaults
