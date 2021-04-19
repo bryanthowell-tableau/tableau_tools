@@ -1441,7 +1441,7 @@ class TableauRestApiBase37(TableauRestApiBase36):
                                     site_content_url=site_content_url, api_version=api_version)
         self.set_tableau_server_version('2020.1')
 
-class TableauRestApiBase38(TableauRestApiBase36):
+class TableauRestApiBase38(TableauRestApiBase37):
     def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = "", api_version: str = "3.8"):
         TableauRestApiBase36.__init__(self, server=server, username=username, password=password,
                                     site_content_url=site_content_url, api_version=api_version)
@@ -1454,7 +1454,7 @@ class TableauRestApiBase38(TableauRestApiBase36):
         return sessions
 
 
-class TableauRestApiBase39(TableauRestApiBase36):
+class TableauRestApiBase39(TableauRestApiBase38):
     def __init__(self, server: str, username: str, password: str, site_content_url: Optional[str] = "", api_version: str = "3.9"):
         TableauRestApiBase36.__init__(self, server=server, username=username, password=password,
                                     site_content_url=site_content_url, api_version=api_version)

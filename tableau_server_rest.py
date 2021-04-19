@@ -115,7 +115,7 @@ class TableauServerRest36(TableauRestApiBase36):
         self.webhooks: WebhooksMethods36 = WebhooksMethods36(self.rest_api_base)
         self.workbooks: WorkbookMethods34 = WorkbookMethods34(self.rest_api_base)
 
-class TableauServerRest37(TableauRestApiBase36):
+class TableauServerRest37(TableauRestApiBase37):
     def __init__(self, server: str, username: Optional[str] = None, password: Optional[str] = None,
                  site_content_url: Optional[str] = "", pat_name: Optional[str] = None,
                  pat_secret: Optional[str] = None, api_version: str = "3.7"):
