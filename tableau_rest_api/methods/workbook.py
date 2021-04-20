@@ -255,8 +255,8 @@ class WorkbookMethods():
         return conns
 
     def query_views(self, all_fields: bool = True, usage: bool = False,
-                         filters: Optional[List[UrlFilter]] = None, sorts: Optional[UrlFilter] = None,
-                         fields: Optional[UrlFilter] = None) -> ET.Element:
+                         filters: Optional[List[UrlFilter]] = None, sorts: Optional[Sort] = None,
+                         fields: Optional[List[str]] = None) -> ET.Element:
         self.rest.start_log_block()
 
         if fields is None:
@@ -272,8 +272,8 @@ class WorkbookMethods():
         return vws
 
     def query_views_json(self, all_fields: bool = True, usage: bool = False,
-                         filters: Optional[List[UrlFilter]] = None, sorts: Optional[UrlFilter] = None,
-                         fields: Optional[UrlFilter] = None, page_number: Optional[int] = None) -> Dict:
+                         filters: Optional[List[UrlFilter]] = None, sorts: Optional[Sort] = None,
+                         fields: Optional[List[str]] = None, page_number: Optional[int] = None) -> Dict:
         self.rest.start_log_block()
 
         if fields is None:

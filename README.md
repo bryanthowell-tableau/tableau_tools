@@ -1273,7 +1273,7 @@ Workbooks:
 
 Flows:
  (not available and tested yet)    
-(Flows are stored in a a JSON format that shares no similarities with the other Tableau File Types)
+(Flows are stored in a JSON format that shares no similarities with the other Tableau File Types)
 
 You'll note in parentheses that some of these classes do descend from the same abstract parent classes. This means they have the same methods available, despite being different classes. In particular, DatasourceFileInterface allows you to access the datasource objects stored within any of the object types without worrying about the hierarchy of the individual object. We'll explore the effects of this in one of the next sections.
 
@@ -2093,7 +2093,11 @@ It's fair to describe `request_from_api` as handling the process when requests c
 `__make_request` originally did a lot of mangling between various encodings of UTF-8 and XML namespaces, but thankfully there are no versions of Tableau Server still available that require those issues (and Python 3's change to differentiate Unicode strings from Bytes types also helped smooth things out)
 
 ## 7 tableau_documents module deep dive
+Section 2 covers the functional model of tableau_documents, and should be the starting point for understanding its structure.
 
+The TWB and TDS files are fully compliant XML, and Tableau will even provide an XSD for validation, but there is no existing guide to how it all works together, or the "application logic" necessary to make certain things happen.
+
+All capabilities implemented in tableau_documents were developed through reverse engineering - creating a TWB or TDS file via Tableau Desktop, then opening the files in a text editor to see how the visual actions are represented in code. Typically, a manual change would be made, then the file saved and reopened in Tableau Desktop, to understand if that type of change could be made without causing errors. Then a programmatic version of that same XML change would be added to 
 
 
 

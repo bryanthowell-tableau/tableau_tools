@@ -23,6 +23,27 @@ class TableauServerRest(TableauRestApiBase):
         self.workbooks: WorkbookMethods = WorkbookMethods(self.rest_api_base)
 
 
+# Identical to TableauServerRest, but there if someone used a previous version of library where it was versioned
+class TableauServerRest32(TableauRestApiBase):
+    def __init__(self, server: str, username: str, password: str,
+                 site_content_url: Optional[str] = "", api_version: str = "3.2"):
+        TableauRestApiBase.__init__(self, server, username, password, site_content_url,
+                                    api_version=api_version)
+        self.rest_api_base = self
+
+        self.datasources: DatasourceMethods = DatasourceMethods(self.rest_api_base)
+        self.extracts: ExtractMethods = ExtractMethods(self.rest_api_base)
+        self.favorites: FavoritesMethods = FavoritesMethods(self.rest_api_base)
+        self.groups: GroupMethods = GroupMethods(self.rest_api_base)
+        self.projects: ProjectMethods = ProjectMethods(self.rest_api_base)
+        self.revisions: RevisionMethods = RevisionMethods(self.rest_api_base)
+        self.schedules: ScheduleMethods = ScheduleMethods(self.rest_api_base)
+        self.sites: SiteMethods = SiteMethods(self.rest_api_base)
+        self.subscriptions: SubscriptionMethods = SubscriptionMethods(self.rest_api_base)
+        self.users: UserMethods = UserMethods(self.rest_api_base)
+        self.workbooks: WorkbookMethods = WorkbookMethods(self.rest_api_base)
+
+
 class TableauServerRest33(TableauRestApiBase):
     def __init__(self, server: str, username: str, password: str,
                  site_content_url: Optional[str] = "", api_version: str = "3.3"):
