@@ -2114,9 +2114,22 @@ Interface classes use the Abstract Base Class functionality of Python. They are 
 `TableauPackagedFile`: Provides the basics for the PackagedFile classes TWBX and TDSX which are ZIP files that contain respectively a TWB and TDS object inside them, along with other files. The save mechanism is able to repackage everything correctly and save as a new TWBX or TDSX file. This interface exposes a `.tableau_xml_file` property, which allows for a pass through to the `.tableau_document` property within. 
 
 #### 7.1.2 _open_file_and_initialize method
-Each class defines its own _oepn_file_and_initialize() method which handles file validation and builds out all other sub-objects from the XML it finds (however many levels deep). For example, the TWBX class opens up the zipfile, then looks for a .twb file within. It takes that file and creates a TWB object, which builds a TableauWorkbook object and all the TableauDatasource objects that live within it.
+Each class defines its own _open_file_and_initialize() method which handles file validation and builds out all other sub-objects from the XML it finds (however many levels deep). For example, the TWBX class opens up the zipfile, then looks for a .twb file within. It takes that file and creates a TWB object, which builds a TableauWorkbook object and all the TableauDatasource objects that live within it.
 
 The initialize opens the XML files as text and simply looks for the <datasources> section through basic text search functionality. It creates a string object in memory storing the XML that can used to create a(n) TableauDatasource object(s). TWB files in particular can be very large, so this minimizes the memory usage by only representing the datasource portions in memory. The downside is that you do not have access to all XML elements of the TWB file - hence why the library only can change datasource properties rather than anything else within a workbook.
+
+#### 7.1.3 save_new_file method
+Each class also defines a save_new_file() method. For the TWB and TDS objects, this simply calls the `get_xml_string()` method of the TableauDocument classes within and then saves the result to disk with the given filename.
+
+The TableauPackagedFile classes do much more in the `save_new_file()` method. The code itself is all commented well explaining each of the steps but basically the process is:
+   1. Open the original packaged file on disk again using zipfile
+   2. Create a new zipfile on disk (with the TDSX or TWBX ending)
+   3. Parse through all the files from the original archive file
+   4. If there are any replacements to be made (Hyper files mostly), those new files will be substituted into the new archive with the original names, otherwise the all files except the .twb or .tds will be saved as is from the original archive to the new archive
+  5. Call the get_xml_string() method of the TDS or TWB object and then save that to the new archive instead of the original file
+
+
+If the specified filename already exists, the methods automatically append an incremented number in parentheses  - "My New File (1)" etc.
 
 ### 7.2 tableau_document.py
 TableauDocument class is an Abstract Base Class i.e. just an interface, which declares that inheriting classes will define a `get_xml_string()` method. That method is defined differently for a TWB and a TDS - it is called by the file object when saving to disk. It takes the current state of the complex objects and merges them into a single encoded str of the XML.
@@ -2193,10 +2206,48 @@ On the other hand, some setter / getter pairs do exist. Note how much logic ther
         self.p_xml.append(calc)
 
 ### 7.5 tableau_datasource.py
+By far the most code and features live within the TableauDatasource class. It has a `self.xml` property that is an ElementTree.Element of the <datasource> XMl element itself, with all other methods interacting with `self.xml`. 
 
+Within any Tableau Datasource there can be multiple Connections (represented by TableauConnection class) as well as Columns (represented by TableauColumns and TableauColumn class). There are also TableRelations which represent the JOINs or Custom SQL or other aspects between tables within a connection.
 
+Published Datasources have all of their information within the TableauDatasource object, rather than having TableauConnections. There is a `is_published` boolean property to allow detection of Published Datasources, so that the `published_ds_site` and `published_ds_content_url` properties can be set/get .
 
+NOTE AGAIN: Most of this work was confirmed at latest around Tableau 10.5, and versions after 2020.2 have a "Relationships model" which adds considerable complexity that is not modeled at all here.
 
+SECOND NOTE: There is code related to the ability to create a TDS file completely from scratch. However, the complexity of getting everything right version after version meant that all documentation of this has been removed, and those features are untested. I don't recommend attempting to make any of that functionality work again. There are lots of methods of "create_" or "add_new" relating to columns, calculations, etc. All of this could be useful to study for the reverse engineering they imply, but only the "modify existing" methods should be used.
+
+One thing to note about the "component classes" - TableauConnection and TableauColumn - they all have internal `self.xml_obj` properties which reference particular ElementTree.Element objects but they are all still part of the same larger `self.xml` from the TableauDatasource class. This may seem like a very technical distinction to make, but from a programming perspective it means that all of the various parts are making changes to a single larger ElementTree.Element object. There is no "combining things back together" at any point - when TableauDatasource converts `self.xml` to a string, any changes that were made via TableauColumn or TableauConnection will automatically be reflected, because their internal xml objects are descendents of the larger XML object. 
+
+The above also means if you need to do something that hasn't been encapsulated with specialized methods, you can just parse the `TableauDatasource.xml` property directly using the standard Python ElementTree.Element methods. You'll have to look hard at the TWB or TDS file in a text editor, but you should be able to work your way down the document tree and access any element and its properties. This was how many of the features were originally developed - the direct calls were made, then a method was added to formalize those steps with a set of known arguments. 
+
+#### 7.5.1 tableau_columns.py
+Fields (that are visible in the left side bar of Tableau Desktop) are represented as either <col> or <column> elements within the document XML. The classes in tableau_columns.py encapsulate those elements with methods for getting
+
+The TableauColumns class is just a container for the individual TableauColumn objects within, but it implements `get_column_by_name()` which searches both names and aliases. In general, if something can be renamed in Tableau Desktop, that will be represented as an 'alias' property within the XML, but the pattern is typically to only actually add an 'alias' property if it differs from the name, which means you have to search both properties, as some elements might not have an alias EVEN IF THEY COULD.
+
+TableauColumn lets you modify the name, datatype, and other properties of a given Field.
+
+TableauHierarchies and TableauHierachy are also defined in this class - whether they can be actively used would require investigation.
+
+#### 7.5.2 tableau_connection.py
+TableauConnection contains the most useful set of properties in the whole library. The <connection> element describes the set of properties relating to whatever Tableau Native Connector class is being used to get data. There are lots of common properties defined with getter/setter methods (see Section 2 of the README for how to use this functionality). 
+
+Similar to all the other classes in this part of the library, there is a `TableauConnection.xml_obj` property which gives you direct access to the ElementTree.Element object representing the <connection> element. If you need to access a property of the connection object that does not have a method, you could use
+
+`TableauConnection.xml_obj.get('property-name')`
+
+and set via
+
+`TableauConnection.xml_obj.set('property-name', 'someValue')`
+
+If you look at most of the setter/getter method definitions, they just work along those lines.
+
+#### 7.5.3 table_relations.py
+The TableRelations class is an attempt to encapsulate the original Tableau table JOINing paradigm. It does not take into account the new Relationships model at all. 
+
+Most of the methods refer to the "main" or "first" of something. Due to the complexity of the possibilities of the table relationships, this functionality is really only intended to work with single tables, a single Custom SQL query, or a connection to a stored procedure. The class does store the full relationship model, but we never came up with a satisfactory syntax to easily define connections between tables (SQL syntax is already very good at this, but that is not how things are defined internally and creating a parser was beyond the project scope at any point).
+
+The `generate_relation_section()` method is a working model for rebuilding the relations XML correctly, and it is able to regenerate correctly based on any of the update methods. Might be worth studying especially if anyone attempts to work out the newer Tableau Relationships model from recent versions.
 
 
 
