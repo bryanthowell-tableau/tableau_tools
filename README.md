@@ -1336,7 +1336,7 @@ The TableauDatasource class is represents the XML contained within a TDS or an e
 
 Any class which implements the DatasourceFileInterface class (TWB, TWBX, TDS, TDSX) make a list of all included TableauDatasource objects available via the `datasources` property. 
 
-You can also transverse the various object types to get to the inner TableauDatasources, but this is usually unnecessary. 
+You can also traverse the various object types to get to the inner TableauDatasources, but this is usually unnecessary. 
 
 You would only initialize a `TableauDatasource` object directly when creating a datasource from scratch in which case you initialize it like:
 
@@ -2099,12 +2099,100 @@ The TWB and TDS files are fully compliant XML, and Tableau will even provide an 
 
 All capabilities implemented in tableau_documents were developed through reverse engineering - creating a TWB or TDS file via Tableau Desktop, then opening the files in a text editor to see how the visual actions are represented in code. Typically, a manual change would be made, then the file saved and reopened in Tableau Desktop, to understand if that type of change could be made without causing errors. Then a programmatic version of that same XML change would be added to 
 
+### 7.1 tableau_file.py - TableauFileManager and the file classes
+TableauFileManager is just a factory class which takes any file reference to a Tableau file type and returns back the correct object type.
 
+Why have this at all? There's a hierarchy of how the Tableau files relate (discussed in section 2 of the guide), and so each class (TDS, TDSX, TWB, TWBX) implements some of the different interfaces that make sense. The idea is that you can write code which does not care the exact file type that is opened, and can do the same methods to any of these classes which access the Datasources, which is all tableau_documents is designed to work with.
 
+#### 7.1.1 Interfaces
+Interface classes use the Abstract Base Class functionality of Python. They are never meant to be instantiated themselves, they merely describe structure that will be shared by other classes that inherit them.
 
+`DatasourceFileInterface` : provides a 'datasources' method on each class that returns a List of TableauDatasource objects. This is the primary interface into any of the XML modification
 
+`TableauXmlFile`: Provides a mechanism to convert the working model of the ElementTree XML objects in memory, with whatever state has changed, into the string XML output necessary to save to disk. Exposes a `.tableau_document` property
 
+`TableauPackagedFile`: Provides the basics for the PackagedFile classes TWBX and TDSX which are ZIP files that contain respectively a TWB and TDS object inside them, along with other files. The save mechanism is able to repackage everything correctly and save as a new TWBX or TDSX file. This interface exposes a `.tableau_xml_file` property, which allows for a pass through to the `.tableau_document` property within. 
 
+#### 7.1.2 _open_file_and_initialize method
+Each class defines its own _oepn_file_and_initialize() method which handles file validation and builds out all other sub-objects from the XML it finds (however many levels deep). For example, the TWBX class opens up the zipfile, then looks for a .twb file within. It takes that file and creates a TWB object, which builds a TableauWorkbook object and all the TableauDatasource objects that live within it.
+
+The initialize opens the XML files as text and simply looks for the <datasources> section through basic text search functionality. It creates a string object in memory storing the XML that can used to create a(n) TableauDatasource object(s). TWB files in particular can be very large, so this minimizes the memory usage by only representing the datasource portions in memory. The downside is that you do not have access to all XML elements of the TWB file - hence why the library only can change datasource properties rather than anything else within a workbook.
+
+### 7.2 tableau_document.py
+TableauDocument class is an Abstract Base Class i.e. just an interface, which declares that inheriting classes will define a `get_xml_string()` method. That method is defined differently for a TWB and a TDS - it is called by the file object when saving to disk. It takes the current state of the complex objects and merges them into a single encoded str of the XML.
+
+### 7.3 tableau_workbook.py
+The TableauWorkbook object is mostly just a container for a list of TableauDatasources, but it does host the `.parameters` property as well as the `add_parameters_to_workbook()` method, which builds a TableauParameters object and attaches it to the `.parameters` property if one does not already exist. Parameters (as described below) are actually a specialized Datasource object within the XML, but they only exist within Workbooks (in most cases -- it is possible that a Published Data Source has parameters defined, but they still would get their values from the Workbook using the published data source -- would require a lot of testing to fully understand)
+
+### 7.4 tableau_parameters.py
+Inside is the definition of TableauParameters, a containing class which has methods to parse and modify a set of TableauParameter objects, also defined within this file. There is an internal naming scheme to parameters which the TableauParameters object handles along with creating, adding and retrieving the TableauParameter objects. 
+
+A user calls the factory method `TableauParameters.create_new_parameter()` to get a TableauParameter object if they want to add an entirely new parameter to a workbook. They then use the `TableauParameters.add_parameter()` method to pass that TableauParameter object back (after adjusting properties and so forth). 
+
+TableauParameter is the first object covered in this README up to this point that represents an encapsulated XML object. It has a property called `self.p_xml` which is the ElementTree.Element object (in this case a <column> element). There are various setter and getter properties which either return properties of the <column> element or set them. 
+
+The setters and getters are the result of a lot of reverse engineering. The Python method names typically match up with the Tableau Desktop name for an option. For example:
+
+    @property
+    def allowable_values(self) -> str:
+        return self.p_xml.get('param-domain-type')
+
+The property name is "allowable_values", which is what you would see in the dialog box when creating a Parameter within Tableau. But the XML that is retrieved is from the property 'param-domain-type'. 
+
+Rather than a single setter on this property (which other properties do have), there are several methods which present an interface that matches with Tableau Desktop to the developer, but do the correct things within the XML structure:
+
+`set_allowable_values_to_range()`
+
+`set_allowable_values_to_list()`
+
+etc.
+
+On the other hand, some setter / getter pairs do exist. Note how much logic there is to set a single string value properly:
+
+    @property
+    def current_value(self) -> str:
+        # Returns the alias if one exists
+        if self.p_xml.get('alias') is None:
+            return self.p_xml.get('value')
+        else:
+            return self.p_xml.get('alias')
+
+    @current_value.setter
+    def current_value(self, current_value: str):
+        # The set value is both in the column tag and has a separate calculation tag
+
+        # If there is an alias, have to grab the real value
+        actual_value = current_value
+        if self._aliases is True:
+            self.p_xml.set('alias', str(current_value))
+            # Lookup the actual value of the alias
+            for value_pair in self._values_list:
+                for value in value_pair:
+                    if value_pair[value] == current_value:
+                        actual_value = value
+
+        # Why there have to be a calculation tag as well? I don't know, but there does
+        calc = ET.Element('calculation')
+        calc.set('class', 'tableau')
+        if isinstance(current_value, str) and self.datatype not in ['date', 'datetime']:
+            self.p_xml.set('value', quoteattr(actual_value))
+            calc.set('formula', quoteattr(actual_value))
+        elif self.datatype in ['date', 'datetime']:
+            if isinstance(current_value, datetime.date) or isinstance(current_value, datetime.datetime):
+                time_str = "#{}#".format(current_value.strftime('%Y-%m-%d %H-%M-%S'))
+                calc.set('formula', time_str)
+            else:
+                if not (current_value[0] == '#' and current_value[-1] == '#'):
+                    raise InvalidOptionException('Time and Datetime strings must start and end with #')
+                else:
+                    calc.set('formula', str(current_value))
+        else:
+            self.p_xml.set('value', str(actual_value))
+            calc.set('formula', str(actual_value))
+
+        self.p_xml.append(calc)
+
+### 7.5 tableau_datasource.py
 
 
 

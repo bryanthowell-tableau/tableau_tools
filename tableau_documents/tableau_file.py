@@ -135,21 +135,23 @@ class TWB(DatasourceFileInterface, TableauXmlFile):
 
             # Stream through the file, only pulling the datasources section
             ds_flag = None
+            # Previous versions threw out the metadata-records, but given the amount of RAM people have now,
+            # and that Ask Data uses them in some for, there is no harm in leaving them now
             # Here we throw out metadata-records even when opening a workbook from disk, they take up space
             # and are recreate automatically.
             metadata_flag = None
             for line in wb_fh:
                 # Grab the datasources
 
-                if line.find("<metadata-records") != -1 and metadata_flag is None:
-                    metadata_flag = True
+                #if line.find("<metadata-records") != -1 and metadata_flag is None:
+                #    metadata_flag = True
                 if ds_flag is True and metadata_flag is not True:
                     ds_fh.write(line)
                 if line.find("<datasources") != -1 and ds_flag is None:
                     ds_flag = True
                     ds_fh.write("<datasources xmlns:user='http://www.tableausoftware.com/xml/user'>\n")
-                if line.find("</metadata-records") != -1 and metadata_flag is True:
-                    metadata_flag = False
+                #if line.find("</metadata-records") != -1 and metadata_flag is True:
+                #    metadata_flag = False
 
                 if line.find("</datasources>") != -1 and ds_flag is True:
                     break
@@ -231,17 +233,19 @@ class TDS(DatasourceFileInterface, TableauXmlFile):
             # Rather than a temporary file, open up a file-like string object
             ds_fh = io.StringIO()
 
+            # Previous versions threw out the metadata-records, but given the amount of RAM people have now,
+            # and that Ask Data uses them in some for, there is no harm in leaving them now
             # Here we throw out metadata-records even when opening a workbook from disk, they take up space
             # and are recreate automatically. Very similar to what we do in initialization of TableauWorkbook
             metadata_flag = None
             for line in o_ds_fh:
                 # Grab the datasources
-                if line.find("<metadata-records") != -1 and metadata_flag is None:
-                    metadata_flag = True
+                #if line.find("<metadata-records") != -1 and metadata_flag is None:
+                #    metadata_flag = True
                 if metadata_flag is not True:
                     ds_fh.write(line)
-                if line.find("</metadata-records") != -1 and metadata_flag is True:
-                    metadata_flag = False
+                #if line.find("</metadata-records") != -1 and metadata_flag is True:
+                #    metadata_flag = False
             o_ds_fh.close()
             # File-like object has to be reset from the start for the next read
             ds_fh.seek(0)
