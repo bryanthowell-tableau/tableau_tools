@@ -217,15 +217,7 @@ The TableauServerRest objects group the available methods into related sub-objec
 
 The TableauServerRest classes are:
 
-`TableauServerRest(server, username, password, site_content_url=""): 10.3`
-
-`TableauServerRest27: 10.4`
-
-`TableauServerRest28: 10.5`
-
-`TableauServerRest30: 2018.1`
-
-`TableauServerRest31: 2018.2`
+`TableauServerRest(server, username, password, site_content_url=""): 2018.3`
 
 `TableauServerRest32: 2018.3`
 
@@ -236,6 +228,16 @@ The TableauServerRest classes are:
 `TableauServerRest35: 2019.3`
 
 `TableauServerRest36(server, username=None, password=None, site_content_url="", pat_name=None, pat_secret=None): 2019.4`
+
+`TableauServerRest37(server, username=None, password=None, site_content_url="", pat_name=None, pat_secret=None): 2020.1`
+
+`TableauServerRest38(server, username=None, password=None, site_content_url="", pat_name=None, pat_secret=None): 2020.2`
+
+`TableauServerRest39(server, username=None, password=None, site_content_url="", pat_name=None, pat_secret=None): 2020.3`
+
+`TableauServerRest310(server, username=None, password=None, site_content_url="", pat_name=None, pat_secret=None): 2020.4`
+
+`TableauServerRest311(server, username=None, password=None, site_content_url="", pat_name=None, pat_secret=None): 2021.1`
 
 You need to initialize at least one object of either of the two class types. 
 Ex.:
@@ -487,37 +489,37 @@ The following lists all of the available factory methods (although check with th
 
 `UrlFilter.get_datasource_type_filter(ds_type)`
 
-`UrlFilter27.get_names_filter(names)`
+`UrlFilter.get_names_filter(names)`
 
-`UrlFilter27.get_site_roles_filter(site_roles)`
+`UrlFilter.get_site_roles_filter(site_roles)`
 
-`UrlFilter27.get_owner_names_filter(owner_names)`
+`UrlFilter.get_owner_names_filter(owner_names)`
 
-`UrlFilter27.get_domain_names_filter(domain_names)`
+`UrlFilter.get_domain_names_filter(domain_names)`
 
-`UrlFilter27.get_domain_nicknames_filter(domain_nicknames)`
+`UrlFilter.get_domain_nicknames_filter(domain_nicknames)`
 
-`UrlFilter27.get_domain_name_filter(domain_name)`
+`UrlFilter.get_domain_name_filter(domain_name)`
 
-`UrlFilter27.get_domain_nickname_filter(domain_nickname)`
+`UrlFilter.get_domain_nickname_filter(domain_nickname)`
 
-`UrlFilter27.get_minimum_site_roles_filter(minimum_site_roles)`
+`UrlFilter.get_minimum_site_roles_filter(minimum_site_roles)`
 
-`UrlFilter27.get_minimum_site_role_filter(minimum_site_role)`
+`UrlFilter.get_minimum_site_role_filter(minimum_site_role)`
 
-`UrlFilter27.get_is_local_filter(is_local)`
+`UrlFilter.get_is_local_filter(is_local)`
 
-`UrlFilter27.get_user_count_filter(operator, user_count)`
+`UrlFilter.get_user_count_filter(operator, user_count)`
 
-`UrlFilter27.get_owner_domains_filter(owner_domains)`
+`UrlFilter.get_owner_domains_filter(owner_domains)`
 
-`UrlFilter27.get_owner_domain_filter(owner_domain)`
+`UrlFilter.get_owner_domain_filter(owner_domain)`
 
-`UrlFilter27.get_owner_emails_filter(owner_emails)`
+`UrlFilter.get_owner_emails_filter(owner_emails)`
 
-`UrlFilter27.get_owner_email_filter(owner_email)`
+`UrlFilter.get_owner_email_filter(owner_email)`
 
-`UrlFilter27.get_hits_total_filter(operator, hits_total)`
+`UrlFilter.get_hits_total_filter(operator, hits_total)`
 
 Note that times must be specified with a full ISO 8601 format as shown below, however you can just pass a datetime.datetime object and the methods will convert automatically
 
@@ -638,7 +640,7 @@ The other methods for adding content start with `"create_"`. Each of these will 
 
 `TableauServerRest.projects.create_project(project_name, project_desc=None, locked_permissions=False)`
 
-`TableauServerRest.sites.create_site(new_site_name, new_content_url, admin_mode=None, user_quota=None, storage_quota=None, disable_subscriptions=None)`
+`TableauServerRest.sites.create_site(new_site_name, new_content_url, options_dict= {'optionName' : 'value', 'optionName2': 'value2}))`
 
 `TableauServerRest.groups.create_group(self, group_name)`
 
