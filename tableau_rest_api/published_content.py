@@ -884,6 +884,7 @@ class Project(PublishedContent):
     def are_permissions_locked(self) -> bool:
         proj = self.xml_obj
         locked_permissions = proj.get('contentPermissions')
+        if locked_permissions is None: locked_permissions = proj[0].get('contentPermissions')
         mapping = {'ManagedByOwner' : False, 'LockedToProject': True}
         return mapping[locked_permissions]
 
