@@ -115,7 +115,12 @@ class Permissions(LoggingMethods):
         '3.3': capabilities_3_3,
         '3.4': capabilities_3_3,
         '3.5': capabilities_3_5,
-        '3.6': capabilities_3_5
+        '3.6': capabilities_3_5,
+        '3.7': capabilities_3_5,
+        '3.8': capabilities_3_5,
+        '3.9': capabilities_3_5,
+        '3.10': capabilities_3_5,
+        '3.11': capabilities_3_5
     }
 
     def __init__(self, group_or_user: str, luid: str, content_type: Optional[str] = None):
