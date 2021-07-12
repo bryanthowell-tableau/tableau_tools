@@ -1362,6 +1362,22 @@ class TableauRestApiBase36(TableauRestApiBase35):
         self._request_obj: Optional[RestXmlRequest] = None
         self._request_json_obj: Optional[RestJsonRequest] = None
 
+        self.site_roles = (
+            u'Interactor',
+            u'Publisher',
+            u'SiteAdministrator',
+            u'Unlicensed',
+            u'UnlicensedWithPublish',  # This was sunset at some point
+            u'Viewer',
+            u'ViewerWithPublish',
+            u'ServerAdministrator',
+            u'ReadOnly',
+            u'Explorer',
+            u'ExplorerCanPublish',
+            u'SiteAdministratorExplorer',
+            u'Creator',
+            u'SiteAdministratorCreator'
+        )
         # Lookup caches to minimize calls
         self.username_luid_cache = {}
         self.group_name_luid_cache = {}
