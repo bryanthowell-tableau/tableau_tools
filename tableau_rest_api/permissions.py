@@ -285,9 +285,9 @@ class Permissions(LoggingMethods):
             'Web Edit': 'WebAuthoring',
             'Save': 'Write',
             'Inherited Project Leader': 'InheritedProjectLeader',
+            'Run Explain Data': 'RunExplainData',
             'all': 'all'  # special command to do everything
         }
-
 
 
     def convert_server_permission_name_to_rest_permission(self, permission_name: str) -> str:
