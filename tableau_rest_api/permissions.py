@@ -264,29 +264,30 @@ class Permissions(LoggingMethods):
         }
 
         self.server_to_rest_capability_map = {
-            'Add Comment': 'AddComment',
-            'Move': 'ChangeHierarchy',
-            'Set Permissions': 'ChangePermissions',
-            'Connect': 'Connect',
-            'Delete': 'Delete',
-            'View Summary Data': 'ExportData',
-            'Download Summary Data': 'ExportData',
-            'Export Image': 'ExportImage',
-            'Download Image/PDF': 'ExportImage',
-            'Download': 'ExportXml',
-            'Download Workbook/Save As': 'ExportXml',
-            'Filter': 'Filter',
-            'Project Leader': 'ProjectLeader',
-            'View': 'Read',
-            'Share Customized': 'ShareView',
-            'View Comments': 'ViewComments',
-            'View Underlying Data': 'ViewUnderlyingData',
+            'Add Comment' : 'AddComment',
+            'all' : 'all',  # special command to do everything
+            'Connect' : 'Connect',
+            'Create Refresh Metrics' : 'CreateRefreshMetrics',
+            'Delete' : 'Delete',
+            'Download' : 'ExportXml',
             'Download Full Data' : 'ViewUnderlyingData',
-            'Web Edit': 'WebAuthoring',
-            'Save': 'Write',
-            'Inherited Project Leader': 'InheritedProjectLeader',
-            'Run Explain Data': 'RunExplainData',
-            'all': 'all'  # special command to do everything
+            'Download Image/PDF' : 'ExportImage',
+            'Download Summary Data' : 'ExportData',
+            'Download Workbook/Save As' : 'ExportXml',
+            'Export Image' : 'ExportImage',
+            'Filter' : 'Filter',
+            'Inherited Project Leader' : 'InheritedProjectLeader',
+            'Move' : 'ChangeHierarchy',
+            'Project Leader' : 'ProjectLeader',
+            'Run Explain Data' : 'RunExplainData',
+            'Save' : 'Write',
+            'Set Permissions' : 'ChangePermissions',
+            'Share Customized' : 'ShareView',
+            'View' : 'Read',
+            'View Comments' : 'ViewComments',
+            'View Summary Data' : 'ExportData',
+            'View Underlying Data' : 'ViewUnderlyingData',
+            'Web Edit' : 'WebAuthoring'
         }
 
 
